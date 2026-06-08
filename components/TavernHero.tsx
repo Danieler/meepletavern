@@ -20,7 +20,7 @@ export function TavernHero({ query }: TavernHeroProps) {
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(29,37,48,0.86),rgba(29,37,48,0.58)_42%,rgba(29,37,48,0.18))]" />
       <div className="container-page relative flex min-h-[620px] items-center py-16 sm:min-h-[680px]">
         <div className="max-w-2xl">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/12 px-3 py-2 text-sm font-semibold text-white backdrop-blur">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white backdrop-blur">
             <Sparkles size={16} aria-hidden="true" />
             Archivo de juegos en español
           </p>

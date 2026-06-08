@@ -7,7 +7,7 @@ type AdminStatusBadgeProps = {
 export function AdminStatusBadge({ status }: AdminStatusBadgeProps) {
   const styles = {
     [GameStatus.draft]: "bg-ember/15 text-ink",
-    [GameStatus.published]: "bg-moss/12 text-moss",
+    [GameStatus.published]: "bg-moss/10 text-moss",
     [GameStatus.archived]: "bg-ink/10 text-ink/60"
   };
 
@@ -23,4 +23,3 @@ export function AdminStatusBadge({ status }: AdminStatusBadgeProps) {
     </span>
   );
 }
-

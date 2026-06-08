@@ -16,7 +16,7 @@ export function ProsCons({ pros, cons }: ProsConsProps) {
 
 function ListPanel({ title, items, tone }: { title: string; items: string[]; tone: "good" | "bad" }) {
   const Icon = tone === "good" ? Check : Minus;
-  const iconClass = tone === "good" ? "bg-moss/12 text-moss" : "bg-ruby/12 text-ruby";
+  const iconClass = tone === "good" ? "bg-moss/10 text-moss" : "bg-ruby/10 text-ruby";
 
   return (
     <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
@@ -34,4 +34,3 @@ function ListPanel({ title, items, tone }: { title: string; items: string[]; ton
     </section>
   );
 }
-
