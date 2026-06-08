@@ -6,9 +6,10 @@ export default function AdminCategoriesPage() {
   return (
     <AdminTaxonomyPage
       title="Admin de categorías"
-      description="Categorías reales usadas por juegos guardados en la base de datos."
-      field="categories"
-      emptyLabel="Sin categorías"
+      description="Añade, renombra o elimina categorías disponibles para clasificar juegos."
+      type="category"
+      label="categoría"
+      emptyLabel="Todavía no hay categorías."
     />
   );
 }

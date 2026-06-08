@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { slugify } from "../lib/slug";
 
 const prisma = new PrismaClient();
 
@@ -199,6 +200,45 @@ async function main() {
         status: "published",
         createdByAi: false,
         publishedAt: new Date()
+      }
+    });
+  }
+
+  await seedTaxonomyTerms();
+}
+
+async function seedTaxonomyTerms() {
+  const terms = new Map<string, { type: "category" | "mechanic" | "theme"; name: string }>();
+
+  for (const game of games) {
+    for (const name of game.categories) {
+      terms.set(`category:${slugify(name)}`, { type: "category", name });
+    }
+
+    for (const name of game.mechanics) {
+      terms.set(`mechanic:${slugify(name)}`, { type: "mechanic", name });
+    }
+
+    for (const name of game.themes) {
+      terms.set(`theme:${slugify(name)}`, { type: "theme", name });
+    }
+  }
+
+  for (const term of terms.values()) {
+    await prisma.taxonomyTerm.upsert({
+      where: {
+        type_slug: {
+          type: term.type,
+          slug: slugify(term.name)
+        }
+      },
+      update: {
+        name: term.name
+      },
+      create: {
+        type: term.type,
+        name: term.name,
+        slug: slugify(term.name)
       }
     });
   }

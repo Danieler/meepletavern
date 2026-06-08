@@ -1,6 +1,7 @@
 import { GameStatus, type Game } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
+import { getTaxonomyTermNames } from "@/lib/taxonomy";
 
 export type BuyLink = {
   store: string;
@@ -273,18 +274,15 @@ export function sortGames(games: CatalogGame[], sort = "nombre") {
 }
 
 export async function getCategoryTerms() {
-  const games = await getCatalogGames();
-  return getTerms(games, getGameCategories);
+  return getTaxonomyTermNames("category");
 }
 
 export async function getMechanicTerms() {
-  const games = await getCatalogGames();
-  return getTerms(games, getGameMechanics);
+  return getTaxonomyTermNames("mechanic");
 }
 
 export async function getThemeTerms() {
-  const games = await getCatalogGames();
-  return getTerms(games, getGameThemes);
+  return getTaxonomyTermNames("theme");
 }
 
 export function termHref(type: "category" | "mechanic" | "theme", term: string) {

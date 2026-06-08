@@ -6,9 +6,10 @@ export default function AdminMechanicsPage() {
   return (
     <AdminTaxonomyPage
       title="Admin de mecánicas"
-      description="Mecánicas reales usadas por juegos guardados en la base de datos."
-      field="mechanics"
-      emptyLabel="Sin mecánicas"
+      description="Añade, renombra o elimina mecánicas disponibles para clasificar juegos."
+      type="mechanic"
+      label="mecánica"
+      emptyLabel="Todavía no hay mecánicas."
     />
   );
 }

@@ -6,9 +6,10 @@ export default function AdminTavernPage() {
   return (
     <AdminTaxonomyPage
       title="Admin de taberna"
-      description="Temáticas reales de la taberna usadas por juegos guardados en la base de datos."
-      field="themes"
-      emptyLabel="Sin temáticas"
+      description="Añade, renombra o elimina temáticas de la taberna."
+      type="theme"
+      label="taberna"
+      emptyLabel="Todavía no hay temáticas."
     />
   );
 }
