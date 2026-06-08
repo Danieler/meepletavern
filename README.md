@@ -4,6 +4,13 @@ MVP SEO-first para descubrir juegos de mesa en español.
 
 ## Arranque local
 
+Este proyecto usa Volta para fijar versiones de runtime:
+
+- Node.js `22.12.0`
+- npm `11.2.0`
+
+Si tienes Volta instalado, al entrar en la carpeta del proyecto se usarán automáticamente.
+
 1. Instala dependencias:
 
 ```bash
@@ -37,4 +44,3 @@ Admin local por defecto en desarrollo:
 - Password: `meepletavern`
 
 En producción define siempre `ADMIN_USERNAME` y `ADMIN_PASSWORD`.
-
