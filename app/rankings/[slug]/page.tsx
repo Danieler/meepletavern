@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicShell } from "@/components/PublicShell";
 import { RankingList } from "@/components/RankingList";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { getRankingBySlug, getRankingGames, rankings } from "@/lib/catalog";
+import { getRankingBySlug, getRankingGames } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
 type RankingPageProps = {
@@ -12,13 +12,11 @@ type RankingPageProps = {
   }>;
 };
 
-export function generateStaticParams() {
-  return rankings.map((ranking) => ({ slug: ranking.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: RankingPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const ranking = getRankingBySlug(slug);
+  const ranking = await getRankingBySlug(slug);
 
   if (!ranking) {
     return {
@@ -38,13 +36,13 @@ export async function generateMetadata({ params }: RankingPageProps): Promise<Me
 
 export default async function RankingPage({ params }: RankingPageProps) {
   const { slug } = await params;
-  const ranking = getRankingBySlug(slug);
+  const ranking = await getRankingBySlug(slug);
 
   if (!ranking) {
     notFound();
   }
 
-  const games = getRankingGames(ranking);
+  const games = await getRankingGames(ranking);
 
   return (
     <PublicShell>
@@ -72,4 +70,3 @@ export default async function RankingPage({ params }: RankingPageProps) {
     </PublicShell>
   );
 }
-

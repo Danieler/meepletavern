@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { catalogGames, mechanicTerms } from "@/lib/catalog";
+import { getCatalogGames, getMechanicTerms } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Mecánicas de juegos de mesa",
@@ -10,7 +10,11 @@ export const metadata: Metadata = {
     "Explora juegos por mecánicas: colocación de trabajadores, construcción de mazos, mayorías, draft, dados, legacy, campaña y más."
 };
 
-export default function MechanicsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MechanicsPage() {
+  const [mechanicTerms, games] = await Promise.all([getMechanicTerms(), getCatalogGames()]);
+
   return (
     <PublicShell>
       <main>
@@ -26,7 +30,7 @@ export default function MechanicsPage() {
         </section>
         <section className="container-page grid gap-4 py-12 sm:grid-cols-2 lg:grid-cols-3">
           {mechanicTerms.map((term) => {
-            const count = catalogGames.filter((game) => game.mechanics.includes(term)).length;
+            const count = games.filter((game) => game.mechanics.includes(term)).length;
             return (
               <Link
                 key={term}
@@ -53,4 +57,3 @@ export default function MechanicsPage() {
     </PublicShell>
   );
 }
-

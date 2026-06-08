@@ -20,6 +20,7 @@ export type GeneratedGameDraft = {
   complexity: string | null;
   categories: string[];
   mechanics: string[];
+  themes: string[];
   similarGames: string[];
   faqs: FaqItem[];
   seoTitle: string | null;
@@ -83,6 +84,7 @@ function generateMockDraft(name: string): GeneratedGameDraft {
     complexity: "Por confirmar",
     categories: ["Borrador IA", "Por clasificar"],
     mechanics: ["Por confirmar"],
+    themes: ["Por confirmar"],
     similarGames: ["Catan", "Carcassonne", "Aventureros al Tren"],
     faqs: [
       {
@@ -113,4 +115,3 @@ function generateMockDraft(name: string): GeneratedGameDraft {
     ]
   };
 }
-

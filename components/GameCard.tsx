@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Star, Users } from "lucide-react";
+import { Clock, Gauge, Users } from "lucide-react";
 import type { CatalogGame } from "@/lib/catalog";
-import { RatingBadge } from "@/components/RatingBadge";
 
 type GameCardProps = {
   game: CatalogGame;
@@ -26,27 +25,26 @@ export function GameCard({ game, compact }: GameCardProps) {
                 </span>
               ))}
             </div>
-            <RatingBadge rating={game.rating} size="sm" />
           </div>
           <h3 className="text-xl font-bold text-ink">{game.title}</h3>
-          <p className="mt-1 text-xs font-semibold uppercase text-ink/45">
-            #{game.rank} en la taberna · {game.year}
-          </p>
+          {game.publishedAt ? (
+            <p className="mt-1 text-xs font-semibold uppercase text-ink/45">{formatDate(game.publishedAt)}</p>
+          ) : null}
           {!compact ? (
             <p className="mt-3 line-clamp-3 text-sm leading-6 text-ink/68">{game.reviewSummary}</p>
           ) : null}
           <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-ink/58">
             <span className="inline-flex items-center gap-1.5">
               <Users size={15} aria-hidden="true" />
-              {formatPlayers(game)}
+              {game.playersLabel || "Jugadores pendiente"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Clock size={15} aria-hidden="true" />
-              {game.durationMin}-{game.durationMax} min
+              {game.playtime || "Duración pendiente"}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Star size={15} aria-hidden="true" />
-              Peso {game.weight.toFixed(1)}
+              <Gauge size={15} aria-hidden="true" />
+              {game.complexity || "Complejidad pendiente"}
             </span>
           </div>
         </div>
@@ -77,10 +75,10 @@ function GameImage({ game }: GameCardProps) {
   );
 }
 
-function formatPlayers(game: CatalogGame) {
-  if (game.playersMin !== game.playersMax) {
-    return `${game.playersMin}-${game.playersMax}`;
-  }
-
-  return `${game.playersMin}`;
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(new Date(value));
 }

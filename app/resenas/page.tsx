@@ -11,8 +11,10 @@ export const metadata: Metadata = {
     "Reseñas de juegos de mesa en español con puntuación, resumen, opinión, pros, contras y recomendaciones para distintas mesas."
 };
 
-export default function ReviewsPage() {
-  const reviews = getReviews();
+export const dynamic = "force-dynamic";
+
+export default async function ReviewsPage() {
+  const reviews = await getReviews();
 
   return (
     <PublicShell>
@@ -48,4 +50,3 @@ export default function ReviewsPage() {
     </PublicShell>
   );
 }
-

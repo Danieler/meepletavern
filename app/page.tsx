@@ -13,9 +13,7 @@ import {
   getBeginnerGames,
   getNewGames,
   getPopularGames,
-  getRankingGames,
-  getReviews,
-  rankings
+  getReviews
 } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
@@ -25,12 +23,17 @@ export const metadata: Metadata = {
     "Catálogo moderno de juegos de mesa en español con reseñas, rankings, categorías, mecánicas y recomendaciones para encontrar tu próxima partida."
 };
 
-export default function Home() {
-  const popularGames = getPopularGames(6);
-  const latestReviews = getReviews().slice(0, 3);
-  const beginnerGames = getBeginnerGames(5);
-  const newGames = getNewGames(4);
-  const topRanking = getRankingGames(rankings[0]).slice(0, 5);
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [popularGames, reviews, beginnerGames, newGames] = await Promise.all([
+    getPopularGames(6),
+    getReviews(),
+    getBeginnerGames(5),
+    getNewGames(4)
+  ]);
+  const latestReviews = reviews.slice(0, 3);
+  const topRanking = popularGames.slice(0, 5);
 
   return (
     <PublicShell>
@@ -84,7 +87,7 @@ export default function Home() {
                     >
                       <span className="font-black text-ember">{index + 1}</span>
                       <span className="font-bold text-white">{game.title}</span>
-                      <span className="text-sm font-black text-parchment">{game.rating.toFixed(1)}</span>
+                      <span className="text-sm font-black text-parchment">{game.playersLabel || game.playtime || "Ficha"}</span>
                     </Link>
                   </li>
                 ))}

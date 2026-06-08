@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { CatalogGame } from "@/lib/catalog";
-import { RatingBadge } from "@/components/RatingBadge";
 
 export function RankingList({ games }: { games: CatalogGame[] }) {
   return (
@@ -14,14 +13,12 @@ export function RankingList({ games }: { games: CatalogGame[] }) {
             <span>
               <span className="block text-lg font-black text-ink">{game.title}</span>
               <span className="mt-1 block text-sm text-ink/60">
-                {game.categories.slice(0, 2).join(" · ")} · Peso {game.weight.toFixed(1)}
+                {[game.categories.slice(0, 2).join(" · "), game.playtime, game.complexity].filter(Boolean).join(" · ")}
               </span>
             </span>
-            <RatingBadge rating={game.rating} size="sm" />
           </Link>
         </li>
       ))}
     </ol>
   );
 }
-

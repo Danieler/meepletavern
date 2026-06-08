@@ -15,7 +15,8 @@ export async function getPublishedGames(options?: { limit?: number; query?: stri
             OR: [
               { name: { contains: query, mode: "insensitive" } },
               { categories: { has: query } },
-              { mechanics: { has: query } }
+              { mechanics: { has: query } },
+              { themes: { has: query } }
             ]
           }
         : {})
@@ -82,6 +83,7 @@ export async function createManualGameDraft(name = "Nuevo juego") {
       cons: [],
       categories: [],
       mechanics: [],
+      themes: [],
       similarGames: [],
       faqs: [],
       sources: []
@@ -133,4 +135,3 @@ async function ensureUniqueSlug(baseSlug: string) {
 
   return slug;
 }
-

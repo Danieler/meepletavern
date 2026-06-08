@@ -26,6 +26,7 @@ const games = [
     complexity: "Media ligera",
     categories: ["Estrategia familiar", "Negociación", "Clásicos modernos"],
     mechanics: ["Comercio", "Construcción de rutas", "Gestión de recursos", "Tablero modular"],
+    themes: ["Colonización", "Comercio"],
     similarGames: ["Carcassonne", "Aventureros al Tren", "Stone Age"],
     seoTitle: "Catan: reseña, duración, jugadores y opinión",
     seoDescription:
@@ -63,6 +64,7 @@ const games = [
     complexity: "Ligera",
     categories: ["Familiar", "Colocación de losetas", "Clásicos modernos"],
     mechanics: ["Colocación de losetas", "Mayorías", "Control de áreas"],
+    themes: ["Medieval", "Construcción"],
     similarGames: ["Catan", "Kingdomino", "Isle of Skye"],
     seoTitle: "Carcassonne: reseña, opinión y guía rápida",
     seoDescription:
@@ -96,6 +98,7 @@ const games = [
     complexity: "Media alta",
     categories: ["Cooperativo", "Cartas", "Campaña"],
     mechanics: ["Construcción de mazos", "Gestión de mano", "Campaña", "Prueba de habilidad"],
+    themes: ["Terror", "Cthulhu", "Investigación"],
     similarGames: ["Marvel Champions", "El Señor de los Anillos LCG", "Mansiones de la Locura"],
     seoTitle: "Arkham Horror LCG: reseña, opinión y por dónde empezar",
     seoDescription:
@@ -129,6 +132,7 @@ const games = [
     complexity: "Ligera",
     categories: ["Familiar", "Rutas", "Gateway"],
     mechanics: ["Colección de sets", "Construcción de rutas", "Objetivos secretos"],
+    themes: ["Trenes", "Viajes"],
     similarGames: ["Catan", "Carcassonne", "Azul"],
     seoTitle: "Aventureros al Tren: reseña, duración y jugadores",
     seoDescription:
@@ -162,6 +166,7 @@ const games = [
     complexity: "Media",
     categories: ["Aventura", "Cooperativo", "Campaña"],
     mechanics: ["App asistida", "Combate táctico", "Exploración", "Evolución de personajes"],
+    themes: ["Fantasía", "Mazmorras", "Aventura"],
     similarGames: ["Gloomhaven", "Mansiones de la Locura", "Sword & Sorcery"],
     seoTitle: "Descent Leyendas de las Tinieblas: reseña y opinión",
     seoDescription:
@@ -208,4 +213,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-

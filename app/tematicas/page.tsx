@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { catalogGames, themeTerms } from "@/lib/catalog";
+import { getCatalogGames, getThemeTerms } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Temáticas de juegos de mesa",
@@ -10,7 +10,11 @@ export const metadata: Metadata = {
     "Explora juegos de mesa por temáticas: fantasía, ciencia ficción, terror, Cthulhu, medieval, pulp, piratas, espacio, Marvel, Disney y zombies."
 };
 
-export default function ThemesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ThemesPage() {
+  const [themeTerms, games] = await Promise.all([getThemeTerms(), getCatalogGames()]);
+
   return (
     <PublicShell>
       <main>
@@ -26,7 +30,7 @@ export default function ThemesPage() {
         </section>
         <section className="container-page grid gap-4 py-12 sm:grid-cols-2 lg:grid-cols-3">
           {themeTerms.map((term) => {
-            const count = catalogGames.filter((game) => game.themes.includes(term)).length;
+            const count = games.filter((game) => game.themes.includes(term)).length;
             return (
               <Link
                 key={term}
@@ -53,4 +57,3 @@ export default function ThemesPage() {
     </PublicShell>
   );
 }
-

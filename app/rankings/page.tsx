@@ -5,7 +5,7 @@ import { PublicShell } from "@/components/PublicShell";
 import { RankingList } from "@/components/RankingList";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { getRankingGames, rankings } from "@/lib/catalog";
+import { getRankingGames, getRankings } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Rankings de juegos de mesa",
@@ -13,7 +13,17 @@ export const metadata: Metadata = {
     "Rankings de MeepleTavern con top juegos de mesa, familiares, cooperativos, party, narrativos, estratégicos, para dos y para principiantes."
 };
 
-export default function RankingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function RankingsPage() {
+  const rankings = await getRankings();
+  const rankingSections = await Promise.all(
+    rankings.map(async (ranking) => ({
+      ranking,
+      games: (await getRankingGames(ranking)).slice(0, 5)
+    }))
+  );
+
   return (
     <PublicShell>
       <main>
@@ -29,7 +39,7 @@ export default function RankingsPage() {
         </section>
 
         <section className="container-page grid gap-8 py-12 lg:grid-cols-2">
-          {rankings.map((ranking) => (
+          {rankingSections.map(({ ranking, games }) => (
             <article key={ranking.slug} className="space-y-5">
               <div className="flex items-start justify-between gap-4">
                 <SectionHeader title={ranking.title} description={ranking.description} />
@@ -38,7 +48,7 @@ export default function RankingsPage() {
                   Ver ranking
                 </Link>
               </div>
-              <RankingList games={getRankingGames(ranking).slice(0, 5)} />
+              <RankingList games={games} />
             </article>
           ))}
         </section>
@@ -56,4 +66,3 @@ export default function RankingsPage() {
     </PublicShell>
   );
 }
-

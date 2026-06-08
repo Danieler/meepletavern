@@ -28,6 +28,7 @@ export type AdminGameFormValues = {
   complexity: string;
   categories: string[];
   mechanics: string[];
+  themes: string[];
   similarGames: string[];
   faqs: FaqItem[];
   seoTitle: string;
@@ -159,7 +160,7 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
       ) : null}
 
       <form className="space-y-6">
-        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <section id="contenido-editorial" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Datos principales</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <Field label="Nombre del juego">
@@ -235,11 +236,12 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
           </div>
         </section>
 
-        <section className="grid gap-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft lg:grid-cols-2">
+        <section id="taxonomia" className="grid scroll-mt-24 gap-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft lg:grid-cols-2">
           <EditableList label="Pros" values={form.pros} onChange={(values) => updateField("pros", values)} />
           <EditableList label="Contras" values={form.cons} onChange={(values) => updateField("cons", values)} />
           <EditableList label="Categorías" values={form.categories} onChange={(values) => updateField("categories", values)} />
           <EditableList label="Mecánicas" values={form.mechanics} onChange={(values) => updateField("mechanics", values)} />
+          <EditableList label="Taberna / temáticas" values={form.themes} onChange={(values) => updateField("themes", values)} />
           <EditableList
             label="Juegos parecidos"
             values={form.similarGames}

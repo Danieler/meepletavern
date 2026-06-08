@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Crown, ScrollText } from "lucide-react";
+import { ChevronRight, Clock, Gauge, Users } from "lucide-react";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
 import { CollectionButtons } from "@/components/CollectionButtons";
@@ -11,10 +11,9 @@ import { GameStats } from "@/components/GameStats";
 import { MechanicTag } from "@/components/MechanicTag";
 import { ProsCons } from "@/components/ProsCons";
 import { PublicShell } from "@/components/PublicShell";
-import { RatingBadge } from "@/components/RatingBadge";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { catalogGames, getGameBySlug, getRelatedGames, termHref, type CatalogGame } from "@/lib/catalog";
+import { getGameBySlug, getRelatedGames, termHref, type CatalogGame } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
 type GamePageProps = {
@@ -25,7 +24,7 @@ type GamePageProps = {
 
 export async function generateMetadata({ params }: GamePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const game = getGameBySlug(slug);
+  const game = await getGameBySlug(slug);
 
   if (!game) {
     return {
@@ -34,8 +33,8 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
     };
   }
 
-  const title = `${game.title}: reseña, puntuación, duración y jugadores`;
-  const description = `${game.title} en MeepleTavern: puntuación, ranking, jugadores, duración, dificultad, reseña, pros, contras, categorías, mecánicas y juegos parecidos.`;
+  const title = `${game.title}: reseña, duración y jugadores`;
+  const description = `${game.title} en MeepleTavern: jugadores, duración, dificultad, reseña, pros, contras, categorías, mecánicas y juegos parecidos.`;
 
   return {
     title,
@@ -48,24 +47,22 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
       description,
       type: "article",
       url: `${siteConfig.url}/juegos/${game.slug}`,
-      images: [{ url: game.image, alt: game.title }]
+      images: game.image ? [{ url: game.image, alt: game.title }] : []
     }
   };
 }
 
-export function generateStaticParams() {
-  return catalogGames.map((game) => ({ slug: game.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function GamePage({ params }: GamePageProps) {
   const { slug } = await params;
-  const game = getGameBySlug(slug);
+  const game = await getGameBySlug(slug);
 
   if (!game) {
     notFound();
   }
 
-  const relatedGames = getRelatedGames(game);
+  const relatedGames = await getRelatedGames(game);
   const jsonLd = buildJsonLd(game);
 
   return (
@@ -93,17 +90,11 @@ export default async function GamePage({ params }: GamePageProps) {
                 <p className="text-sm font-bold uppercase text-ember">Ficha de juego</p>
                 <h1 className="mt-3 text-4xl font-black text-white sm:text-6xl">{game.title}</h1>
                 <p className="mt-3 text-sm font-semibold text-white/60">
-                  {game.originalTitle !== game.title ? `${game.originalTitle} · ` : ""}
-                  {game.year} · {game.publisher}
+                  {[game.playersLabel, game.playtime, game.complexity].filter(Boolean).join(" · ")}
                 </p>
-                <p className="mt-5 max-w-3xl text-lg leading-8 text-white/78">{game.reviewSummary}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <RatingBadge rating={game.rating} size="lg" />
-                <div className="rounded-md border border-white/12 bg-white/10 p-4">
-                  <p className="text-xs font-bold uppercase text-parchment">Ranking</p>
-                  <p className="mt-1 text-3xl font-black text-white">#{game.rank}</p>
-                </div>
+                {game.reviewSummary ? (
+                  <p className="mt-5 max-w-3xl text-lg leading-8 text-white/78">{game.reviewSummary}</p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -115,90 +106,109 @@ export default async function GamePage({ params }: GamePageProps) {
 
         <section className="container-page grid gap-8 pb-14 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
           <aside className="space-y-5">
-            <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
-              <Image
-                src={game.image}
-                alt={`Imagen principal de ${game.title}`}
-                width={720}
-                height={560}
-                priority
-                className="aspect-[4/3] w-full object-cover"
-              />
-            </div>
+            {game.image ? (
+              <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
+                <Image
+                  src={game.image}
+                  alt={`Imagen principal de ${game.title}`}
+                  width={720}
+                  height={560}
+                  priority
+                  className="aspect-[4/3] w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-ink/10 bg-ink px-6 text-center text-2xl font-black text-white shadow-soft">
+                {game.title}
+              </div>
+            )}
             <Panel title="Colección">
               <CollectionButtons />
-            </Panel>
-            <Panel title="Datos rápidos">
-              <dl className="space-y-3 text-sm">
-                <Fact label="Año" value={String(game.year)} />
-                <Fact label="Editorial" value={game.publisher} />
-                <Fact label="Diseñador" value={game.designer} />
-                <Fact label="Artistas" value={game.artists.join(", ")} />
-              </dl>
             </Panel>
           </aside>
 
           <article className="space-y-9">
-            <section>
-              <h2 className="text-2xl font-black text-ink">Descripción editorial</h2>
-              <p className="mt-4 text-base leading-8 text-ink/74">{game.description}</p>
-            </section>
+            {game.description ? (
+              <section>
+                <h2 className="text-2xl font-black text-ink">Descripción editorial</h2>
+                <p className="mt-4 text-base leading-8 text-ink/74">{game.description}</p>
+              </section>
+            ) : null}
 
-            <section>
-              <h2 className="text-2xl font-black text-ink">Reseña MeepleTavern</h2>
-              <p className="mt-4 text-base leading-8 text-ink/74">{game.reviewSummary}</p>
-            </section>
+            {game.reviewSummary ? (
+              <section>
+                <h2 className="text-2xl font-black text-ink">Reseña MeepleTavern</h2>
+                <p className="mt-4 text-base leading-8 text-ink/74">{game.reviewSummary}</p>
+              </section>
+            ) : null}
 
-            <ProsCons pros={game.pros} cons={game.cons} />
+            {game.pros.length || game.cons.length ? <ProsCons pros={game.pros} cons={game.cons} /> : null}
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextPanel title="Para quién es este juego" body={game.recommendedFor} />
-              <TextPanel title="Para quién no es" body={game.notRecommendedFor} />
-            </div>
+            {game.recommendedFor || game.notRecommendedFor ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {game.recommendedFor ? <TextPanel title="Para quién es este juego" body={game.recommendedFor} /> : null}
+                {game.notRecommendedFor ? <TextPanel title="Para quién no es" body={game.notRecommendedFor} /> : null}
+              </div>
+            ) : null}
 
-            <section className="space-y-4">
-              <SectionHeader title="Características" />
-              <TagSection title="Categorías">
-                {game.categories.map((category) => (
-                  <CategoryTag key={category} value={category} />
-                ))}
-              </TagSection>
-              <TagSection title="Mecánicas">
-                {game.mechanics.map((mechanic) => (
-                  <MechanicTag key={mechanic} value={mechanic} />
-                ))}
-              </TagSection>
-              <TagSection title="Temáticas">
-                {game.themes.map((theme) => (
-                  <Link
-                    key={theme}
-                    href={termHref("theme", theme)}
-                    className="rounded-md bg-ruby/10 px-3 py-1.5 text-sm font-semibold text-ruby transition hover:bg-ruby hover:text-white"
-                  >
-                    {theme}
-                  </Link>
-                ))}
-              </TagSection>
-            </section>
+            {game.categories.length || game.mechanics.length || game.themes.length ? (
+              <section className="space-y-4">
+                <SectionHeader title="Características" />
+                {game.categories.length ? (
+                  <TagSection title="Categorías">
+                    {game.categories.map((category) => (
+                      <CategoryTag key={category} value={category} />
+                    ))}
+                  </TagSection>
+                ) : null}
+                {game.mechanics.length ? (
+                  <TagSection title="Mecánicas">
+                    {game.mechanics.map((mechanic) => (
+                      <MechanicTag key={mechanic} value={mechanic} />
+                    ))}
+                  </TagSection>
+                ) : null}
+                {game.themes.length ? (
+                  <TagSection title="Temáticas">
+                    {game.themes.map((theme) => (
+                      <Link
+                        key={theme}
+                        href={termHref("theme", theme)}
+                        className="rounded-md bg-ruby/10 px-3 py-1.5 text-sm font-semibold text-ruby transition hover:bg-ruby hover:text-white"
+                      >
+                        {theme}
+                      </Link>
+                    ))}
+                  </TagSection>
+                ) : null}
+              </section>
+            ) : null}
           </article>
 
           <aside className="space-y-5">
-            <Panel title="Puntuación y ranking">
-              <div className="grid grid-cols-2 gap-3">
-                <MiniMetric icon={Crown} label="Ranking" value={`#${game.rank}`} />
-                <MiniMetric icon={ScrollText} label="Peso" value={game.weight.toFixed(1)} />
-              </div>
-            </Panel>
-            <Panel title="Enlaces de compra">
-              <BuyLinks links={game.buyLinks} />
-            </Panel>
-            <Panel title="Juegos parecidos">
-              <div className="grid gap-3">
-                {relatedGames.map((related) => (
-                  <GameCard key={related.slug} game={related} compact />
-                ))}
-              </div>
-            </Panel>
+            {game.playersLabel || game.playtime || game.complexity ? (
+              <Panel title="Datos de la ficha">
+                <div className="grid grid-cols-2 gap-3">
+                  {game.playersLabel ? <MiniMetric icon={Users} label="Jugadores" value={game.playersLabel} /> : null}
+                  {game.playtime ? <MiniMetric icon={Clock} label="Duración" value={game.playtime} /> : null}
+                  {game.complexity ? <MiniMetric icon={Gauge} label="Complejidad" value={game.complexity} /> : null}
+                </div>
+              </Panel>
+            ) : null}
+            {game.buyLinks.length ? (
+              <Panel title="Enlaces de compra">
+                <BuyLinks links={game.buyLinks} />
+              </Panel>
+            ) : null}
+            {relatedGames.length ? (
+              <Panel title="Juegos parecidos">
+                <div className="grid gap-3">
+                  {relatedGames.map((related) => (
+                    <GameCard key={related.slug} game={related} compact />
+                  ))}
+                </div>
+              </Panel>
+            ) : null}
           </aside>
         </section>
 
@@ -222,15 +232,6 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       <h2 className="text-lg font-black text-ink">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-bold uppercase text-ink/45">{label}</dt>
-      <dd className="mt-1 font-semibold leading-6 text-ink/72">{value}</dd>
-    </div>
   );
 }
 
@@ -278,16 +279,9 @@ function buildJsonLd(game: CatalogGame) {
       "@context": "https://schema.org",
       "@type": "Product",
       name: game.title,
-      image: game.image,
+      ...(game.image ? { image: game.image } : {}),
       description: game.description,
-      brand: game.publisher,
       category: game.categories.join(", "),
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: game.rating,
-        bestRating: 10,
-        ratingCount: Math.max(25, Math.round(game.popularity * 11))
-      },
       url
     },
     {

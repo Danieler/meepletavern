@@ -34,6 +34,7 @@ model Game {
   complexity     String?
   categories     String[]   @default([])
   mechanics      String[]   @default([])
+  themes         String[]   @default([])
   similarGames   String[]   @default([])
   faqs           Json?
   seoTitle       String?

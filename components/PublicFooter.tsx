@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { categoryTerms, catalogGames } from "@/lib/catalog";
+import { getCategoryTerms, getPopularGames } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
-export function PublicFooter() {
-  const popularGames = catalogGames.slice(0, 5);
+export async function PublicFooter() {
+  const [categoryTerms, popularGames] = await Promise.all([getCategoryTerms(), getPopularGames(5)]);
 
   return (
     <footer className="border-t border-ink/10 bg-ink text-white">
@@ -59,4 +59,3 @@ function FooterColumn({ title, links }: { title: string; links: Array<{ href: st
     </div>
   );
 }
-

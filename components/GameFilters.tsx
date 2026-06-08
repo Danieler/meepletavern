@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { categoryTerms, mechanicTerms, themeTerms, type GameFilterInput } from "@/lib/catalog";
+import type { GameFilterInput } from "@/lib/catalog";
 
 type FilterLink = {
   label: string;
@@ -46,13 +46,22 @@ const filters: Array<{ title: string; items: FilterLink[] }> = [
 ];
 
 const sortItems = [
-  { label: "Puntuación", value: "rating" },
-  { label: "Popularidad", value: "popularidad" },
+  { label: "Nombre", value: "nombre" },
   { label: "Fecha de añadido", value: "fecha" },
   { label: "Dificultad", value: "dificultad" }
 ];
 
-export function GameFilters({ active }: { active: GameFilterInput }) {
+export function GameFilters({
+  active,
+  categoryTerms,
+  mechanicTerms,
+  themeTerms
+}: {
+  active: GameFilterInput;
+  categoryTerms: string[];
+  mechanicTerms: string[];
+  themeTerms: string[];
+}) {
   return (
     <aside className="space-y-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
       <div>
@@ -123,4 +132,3 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
     </Link>
   );
 }
-

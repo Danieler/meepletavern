@@ -2,25 +2,26 @@ import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import type { Review } from "@/lib/catalog";
-import { getReviewGame } from "@/lib/catalog";
-import { RatingBadge } from "@/components/RatingBadge";
 
 export function ReviewCard({ review }: { review: Review }) {
-  const game = getReviewGame(review);
-
   return (
     <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
       <Link href={`/resenas/${review.slug}`} className="grid gap-0 md:grid-cols-[220px_1fr]">
-        <div className="relative min-h-52 bg-ink/5">
-          <Image src={review.image} alt={review.title} fill sizes="(min-width: 768px) 220px, 100vw" className="object-cover" />
-        </div>
+        {review.image ? (
+          <div className="relative min-h-52 bg-ink/5">
+            <Image src={review.image} alt={review.title} fill sizes="(min-width: 768px) 220px, 100vw" className="object-cover" />
+          </div>
+        ) : (
+          <div className="flex min-h-52 items-center justify-center bg-ink px-5 text-center text-lg font-black text-white">
+            {review.gameTitle}
+          </div>
+        )}
         <div className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase text-ruby">{game?.title || "Juego de mesa"}</p>
+              <p className="text-xs font-bold uppercase text-ruby">{review.gameTitle}</p>
               <h2 className="mt-2 text-2xl font-black text-ink">{review.title}</h2>
             </div>
-            <RatingBadge rating={review.rating} size="sm" />
           </div>
           <p className="mt-3 text-sm leading-6 text-ink/70">{review.summary}</p>
           <p className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase text-ink/45">
@@ -40,4 +41,3 @@ function formatDate(value: string) {
     year: "numeric"
   }).format(new Date(value));
 }
-

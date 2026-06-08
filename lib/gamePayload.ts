@@ -26,6 +26,7 @@ export type GameFormPayload = {
   complexity?: unknown;
   categories?: unknown;
   mechanics?: unknown;
+  themes?: unknown;
   similarGames?: unknown;
   faqs?: unknown;
   seoTitle?: unknown;
@@ -53,6 +54,7 @@ export type NormalizedGamePayload = {
   complexity: string | null;
   categories: string[];
   mechanics: string[];
+  themes: string[];
   similarGames: string[];
   faqs: FaqItem[];
   seoTitle: string | null;
@@ -89,6 +91,7 @@ export function normalizeGamePayload(payload: GameFormPayload): NormalizedGamePa
     complexity: optionalString(payload.complexity),
     categories: cleanStringList(payload.categories),
     mechanics: cleanStringList(payload.mechanics),
+    themes: cleanStringList(payload.themes),
     similarGames: cleanStringList(payload.similarGames),
     faqs: cleanFaqItems(payload.faqs),
     seoTitle: optionalString(payload.seoTitle),
@@ -159,4 +162,3 @@ function normalizeStatus(value: unknown) {
 
   return GameStatus.draft;
 }
-

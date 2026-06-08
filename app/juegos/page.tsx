@@ -5,7 +5,7 @@ import { GameSearch } from "@/components/GameSearch";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { filterGames, type GameFilterInput } from "@/lib/catalog";
+import { filterGames, getCategoryTerms, getMechanicTerms, getThemeTerms, type GameFilterInput } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Catálogo de juegos de mesa",
@@ -17,9 +17,16 @@ type GamesPageProps = {
   searchParams?: Promise<GameFilterInput>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function GamesPage({ searchParams }: GamesPageProps) {
   const filters = (await searchParams) || {};
-  const games = filterGames(filters);
+  const [games, categoryTerms, mechanicTerms, themeTerms] = await Promise.all([
+    filterGames(filters),
+    getCategoryTerms(),
+    getMechanicTerms(),
+    getThemeTerms()
+  ]);
 
   return (
     <PublicShell>
@@ -39,7 +46,7 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
         </section>
 
         <section className="container-page grid gap-8 py-10 lg:grid-cols-[300px_1fr] lg:py-14">
-          <GameFilters active={filters} />
+          <GameFilters active={filters} categoryTerms={categoryTerms} mechanicTerms={mechanicTerms} themeTerms={themeTerms} />
           <div>
             <SectionHeader
               title={`${games.length} juegos encontrados`}
@@ -71,4 +78,3 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
     </PublicShell>
   );
 }
-

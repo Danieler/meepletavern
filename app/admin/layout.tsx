@@ -28,6 +28,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link className="button-secondary min-h-10" href="/admin/games">
               Juegos
             </Link>
+            <Link className="button-secondary min-h-10" href="/admin/reviews">
+              Reseñas
+            </Link>
+            <Link className="button-secondary min-h-10" href="/admin/categories">
+              Categorías
+            </Link>
+            <Link className="button-secondary min-h-10" href="/admin/mechanics">
+              Mecánicas
+            </Link>
+            <Link className="button-secondary min-h-10" href="/admin/tavern">
+              Taberna
+            </Link>
             <Link className="button-primary min-h-10" href="/admin/games/new-ai">
               Crear con IA
             </Link>
@@ -38,4 +50,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </main>
   );
 }
-

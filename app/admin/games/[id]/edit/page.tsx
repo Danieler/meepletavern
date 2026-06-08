@@ -64,6 +64,7 @@ export default async function EditGamePage({ params }: EditGamePageProps) {
     complexity: game.complexity || "",
     categories: game.categories,
     mechanics: game.mechanics,
+    themes: game.themes,
     similarGames: game.similarGames,
     faqs: asFaqItems(game.faqs),
     seoTitle: game.seoTitle || "",

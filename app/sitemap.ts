@@ -1,9 +1,24 @@
 import type { MetadataRoute } from "next";
-import { catalogGames, categoryTerms, mechanicTerms, rankings, reviews, themeTerms } from "@/lib/catalog";
+import {
+  getCatalogGames,
+  getCategoryTerms,
+  getMechanicTerms,
+  getRankings,
+  getReviews,
+  getThemeTerms
+} from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const [catalogGames, rankings, reviews, categoryTerms, mechanicTerms, themeTerms] = await Promise.all([
+    getCatalogGames(),
+    getRankings(),
+    getReviews(),
+    getCategoryTerms(),
+    getMechanicTerms(),
+    getThemeTerms()
+  ]);
   const staticRoutes = [
     "",
     "/juegos",
