@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GameStatus {
+  draft
+  published
+  archived
+}
+
+model Game {
+  id             String     @id @default(cuid())
+  name           String
+  slug           String     @unique
+  status         GameStatus @default(draft)
+  imageUrl       String?
+  description    String?
+  review         String?
+  shortSummary   String?
+  pros           String[]   @default([])
+  cons           String[]   @default([])
+  bestFor        String?
+  notFor         String?
+  minPlayers     Int?
+  maxPlayers     Int?
+  playtime       String?
+  age            String?
+  complexity     String?
+  categories     String[]   @default([])
+  mechanics      String[]   @default([])
+  similarGames   String[]   @default([])
+  faqs           Json?
+  seoTitle       String?
+  seoDescription String?
+  buyUrl         String?
+  sources        Json?
+  createdByAi    Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  publishedAt    DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
