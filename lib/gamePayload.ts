@@ -1,4 +1,4 @@
-import { GameStatus, Prisma } from "@prisma/client";
+import { GameImageStatus, GameStatus, Prisma } from "@prisma/client";
 import {
   cleanFaqItems,
   cleanSourceItems,
@@ -12,6 +12,12 @@ export type GameFormPayload = {
   name?: unknown;
   slug?: unknown;
   imageUrl?: unknown;
+  coverImageUrl?: unknown;
+  coverImageAlt?: unknown;
+  imageSourceName?: unknown;
+  imageSourceUrl?: unknown;
+  imageLicenseNote?: unknown;
+  imageStatus?: unknown;
   description?: unknown;
   review?: unknown;
   shortSummary?: unknown;
@@ -40,6 +46,12 @@ export type NormalizedGamePayload = {
   name: string;
   slug: string;
   imageUrl: string | null;
+  coverImageUrl: string | null;
+  coverImageAlt: string;
+  imageSourceName: string | null;
+  imageSourceUrl: string | null;
+  imageLicenseNote: string | null;
+  imageStatus: GameImageStatus;
   description: string | null;
   review: string | null;
   shortSummary: string | null;
@@ -77,6 +89,12 @@ export function normalizeGamePayload(payload: GameFormPayload): NormalizedGamePa
     name,
     slug,
     imageUrl: optionalUrlLike(payload.imageUrl),
+    coverImageUrl: optionalUrlLike(payload.coverImageUrl),
+    coverImageAlt: optionalString(payload.coverImageAlt) || `Portada de ${name}`,
+    imageSourceName: optionalString(payload.imageSourceName),
+    imageSourceUrl: optionalUrlLike(payload.imageSourceUrl),
+    imageLicenseNote: optionalString(payload.imageLicenseNote),
+    imageStatus: normalizeImageStatus(payload.imageStatus),
     description: optionalString(payload.description),
     review: optionalString(payload.review),
     shortSummary: optionalString(payload.shortSummary),
@@ -161,4 +179,17 @@ function normalizeStatus(value: unknown) {
   }
 
   return GameStatus.draft;
+}
+
+function normalizeImageStatus(value: unknown) {
+  if (
+    value === GameImageStatus.verified ||
+    value === GameImageStatus.missing ||
+    value === GameImageStatus.placeholder ||
+    value === GameImageStatus.needs_review
+  ) {
+    return value;
+  }
+
+  return GameImageStatus.missing;
 }

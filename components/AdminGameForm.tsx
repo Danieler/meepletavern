@@ -7,6 +7,7 @@ import { EditableList } from "@/components/EditableList";
 import type { FaqItem, SourceItem } from "@/lib/content";
 
 type AdminGameStatus = "draft" | "published" | "archived";
+type AdminGameImageStatus = "verified" | "missing" | "placeholder" | "needs_review";
 
 export type AdminGameFormValues = {
   id: string;
@@ -14,6 +15,12 @@ export type AdminGameFormValues = {
   slug: string;
   status: AdminGameStatus;
   imageUrl: string;
+  coverImageUrl: string;
+  coverImageAlt: string;
+  imageSourceName: string;
+  imageSourceUrl: string;
+  imageLicenseNote: string;
+  imageStatus: AdminGameImageStatus;
   description: string;
   review: string;
   shortSummary: string;
@@ -169,14 +176,6 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
             <Field label="Slug">
               <input className="field-input" value={form.slug} onChange={(event) => updateField("slug", event.target.value)} />
             </Field>
-            <Field label="Imagen principal">
-              <input
-                className="field-input"
-                value={form.imageUrl}
-                onChange={(event) => updateField("imageUrl", event.target.value)}
-                placeholder="https://..."
-              />
-            </Field>
             <Field label="Estado">
               <select
                 className="field-input"
@@ -205,6 +204,61 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
             </Field>
             <Field label="Enlace de compra">
               <input className="field-input" value={form.buyUrl} onChange={(event) => updateField("buyUrl", event.target.value)} />
+            </Field>
+          </div>
+        </section>
+
+        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+          <h2 className="text-xl font-bold text-ink">Portada</h2>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <Field label="Estado de imagen">
+              <select
+                className="field-input"
+                value={form.imageStatus}
+                onChange={(event) => updateField("imageStatus", event.target.value as AdminGameImageStatus)}
+              >
+                <option value="missing">missing</option>
+                <option value="placeholder">placeholder</option>
+                <option value="needs_review">needs_review</option>
+                <option value="verified">verified</option>
+              </select>
+            </Field>
+            <Field label="URL portada verificada">
+              <input
+                className="field-input"
+                value={form.coverImageUrl}
+                onChange={(event) => updateField("coverImageUrl", event.target.value)}
+                placeholder="https://..."
+              />
+            </Field>
+            <Field label="Texto alternativo">
+              <input
+                className="field-input"
+                value={form.coverImageAlt}
+                onChange={(event) => updateField("coverImageAlt", event.target.value)}
+              />
+            </Field>
+            <Field label="Nombre de la fuente">
+              <input
+                className="field-input"
+                value={form.imageSourceName}
+                onChange={(event) => updateField("imageSourceName", event.target.value)}
+              />
+            </Field>
+            <Field label="URL de la fuente">
+              <input
+                className="field-input"
+                value={form.imageSourceUrl}
+                onChange={(event) => updateField("imageSourceUrl", event.target.value)}
+                placeholder="https://..."
+              />
+            </Field>
+            <Field label="Licencia / nota">
+              <input
+                className="field-input"
+                value={form.imageLicenseNote}
+                onChange={(event) => updateField("imageLicenseNote", event.target.value)}
+              />
             </Field>
           </div>
         </section>

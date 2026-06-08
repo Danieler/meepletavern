@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Clock, Gauge, Users } from "lucide-react";
+import { GameCoverImage } from "@/components/GameCoverImage";
 import type { CatalogGame } from "@/lib/catalog";
 
 type GameCardProps = {
@@ -12,7 +12,7 @@ export function GameCard({ game, compact }: GameCardProps) {
   return (
     <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
       <Link href={`/juegos/${game.slug}`} className="block">
-        <GameImage game={game} />
+        <GameCoverImage {...game} gameTitle={game.title} variant="card" />
         <div className="p-4 sm:p-5">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="flex flex-wrap gap-2">
@@ -50,28 +50,6 @@ export function GameCard({ game, compact }: GameCardProps) {
         </div>
       </Link>
     </article>
-  );
-}
-
-function GameImage({ game }: GameCardProps) {
-  if (!game.image) {
-    return (
-      <div className="flex aspect-[16/10] items-center justify-center bg-[linear-gradient(135deg,#2f6f62,#8f3048)] px-6 text-center text-lg font-black text-white">
-        {game.title}
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative aspect-[16/10] bg-ink/5">
-      <Image
-        src={game.image}
-        alt={`Imagen de ${game.title}`}
-        fill
-        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-        className="object-cover"
-      />
-    </div>
   );
 }
 

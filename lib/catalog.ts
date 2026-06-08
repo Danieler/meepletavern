@@ -1,4 +1,5 @@
-import { GameStatus, type Game } from "@prisma/client";
+import { GameStatus, Prisma } from "@prisma/client";
+import type { GameImageFields } from "@/lib/gameImages";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 import { getTaxonomyTermNames } from "@/lib/taxonomy";
@@ -9,11 +10,10 @@ export type BuyLink = {
   label?: string;
 };
 
-export type CatalogGame = {
+export type CatalogGame = GameImageFields & {
   id: string;
   slug: string;
   title: string;
-  image: string;
   playersMin: number | null;
   playersMax: number | null;
   playersLabel: string | null;
@@ -39,7 +39,7 @@ export type CatalogGame = {
   publishedAt: string | null;
 };
 
-export type Review = {
+export type Review = GameImageFields & {
   id: string;
   slug: string;
   title: string;
@@ -48,7 +48,6 @@ export type Review = {
   summary: string;
   body: string[];
   publishedAt: string;
-  image: string;
 };
 
 export type Ranking = {
@@ -71,6 +70,39 @@ export type GameFilterInput = {
   sort?: string;
 };
 
+const catalogGameSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  coverImageUrl: true,
+  coverImageAlt: true,
+  imageSourceName: true,
+  imageSourceUrl: true,
+  imageLicenseNote: true,
+  imageStatus: true,
+  description: true,
+  review: true,
+  shortSummary: true,
+  pros: true,
+  cons: true,
+  bestFor: true,
+  notFor: true,
+  minPlayers: true,
+  maxPlayers: true,
+  playtime: true,
+  age: true,
+  complexity: true,
+  categories: true,
+  mechanics: true,
+  themes: true,
+  buyUrl: true,
+  createdAt: true,
+  updatedAt: true,
+  publishedAt: true
+} satisfies Prisma.GameSelect;
+
+type CatalogDbGame = Prisma.GameGetPayload<{ select: typeof catalogGameSelect }>;
+
 export async function getCatalogGames() {
   const games = await getPublishedDbGames();
   return games.map(toCatalogGame);
@@ -81,7 +113,8 @@ export async function getGameBySlug(slug: string) {
     where: {
       slug,
       status: GameStatus.published
-    }
+    },
+    select: catalogGameSelect
   });
 
   return game ? toCatalogGame(game) : null;
@@ -108,6 +141,7 @@ export async function getReviews() {
       status: GameStatus.published,
       OR: [{ review: { not: null } }, { shortSummary: { not: null } }]
     },
+    select: catalogGameSelect,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
   });
 
@@ -120,7 +154,8 @@ export async function getReviewBySlug(slug: string) {
       slug,
       status: GameStatus.published,
       OR: [{ review: { not: null } }, { shortSummary: { not: null } }]
-    }
+    },
+    select: catalogGameSelect
   });
 
   return game ? toReview(game) : null;
@@ -293,18 +328,24 @@ export function termHref(type: "category" | "mechanic" | "theme", term: string) 
 async function getPublishedDbGames() {
   return prisma.game.findMany({
     where: { status: GameStatus.published },
+    select: catalogGameSelect,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
   });
 }
 
-function toCatalogGame(game: Game): CatalogGame {
+function toCatalogGame(game: CatalogDbGame): CatalogGame {
   const duration = parseDuration(game.playtime);
 
   return {
     id: game.id,
     slug: game.slug,
     title: game.name,
-    image: game.imageUrl || "",
+    coverImageUrl: game.coverImageUrl,
+    coverImageAlt: game.coverImageAlt || `Portada de ${game.name}`,
+    imageSourceName: game.imageSourceName,
+    imageSourceUrl: game.imageSourceUrl,
+    imageLicenseNote: game.imageLicenseNote,
+    imageStatus: game.imageStatus,
     playersMin: game.minPlayers,
     playersMax: game.maxPlayers,
     playersLabel: formatPlayers(game),
@@ -331,7 +372,7 @@ function toCatalogGame(game: Game): CatalogGame {
   };
 }
 
-function toReview(game: Game): Review | null {
+function toReview(game: CatalogDbGame): Review | null {
   const summary = game.shortSummary || game.review || game.description;
   const bodySource = game.review || game.description || game.shortSummary;
 
@@ -345,10 +386,15 @@ function toReview(game: Game): Review | null {
     title: `Reseña de ${game.name}`,
     gameSlug: game.slug,
     gameTitle: game.name,
+    coverImageUrl: game.coverImageUrl,
+    coverImageAlt: game.coverImageAlt || `Portada de ${game.name}`,
+    imageSourceName: game.imageSourceName,
+    imageSourceUrl: game.imageSourceUrl,
+    imageLicenseNote: game.imageLicenseNote,
+    imageStatus: game.imageStatus,
     summary,
     body: splitParagraphs(bodySource),
-    publishedAt: (game.publishedAt || game.updatedAt || game.createdAt).toISOString(),
-    image: game.imageUrl || ""
+    publishedAt: (game.publishedAt || game.updatedAt || game.createdAt).toISOString()
   };
 }
 
@@ -406,7 +452,7 @@ function splitParagraphs(value: string) {
     .filter(Boolean);
 }
 
-function formatPlayers(game: Game) {
+function formatPlayers(game: CatalogDbGame) {
   if (game.minPlayers && game.maxPlayers && game.minPlayers !== game.maxPlayers) {
     return `${game.minPlayers}-${game.maxPlayers}`;
   }

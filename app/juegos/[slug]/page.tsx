@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Clock, Gauge, Users } from "lucide-react";
@@ -7,6 +6,7 @@ import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
 import { CollectionButtons } from "@/components/CollectionButtons";
 import { GameCard } from "@/components/GameCard";
+import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameStats } from "@/components/GameStats";
 import { MechanicTag } from "@/components/MechanicTag";
 import { ProsCons } from "@/components/ProsCons";
@@ -14,6 +14,7 @@ import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { getGameBySlug, getRelatedGames, termHref, type CatalogGame } from "@/lib/catalog";
+import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
 
 type GamePageProps = {
@@ -47,7 +48,7 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
       description,
       type: "article",
       url: `${siteConfig.url}/juegos/${game.slug}`,
-      images: game.image ? [{ url: game.image, alt: game.title }] : []
+      images: hasVerifiedCoverImage(game) && game.coverImageUrl ? [{ url: game.coverImageUrl, alt: game.coverImageAlt }] : []
     }
   };
 }
@@ -106,22 +107,7 @@ export default async function GamePage({ params }: GamePageProps) {
 
         <section className="container-page grid gap-8 pb-14 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
           <aside className="space-y-5">
-            {game.image ? (
-              <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
-                <Image
-                  src={game.image}
-                  alt={`Imagen principal de ${game.title}`}
-                  width={720}
-                  height={560}
-                  priority
-                  className="aspect-[4/3] w-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-ink/10 bg-ink px-6 text-center text-2xl font-black text-white shadow-soft">
-                {game.title}
-              </div>
-            )}
+            <GameCoverImage {...game} gameTitle={game.title} variant="detail" priority className="border border-ink/10 shadow-soft" />
             <Panel title="Colección">
               <CollectionButtons />
             </Panel>
@@ -279,7 +265,7 @@ function buildJsonLd(game: CatalogGame) {
       "@context": "https://schema.org",
       "@type": "Product",
       name: game.title,
-      ...(game.image ? { image: game.image } : {}),
+      ...(hasVerifiedCoverImage(game) && game.coverImageUrl ? { image: game.coverImageUrl } : {}),
       description: game.description,
       category: game.categories.join(", "),
       url

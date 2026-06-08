@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { GameCoverImage } from "@/components/GameCoverImage";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { getReviewBySlug } from "@/lib/catalog";
+import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
 
 type ReviewPageProps = {
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: ReviewPageProps): Promise<Met
       title: review.title,
       description: review.summary,
       type: "article",
-      images: review.image ? [{ url: review.image, alt: review.title }] : []
+      images: hasVerifiedCoverImage(review) && review.coverImageUrl ? [{ url: review.coverImageUrl, alt: review.coverImageAlt }] : []
     }
   };
 }
@@ -63,18 +64,13 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                   Ver ficha de {review.gameTitle}
                 </Link>
               </div>
-              {review.image ? (
-                <div className="overflow-hidden rounded-md border border-white/12 bg-white/5 shadow-soft">
-                  <Image
-                    src={review.image}
-                    alt={review.title}
-                    width={720}
-                    height={560}
-                    priority
-                    className="aspect-[4/3] w-full object-cover"
-                  />
-                </div>
-              ) : null}
+              <GameCoverImage
+                {...review}
+                gameTitle={review.gameTitle}
+                variant="detail"
+                priority
+                className="border border-white/12 shadow-soft"
+              />
             </div>
           </section>
           <section className="container-page grid gap-8 py-12 lg:grid-cols-[minmax(0,760px)_240px]">

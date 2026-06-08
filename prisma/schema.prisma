@@ -20,12 +20,25 @@ enum TaxonomyType {
   theme
 }
 
+enum GameImageStatus {
+  verified
+  missing
+  placeholder
+  needs_review
+}
+
 model Game {
   id             String     @id @default(cuid())
   name           String
   slug           String     @unique
   status         GameStatus @default(draft)
   imageUrl       String?
+  coverImageUrl  String?
+  coverImageAlt  String     @default("")
+  imageSourceName String?
+  imageSourceUrl String?
+  imageLicenseNote String?
+  imageStatus    GameImageStatus @default(missing)
   description    String?
   review         String?
   shortSummary   String?

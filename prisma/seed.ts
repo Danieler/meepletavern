@@ -3,9 +3,6 @@ import { slugify } from "../lib/slug";
 
 const prisma = new PrismaClient();
 
-const heroImage =
-  "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=1200&q=80";
-
 const games = [
   {
     name: "Catan",
@@ -189,14 +186,26 @@ async function main() {
       where: { slug: game.slug },
       update: {
         ...game,
-        imageUrl: heroImage,
+        imageUrl: null,
+        coverImageUrl: null,
+        coverImageAlt: `Portada de ${game.name}`,
+        imageSourceName: null,
+        imageSourceUrl: null,
+        imageLicenseNote: null,
+        imageStatus: "missing",
         status: "published",
         createdByAi: false,
         publishedAt: new Date()
       },
       create: {
         ...game,
-        imageUrl: heroImage,
+        imageUrl: null,
+        coverImageUrl: null,
+        coverImageAlt: `Portada de ${game.name}`,
+        imageSourceName: null,
+        imageSourceUrl: null,
+        imageLicenseNote: null,
+        imageStatus: "missing",
         status: "published",
         createdByAi: false,
         publishedAt: new Date()

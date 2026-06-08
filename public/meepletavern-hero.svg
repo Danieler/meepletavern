@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">MeepleTavern hero artwork</title>
+  <desc id="desc">A warm tavern table scene with board game pieces, cards, dice and soft lantern light.</desc>
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d2530"/>
+      <stop offset="0.45" stop-color="#2f6f62"/>
+      <stop offset="1" stop-color="#8f3048"/>
+    </linearGradient>
+    <linearGradient id="table" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9d6031"/>
+      <stop offset="1" stop-color="#54321f"/>
+    </linearGradient>
+    <radialGradient id="lantern" cx="50%" cy="22%" r="55%">
+      <stop offset="0" stop-color="#f4c971" stop-opacity="0.92"/>
+      <stop offset="0.42" stop-color="#e9b15b" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#1d2530" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#101820" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1800" height="1000" fill="url(#wall)"/>
+  <rect width="1800" height="1000" fill="url(#lantern)"/>
+  <path d="M0 620C270 560 465 590 720 642C1000 700 1210 686 1800 604V1000H0Z" fill="url(#table)"/>
+  <path d="M0 660C300 612 505 632 760 686C1050 748 1260 724 1800 642" fill="none" stroke="#e9b15b" stroke-opacity="0.16" stroke-width="10"/>
+  <path d="M126 730H1680" stroke="#1d2530" stroke-opacity="0.22" stroke-width="16" stroke-linecap="round"/>
+  <g filter="url(#softShadow)">
+    <rect x="1035" y="500" width="260" height="360" rx="24" fill="#f4ecd8" transform="rotate(7 1165 680)"/>
+    <rect x="1065" y="532" width="200" height="286" rx="16" fill="#2f6f62" opacity="0.88" transform="rotate(7 1165 680)"/>
+    <circle cx="1176" cy="684" r="62" fill="#e9b15b" opacity="0.92"/>
+    <path d="M1128 704C1150 742 1207 745 1230 704" fill="none" stroke="#1d2530" stroke-opacity="0.7" stroke-width="15" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#softShadow)">
+    <rect x="745" y="574" width="280" height="190" rx="20" fill="#f4ecd8" transform="rotate(-6 885 669)"/>
+    <rect x="777" y="608" width="216" height="124" rx="14" fill="#8f3048" opacity="0.9" transform="rotate(-6 885 669)"/>
+    <path d="M825 690L903 632L950 702Z" fill="#e9b15b" opacity="0.9"/>
+  </g>
+  <g filter="url(#softShadow)">
+    <rect x="1328" y="650" width="116" height="116" rx="24" fill="#f4ecd8"/>
+    <circle cx="1360" cy="682" r="10" fill="#1d2530"/>
+    <circle cx="1412" cy="682" r="10" fill="#1d2530"/>
+    <circle cx="1386" cy="708" r="10" fill="#1d2530"/>
+    <circle cx="1360" cy="734" r="10" fill="#1d2530"/>
+    <circle cx="1412" cy="734" r="10" fill="#1d2530"/>
+  </g>
+  <g filter="url(#softShadow)">
+    <circle cx="540" cy="615" r="44" fill="#e9b15b"/>
+    <path d="M474 675C474 638 606 638 606 675V784H474Z" fill="#f4ecd8"/>
+    <path d="M425 796H655" stroke="#e9b15b" stroke-width="46" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#softShadow)">
+    <circle cx="675" cy="690" r="33" fill="#8f3048"/>
+    <path d="M626 735C626 706 724 706 724 735V816H626Z" fill="#2f6f62"/>
+    <path d="M590 828H760" stroke="#8f3048" stroke-width="34" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#softShadow)">
+    <path d="M1450 560H1588C1598 632 1575 700 1520 702C1464 704 1440 632 1450 560Z" fill="#f4ecd8"/>
+    <path d="M1585 588C1646 582 1645 680 1572 668" fill="none" stroke="#f4ecd8" stroke-width="28" stroke-linecap="round"/>
+    <rect x="1432" y="530" width="174" height="46" rx="22" fill="#e9b15b"/>
+  </g>
+  <g opacity="0.44">
+    <circle cx="260" cy="270" r="5" fill="#f4ecd8"/>
+    <circle cx="1510" cy="220" r="6" fill="#f4ecd8"/>
+    <circle cx="1375" cy="376" r="4" fill="#f4ecd8"/>
+    <circle cx="410" cy="430" r="4" fill="#f4ecd8"/>
+    <circle cx="1620" cy="475" r="5" fill="#f4ecd8"/>
+  </g>
+  <rect width="1800" height="1000" fill="#101820" opacity="0.08"/>
+</svg>

@@ -1,4 +1,3 @@
-import { siteConfig } from "@/lib/site";
 import { slugify } from "@/lib/slug";
 import type { FaqItem, SourceItem } from "@/lib/content";
 
@@ -6,6 +5,12 @@ export type GeneratedGameDraft = {
   name: string;
   slug: string;
   imageUrl: string | null;
+  coverImageUrl: string | null;
+  coverImageAlt: string;
+  imageSourceName: string | null;
+  imageSourceUrl: string | null;
+  imageLicenseNote: string | null;
+  imageStatus: "verified" | "missing" | "placeholder" | "needs_review";
   description: string | null;
   review: string | null;
   shortSummary: string | null;
@@ -55,7 +60,13 @@ function generateMockDraft(name: string): GeneratedGameDraft {
   return {
     name: title,
     slug,
-    imageUrl: siteConfig.heroImage,
+    imageUrl: null,
+    coverImageUrl: null,
+    coverImageAlt: `Portada de ${title}`,
+    imageSourceName: null,
+    imageSourceUrl: null,
+    imageLicenseNote: null,
+    imageStatus: "missing",
     shortSummary: `${title} es una propuesta para mesa curiosa: tácticas claras, decisiones frecuentes y una entrada amable para grupos que quieren descubrir algo con sabor propio.`,
     description:
       `${title} se presenta aquí como una ficha inicial generada para edición. El borrador prioriza una lectura útil en español: qué ofrece, para quién puede encajar y qué datos conviene revisar antes de publicar. ` +
