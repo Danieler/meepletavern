@@ -2,14 +2,27 @@ import { GameStatus } from "@prisma/client";
 import { ExternalLink, FilePlus2, Pencil, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { AdminStatusBadge } from "@/components/AdminStatusBadge";
 import { SectionHeader } from "@/components/SectionHeader";
+import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { createManualGameDraft, getAdminGames } from "@/lib/games";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminGamesPage() {
-  const games = await getAdminGames();
+  let games: Awaited<ReturnType<typeof getAdminGames>> = [];
+  let databaseError: ReturnType<typeof getAdminDatabaseError> = null;
+
+  try {
+    games = await getAdminGames();
+  } catch (error) {
+    databaseError = getAdminDatabaseError(error);
+
+    if (!databaseError) {
+      throw error;
+    }
+  }
 
   return (
     <div>
@@ -32,6 +45,9 @@ export default async function AdminGamesPage() {
         </div>
       </div>
 
+      {databaseError ? (
+        <AdminDatabaseNotice error={databaseError} />
+      ) : (
       <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-ink/10 text-left text-sm">
@@ -88,6 +104,7 @@ export default async function AdminGamesPage() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -116,4 +133,3 @@ function formatDate(date: Date) {
     minute: "2-digit"
   }).format(date);
 }
-
