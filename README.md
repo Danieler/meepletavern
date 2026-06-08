@@ -25,6 +25,14 @@ cp .env.example .env
 
 3. Configura `DATABASE_URL` con una base PostgreSQL.
 
+Para Supabase en Vercel, usa el transaction pooler como `DATABASE_URL` y el session
+pooler como `DIRECT_URL`:
+
+```env
+DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require"
+DIRECT_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require"
+```
+
 4. Aplica Prisma y carga datos:
 
 ```bash
