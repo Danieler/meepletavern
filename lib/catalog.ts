@@ -78,6 +78,7 @@ const catalogGameSelect = {
   title: true,
   slug: true,
   coverImageUrl: true,
+  imageUrl: true,
   coverImageAlt: true,
   imageSourceName: true,
   imageSourceUrl: true,
@@ -376,6 +377,7 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
   const quickVerdict = game.quickVerdict || game.review;
   const difficulty = game.difficulty || game.complexity;
   const safeMedia = pickSafeMedia(game);
+  const publicCoverImage = safeMedia?.url || resolveLegacyPublicImage(game);
   const placeholderKind = inferPlaceholderKind({
     categories: game.categories,
     mechanics: game.mechanics,
@@ -387,12 +389,12 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     id: game.id,
     slug: game.slug,
     title,
-    coverImageUrl: safeMedia?.url || null,
+    coverImageUrl: publicCoverImage,
     coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
-    imageSourceName: safeMedia?.source?.name || null,
+    imageSourceName: safeMedia?.source?.name || (publicCoverImage ? "URL editorial" : null),
     imageSourceUrl: safeMedia?.source?.baseUrl || null,
     imageLicenseNote: safeMedia?.attribution || safeMedia?.source?.attributionText || null,
-    imageStatus: safeMedia ? "verified" : "placeholder",
+    imageStatus: publicCoverImage ? "verified" : "placeholder",
     placeholderKind,
     playersMin: game.minPlayers,
     playersMax: game.maxPlayers,
@@ -430,6 +432,7 @@ function toReview(game: CatalogDbGame): Review | null {
   }
 
   const safeMedia = pickSafeMedia(game);
+  const publicCoverImage = safeMedia?.url || resolveLegacyPublicImage(game);
   const difficulty = game.difficulty || game.complexity;
   const placeholderKind = inferPlaceholderKind({
     categories: game.categories,
@@ -444,12 +447,12 @@ function toReview(game: CatalogDbGame): Review | null {
     title: `Reseña de ${title}`,
     gameSlug: game.slug,
     gameTitle: title,
-    coverImageUrl: safeMedia?.url || null,
+    coverImageUrl: publicCoverImage,
     coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
-    imageSourceName: safeMedia?.source?.name || null,
+    imageSourceName: safeMedia?.source?.name || (publicCoverImage ? "URL editorial" : null),
     imageSourceUrl: safeMedia?.source?.baseUrl || null,
     imageLicenseNote: safeMedia?.attribution || safeMedia?.source?.attributionText || null,
-    imageStatus: safeMedia ? "verified" : "placeholder",
+    imageStatus: publicCoverImage ? "verified" : "placeholder",
     placeholderKind,
     summary,
     body: splitParagraphs(bodySource),
@@ -471,6 +474,22 @@ function pickSafeMedia(game: CatalogDbGame) {
   });
 
   return orderedMedia.find((asset) => canShowMedia(asset, asset.source)) || null;
+}
+
+function resolveLegacyPublicImage(game: CatalogDbGame) {
+  if (game.imageStatus === "verified") {
+    return game.coverImageUrl || game.imageUrl || null;
+  }
+
+  if (looksLikeUrl(game.primaryImageId)) {
+    return game.primaryImageId;
+  }
+
+  return null;
+}
+
+function looksLikeUrl(value: string | null | undefined) {
+  return typeof value === "string" && /^https?:\/\//i.test(value.trim());
 }
 
 function buildTermRankings(

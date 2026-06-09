@@ -1,22 +1,42 @@
 import Link from "next/link";
 import { Link2, Upload } from "lucide-react";
-import { createConnectorCandidateAction, createManualCandidateAction } from "@/app/admin/import/actions";
+import { createManualCandidateAction } from "@/app/admin/import/actions";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { AmazonImportForm } from "@/components/AmazonImportForm";
+import { AsmodeeImportForm } from "@/components/AsmodeeImportForm";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
+import { normalizeSourcePermissions } from "@/lib/editorialMappers";
 import { sourceRepository } from "@/lib/editorialRepositories";
+import { isAmazonImportSource, isAsmodeeImportSource } from "@/lib/importSourceFilters";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminImportPage() {
   try {
     const sources = await sourceRepository.list();
+    const amazonSources = sources
+      .filter(isAmazonImportSource)
+      .map((source) => ({
+        id: source.id,
+        name: source.name,
+        status: source.status,
+        type: source.type,
+        permissions: normalizeSourcePermissions(source.permissions)
+      }));
+    const asmodeeSources = sources
+      .filter(isAsmodeeImportSource)
+      .map((source) => ({
+        id: source.id,
+        name: source.name,
+        status: source.status
+      }));
 
     return (
       <div className="space-y-6">
         <SectionHeader
           title="Importación manual"
-          description="Crea candidatos editoriales manuales o desde una URL de producto controlada."
+          description="Crea candidatos editoriales manuales o importa desde Amazon con un flujo controlado."
         />
         <Link className="button-secondary w-fit" href="/admin/import/bulk">
           <Link2 size={18} aria-hidden="true" />
@@ -91,34 +111,8 @@ export default async function AdminImportPage() {
             </button>
           </form>
         )}
-        {sources.length ? (
-          <form action={createConnectorCandidateAction} className="space-y-4 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-            <div>
-              <h2 className="text-xl font-bold text-ink">Conector Asmodee por URL</h2>
-              <p className="mt-1 text-sm text-ink/60">
-                Extrae datos básicos desde una URL de producto. Solo crea candidatos y guarda descripciones oficiales como referencia interna.
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Fuente">
-                <select className="field-input" name="sourceId" required>
-                  {sources.map((source) => (
-                    <option key={source.id} value={source.id}>
-                      {source.name} · {source.status}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="URL de producto Asmodee">
-                <input className="field-input" name="sourceUrl" required placeholder="https://www.asmodee.es/product/..." />
-              </Field>
-            </div>
-            <button className="button-primary" type="submit">
-              <Upload size={18} aria-hidden="true" />
-              Crear con conector
-            </button>
-          </form>
-        ) : null}
+        <AmazonImportForm sources={amazonSources} />
+        <AsmodeeImportForm sources={asmodeeSources} />
       </div>
     );
   } catch (error) {

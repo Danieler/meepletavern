@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
 import { ExternalLink, Rocket, Save } from "lucide-react";
 import {
@@ -20,10 +20,15 @@ const initialState: GameEditorActionState = {};
 export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProps) {
   const [saveState, saveAction, isSaving] = useActionState(saveGameEditorAction, initialState);
   const [publishState, publishAction, isPublishing] = useActionState(publishGameEditorAction, initialState);
+  const [primaryImageValue, setPrimaryImageValue] = useState(game.primaryImageId || "");
   const players = normalizeGamePlayers(game.players);
   const playtime = parsePlaytime(game.playtime);
   const faq = normalizeGameFaq(game.faq || game.faqs);
   const publicUrl = game.status === GameStatus.published ? `/juegos/${game.slug}` : null;
+  const primaryImagePreviewUrl = useMemo(
+    () => resolvePrimaryImagePreviewUrl(primaryImageValue, game, mediaAssets),
+    [game, mediaAssets, primaryImageValue]
+  );
 
   return (
     <div className="space-y-6">
@@ -174,21 +179,50 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
 
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Imagen pública</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Field label="Primary image id">
-              <input className="field-input" name="primaryImageId" list="media-assets" defaultValue={game.primaryImageId || ""} />
-              <datalist id="media-assets">
-                {mediaAssets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.type} · {asset.url}
-                  </option>
-                ))}
-              </datalist>
-            </Field>
-            <label className="mt-7 flex items-center gap-2 rounded-md bg-ink/5 px-3 py-2 text-sm font-semibold text-ink/70">
-              <input name="imageFallbackAccepted" type="checkbox" defaultChecked={game.imageFallbackAccepted} />
-              Aceptar fallback de imagen
-            </label>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Primary image id / URL">
+                <input
+                  className="field-input"
+                  name="primaryImageId"
+                  list="media-assets"
+                  value={primaryImageValue}
+                  onChange={(event) => setPrimaryImageValue(event.target.value)}
+                  placeholder="ID de asset o https://..."
+                />
+                <datalist id="media-assets">
+                  {mediaAssets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.type} · {asset.url}
+                    </option>
+                  ))}
+                </datalist>
+              </Field>
+              <label className="mt-7 flex items-center gap-2 rounded-md bg-ink/5 px-3 py-2 text-sm font-semibold text-ink/70">
+                <input name="imageFallbackAccepted" type="checkbox" defaultChecked={game.imageFallbackAccepted} />
+                Aceptar fallback de imagen
+              </label>
+            </div>
+            <div className="rounded-md border border-ink/10 bg-ink/5 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-ink/45">Vista previa</p>
+              <div className="mt-3 overflow-hidden rounded-md border border-ink/10 bg-white">
+                {primaryImagePreviewUrl ? (
+                  <img
+                    src={primaryImagePreviewUrl}
+                    alt={game.coverImageAlt || game.title || game.name}
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[4/3] items-center justify-center bg-parchment px-4 text-center text-sm font-semibold text-ink/55">
+                    No hay portada seleccionada.
+                  </div>
+                )}
+              </div>
+              <p className="mt-3 text-xs leading-5 text-ink/55">
+                Si pegas una URL, la vista previa la usa directamente. Si eliges un MediaAsset, se resuelve
+                su URL automáticamente.
+              </p>
+            </div>
           </div>
         </section>
       </form>
@@ -249,6 +283,29 @@ function parsePlaytime(value: string | null) {
 function parseFirstNumber(value: string | null) {
   const match = value?.match(/\d+/);
   return match ? Number(match[0]) : null;
+}
+
+function resolvePrimaryImagePreviewUrl(
+  primaryImageValue: string,
+  game: Game,
+  mediaAssets: MediaAsset[]
+) {
+  const trimmed = primaryImageValue.trim();
+
+  if (!trimmed) {
+    return game.coverImageUrl || game.imageUrl || null;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  const asset = mediaAssets.find((item) => item.id === trimmed);
+  if (asset) {
+    return asset.url;
+  }
+
+  return game.coverImageUrl || game.imageUrl || null;
 }
 
 function publishErrorLabel(error: string) {

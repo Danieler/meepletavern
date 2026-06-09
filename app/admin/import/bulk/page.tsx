@@ -5,12 +5,14 @@ import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { sourceRepository } from "@/lib/editorialRepositories";
+import { isAsmodeeImportSource } from "@/lib/importSourceFilters";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminBulkImportPage() {
   try {
     const sources = await sourceRepository.list();
+    const asmodeeSources = sources.filter(isAsmodeeImportSource);
 
     return (
       <div className="space-y-6">
@@ -22,15 +24,17 @@ export default async function AdminBulkImportPage() {
           title="Importación bulk"
           description="Crea candidatos desde URLs de producto, sin publicar juegos ni aprobar imágenes automáticamente."
         />
-        {!sources.length ? (
+        {!asmodeeSources.length ? (
           <div className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-            <p className="text-ink/70">Necesitas registrar una fuente antes de importar URLs.</p>
+            <p className="text-ink/70">No hay ninguna fuente Asmodee configurada.</p>
             <Link className="button-primary mt-4" href="/admin/sources">
-              Crear fuente
+              Crear fuente Asmodee
             </Link>
           </div>
         ) : (
-          <AdminBulkImportForm sources={sources.map((source) => ({ id: source.id, name: source.name, status: source.status }))} />
+          <AdminBulkImportForm
+            sources={asmodeeSources.map((source) => ({ id: source.id, name: source.name, status: source.status }))}
+          />
         )}
       </div>
     );

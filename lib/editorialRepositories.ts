@@ -20,6 +20,7 @@ import {
   normalizeSourcePermissions
 } from "@/lib/editorialMappers";
 import type { SourcePermissions } from "@/lib/editorialTypes";
+import { isAsmodeeImportSource } from "@/lib/importSourceFilters";
 import { prisma } from "@/lib/prisma";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
 import { slugify } from "@/lib/slug";
@@ -472,6 +473,10 @@ async function createConnectorGameCandidate(input: ConnectorCandidateInput) {
     throw new Error("No se pueden crear candidatos desde una fuente rechazada.");
   }
 
+  if (!isAsmodeeImportSource(source)) {
+    throw new Error("Selecciona una fuente compatible con Asmodee.");
+  }
+
   const duplicate = await findCandidateDuplicate(sourceId, sourceUrl);
 
   if (duplicate) {
@@ -492,6 +497,10 @@ export async function bulkImportCandidates(sourceIdInput: unknown, urlsInput: un
 
   if (!getSourcePolicy(source).canCreateCandidate) {
     throw new Error("No se pueden crear candidatos desde una fuente rechazada.");
+  }
+
+  if (!isAsmodeeImportSource(source)) {
+    throw new Error("Selecciona una fuente compatible con Asmodee.");
   }
 
   const urls = parseBulkUrls(urlsInput);

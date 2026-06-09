@@ -23,7 +23,12 @@ export async function saveGameEditorAction(
   }
 
   try {
-    await gameRepository.update(id, toGameUpdateInput(formData, requestedStatus));
+    const editorGame = await gameRepository.getEditorById(id);
+    if (!editorGame) {
+      throw new Error("No existe ese juego.");
+    }
+
+    await gameRepository.update(id, toGameUpdateInput(formData, requestedStatus, editorGame.mediaAssets));
     revalidateGameAdmin(id);
     return { message: "Juego guardado." };
   } catch (error) {
@@ -38,7 +43,15 @@ export async function publishGameEditorAction(
   const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
 
   try {
-    const savedGame = await gameRepository.update(id, toGameUpdateInput(formData, GameStatus.review));
+    const editorGame = await gameRepository.getEditorById(id);
+    if (!editorGame) {
+      throw new Error("No existe ese juego.");
+    }
+
+    const savedGame = await gameRepository.update(
+      id,
+      toGameUpdateInput(formData, GameStatus.review, editorGame.mediaAssets)
+    );
     const validation = validateBeforePublish(savedGame);
 
     if (!validation.valid) {
@@ -57,7 +70,7 @@ export async function publishGameEditorAction(
   }
 }
 
-function toGameUpdateInput(formData: FormData, status: GameStatus): Prisma.GameUpdateInput {
+function toGameUpdateInput(formData: FormData, status: GameStatus, mediaAssets: Array<{ id: string; url: string }>): Prisma.GameUpdateInput {
   const title = requiredString(formData.get("title"), "El título es obligatorio.");
   const slug = requiredString(formData.get("slug"), "El slug es obligatorio.");
   const minPlayers = optionalPositiveInt(formData.get("minPlayers"));
@@ -69,6 +82,7 @@ function toGameUpdateInput(formData: FormData, status: GameStatus): Prisma.GameU
   const difficulty = optionalString(formData.get("difficulty"));
   const shortDescription = optionalString(formData.get("shortDescription"));
   const quickVerdict = optionalString(formData.get("quickVerdict"));
+  const primaryImageInput = optionalString(formData.get("primaryImageId"));
   const players = normalizeGamePlayers({
     min: minPlayers,
     max: maxPlayers,
@@ -76,6 +90,7 @@ function toGameUpdateInput(formData: FormData, status: GameStatus): Prisma.GameU
     label: formatPlayersLabel(minPlayers, maxPlayers, idealPlayers)
   });
   const faq = parseFaq(formData.get("faq"));
+  const imageFields = resolveImageFields(primaryImageInput, mediaAssets);
 
   return {
     title,
@@ -108,7 +123,8 @@ function toGameUpdateInput(formData: FormData, status: GameStatus): Prisma.GameU
     faqs: faq as unknown as Prisma.InputJsonValue,
     seoTitle: optionalString(formData.get("seoTitle")),
     seoDescription: optionalString(formData.get("seoDescription")),
-    primaryImageId: optionalString(formData.get("primaryImageId")),
+    primaryImageId: imageFields.primaryImageId,
+    ...(imageFields.coverImageUrl ? imageFields : {}),
     imageFallbackAccepted: formData.get("imageFallbackAccepted") === "on",
     status,
     publishedAt: status === GameStatus.published ? new Date() : null
@@ -188,6 +204,47 @@ function formatPlaytime(minInput: number | null, maxInput: number | null) {
   }
 
   return null;
+}
+
+function resolveImageFields(primaryImageInput: string | null, mediaAssets: Array<{ id: string; url: string }>) {
+  if (!primaryImageInput) {
+    return {
+      primaryImageId: null,
+      coverImageUrl: null,
+      imageUrl: null,
+      imageStatus: null
+    };
+  }
+
+  if (looksLikeUrl(primaryImageInput)) {
+    return {
+      primaryImageId: primaryImageInput,
+      coverImageUrl: primaryImageInput,
+      imageUrl: primaryImageInput,
+      imageStatus: "verified" as const
+    };
+  }
+
+  const selectedAsset = mediaAssets.find((asset) => asset.id === primaryImageInput);
+  if (selectedAsset) {
+    return {
+      primaryImageId: selectedAsset.id,
+      coverImageUrl: selectedAsset.url,
+      imageUrl: selectedAsset.url,
+      imageStatus: "verified" as const
+    };
+  }
+
+  return {
+    primaryImageId: primaryImageInput,
+    coverImageUrl: null,
+    imageUrl: null,
+    imageStatus: null
+  };
+}
+
+function looksLikeUrl(value: string) {
+  return /^https?:\/\//i.test(value.trim());
 }
 
 function errorMessage(error: unknown) {
