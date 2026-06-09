@@ -172,6 +172,7 @@ function optionalInt(value: unknown) {
 function normalizeStatus(value: unknown) {
   if (
     value === GameStatus.draft ||
+    value === GameStatus.review ||
     value === GameStatus.published ||
     value === GameStatus.archived
   ) {

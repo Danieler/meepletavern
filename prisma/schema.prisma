@@ -10,8 +10,62 @@ datasource db {
 
 enum GameStatus {
   draft
+  review
   published
   archived
+}
+
+enum SourceType {
+  publisher
+  distributor
+  shop
+  affiliate_api
+  open_data
+  manual
+}
+
+enum SourceStatus {
+  not_contacted
+  contacted
+  approved
+  rejected
+}
+
+enum GameCandidateStatus {
+  pending
+  needs_review
+  approved
+  rejected
+  converted
+}
+
+enum EditorialFlag {
+  possible_duplicate
+  missing_players
+  missing_playtime
+  missing_age
+  image_not_allowed
+  low_confidence
+  needs_permission
+}
+
+enum MediaAssetType {
+  cover
+  box
+  component
+  placeholder
+}
+
+enum MediaAssetStatus {
+  candidate
+  approved
+  rejected
+}
+
+enum MediaAssetUsage {
+  public
+  admin_only
+  purchase_only
 }
 
 enum TaxonomyType {
@@ -28,45 +82,129 @@ enum GameImageStatus {
 }
 
 model Game {
-  id             String     @id @default(cuid())
-  name           String
-  slug           String     @unique
-  status         GameStatus @default(draft)
-  imageUrl       String?
-  coverImageUrl  String?
-  coverImageAlt  String     @default("")
-  imageSourceName String?
-  imageSourceUrl String?
-  imageLicenseNote String?
-  imageStatus    GameImageStatus @default(missing)
-  description    String?
-  review         String?
-  shortSummary   String?
-  pros           String[]   @default([])
-  cons           String[]   @default([])
-  bestFor        String?
-  notFor         String?
-  minPlayers     Int?
-  maxPlayers     Int?
-  playtime       String?
-  age            String?
-  complexity     String?
-  categories     String[]   @default([])
-  mechanics      String[]   @default([])
-  themes         String[]   @default([])
-  similarGames   String[]   @default([])
-  faqs           Json?
-  seoTitle       String?
-  seoDescription String?
-  buyUrl         String?
-  sources        Json?
-  createdByAi    Boolean    @default(false)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  publishedAt    DateTime?
+  id                    String          @id @default(cuid())
+  name                  String
+  slug                  String          @unique
+  status                GameStatus      @default(draft)
+  title                 String          @default("")
+  originalTitle         String?
+  year                  Int?
+  players               Json            @default("{}")
+  imageUrl              String?
+  coverImageUrl         String?
+  coverImageAlt         String          @default("")
+  imageSourceName       String?
+  imageSourceUrl        String?
+  imageLicenseNote      String?
+  imageStatus           GameImageStatus @default(missing)
+  description           String?
+  review                String?
+  shortSummary          String?
+  shortDescription      String?
+  quickVerdict          String?
+  pros                  String[]        @default([])
+  cons                  String[]        @default([])
+  bestFor               String?
+  notFor                String?
+  minPlayers            Int?
+  maxPlayers            Int?
+  playtime              String?
+  age                   String?
+  minAge                Int?
+  complexity            String?
+  difficulty            String?
+  categories            String[]        @default([])
+  mechanics             String[]        @default([])
+  themes                String[]        @default([])
+  publisher             String?
+  spanishPublisher      String?
+  similarGames          String[]        @default([])
+  faqs                  Json?
+  faq                   Json?
+  seoTitle              String?
+  seoDescription        String?
+  buyUrl                String?
+  sources               Json?
+  sourceIds             String[]        @default([])
+  primaryImageId        String?
+  imageFallbackAccepted Boolean         @default(false)
+  createdByAi           Boolean         @default(false)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  publishedAt           DateTime?
+  mediaAssets           MediaAsset[]
 
   @@index([status])
   @@index([createdAt])
+}
+
+model Source {
+  id                  String          @id @default(cuid())
+  name                String
+  baseUrl             String
+  type                SourceType
+  status              SourceStatus    @default(not_contacted)
+  permissions         Json            @default("{}")
+  attributionRequired Boolean         @default(false)
+  attributionText     String?
+  notes               String?
+  contactEmail        String?
+  permissionProofUrl  String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  candidates          GameCandidate[]
+  mediaAssets         MediaAsset[]
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model GameCandidate {
+  id                   String              @id @default(cuid())
+  sourceId             String
+  source               Source              @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceUrl            String
+  title                String
+  originalTitle        String?
+  metadata             Json                @default("{}")
+  extractedDescription String?
+  candidateImages      Json                @default("[]")
+  aiDraft              Json?
+  confidence           Float               @default(0)
+  status               GameCandidateStatus @default(pending)
+  flags                EditorialFlag[]     @default([])
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  mediaAssets          MediaAsset[]
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model MediaAsset {
+  id          String           @id @default(cuid())
+  gameId      String?
+  game        Game?            @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  candidateId String?
+  candidate   GameCandidate?   @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  sourceId    String?
+  source      Source?          @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  url         String
+  localPath   String?
+  type        MediaAssetType
+  status      MediaAssetStatus @default(candidate)
+  usage       MediaAssetUsage  @default(admin_only)
+  attribution String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([gameId])
+  @@index([candidateId])
+  @@index([sourceId])
+  @@index([status])
+  @@index([usage])
 }
 
 model TaxonomyTerm {

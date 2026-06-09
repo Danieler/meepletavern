@@ -6,7 +6,7 @@ import { Archive, ExternalLink, Rocket, Save, Trash2 } from "lucide-react";
 import { EditableList } from "@/components/EditableList";
 import type { FaqItem, SourceItem } from "@/lib/content";
 
-type AdminGameStatus = "draft" | "published" | "archived";
+type AdminGameStatus = "draft" | "review" | "published" | "archived";
 type AdminGameImageStatus = "verified" | "missing" | "placeholder" | "needs_review";
 
 export type AdminGameFormValues = {
@@ -183,6 +183,7 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
                 onChange={(event) => updateField("status", event.target.value as AdminGameStatus)}
               >
                 <option value="draft">draft</option>
+                <option value="review">review</option>
                 <option value="published">published</option>
                 <option value="archived">archived</option>
               </select>
@@ -450,6 +451,7 @@ function NumberInput({ value, onChange }: { value: number | null; onChange: (val
 function statusLabel(status: AdminGameStatus) {
   const labels = {
     draft: "Borrador",
+    review: "En revisión",
     published: "Publicado",
     archived: "Archivado"
   };
