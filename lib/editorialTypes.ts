@@ -93,6 +93,8 @@ export type GameCandidate = {
   extractedDescription?: string | null;
   candidateImages: CandidateImage[];
   aiDraft?: Prisma.JsonObject | null;
+  aiGenerated: boolean;
+  aiReviewed: boolean;
   confidence: number;
   status: GameCandidateStatusKey;
   flags: EditorialFlagKey[];

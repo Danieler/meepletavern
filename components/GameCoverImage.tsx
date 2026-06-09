@@ -7,6 +7,7 @@ import {
   hasVerifiedCoverImage,
   type GameImageFields
 } from "@/lib/gameImages";
+import { placeholderUrl, type PlaceholderKind } from "@/lib/mediaSafety";
 
 type GameCoverImageProps = GameImageFields & {
   gameTitle: string;
@@ -31,6 +32,7 @@ export function GameCoverImage({
   imageSourceName,
   imageSourceUrl,
   imageLicenseNote,
+  placeholderKind,
   variant = "card",
   priority = false,
   className = "",
@@ -73,7 +75,11 @@ export function GameCoverImage({
           onError={() => setFailed(true)}
         />
       ) : (
-        <MeepleTavernCoverPlaceholder gameTitle={gameTitle} showLabel={showPlaceholderLabel} />
+        <MeepleTavernCoverPlaceholder
+          gameTitle={gameTitle}
+          kind={(placeholderKind || "general") as PlaceholderKind}
+          showLabel={showPlaceholderLabel}
+        />
       )}
     </div>
   );
@@ -81,30 +87,28 @@ export function GameCoverImage({
 
 function MeepleTavernCoverPlaceholder({
   gameTitle,
+  kind,
   showLabel
 }: {
   gameTitle: string;
+  kind: PlaceholderKind;
   showLabel: boolean;
 }) {
   return (
     <div
       role="img"
       aria-label={`Portada pendiente de ${gameTitle}`}
-      className="relative flex h-full min-h-full w-full flex-col justify-between overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(233,177,91,0.36),transparent_36%),linear-gradient(135deg,#1d2530_0%,#2f6f62_52%,#8f3048_100%)] p-4 text-white"
+      className="relative h-full min-h-full w-full overflow-hidden bg-ink/5 text-white"
     >
+      <img src={placeholderUrl(kind)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(29,37,48,0.72))]" />
-      <div className="relative flex items-center justify-between gap-3">
+      <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3">
         <span className="rounded-md bg-white/12 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-parchment">
           MeepleTavern
         </span>
         <Dice5 size={20} aria-hidden="true" className="text-ember" />
       </div>
-      <div className="relative mx-auto my-4 flex w-20 max-w-[42%] flex-col items-center">
-        <span className="h-8 w-8 rounded-full bg-ember shadow-soft" />
-        <span className="-mt-1 h-14 w-14 rounded-t-2xl bg-parchment shadow-soft" />
-        <span className="-mt-1 h-5 w-20 rounded-md bg-ember/90 shadow-soft" />
-      </div>
-      <div className="relative">
+      <div className="absolute bottom-4 left-4 right-4">
         <p className="line-clamp-2 text-lg font-black leading-tight text-white">{gameTitle}</p>
         {showLabel ? (
           <p className="mt-2 inline-flex rounded-md bg-white/12 px-2 py-1 text-xs font-bold text-parchment">

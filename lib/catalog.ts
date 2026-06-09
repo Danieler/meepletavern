@@ -1,5 +1,6 @@
 import { GameStatus, Prisma } from "@prisma/client";
 import type { GameImageFields } from "@/lib/gameImages";
+import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 import { getTaxonomyTermNames } from "@/lib/taxonomy";
@@ -37,6 +38,7 @@ export type CatalogGame = GameImageFields & {
   addedAt: string;
   updatedAt: string;
   publishedAt: string | null;
+  placeholderKind: string;
 };
 
 export type Review = GameImageFields & {
@@ -81,6 +83,7 @@ const catalogGameSelect = {
   imageSourceUrl: true,
   imageLicenseNote: true,
   imageStatus: true,
+  primaryImageId: true,
   description: true,
   review: true,
   shortSummary: true,
@@ -100,6 +103,25 @@ const catalogGameSelect = {
   mechanics: true,
   themes: true,
   buyUrl: true,
+  mediaAssets: {
+    select: {
+      id: true,
+      url: true,
+      status: true,
+      usage: true,
+      attribution: true,
+      source: {
+        select: {
+          name: true,
+          baseUrl: true,
+          status: true,
+          permissions: true,
+          attributionRequired: true,
+          attributionText: true
+        }
+      }
+    }
+  },
   createdAt: true,
   updatedAt: true,
   publishedAt: true
@@ -353,17 +375,25 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
   const shortDescription = game.shortDescription || game.shortSummary;
   const quickVerdict = game.quickVerdict || game.review;
   const difficulty = game.difficulty || game.complexity;
+  const safeMedia = pickSafeMedia(game);
+  const placeholderKind = inferPlaceholderKind({
+    categories: game.categories,
+    mechanics: game.mechanics,
+    themes: game.themes,
+    difficulty
+  });
 
   return {
     id: game.id,
     slug: game.slug,
     title,
-    coverImageUrl: game.coverImageUrl,
-    coverImageAlt: game.coverImageAlt || `Portada de ${title}`,
-    imageSourceName: game.imageSourceName,
-    imageSourceUrl: game.imageSourceUrl,
-    imageLicenseNote: game.imageLicenseNote,
-    imageStatus: game.imageStatus,
+    coverImageUrl: safeMedia?.url || null,
+    coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
+    imageSourceName: safeMedia?.source?.name || null,
+    imageSourceUrl: safeMedia?.source?.baseUrl || null,
+    imageLicenseNote: safeMedia?.attribution || safeMedia?.source?.attributionText || null,
+    imageStatus: safeMedia ? "verified" : "placeholder",
+    placeholderKind,
     playersMin: game.minPlayers,
     playersMax: game.maxPlayers,
     playersLabel: formatPlayers(game),
@@ -399,22 +429,48 @@ function toReview(game: CatalogDbGame): Review | null {
     return null;
   }
 
+  const safeMedia = pickSafeMedia(game);
+  const difficulty = game.difficulty || game.complexity;
+  const placeholderKind = inferPlaceholderKind({
+    categories: game.categories,
+    mechanics: game.mechanics,
+    themes: game.themes,
+    difficulty
+  });
+
   return {
     id: `review-${game.id}`,
     slug: game.slug,
     title: `Reseña de ${title}`,
     gameSlug: game.slug,
     gameTitle: title,
-    coverImageUrl: game.coverImageUrl,
-    coverImageAlt: game.coverImageAlt || `Portada de ${title}`,
-    imageSourceName: game.imageSourceName,
-    imageSourceUrl: game.imageSourceUrl,
-    imageLicenseNote: game.imageLicenseNote,
-    imageStatus: game.imageStatus,
+    coverImageUrl: safeMedia?.url || null,
+    coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
+    imageSourceName: safeMedia?.source?.name || null,
+    imageSourceUrl: safeMedia?.source?.baseUrl || null,
+    imageLicenseNote: safeMedia?.attribution || safeMedia?.source?.attributionText || null,
+    imageStatus: safeMedia ? "verified" : "placeholder",
+    placeholderKind,
     summary,
     body: splitParagraphs(bodySource),
     publishedAt: (game.publishedAt || game.updatedAt || game.createdAt).toISOString()
   };
+}
+
+function pickSafeMedia(game: CatalogDbGame) {
+  const orderedMedia = [...game.mediaAssets].sort((left, right) => {
+    if (left.id === game.primaryImageId) {
+      return -1;
+    }
+
+    if (right.id === game.primaryImageId) {
+      return 1;
+    }
+
+    return 0;
+  });
+
+  return orderedMedia.find((asset) => canShowMedia(asset, asset.source)) || null;
 }
 
 function buildTermRankings(

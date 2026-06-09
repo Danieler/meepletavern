@@ -9,6 +9,7 @@ export type GameImageFields = {
   imageSourceUrl?: string | null;
   imageLicenseNote?: string | null;
   imageStatus: GameImageStatus;
+  placeholderKind?: string | null;
 };
 
 export function hasVerifiedCoverImage(image: GameImageFields) {

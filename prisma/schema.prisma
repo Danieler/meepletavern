@@ -171,6 +171,8 @@ model GameCandidate {
   extractedDescription String?
   candidateImages      Json                @default("[]")
   aiDraft              Json?
+  aiGenerated          Boolean             @default(false)
+  aiReviewed           Boolean             @default(false)
   confidence           Float               @default(0)
   status               GameCandidateStatus @default(pending)
   flags                EditorialFlag[]     @default([])
