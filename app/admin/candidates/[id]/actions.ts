@@ -1,6 +1,5 @@
 "use server";
 
-import { GameStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { convertCandidateToGame, gameCandidateRepository, mediaAssetRepository } from "@/lib/editorialRepositories";
@@ -12,10 +11,16 @@ export async function rejectCandidateAction(formData: FormData) {
   revalidatePath(`/admin/candidates/${id}`);
 }
 
+export async function deleteCandidateAction(formData: FormData) {
+  const id = readId(formData);
+  await gameCandidateRepository.delete(id);
+  revalidatePath("/admin/candidates");
+  redirect("/admin/candidates");
+}
+
 export async function convertCandidateAction(formData: FormData) {
   const id = readId(formData);
-  const status = formData.get("status") === GameStatus.review ? GameStatus.review : GameStatus.draft;
-  const game = await convertCandidateToGame(id, status);
+  const game = await convertCandidateToGame(id, "draft");
 
   revalidatePath("/admin/candidates");
   revalidatePath("/admin/games");

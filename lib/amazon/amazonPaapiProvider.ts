@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import { getMockAmazonProduct } from "@/lib/amazon/amazonPaapiMockProvider";
 
 export type AmazonProduct = {
   asin: string;
@@ -12,9 +11,8 @@ export type AmazonProduct = {
   currency?: string;
   availability?: string;
   features?: string[];
+  facts?: Record<string, string>;
 };
-
-type AmazonProviderMode = "mock" | "real";
 
 type AmazonPaapiConfig = {
   accessKey: string;
@@ -26,22 +24,25 @@ type AmazonPaapiConfig = {
   accessToken: string | null;
 };
 
-export function getAmazonPaapiProviderMode(): AmazonProviderMode {
-  return process.env.AMAZON_PAAPI_USE_MOCK === "true" ? "mock" : "real";
+export function getAmazonPaapiProviderMode() {
+  return "real" as const;
 }
 
-export async function getAmazonProduct(input: { asin: string }): Promise<AmazonProduct> {
-  if (getAmazonPaapiProviderMode() === "mock") {
-    return getMockAmazonProduct(input.asin);
-  }
-
+export async function getAmazonProduct(input: { asin: string; sourceUrl?: string }): Promise<AmazonProduct> {
   const config = readConfig();
-  if (!config) {
-    throw new Error("Amazon PA API no configurada.");
+  if (config) {
+    return fetchAmazonProductFromPaapi(input.asin, config);
   }
 
+  return fetchAmazonProductFromPage({
+    asin: input.asin,
+    sourceUrl: input.sourceUrl
+  });
+}
+
+async function fetchAmazonProductFromPaapi(asin: string, config: AmazonPaapiConfig): Promise<AmazonProduct> {
   const body = JSON.stringify({
-    ItemIds: [input.asin],
+    ItemIds: [asin],
     ItemIdType: "ASIN",
     PartnerTag: config.partnerTag,
     PartnerType: "Associates",
@@ -125,7 +126,39 @@ export async function getAmazonProduct(input: { asin: string }): Promise<AmazonP
     throw new Error("Amazon PA API no devolvió ningún producto.");
   }
 
-  return mapItemToProduct(item, input.asin);
+  return mapItemToProduct(item, asin);
+}
+
+async function fetchAmazonProductFromPage(input: { asin: string; sourceUrl?: string }): Promise<AmazonProduct> {
+  const detailPageUrl = buildAmazonDetailPageUrl(input.asin, input.sourceUrl);
+  let response: Response;
+  try {
+    response = await fetch(detailPageUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache"
+      }
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "no se pudo abrir la ficha";
+    throw new Error(`No se pudo acceder a Amazon desde este entorno (${reason}).`);
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`No se pudo leer la ficha de Amazon (${response.status}): ${text.slice(0, 160)}`);
+  }
+
+  const html = await response.text();
+  if (looksLikeAmazonCaptcha(html)) {
+    throw new Error("Amazon bloqueó la lectura directa de la ficha. Añade credenciales de PA API para seguir importando.");
+  }
+
+  return mapPageToProduct(html, input.asin, detailPageUrl);
 }
 
 function readConfig(): AmazonPaapiConfig | null {
@@ -142,6 +175,40 @@ function readConfig(): AmazonPaapiConfig | null {
   }
 
   return { accessKey, secretKey, partnerTag, host, region, marketplace, accessToken };
+}
+
+function mapPageToProduct(html: string, asin: string, detailPageUrl: string): AmazonProduct {
+  const title =
+    clean(meta(html, "og:title")) ||
+    clean(meta(html, "twitter:title")) ||
+    clean(textBetween(html, "<title", "</title")) ||
+    `Producto Amazon ${asin}`;
+  const imageUrl =
+    extractLandingImageUrl(html) ||
+    absoluteUrl(meta(html, "og:image") || meta(html, "twitter:image") || "", detailPageUrl);
+  const facts = extractFacts(html);
+  const brand = clean(meta(html, "product:brand") || facts["Marca"] || facts["Brand"] || matchLabel(html, /Marca|Brand/i));
+  const manufacturer = clean(
+    meta(html, "product:manufacturer") || facts["Fabricante"] || facts["Manufacturer"] || matchLabel(html, /Fabricante|Manufacturer/i)
+  );
+  const priceAmount = firstNumberLike(extractPriceText(html) || meta(html, "product:price:amount") || meta(html, "price") || "");
+  const currency = clean(meta(html, "product:price:currency") || meta(html, "priceCurrency") || "");
+  const availability = clean(meta(html, "availability") || matchLabel(html, /Disponibilidad|Availability/i));
+  const features = extractFeatures(html);
+
+  return {
+    asin,
+    title,
+    detailPageUrl,
+    imageUrl: imageUrl || undefined,
+    brand: brand || undefined,
+    manufacturer: manufacturer || undefined,
+    price: priceAmount,
+    currency: currency || undefined,
+    availability: availability || undefined,
+    features,
+    facts
+  };
 }
 
 type AmazonPaapiResponse = {
@@ -204,6 +271,195 @@ function mapItemToProduct(item: AmazonPaapiItem, fallbackAsin: string): AmazonPr
       value.trim()
     )
   };
+}
+
+function buildAmazonDetailPageUrl(asin: string, sourceUrl?: string) {
+  if (sourceUrl) {
+    try {
+      const parsed = new URL(sourceUrl);
+      if (parsed.hostname.includes("amazon.")) {
+        return parsed.toString();
+      }
+    } catch {
+      // fallback to canonical Amazon URL below
+    }
+  }
+
+  return `https://www.amazon.es/dp/${asin}`;
+}
+
+function meta(html: string, name: string) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i");
+  return decode(pattern.exec(html)?.[1] || "");
+}
+
+function textBetween(html: string, start: string, end: string) {
+  const startIndex = html.toLowerCase().indexOf(start.toLowerCase());
+  if (startIndex < 0) {
+    return "";
+  }
+
+  const contentStart = html.indexOf(">", startIndex) + 1;
+  const endIndex = html.toLowerCase().indexOf(end.toLowerCase(), contentStart);
+  return endIndex > contentStart ? decode(stripTags(html.slice(contentStart, endIndex))) : "";
+}
+
+function matchLabel(html: string, label: RegExp) {
+  const compact = stripTags(html).replace(/\s+/g, " ");
+  const match = new RegExp(`${label.source}\\s*:?\\s*([^|•\\n]{0,60})`, "i").exec(compact);
+  return clean(match?.[1] || "");
+}
+
+function extractFeatures(html: string) {
+  const section = extractSection(html, "feature-bullets", 9000);
+  const lines = [...section.matchAll(/<span class="a-list-item">\s*([\s\S]*?)\s*<\/span>/gi)]
+    .map((match) => clean(stripTags(match[1] || "")))
+    .filter((item) => item.length > 12);
+
+  if (lines.length) {
+    return lines.slice(0, 8);
+  }
+
+  return stripTags(html)
+    .replace(/\s+/g, " ")
+    .split("•")
+    .map((item) => clean(item))
+    .filter((item) => item.length > 8)
+    .slice(0, 5);
+}
+
+function firstNumberLike(value: string) {
+  const match = value.match(/[\d.,]+/);
+  if (!match) {
+    return undefined;
+  }
+
+  const normalized = Number.parseFloat(match[0].replace(",", "."));
+  return Number.isFinite(normalized) ? normalized : undefined;
+}
+
+function extractFacts(html: string) {
+  const factLabels: Array<[string, RegExp]> = [
+    ["Marca", /Marca/i],
+    ["Fabricante", /Fabricante/i],
+    ["Género", /Género/i],
+    ["Tema", /Tema/i],
+    ["Número de jugadores", /Número de jugadores/i],
+    ["Tiempo de juego estimado", /Tiempo de juego estimado/i],
+    ["Edición", /Edición/i],
+    ["Idioma", /Idioma/i],
+    ["Componentes Incluidos", /Componentes Incluidos/i],
+    ["Edad mínima recomendada", /Edad mínima recomendada/i],
+    ["Descripción del rango de edad", /Descripción del rango de edad/i],
+    ["ASIN", /ASIN/i],
+    ["UPC", /UPC/i],
+    ["Tipo de embalaje", /Tipo de embalaje/i],
+    ["Nombre del conjunto", /Nombre del conjunto/i],
+    ["Número Modelo", /Número Modelo/i]
+  ];
+
+  const facts: Record<string, string> = {};
+  for (const [label, pattern] of factLabels) {
+    const value = matchLabel(html, pattern);
+    if (value) {
+      facts[label] = value;
+    }
+  }
+
+  return facts;
+}
+
+function extractLandingImageUrl(html: string) {
+  const landingTagMatch = /<img\b[^>]*id="landingImage"[^>]*>/i.exec(html);
+  const tag = landingTagMatch?.[0] || "";
+
+  const oldHires = attrValue(tag, "data-old-hires");
+  if (oldHires) {
+    return decode(oldHires);
+  }
+
+  const dynamicImage = attrValue(tag, "data-a-dynamic-image");
+  if (dynamicImage) {
+    try {
+      const parsed = JSON.parse(decode(dynamicImage)) as Record<string, unknown>;
+      const urls = Object.keys(parsed);
+      if (urls.length) {
+        return urls.sort((left, right) => scoreAmazonImageUrl(right) - scoreAmazonImageUrl(left))[0];
+      }
+    } catch {
+      // ignore malformed dynamic image data
+    }
+  }
+
+  const src = attrValue(tag, "src");
+  return src ? decode(src) : "";
+}
+
+function extractPriceText(html: string) {
+  const section = extractSection(html, "corePrice_feature_div", 3000) || extractSection(html, "apex_desktop", 3000);
+  const match = /class="a-offscreen"[^>]*>\s*([^<]+?)\s*</i.exec(section);
+  if (match?.[1]) {
+    return clean(match[1]);
+  }
+
+  const textMatch = /\b(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*€/.exec(stripTags(section));
+  return textMatch ? textMatch[0] : "";
+}
+
+function extractSection(html: string, marker: string, radius: number) {
+  const index = html.toLowerCase().indexOf(marker.toLowerCase());
+  if (index < 0) {
+    return "";
+  }
+
+  const start = Math.max(0, index - Math.floor(radius / 4));
+  const end = Math.min(html.length, index + radius);
+  return html.slice(start, end);
+}
+
+function attrValue(tag: string, name: string) {
+  const pattern = new RegExp(`${name}="([^"]*)"`, "i");
+  return pattern.exec(tag)?.[1] || "";
+}
+
+function scoreAmazonImageUrl(url: string) {
+  const match = /_AC_(?:SX|SY|SL)(\d+)_/i.exec(url);
+  return match ? Number(match[1]) : 0;
+}
+
+function looksLikeAmazonCaptcha(html: string) {
+  const compact = html.toLowerCase();
+  return compact.includes("robot check") || compact.includes("captcha") || compact.includes("enter the characters you see below");
+}
+
+function absoluteUrl(value: string, sourceUrl: string) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    return new URL(value, sourceUrl).toString();
+  } catch {
+    return "";
+  }
+}
+
+function stripTags(value: string) {
+  return value.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ");
+}
+
+function clean(value: string) {
+  return decode(value).replace(/\s+/g, " ").trim();
+}
+
+function decode(value: string) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 }
 
 function toAmzDate(date: Date) {

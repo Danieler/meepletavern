@@ -2,6 +2,7 @@
 
 import { GameStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { gameRepository } from "@/lib/editorialRepositories";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
@@ -68,6 +69,16 @@ export async function publishGameEditorAction(
   } catch (error) {
     return { errors: [errorMessage(error)] };
   }
+}
+
+export async function deleteGameEditorAction(formData: FormData) {
+  const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
+
+  await gameRepository.delete(id);
+  revalidateGameAdmin(id);
+  revalidatePath("/admin/games");
+  revalidatePath("/admin/candidates");
+  redirect("/admin/games");
 }
 
 function toGameUpdateInput(formData: FormData, status: GameStatus, mediaAssets: Array<{ id: string; url: string }>): Prisma.GameUpdateInput {

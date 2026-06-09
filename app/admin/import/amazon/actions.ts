@@ -7,11 +7,6 @@ export type AmazonImportState = {
   result: AmazonImportResult | null;
 };
 
-export const initialAmazonImportState: AmazonImportState = {
-  error: null,
-  result: null
-};
-
 export async function importAmazonAction(_state: AmazonImportState, formData: FormData): Promise<AmazonImportState> {
   try {
     const result = await importAmazonProductReview({

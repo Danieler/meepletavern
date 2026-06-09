@@ -1,6 +1,7 @@
 import {
   EditorialFlag,
   GameCandidateStatus,
+  GameImageStatus,
   GameStatus,
   MediaAssetStatus,
   MediaAssetType,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/editorialMappers";
 import type { SourcePermissions } from "@/lib/editorialTypes";
 import { isAsmodeeImportSource } from "@/lib/importSourceFilters";
+import { canShowMedia } from "@/lib/mediaSafety";
 import { prisma } from "@/lib/prisma";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
 import { slugify } from "@/lib/slug";
@@ -158,6 +160,36 @@ export const gameCandidateRepository = {
     });
   },
 
+  async delete(id: string) {
+    const candidate = await prisma.gameCandidate.findUnique({
+      where: { id },
+      include: { mediaAssets: true }
+    });
+
+    if (!candidate) {
+      throw new Error("No existe ese candidato.");
+    }
+
+    if (candidate.status === GameCandidateStatus.converted) {
+      throw new Error("No se puede borrar un candidato ya convertido.");
+    }
+
+    await prisma.$transaction(async (transaction) => {
+      await transaction.mediaAsset.deleteMany({
+        where: {
+          candidateId: candidate.id,
+          gameId: null
+        }
+      });
+
+      await transaction.gameCandidate.delete({
+        where: { id: candidate.id }
+      });
+    });
+
+    return candidate;
+  },
+
   async generateAiDraft(id: string) {
     const candidate = await prisma.gameCandidate.findUnique({ where: { id } });
 
@@ -210,6 +242,62 @@ export const gameRepository = {
       where: { id },
       data: input
     });
+  },
+
+  async delete(id: string) {
+    const game = await prisma.game.findUnique({
+      where: { id },
+      include: { mediaAssets: true }
+    });
+
+    if (!game) {
+      throw new Error("No existe ese juego.");
+    }
+
+    if (game.status === GameStatus.published) {
+      throw new Error("No se puede borrar un juego publicado.");
+    }
+
+    const linkedCandidateIds = [...new Set(game.mediaAssets.map((asset) => asset.candidateId).filter((value): value is string => Boolean(value)))];
+
+    await prisma.$transaction(async (transaction) => {
+      if (linkedCandidateIds.length) {
+        await transaction.mediaAsset.updateMany({
+          where: {
+            gameId: game.id,
+            candidateId: { not: null }
+          },
+          data: {
+            gameId: null,
+            status: MediaAssetStatus.candidate,
+            usage: MediaAssetUsage.admin_only
+          }
+        });
+
+        await transaction.gameCandidate.updateMany({
+          where: {
+            id: { in: linkedCandidateIds },
+            status: GameCandidateStatus.converted
+          },
+          data: {
+            status: GameCandidateStatus.needs_review
+          }
+        });
+      }
+
+      await transaction.mediaAsset.deleteMany({
+        where: {
+          gameId: game.id,
+          candidateId: null
+        }
+      });
+
+      await transaction.game.delete({
+        where: { id: game.id }
+      });
+    });
+
+    return game;
   }
 };
 
@@ -303,7 +391,7 @@ export const mediaAssetRepository = {
 export async function convertCandidateToGame(candidateId: string, status: ConvertGameStatus) {
   const candidate = await prisma.gameCandidate.findUnique({
     where: { id: candidateId },
-    include: { source: true }
+    include: { source: true, mediaAssets: true }
   });
 
   if (!candidate) {
@@ -314,52 +402,11 @@ export async function convertCandidateToGame(candidateId: string, status: Conver
     throw new Error("El candidato ya está convertido.");
   }
 
-  const metadata = normalizeCandidateMetadata(candidate.metadata);
-  const players = normalizeGamePlayers(metadata.players);
-  const faq = normalizeGameFaq(metadata.faq);
-  const title = candidate.title.trim();
-  const slug = await ensureUniqueGameSlug(slugify(title));
-  const playtime = formatPlaytime(metadata.minPlayTime, metadata.maxPlayTime);
-  const minAge = numberOrNull(metadata.minAge);
-  const publisher = stringOrNull(metadata.publisher);
-  const aiDraft = normalizeAiDraft(candidate.aiDraft);
-  const draftFaq = normalizeGameFaq(aiDraft?.faq);
+  const gameData = await buildGameCreateDataFromCandidate(candidate, status);
 
   const game = await prisma.$transaction(async (transaction) => {
     const createdGame = await transaction.game.create({
-      data: {
-        name: title,
-        title,
-        slug,
-        status,
-        originalTitle: candidate.originalTitle,
-        year: numberOrNull(metadata.year),
-        players: players as unknown as Prisma.InputJsonValue,
-        minPlayers: players.min ?? null,
-        maxPlayers: players.max ?? null,
-        minAge,
-        age: minAge ? `${minAge}+` : null,
-        playtime,
-        publisher,
-        shortDescription: stringFromDraft(aiDraft, "shortDescription"),
-        description: stringFromDraft(aiDraft, "description"),
-        quickVerdict: stringFromDraft(aiDraft, "quickVerdict"),
-        bestFor: stringFromDraft(aiDraft, "bestFor"),
-        notFor: stringFromDraft(aiDraft, "notFor"),
-        categories: [],
-        mechanics: [],
-        themes: [],
-        pros: stringArrayFromDraft(aiDraft, "pros"),
-        cons: stringArrayFromDraft(aiDraft, "cons"),
-        faq: (draftFaq.length ? draftFaq : faq) as unknown as Prisma.InputJsonValue,
-        faqs: (draftFaq.length ? draftFaq : faq) as unknown as Prisma.InputJsonValue,
-        seoTitle: stringFromDraft(aiDraft, "seoTitle"),
-        seoDescription: stringFromDraft(aiDraft, "seoDescription"),
-        sourceIds: [candidate.sourceId],
-        imageFallbackAccepted: false,
-        createdByAi: Boolean(aiDraft),
-        publishedAt: null
-      }
+      data: gameData
     });
 
     await transaction.mediaAsset.updateMany({
@@ -376,6 +423,547 @@ export async function convertCandidateToGame(candidateId: string, status: Conver
   });
 
   return game;
+}
+
+type CandidateForGameConversion = Prisma.GameCandidateGetPayload<{
+  include: { source: true; mediaAssets: true };
+}>;
+
+async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConversion, status: ConvertGameStatus): Promise<Prisma.GameCreateInput> {
+  const metadata = normalizeCandidateMetadata(candidate.metadata);
+  const aiDraft = normalizeAiDraft(candidate.aiDraft);
+  const title = cleanCandidateTitle(candidate.title, candidate.sourceUrl);
+  const players = extractCandidatePlayers(metadata);
+  const minAge = extractCandidateNumber(metadata, [
+    "minAge",
+    "age",
+    "edad",
+    "Edad mínima recomendada",
+    "Edad minima recomendada",
+    "Age"
+  ]);
+  const playtime = extractCandidatePlaytime(metadata);
+  const year = extractCandidateNumber(metadata, ["year", "año", "anio"]);
+  const publisher = extractCandidatePublisher(metadata);
+  const draftContent = buildCandidateDraftContent(candidate, metadata, aiDraft);
+  const image = selectCandidateGameImage(candidate, title);
+
+  return {
+    name: title,
+    title,
+    slug: await ensureUniqueGameSlug(slugify(title)),
+    status,
+    originalTitle: optionalString(candidate.originalTitle),
+    year,
+    players: players as unknown as Prisma.InputJsonValue,
+    minPlayers: players.min ?? null,
+    maxPlayers: players.max ?? null,
+    playtime,
+    minAge,
+    age: minAge ? `${minAge}+` : null,
+    difficulty: extractCandidateDifficulty(metadata),
+    complexity: extractCandidateDifficulty(metadata),
+    categories: [...new Set([
+      ...extractCandidateTextList(metadata, ["categories", "category"]),
+      ...extractCandidateFactTextList(metadata, ["Género", "Genero"])
+    ])],
+    mechanics: extractCandidateMechanics(candidate, metadata),
+    themes: [...new Set([
+      ...extractCandidateTextList(metadata, ["themes", "theme"]),
+      ...extractCandidateFactTextList(metadata, ["Tema", "Theme"])
+    ])],
+    publisher,
+    spanishPublisher: extractCandidateSpanishPublisher(metadata),
+    shortDescription: draftContent.shortDescription,
+    shortSummary: draftContent.shortDescription,
+    description: draftContent.description,
+    quickVerdict: draftContent.quickVerdict,
+    review: draftContent.quickVerdict,
+    bestFor: draftContent.bestFor,
+    notFor: draftContent.notFor,
+    pros: draftContent.pros,
+    cons: draftContent.cons,
+    faq: draftContent.faq as unknown as Prisma.InputJsonValue,
+    faqs: draftContent.faq as unknown as Prisma.InputJsonValue,
+    seoTitle: draftContent.seoTitle,
+    seoDescription: draftContent.seoDescription,
+    buyUrl: candidate.sourceUrl,
+    sources: [
+      {
+        label: candidate.source.name,
+        url: candidate.sourceUrl
+      }
+    ] as unknown as Prisma.InputJsonValue,
+    sourceIds: [candidate.sourceId],
+    primaryImageId: image.primaryImageId,
+    imageFallbackAccepted: image.imageFallbackAccepted,
+    coverImageUrl: image.coverImageUrl,
+    imageUrl: image.coverImageUrl,
+    coverImageAlt: image.coverImageAlt,
+    imageSourceName: image.imageSourceName,
+    imageSourceUrl: image.imageSourceUrl,
+    imageLicenseNote: image.imageLicenseNote,
+    imageStatus: image.imageStatus,
+    createdByAi: Boolean(aiDraft),
+    publishedAt: null
+  };
+}
+
+function buildCandidateDraftContent(
+  candidate: CandidateForGameConversion,
+  metadata: Prisma.JsonObject,
+  aiDraft: Prisma.JsonObject | null
+) {
+  if (aiDraft) {
+    const draftFaq = normalizeGameFaq(aiDraft.faq);
+    const fallbackFaq = buildFallbackFaq(candidate);
+    const pros = stringArrayFromDraft(aiDraft, "pros");
+    const cons = stringArrayFromDraft(aiDraft, "cons");
+
+    return {
+      shortDescription: stringFromDraft(aiDraft, "shortDescription") || buildFallbackShortDescription(candidate, metadata),
+      description: stringFromDraft(aiDraft, "description") || buildFallbackDescription(candidate, metadata),
+      quickVerdict: stringFromDraft(aiDraft, "quickVerdict") || buildFallbackQuickVerdict(candidate),
+      bestFor: stringFromDraft(aiDraft, "bestFor") || buildFallbackBestFor(candidate, metadata),
+      notFor: stringFromDraft(aiDraft, "notFor") || buildFallbackNotFor(candidate),
+      pros: pros.length ? pros : buildFallbackPros(candidate, metadata),
+      cons: cons.length ? cons : buildFallbackCons(candidate),
+      faq: draftFaq.length ? draftFaq : fallbackFaq,
+      seoTitle: stringFromDraft(aiDraft, "seoTitle") || buildFallbackSeoTitle(candidate),
+      seoDescription: stringFromDraft(aiDraft, "seoDescription") || buildFallbackSeoDescription(candidate)
+    };
+  }
+
+  const fallbackFaq = buildFallbackFaq(candidate);
+
+  return {
+    shortDescription: buildFallbackShortDescription(candidate, metadata),
+    description: buildFallbackDescription(candidate, metadata),
+    quickVerdict: buildFallbackQuickVerdict(candidate),
+    bestFor: buildFallbackBestFor(candidate, metadata),
+    notFor: buildFallbackNotFor(candidate),
+    pros: buildFallbackPros(candidate, metadata),
+    cons: buildFallbackCons(candidate),
+    faq: fallbackFaq,
+    seoTitle: buildFallbackSeoTitle(candidate),
+    seoDescription: buildFallbackSeoDescription(candidate)
+  };
+}
+
+function selectCandidateGameImage(candidate: CandidateForGameConversion, displayTitle: string) {
+  const publicAsset = candidate.mediaAssets.find((asset) => canShowMedia(asset, candidate.source));
+  const reviewedAsset = candidate.mediaAssets.find((asset) => asset.url && asset.status === MediaAssetStatus.approved);
+  const candidateAsset = candidate.mediaAssets.find((asset) => asset.url) || null;
+  const candidateImages = normalizeCandidateImages(candidate.candidateImages);
+  const fallbackImageUrl = candidateImages[0]?.url || null;
+  const selectedAsset = publicAsset || reviewedAsset || candidateAsset;
+  const imageUrl = publicAsset?.url || reviewedAsset?.url || candidateAsset?.url || fallbackImageUrl;
+
+  if (!imageUrl) {
+    return {
+      primaryImageId: null,
+      imageFallbackAccepted: false,
+      coverImageUrl: null,
+      imageSourceName: null,
+      imageSourceUrl: null,
+      imageLicenseNote: null,
+      coverImageAlt: `Portada de ${displayTitle}`,
+      imageStatus: GameImageStatus.missing
+    };
+  }
+
+  const isVerified = Boolean(publicAsset);
+  const primaryImageId = selectedAsset?.id || null;
+
+  return {
+    primaryImageId,
+    imageFallbackAccepted: false,
+    coverImageUrl: imageUrl,
+    imageSourceName: candidate.source.name,
+    imageSourceUrl: candidate.source.baseUrl,
+    imageLicenseNote: selectedAsset?.attribution || candidate.source.attributionText || null,
+    coverImageAlt: `Portada de ${displayTitle}`,
+    imageStatus: isVerified ? GameImageStatus.verified : GameImageStatus.needs_review
+  };
+}
+
+function buildFallbackShortDescription(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
+  const summary = candidate.extractedDescription?.trim();
+  const knownData = buildKnownDataSummary(metadata);
+
+  if (summary) {
+    return truncateText(summary, 240);
+  }
+
+  if (knownData) {
+    return `Ficha preliminar importada desde ${candidate.source.name}. ${knownData}.`;
+  }
+
+  return `Ficha preliminar importada desde ${candidate.source.name} y pendiente de revisión editorial.`;
+}
+
+function buildFallbackDescription(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
+  const parts = [
+    candidate.extractedDescription?.trim() || null,
+    buildKnownDataSummary(metadata) ? `Datos detectados: ${buildKnownDataSummary(metadata)}.` : null,
+    `Fuente original: ${candidate.sourceUrl}.`
+  ].filter(Boolean);
+
+  return parts.join("\n\n");
+}
+
+function buildFallbackQuickVerdict(candidate: CandidateForGameConversion) {
+  return `Borrador importado desde ${candidate.source.name}. Revisa y completa la ficha antes de publicar.`;
+}
+
+function buildFallbackBestFor(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
+  const knownData = buildKnownDataSummary(metadata);
+
+  if (knownData) {
+    return `Jugadores que quieran revisar una ficha preliminar con los datos detectados: ${knownData}.`;
+  }
+
+  return `Jugadores que quieran completar la revisión editorial de la ficha importada desde ${candidate.source.name}.`;
+}
+
+function buildFallbackNotFor(candidate: CandidateForGameConversion) {
+  const title = cleanCandidateTitle(candidate.title, candidate.sourceUrl);
+  return `No es una ficha lista para público todavía: requiere revisión editorial antes de publicar ${title}.`;
+}
+
+function buildFallbackPros(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
+  const features = extractStringArray(metadata, ["features"]);
+  const summary = buildKnownDataSummary(metadata);
+  const pros = features.slice(0, 3).map((item) => truncateText(item, 140));
+
+  if (!pros.length && summary) {
+    pros.push(`Datos extraídos: ${summary}`);
+  }
+
+  if (!pros.length) {
+    pros.push(`Importado desde ${candidate.source.name}`);
+  }
+
+  return pros;
+}
+
+function buildFallbackCons(candidate: CandidateForGameConversion) {
+  const flags = candidate.flags.map((flag) => editorialFlagToLabel(flag));
+  const cons = flags.length ? [`Revisar estos avisos: ${flags.join(", ")}.`] : [];
+
+  if (!cons.length) {
+    cons.push("Falta revisión editorial antes de publicar.");
+  }
+
+  return cons;
+}
+
+function buildFallbackFaq(candidate: CandidateForGameConversion) {
+  return [
+    {
+      question: "¿De dónde salen estos datos?",
+      answer: `Se han importado desde ${candidate.source.name} a partir de la URL original.`
+    },
+    {
+      question: "¿Está listo para publicar?",
+      answer: "No todavía. Sigue siendo un borrador editorial hasta completar la revisión."
+    }
+  ];
+}
+
+function buildFallbackSeoTitle(candidate: CandidateForGameConversion) {
+  const title = cleanCandidateTitle(candidate.title, candidate.sourceUrl);
+  return `${title} | Ficha en revisión editorial`;
+}
+
+function buildFallbackSeoDescription(candidate: CandidateForGameConversion) {
+  const title = cleanCandidateTitle(candidate.title, candidate.sourceUrl);
+  return `Ficha preliminar de ${title} importada desde ${candidate.source.name} y pendiente de revisión editorial.`;
+}
+
+function buildKnownDataSummary(metadata: Prisma.JsonObject) {
+  const players = extractCandidatePlayers(metadata);
+  const playtime = extractCandidatePlaytime(metadata);
+  const minAge = extractCandidateNumber(metadata, ["minAge", "age", "edad"]);
+  const publisher = extractCandidatePublisher(metadata);
+  const parts = [
+    players.min && players.max ? `jugadores ${players.min}-${players.max}` : null,
+    playtime ? `duración ${playtime}` : null,
+    minAge ? `edad ${minAge}+` : null,
+    publisher ? `editorial ${publisher}` : null
+  ].filter(Boolean);
+
+  return parts.join(" · ");
+}
+
+function extractCandidatePlayers(metadata: Prisma.JsonObject) {
+  const direct = isRecord(metadata.players) ? metadata.players : null;
+  const factValue = extractCandidateFact(metadata, ["Número de jugadores", "Numero de jugadores", "Players", "Jugadores"]);
+  const parsed = parsePlayersText(
+    cleanStringValue(direct?.label) ||
+      cleanStringValue(factValue) ||
+      cleanStringValue(metadata["players"]) ||
+      cleanStringValue(metadata["playerCount"])
+  );
+
+  return normalizeGamePlayers({
+    min: optionalPositiveInt(direct?.min) || parsed.min,
+    max: optionalPositiveInt(direct?.max) || parsed.max,
+    ideal: optionalPositiveInt(direct?.ideal),
+    label: cleanStringValue(direct?.label) || parsed.label || null
+  });
+}
+
+function extractCandidatePlaytime(metadata: Prisma.JsonObject) {
+  const directMin = optionalPositiveInt(metadata.minPlayTime);
+  const directMax = optionalPositiveInt(metadata.maxPlayTime);
+  const factValue = extractCandidateFact(metadata, ["Tiempo de juego estimado", "Tiempo de juego", "Playtime", "Duración"]);
+  const parsed = parsePlaytimeText(cleanStringValue(factValue) || "");
+  const min = directMin || parsed.min;
+  const max = directMax || parsed.max;
+
+  return formatPlaytime(min, max);
+}
+
+function extractCandidateNumber(metadata: Prisma.JsonObject, keys: string[]) {
+  const direct = keys.map((key) => metadata[key]).find((value) => value !== undefined);
+  const factValue = extractCandidateFact(metadata, keys);
+  return optionalPositiveInt(direct) || parseFirstNumber(cleanStringValue(factValue));
+}
+
+function extractCandidatePublisher(metadata: Prisma.JsonObject) {
+  const direct = cleanStringValue(metadata.publisher) || cleanStringValue(metadata.brand) || cleanStringValue(metadata.manufacturer);
+  const factValue = extractCandidateFact(metadata, ["Marca", "Editorial", "Fabricante", "Publisher"]);
+  return cleanNoisyLabelValue(direct || factValue);
+}
+
+function extractCandidateSpanishPublisher(metadata: Prisma.JsonObject) {
+  const value = cleanStringValue(metadata.spanishPublisher) || extractCandidateFact(metadata, ["Editorial española", "Distribuidor", "Spanish publisher"]);
+  return cleanNoisyLabelValue(value);
+}
+
+function extractCandidateDifficulty(metadata: Prisma.JsonObject) {
+  return cleanStringValue(metadata.difficulty) || cleanStringValue(metadata.complexity) || null;
+}
+
+function extractCandidateTextList(metadata: Prisma.JsonObject, keys: string[]) {
+  const direct = keys
+    .map((key) => metadata[key])
+    .flatMap((value) => normalizeStringList(value));
+
+  return [...new Set(direct)];
+}
+
+function extractStringArray(metadata: Prisma.JsonObject, keys: string[]) {
+  return keys
+    .map((key) => metadata[key])
+    .flatMap((value) => normalizeStringList(value));
+}
+
+function extractCandidateFactTextList(metadata: Prisma.JsonObject, keys: string[]) {
+  const facts = isRecord(metadata.facts) ? metadata.facts : null;
+
+  if (!facts) {
+    return [];
+  }
+
+  const values = keys
+    .map((key) => facts[key])
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map((value) => cleanNoisyLabelValue(value))
+    .filter((value): value is string => value !== null);
+
+  return [...new Set(values)];
+}
+
+function extractCandidateMechanics(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
+  const fromDirect = extractCandidateTextList(metadata, ["mechanics", "mechanic"]);
+  const features = extractStringArray(metadata, ["features"]).join(" ").toLowerCase();
+  const values = new Set<string>(fromDirect);
+
+  if (features.includes("cooperativ")) {
+    values.add("Cooperativo");
+  }
+
+  if (features.includes("cartas")) {
+    values.add("Cartas");
+  }
+
+  if (features.includes("dados")) {
+    values.add("Dados");
+  }
+
+  if (features.includes("losetas")) {
+    values.add("Colocación de losetas");
+  }
+
+  if (features.includes("miniaturas")) {
+    values.add("Miniaturas");
+  }
+
+  if (!values.size && candidate.flags.includes(EditorialFlag.low_confidence)) {
+    values.add("Pendiente de revisión");
+  }
+
+  return [...values];
+}
+
+function extractCandidateFact(metadata: Prisma.JsonObject, keys: string[]) {
+  const facts = isRecord(metadata.facts) ? metadata.facts : null;
+
+  if (!facts) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const value = facts[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function normalizeStringList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim());
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    return value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+  }
+
+  return [];
+}
+
+function parsePlayersText(value: string) {
+  const compact = value.replace(/\s+/g, " ");
+  const range = /(\d+)\s*[-–]\s*(\d+)/.exec(compact);
+  const single = /(\d+)/.exec(compact);
+
+  if (range) {
+    return {
+      min: Number(range[1]),
+      max: Number(range[2]),
+      label: `${range[1]}-${range[2]}`
+    };
+  }
+
+  if (single) {
+    return {
+      min: Number(single[1]),
+      max: Number(single[1]),
+      label: single[1]
+    };
+  }
+
+  return {
+    min: null,
+    max: null,
+    label: null
+  };
+}
+
+function parsePlaytimeText(value: string) {
+  const compact = value.replace(/\s+/g, " ");
+  const range = /(\d+)\s*[-–]\s*(\d+)/.exec(compact);
+  const single = /(\d+)/.exec(compact);
+
+  if (range) {
+    return {
+      min: Number(range[1]),
+      max: Number(range[2])
+    };
+  }
+
+  if (single) {
+    return {
+      min: Number(single[1]),
+      max: Number(single[1])
+    };
+  }
+
+  return {
+    min: null,
+    max: null
+  };
+}
+
+function cleanCandidateTitle(title: string, sourceUrl: string) {
+  let cleaned = title.trim().replace(/\s*:\s*Amazon\.es:.*$/i, "");
+
+  const parts = cleaned.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    const tail = parts.slice(1).join(" ").toLowerCase();
+    if (/(juego de mesa|tiempo de juego|hecho por|amazon\.es|juguetes y juegos|promedio|para adultos|juego cooperativo)/i.test(tail)) {
+      cleaned = parts[0];
+    }
+  }
+
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+  if (cleaned) {
+    return cleaned;
+  }
+
+  try {
+    return new URL(sourceUrl).pathname.split("/").filter(Boolean).pop() || title.trim();
+  } catch {
+    return title.trim();
+  }
+}
+
+function cleanStringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function cleanNoisyLabelValue(value: string | null | undefined) {
+  const compact = (value || "").replace(/\s+/g, " ").trim();
+
+  if (!compact) {
+    return null;
+  }
+
+  const noisyTokens = /(?:material|tema|género|genero|idioma|n[uú]mero|edad|tiempo|componentes|edici[oó]n|fabricante|tipo|nombre|clasificaci[oó]n)/i;
+  if (compact.split(/\s+/).length > 4 && noisyTokens.test(compact)) {
+    return compact.split(/\s+/)[0] || null;
+  }
+
+  return compact;
+}
+
+function parseFirstNumber(value: string) {
+  const match = value.match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function truncateText(value: string, maxLength: number) {
+  const compact = value.replace(/\s+/g, " ").trim();
+
+  if (compact.length <= maxLength) {
+    return compact;
+  }
+
+  return `${compact.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function editorialFlagToLabel(flag: EditorialFlag) {
+  const labels: Record<EditorialFlag, string> = {
+    [EditorialFlag.possible_duplicate]: "posible duplicado",
+    [EditorialFlag.missing_players]: "faltan jugadores",
+    [EditorialFlag.missing_playtime]: "falta duración",
+    [EditorialFlag.missing_age]: "falta edad mínima",
+    [EditorialFlag.image_not_allowed]: "imagen no permitida",
+    [EditorialFlag.low_confidence]: "baja confianza",
+    [EditorialFlag.needs_permission]: "necesita permiso"
+  };
+
+  return labels[flag];
 }
 
 async function createManualGameCandidate(input: ManualCandidateInput) {

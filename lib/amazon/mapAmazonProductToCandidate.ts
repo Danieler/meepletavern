@@ -30,7 +30,8 @@ export function mapAmazonProductToCandidate(input: {
     price: input.product.price ?? null,
     currency: input.product.currency || null,
     availability: input.product.availability || null,
-    features: input.product.features || []
+    features: input.product.features || [],
+    facts: input.product.facts || {}
   });
   const candidateImages = normalizeCandidateImages(
     hasImage
@@ -57,7 +58,7 @@ export function mapAmazonProductToCandidate(input: {
     title: cleanTitle(input.product.title, input.product.asin),
     originalTitle: null,
     metadata,
-    extractedDescription: null,
+    extractedDescription: input.product.features?.length ? input.product.features.join("\n") : null,
     candidateImages,
     confidence: confidenceFor(input.product, hasImage),
     flags
@@ -65,7 +66,17 @@ export function mapAmazonProductToCandidate(input: {
 }
 
 function cleanTitle(title: string, asin: string) {
-  const cleaned = title.trim();
+  let cleaned = title.trim().replace(/\s*:\s*Amazon\.es:.*$/i, "");
+
+  const parts = cleaned.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    const tail = parts.slice(1).join(" ").toLowerCase();
+    if (/(juego de mesa|tiempo de juego|hecho por|amazon\.es|juguetes y juegos|promedio|para adultos|juego cooperativo)/i.test(tail)) {
+      cleaned = parts[0];
+    }
+  }
+
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
   return cleaned || `Producto Amazon ${asin}`;
 }
 

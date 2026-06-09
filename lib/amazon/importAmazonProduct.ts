@@ -1,6 +1,6 @@
 import { EditorialFlag, GameCandidateStatus, GameStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage, Prisma, type Source } from "@prisma/client";
 import { parseAmazonInput } from "@/lib/amazon/parseAmazonInput";
-import { getAmazonPaapiProviderMode, getAmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
+import { getAmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
 import { mapAmazonProductToCandidate, type AmazonNormalizedCandidate } from "@/lib/amazon/mapAmazonProductToCandidate";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
@@ -40,7 +40,10 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
   }
 
   const sourcePolicy = getSourcePolicy(source);
-  const product = await getAmazonProduct({ asin: parsedInput.asin });
+  const product = await getAmazonProduct({
+    asin: parsedInput.asin,
+    sourceUrl: rawAmazonInput
+  });
   const mapped = mapAmazonProductToCandidate({
     product,
     source: {
@@ -51,7 +54,7 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
   });
 
   const candidate = normalizeAmazonCandidate(mapped, sourcePolicy);
-  const publicImageAllowed = getAmazonPaapiProviderMode() === "real" && Boolean(product.imageUrl) && sourcePolicy.canUseImagePublicly;
+  const publicImageAllowed = Boolean(product.imageUrl) && sourcePolicy.canUseImagePublicly;
   const gameSlug = await ensureUniqueSlug(slugify(candidate.title));
 
   const result = await prisma.$transaction(async (transaction) => {

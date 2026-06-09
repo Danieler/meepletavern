@@ -3,7 +3,8 @@
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { Info, Sparkles, Upload } from "lucide-react";
-import { importAmazonAction, initialAmazonImportState, type AmazonImportState } from "@/app/admin/import/amazon/actions";
+import { importAmazonAction } from "@/app/admin/import/amazon/actions";
+import type { AmazonImportState } from "@/app/admin/import/amazon/actions";
 
 type AmazonSource = {
   id: string;
@@ -25,6 +26,7 @@ type AmazonImportFormProps = {
 
 export function AmazonImportForm({ sources }: AmazonImportFormProps) {
   const [selectedSourceId, setSelectedSourceId] = useState(sources[0]?.id || "");
+  const initialAmazonImportState: AmazonImportState = { error: null, result: null };
   const [state, formAction, pending] = useActionState<AmazonImportState, FormData>(
     importAmazonAction,
     initialAmazonImportState
@@ -53,7 +55,7 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
         <p className="text-sm font-bold uppercase tracking-wide text-ruby">Importar desde Amazon</p>
         <h2 className="text-xl font-bold text-ink">Amazon PA API España</h2>
         <p className="text-sm leading-6 text-ink/60">
-          Importa un único juego desde ASIN o URL. Si la API no está configurada, verás un error claro sin romper la app.
+          Importa un único juego desde ASIN o URL. El flujo usa PA API real cuando hay credenciales y, si no, intenta leer la ficha pública de Amazon.
         </p>
       </div>
 

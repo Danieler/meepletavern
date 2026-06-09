@@ -1,10 +1,11 @@
-import { GameCandidateStatus, GameStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage } from "@prisma/client";
+import { GameCandidateStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Bot, ChevronLeft, ExternalLink, FileInput, ImagePlus, Save, XCircle } from "lucide-react";
+import { Bot, ChevronLeft, ExternalLink, FileInput, ImagePlus, Save, Trash2, XCircle } from "lucide-react";
 import {
   convertCandidateAction,
   createMediaFromCandidateImageAction,
+  deleteCandidateAction,
   generateAiDraftAction,
   rejectCandidateAction,
   updateMediaAssetAction
@@ -59,20 +60,18 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                 Rechazar
               </button>
             </form>
-            <form action={convertCandidateAction}>
+            <form action={deleteCandidateAction}>
               <input type="hidden" name="id" value={candidate.id} />
-              <input type="hidden" name="status" value={GameStatus.draft} />
-              <button className="button-secondary" type="submit" disabled={!canConvert}>
-                <FileInput size={18} aria-hidden="true" />
-                Convertir draft
+              <button className="button-danger" type="submit" disabled={candidate.status === GameCandidateStatus.converted}>
+                <Trash2 size={18} aria-hidden="true" />
+                Eliminar
               </button>
             </form>
             <form action={convertCandidateAction}>
               <input type="hidden" name="id" value={candidate.id} />
-              <input type="hidden" name="status" value={GameStatus.review} />
               <button className="button-primary" type="submit" disabled={!canConvert}>
                 <FileInput size={18} aria-hidden="true" />
-                Convertir review
+                Convertir a draft
               </button>
             </form>
           </div>

@@ -2,8 +2,9 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
-import { ExternalLink, Rocket, Save } from "lucide-react";
+import { ExternalLink, Rocket, Save, Trash2 } from "lucide-react";
 import {
+  deleteGameEditorAction,
   publishGameEditorAction,
   saveGameEditorAction,
   type GameEditorActionState
@@ -47,6 +48,23 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
               <Rocket size={18} aria-hidden="true" />
               Publicar
             </button>
+            {game.status !== GameStatus.published ? (
+              <button
+                className="button-danger"
+                form="final-game-form"
+                formAction={deleteGameEditorAction}
+                type="submit"
+                disabled={isSaving || isPublishing}
+                onClick={(event) => {
+                  if (!window.confirm("¿Eliminar este borrador? Esta acción borra el juego y sus assets sueltos.")) {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                <Trash2 size={18} aria-hidden="true" />
+                Eliminar
+              </button>
+            ) : null}
             {publicUrl ? (
               <a className="button-secondary" href={publicUrl} target="_blank" rel="noreferrer">
                 <ExternalLink size={18} aria-hidden="true" />
