@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { gameRepository } from "@/lib/editorialRepositories";
 import { buildEditorialAutofill } from "@/lib/editorialAutofill";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
+import { buildPublicEditorialCopy, needsPublicEditorialRewrite } from "@/lib/publicEditorialCopy";
+import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
 
 export type GameEditorActionState = {
@@ -62,6 +64,27 @@ export async function publishGameEditorAction(
 
     if (!validation.valid) {
       return { errors: validation.errors, warnings: validation.warnings };
+    }
+
+    if (needsPublicEditorialRewrite({
+      title: savedGame.title || savedGame.name,
+      shortDescription: savedGame.shortDescription,
+      shortSummary: savedGame.shortSummary,
+      description: savedGame.description,
+      quickVerdict: savedGame.quickVerdict || savedGame.review,
+      review: savedGame.review
+    })) {
+      await gameRepository.update(id, buildPublicEditorialCopy({
+        title: savedGame.title || savedGame.name,
+        playersLabel: formatPlayersLabel(savedGame.minPlayers, savedGame.maxPlayers, null),
+        playtime: savedGame.playtime,
+        complexity: savedGame.complexity || savedGame.difficulty,
+        shortDescription: savedGame.shortDescription,
+        shortSummary: savedGame.shortSummary,
+        description: savedGame.description,
+        quickVerdict: savedGame.quickVerdict || savedGame.review,
+        review: savedGame.review
+      }));
     }
 
     await gameRepository.update(id, {
@@ -157,8 +180,9 @@ function toGameUpdateInput(formData: FormData, status: GameStatus, mediaAssets: 
     age: minAge ? `${minAge}+` : null,
     difficulty,
     complexity: difficulty,
-    categories: parseStringList(formData.get("categories")),
-    mechanics: parseStringList(formData.get("mechanics")),
+    categories: sanitizeImportedList(parseStringList(formData.get("categories")), "categories"),
+    mechanics: sanitizeImportedList(parseStringList(formData.get("mechanics")), "mechanics"),
+    themes: sanitizeImportedList(parseStringList(formData.get("themes")), "themes"),
     publisher: optionalString(formData.get("publisher")),
     spanishPublisher: optionalString(formData.get("spanishPublisher")),
     shortDescription,
@@ -186,6 +210,7 @@ function applyEditorialAutofill(input: Prisma.GameUpdateInput): Prisma.GameUpdat
   const title = stringInput(input.title) || stringInput(input.name) || "Nuevo juego";
   const categories = stringArrayInput(input.categories);
   const mechanics = stringArrayInput(input.mechanics);
+  const themes = stringArrayInput(input.themes);
   const minPlayers = numberInput(input.minPlayers);
   const maxPlayers = numberInput(input.maxPlayers);
   const autofill = buildEditorialAutofill({
@@ -196,6 +221,7 @@ function applyEditorialAutofill(input: Prisma.GameUpdateInput): Prisma.GameUpdat
     quickVerdict: stringInput(input.quickVerdict) || stringInput(input.review),
     categories,
     mechanics,
+    themes,
     players: { min: minPlayers, max: maxPlayers },
     playtime: stringInput(input.playtime),
     minAge: numberInput(input.minAge)
@@ -207,6 +233,7 @@ function applyEditorialAutofill(input: Prisma.GameUpdateInput): Prisma.GameUpdat
     complexity: stringInput(input.complexity) || stringInput(input.difficulty) || autofill.difficulty,
     categories: categories.length ? categories : autofill.categories,
     mechanics: mechanics.length ? mechanics : autofill.mechanics,
+    themes: themes.length ? themes : autofill.themes,
     bestFor: stringInput(input.bestFor) || autofill.bestFor,
     notFor: stringInput(input.notFor) || autofill.notFor,
     pros: stringArrayInput(input.pros).length ? input.pros : autofill.pros,

@@ -23,6 +23,7 @@ type PublishableGame = Pick<
   | "complexity"
   | "categories"
   | "mechanics"
+  | "themes"
   | "shortDescription"
   | "shortSummary"
   | "description"
@@ -91,6 +92,10 @@ export function validateBeforePublish(game: PublishableGame): PublishValidationR
 
   if (!game.mechanics.length) {
     warnings.push("Mecánicas: añade al menos una mecánica.");
+  }
+
+  if (!game.themes.length) {
+    warnings.push("Temáticas: no detectadas. Puedes autocompletarlas o dejarlas vacías.");
   }
 
   if (!text(game.bestFor)) {

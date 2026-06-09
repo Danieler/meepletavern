@@ -1,6 +1,11 @@
 import { EditorialFlag } from "@prisma/client";
 import { buildAmazonCanonicalUrl } from "@/lib/amazon/parseAmazonInput";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
+import {
+  sanitizeAmazonImportedText,
+  sanitizeImportedFacts,
+  sanitizeImportedList
+} from "@/lib/importedTextSanitizer";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
 import type { AmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
 import type { CandidateImage } from "@/lib/editorialTypes";
@@ -37,9 +42,15 @@ export function mapAmazonProductToCandidate(input: {
   const hasImage = Boolean(input.product.imageUrl);
   const sourceUrlClean = buildAmazonCanonicalUrl(input.product.asin);
   const cleanTitle = cleanAmazonTitle(input.product.title, input.product.asin);
-  const detected = detectTableData(input.product);
-  const categoryHints = inferCategoryHints(input.product);
-  const mechanicHints = inferMechanicHints(input.product);
+  const cleanProduct = sanitizeAmazonProduct(input.product);
+  const detected = detectTableData(cleanProduct);
+  const categoryHints = inferCategoryHints(cleanProduct);
+  const mechanicHints = inferMechanicHints(cleanProduct);
+  const themeHints = inferThemeHints(cleanProduct);
+  const importWarnings = [
+    ...(cleanProduct.discardedTextCount > 0 ? ["Se descartó texto no relacionado con el juego detectado en Amazon."] : []),
+    ...(!themeHints.length ? ["Temáticas no detectadas. Puedes autocompletarlas o dejarlas vacías."] : [])
+  ];
   const metadata = normalizeCandidateMetadata({
     asin: input.product.asin,
     importedFrom: "amazon",
@@ -51,8 +62,10 @@ export function mapAmazonProductToCandidate(input: {
     price: input.product.price ?? null,
     currency: input.product.currency || null,
     availability: cleanNoisyMetadataValue(input.product.availability) || null,
-    features: input.product.features || [],
-    facts: input.product.facts || {},
+    features: cleanProduct.features || [],
+    facts: cleanProduct.facts || {},
+    importWarnings,
+    discardedAmazonTextCount: cleanProduct.discardedTextCount,
     minPlayers: detected.minPlayers,
     maxPlayers: detected.maxPlayers,
     minPlayTime: detected.minPlayTime,
@@ -67,7 +80,8 @@ export function mapAmazonProductToCandidate(input: {
           : null
     },
     categoryHints,
-    mechanicHints
+    mechanicHints,
+    themeHints
   });
   const candidateImages = normalizeCandidateImages(
     hasImage
@@ -255,9 +269,28 @@ function inferCategoryHints(product: AmazonProduct) {
   const text = searchableCleanText(product);
   const hints = new Set<string>();
 
+  if (/(hombres lobo|castronegro|werewolf|aldeanos|roles ocultos|noche|votaci[oó]n)/i.test(text)) {
+    hints.add("Fiesta");
+    hints.add("Roles ocultos");
+    hints.add("Deducción");
+  }
+  if (/(escape room|unlock|exit)/i.test(text)) {
+    hints.add("Escape room");
+    hints.add("Puzzle");
+    hints.add("Cooperativo");
+  }
   if (/\bzombie|zombicide|zombies\b/i.test(text)) {
-    hints.add("Zombies");
+    hints.add("Zombis");
     hints.add("Supervivencia");
+    hints.add("Cooperativo");
+  }
+  if (/(harry potter|hogwarts|magia)/i.test(text)) {
+    hints.add("Fantasía");
+    hints.add("Magia");
+  }
+  if (/(marvel|superh[eé]roes?)/i.test(text)) {
+    hints.add("Superhéroes");
+    hints.add("Cómics");
   }
   if (/campa[nñ]a/i.test(text)) {
     hints.add("Campaña");
@@ -266,7 +299,7 @@ function inferCategoryHints(product: AmazonProduct) {
     hints.add("Con miniaturas");
   }
 
-  return [...hints];
+  return sanitizeImportedList([...hints], "categories");
 }
 
 function inferMechanicHints(product: AmazonProduct) {
@@ -280,7 +313,38 @@ function inferMechanicHints(product: AmazonProduct) {
     hints.add("Campaña");
   }
 
-  return [...hints];
+  return sanitizeImportedList([...hints], "mechanics");
+}
+
+function inferThemeHints(product: AmazonProduct) {
+  const text = searchableCleanText(product);
+  const hints = new Set<string>();
+
+  if (/(hombres lobo|castronegro|werewolf|aldeanos|roles ocultos|noche|votaci[oó]n)/i.test(text)) {
+    hints.add("Fiesta");
+    hints.add("Roles ocultos");
+    hints.add("Deducción");
+  }
+  if (/(escape room|unlock|exit)/i.test(text)) {
+    hints.add("Escape room");
+    hints.add("Puzzle");
+    hints.add("Cooperativo");
+  }
+  if (/\bzombie|zombicide|zombies\b/i.test(text)) {
+    hints.add("Zombis");
+    hints.add("Supervivencia");
+    hints.add("Cooperativo");
+  }
+  if (/(harry potter|hogwarts|magia)/i.test(text)) {
+    hints.add("Fantasía");
+    hints.add("Magia");
+  }
+  if (/(marvel|superh[eé]roes?)/i.test(text)) {
+    hints.add("Superhéroes");
+    hints.add("Cómics");
+  }
+
+  return sanitizeImportedList([...hints], "themes");
 }
 
 function searchableCleanText(product: AmazonProduct) {
@@ -301,6 +365,21 @@ function cleanNoisyMetadataValue(value: string | undefined) {
   }
 
   return compact;
+}
+
+function sanitizeAmazonProduct(product: AmazonProduct): AmazonProduct & { discardedTextCount: number } {
+  const factsResult = sanitizeImportedFacts(product.facts || {});
+  const cleanFeatures = (product.features || [])
+    .map((feature) => sanitizeAmazonImportedText(feature))
+    .filter((feature): feature is string => Boolean(feature));
+  const discardedFeatures = (product.features || []).length - cleanFeatures.length;
+
+  return {
+    ...product,
+    features: cleanFeatures,
+    facts: factsResult.facts,
+    discardedTextCount: factsResult.discardedCount + discardedFeatures
+  };
 }
 
 function confidenceFor(product: AmazonProduct, hasImage: boolean, detected: DetectedTableData) {

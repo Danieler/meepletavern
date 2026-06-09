@@ -22,6 +22,7 @@ import {
 } from "@/lib/editorialMappers";
 import type { SourcePermissions } from "@/lib/editorialTypes";
 import { isAsmodeeImportSource } from "@/lib/importSourceFilters";
+import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { canShowMedia } from "@/lib/mediaSafety";
 import { prisma } from "@/lib/prisma";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
@@ -463,15 +464,16 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
     age: minAge ? `${minAge}+` : null,
     difficulty: extractCandidateDifficulty(metadata),
     complexity: extractCandidateDifficulty(metadata),
-    categories: [...new Set([
+    categories: sanitizeImportedList([...new Set([
       ...extractCandidateTextList(metadata, ["categories", "category"]),
       ...extractCandidateFactTextList(metadata, ["Género", "Genero"])
-    ])],
+    ])], "categories"),
     mechanics: extractCandidateMechanics(candidate, metadata),
-    themes: [...new Set([
+    themes: sanitizeImportedList([...new Set([
       ...extractCandidateTextList(metadata, ["themes", "theme"]),
+      ...extractCandidateTextList(metadata, ["themeHints"]),
       ...extractCandidateFactTextList(metadata, ["Tema", "Theme"])
-    ])],
+    ])], "themes"),
     publisher,
     spanishPublisher: extractCandidateSpanishPublisher(metadata),
     shortDescription: draftContent.shortDescription,
@@ -558,16 +560,16 @@ function buildAmazonCandidateDraftContent(candidate: CandidateForGameConversion,
   const title = getCandidateGameTitle(candidate, metadata);
 
   return {
-    shortDescription: `Ficha preliminar de ${title}, importada para revisión editorial en MeepleTavern.`,
-    description: `${title} es una ficha preliminar importada desde una fuente comercial aprobada. Revisa jugadores, duración, edad, categorías, mecánicas y descripción editorial antes de publicarla.`,
-    quickVerdict: "Pendiente de valoración editorial.",
+    shortDescription: `${title} en MeepleTavern.`,
+    description: `${title} se ha importado desde una fuente comercial aprobada y puede revisarse en el editor antes de publicarse.`,
+    quickVerdict: "Pendiente de revisión editorial.",
     bestFor: null,
     notFor: null,
     pros: [],
     cons: [],
     faq: [],
     seoTitle: `${title} | MeepleTavern`,
-    seoDescription: `Ficha de ${title} en MeepleTavern, pendiente de revisión editorial.`
+    seoDescription: `${title} en MeepleTavern con datos básicos importados para su revisión editorial.`
   };
 }
 
@@ -617,10 +619,10 @@ function buildFallbackShortDescription(candidate: CandidateForGameConversion, me
   }
 
   if (knownData) {
-    return `Ficha preliminar importada desde ${candidate.source.name}. ${knownData}.`;
+    return `${candidate.source.name} · ${knownData}.`;
   }
 
-  return `Ficha preliminar importada desde ${candidate.source.name} y pendiente de revisión editorial.`;
+  return `${candidate.source.name} · ficha importada para revisión.`;
 }
 
 function buildFallbackDescription(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
@@ -641,7 +643,7 @@ function buildFallbackBestFor(candidate: CandidateForGameConversion, metadata: P
   const knownData = buildKnownDataSummary(metadata);
 
   if (knownData) {
-    return `Jugadores que quieran revisar una ficha preliminar con los datos detectados: ${knownData}.`;
+    return `Jugadores que quieran revisar una ficha con los datos detectados: ${knownData}.`;
   }
 
   return `Jugadores que quieran completar la revisión editorial de la ficha importada desde ${candidate.source.name}.`;
@@ -694,12 +696,12 @@ function buildFallbackFaq(candidate: CandidateForGameConversion) {
 
 function buildFallbackSeoTitle(candidate: CandidateForGameConversion) {
   const title = cleanCandidateTitle(candidate.title, candidate.sourceUrl);
-  return `${title} | Ficha en revisión editorial`;
+  return `${title} | MeepleTavern`;
 }
 
 function buildFallbackSeoDescription(candidate: CandidateForGameConversion) {
   const title = cleanCandidateTitle(candidate.title, candidate.sourceUrl);
-  return `Ficha preliminar de ${title} importada desde ${candidate.source.name} y pendiente de revisión editorial.`;
+  return `${title} en MeepleTavern con datos básicos importados para su revisión editorial.`;
 }
 
 function buildKnownDataSummary(metadata: Prisma.JsonObject) {
@@ -798,7 +800,7 @@ function extractCandidateFactTextList(metadata: Prisma.JsonObject, keys: string[
 }
 
 function extractCandidateMechanics(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
-  const fromDirect = extractCandidateTextList(metadata, ["mechanics", "mechanic"]);
+  const fromDirect = sanitizeImportedList(extractCandidateTextList(metadata, ["mechanics", "mechanic", "mechanicHints"]), "mechanics");
   if (isAmazonMetadata(metadata)) {
     return fromDirect;
   }
@@ -830,7 +832,7 @@ function extractCandidateMechanics(candidate: CandidateForGameConversion, metada
     values.add("Pendiente de revisión");
   }
 
-  return [...values];
+  return sanitizeImportedList([...values], "mechanics");
 }
 
 function getCandidateGameTitle(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {

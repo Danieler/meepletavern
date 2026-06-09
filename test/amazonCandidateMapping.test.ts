@@ -96,3 +96,32 @@ test("mapAmazonProductToCandidate reads table labels before values", () => {
   assert.equal(mapped.metadata.maxPlayTime, 60);
   assert.equal(mapped.metadata.minAge, 14);
 });
+
+test("mapAmazonProductToCandidate discards Amazon legal text from theme facts", () => {
+  const mapped = mapAmazonProductToCandidate({
+    product: {
+      asin: "B092R6L3T3",
+      title: "Los Hombres Lobo de Castronegro",
+      facts: {
+        Tema: "de seguridad de pagos encripta tu información durante la tra",
+        "Número de jugadores": "8-18 jugadores"
+      },
+      features: ["Roles ocultos, aldeanos, noche, votación y acusaciones."]
+    },
+    source: {
+      status: "approved",
+      permissions: {
+        canUseMetadata: true,
+        canUseImages: true,
+        canUseDescriptions: false,
+        canUsePrices: true,
+        canStoreImagesLocally: false
+      }
+    },
+    sourceUrl: "https://www.amazon.es/dp/B092R6L3T3/ref=emc_bcc_2_i"
+  });
+
+  assert.equal((mapped.metadata.facts as Record<string, string>).Tema, undefined);
+  assert.deepEqual(mapped.metadata.themeHints, ["Fiesta", "Roles ocultos", "Deducción"]);
+  assert.ok((mapped.metadata.importWarnings as string[]).includes("Se descartó texto no relacionado con el juego detectado en Amazon."));
+});

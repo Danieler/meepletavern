@@ -145,6 +145,17 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
             </div>
           ) : null}
 
+          {state.result.warnings.length ? (
+            <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-ink/75">
+              <p className="font-black text-ink">Avisos de importación</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {state.result.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="mt-4 flex flex-wrap gap-2">
             <Link className="button-secondary" href={`/admin/candidates/${state.result.candidateId}`}>
               Ver candidate

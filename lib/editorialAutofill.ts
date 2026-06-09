@@ -8,6 +8,7 @@ export type EditorialAutofillInput = {
   quickVerdict?: string | null;
   categories?: string[];
   mechanics?: string[];
+  themes?: string[];
   players?: {
     min?: number | null;
     max?: number | null;
@@ -20,6 +21,7 @@ export type EditorialAutofillResult = {
   difficulty: string;
   categories: string[];
   mechanics: string[];
+  themes: string[];
   bestFor: string;
   notFor: string;
   pros: string[];
@@ -31,6 +33,7 @@ type EditorialAutofillProfile = {
   difficulty: string;
   categories: string[];
   mechanics: string[];
+  themes: string[];
   bestFor: (title: string, input: EditorialAutofillInput) => string;
   notFor: (title: string, input: EditorialAutofillInput) => string;
   pros: (title: string, input: EditorialAutofillInput) => string[];
@@ -47,7 +50,8 @@ export function buildEditorialAutofill(input: EditorialAutofillInput): Editorial
     input.shortDescription,
     input.quickVerdict,
     ...(input.categories || []),
-    ...(input.mechanics || [])
+    ...(input.mechanics || []),
+    ...(input.themes || [])
   ]
     .filter(Boolean)
     .join(" ")
@@ -55,11 +59,13 @@ export function buildEditorialAutofill(input: EditorialAutofillInput): Editorial
   const profile = detectProfile(text, input);
   const categories = mergeUnique(input.categories || [], profile.categories);
   const mechanics = mergeUnique(input.mechanics || [], profile.mechanics);
+  const themes = mergeUnique(input.themes || [], profile.themes);
 
   return {
     difficulty: profile.difficulty,
     categories,
     mechanics,
+    themes,
     bestFor: profile.bestFor(title, input),
     notFor: profile.notFor(title, input),
     pros: profile.pros(title, input),
@@ -92,6 +98,7 @@ const socialDeductionProfile = {
   difficulty: "Fácil",
   categories: ["Fiesta", "Roles ocultos", "Deducción", "Faroleo"],
   mechanics: ["Roles ocultos", "Deducción social", "Votación", "Eliminación de jugadores", "Moderador"],
+  themes: ["Fiesta", "Roles ocultos", "Deducción"],
   bestFor: (_title: string, input: EditorialAutofillInput) =>
     `${groupText(input)} fiestas, reuniones familiares o de amigos y jugadores que disfrutan acusando, mintiendo, deduciendo y metiéndose en el papel.`,
   notFor: () =>
@@ -134,6 +141,7 @@ const cooperativeProfile = {
   difficulty: "Media",
   categories: ["Cooperativo", "Aventura"],
   mechanics: ["Cooperativo"],
+  themes: ["Cooperativo", "Aventura"],
   bestFor: (title: string) =>
     `Jugadores que quieren afrontar ${title} en equipo, coordinar decisiones y vivir una partida con tensión compartida.`,
   notFor: () =>
@@ -168,6 +176,7 @@ const partyProfile = {
   difficulty: "Fácil",
   categories: ["Fiesta", "Familiar"],
   mechanics: ["Interacción"],
+  themes: ["Fiesta", "Familiar"],
   bestFor: () => "Grupos que buscan una partida accesible, social y fácil de sacar a mesa.",
   notFor: () => "Jugadores que buscan estrategia profunda, planificación larga o partidas silenciosas.",
   pros: () => ["Fácil de proponer en grupo.", "Buena opción para reuniones.", "No exige una preparación pesada."],
@@ -182,6 +191,7 @@ const familyProfile = {
   difficulty: "Fácil",
   categories: ["Familiar", "Infantil"],
   mechanics: ["Accesible"],
+  themes: ["Familiar", "Infantil"],
   bestFor: () => "Familias, jugadores ocasionales y mesas que quieren reglas sencillas.",
   notFor: () => "Jugadores que buscan mucha profundidad estratégica o partidas largas y exigentes.",
   pros: () => ["Accesible para nuevas mesas.", "Buen candidato para jugar en familia.", "Formato fácil de revisar y completar editorialmente."],
@@ -196,6 +206,7 @@ const genericProfile = {
   difficulty: "Media ligera",
   categories: ["Familiar"],
   mechanics: ["Interacción"],
+  themes: [],
   bestFor: (title: string) =>
     `Jugadores que quieren descubrir ${title} con una ficha preliminar clara antes de completar la reseña editorial.`,
   notFor: () =>

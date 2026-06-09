@@ -1,6 +1,8 @@
 import { GameStatus, Prisma } from "@prisma/client";
 import type { GameImageFields } from "@/lib/gameImages";
 import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
+import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
+import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 import { getTaxonomyTermNames } from "@/lib/taxonomy";
@@ -376,12 +378,29 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
   const shortDescription = game.shortDescription || game.shortSummary;
   const quickVerdict = game.quickVerdict || game.review;
   const difficulty = game.difficulty || game.complexity;
+  const categories = sanitizeImportedList(game.categories, "categories");
+  const mechanics = sanitizeImportedList(game.mechanics, "mechanics");
+  const themes = sanitizeImportedList(game.themes, "themes");
+  const publicSummary = getPublicReviewSummary({
+    title,
+    shortDescription,
+    shortSummary: game.shortSummary,
+    description: game.description,
+    quickVerdict
+  });
+  const publicDescription = getPublicGameDescription({
+    title,
+    shortDescription,
+    shortSummary: game.shortSummary,
+    description: game.description,
+    quickVerdict
+  });
   const safeMedia = pickSafeMedia(game);
   const publicCoverImage = safeMedia?.url || resolveLegacyPublicImage(game);
   const placeholderKind = inferPlaceholderKind({
-    categories: game.categories,
-    mechanics: game.mechanics,
-    themes: game.themes,
+    categories,
+    mechanics,
+    themes,
     difficulty
   });
 
@@ -405,11 +424,11 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     age: game.age,
     ageValue: parseFirstNumber(game.age),
     complexity: difficulty,
-    categories: game.categories,
-    mechanics: game.mechanics,
-    themes: game.themes,
-    description: game.description || shortDescription || "",
-    reviewSummary: shortDescription || quickVerdict || game.description || "",
+    categories,
+    mechanics,
+    themes,
+    description: publicDescription,
+    reviewSummary: publicSummary,
     pros: game.pros,
     cons: game.cons,
     recommendedFor: game.bestFor || "",
@@ -424,8 +443,20 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
 
 function toReview(game: CatalogDbGame): Review | null {
   const title = game.title || game.name;
-  const summary = game.shortDescription || game.shortSummary || game.quickVerdict || game.review || game.description;
-  const bodySource = game.quickVerdict || game.review || game.description || game.shortDescription || game.shortSummary;
+  const summary = getPublicReviewSummary({
+    title,
+    shortDescription: game.shortDescription,
+    shortSummary: game.shortSummary,
+    description: game.description,
+    quickVerdict: game.quickVerdict || game.review
+  });
+  const bodySource = getPublicGameDescription({
+    title,
+    shortDescription: game.shortDescription,
+    shortSummary: game.shortSummary,
+    description: game.description,
+    quickVerdict: game.quickVerdict || game.review
+  });
 
   if (!summary || !bodySource) {
     return null;

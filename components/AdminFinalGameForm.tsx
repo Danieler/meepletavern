@@ -155,6 +155,9 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
             <Field label="Mechanics">
               <textarea className="field-textarea min-h-28" name="mechanics" defaultValue={game.mechanics.join("\n")} />
             </Field>
+            <Field label="Themes">
+              <textarea className="field-textarea min-h-28" name="themes" defaultValue={game.themes.join("\n")} />
+            </Field>
             <Field label="Publisher">
               <input className="field-input" name="publisher" defaultValue={game.publisher || ""} />
             </Field>

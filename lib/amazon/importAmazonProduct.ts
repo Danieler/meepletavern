@@ -25,6 +25,7 @@ export type AmazonImportResult = {
   candidateStatus: GameCandidateStatus;
   imageStatus: "approved_public" | "placeholder";
   flags: EditorialFlag[];
+  warnings: string[];
   publicImageUrl: string | null;
 };
 
@@ -114,12 +115,12 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
         complexity: null,
         categories: taxonomy.categories,
         mechanics: taxonomy.mechanics,
-        themes: [],
+        themes: taxonomy.themes,
         publisher: stringFromMetadata(metadata, "manufacturer") || stringFromMetadata(metadata, "brand") || null,
         spanishPublisher: null,
-        shortDescription: `Ficha preliminar de ${candidate.title}, importada para revisión editorial en MeepleTavern.`,
-        description: `${candidate.title} es una ficha preliminar importada desde una fuente comercial aprobada. Revisa jugadores, duración, edad, categorías, mecánicas y descripción editorial antes de publicarla.`,
-        quickVerdict: "Pendiente de valoración editorial.",
+        shortDescription: `${candidate.title} en MeepleTavern.`,
+        description: `${candidate.title} se ha importado desde una fuente comercial aprobada y puede revisarse en el editor antes de publicarse.`,
+        quickVerdict: "Pendiente de revisión editorial.",
         bestFor: null,
         notFor: null,
         pros: [],
@@ -127,7 +128,7 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
         faq: [] as Prisma.InputJsonValue,
         faqs: [] as Prisma.InputJsonValue,
         seoTitle: `${candidate.title} | MeepleTavern`,
-        seoDescription: `Ficha de ${candidate.title} en MeepleTavern, pendiente de revisión editorial.`,
+        seoDescription: `${candidate.title} en MeepleTavern con datos básicos importados para su revisión editorial.`,
         buyUrl: candidate.sourceUrl,
         sources: [
           {
@@ -200,26 +201,30 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
     candidateStatus: candidate.flags.length ? GameCandidateStatus.needs_review : GameCandidateStatus.pending,
     imageStatus: result.publicMediaAsset ? "approved_public" : "placeholder",
     flags: candidate.flags,
+    warnings: stringListFromMetadata(metadata, "importWarnings"),
     publicImageUrl: result.publicMediaAsset ? result.publicMediaAsset.url : null
   };
 }
 
 async function resolveAmazonTaxonomy(metadata: Record<string, unknown>) {
-  const [existingCategories, existingMechanics] = await Promise.all([
+  const [existingCategories, existingMechanics, existingThemes] = await Promise.all([
     getTaxonomyTermNames("category"),
-    getTaxonomyTermNames("mechanic")
+    getTaxonomyTermNames("mechanic"),
+    getTaxonomyTermNames("theme")
   ]);
 
   return {
     categories: filterExistingTerms(stringListFromMetadata(metadata, "categoryHints"), existingCategories),
-    mechanics: filterExistingTerms(stringListFromMetadata(metadata, "mechanicHints"), existingMechanics)
+    mechanics: filterExistingTerms(stringListFromMetadata(metadata, "mechanicHints"), existingMechanics),
+    themes: filterExistingTerms(stringListFromMetadata(metadata, "themeHints"), existingThemes)
   };
 }
 
 function filterExistingTerms(hints: string[], existingTerms: string[]) {
   const existingByLower = new Map(existingTerms.map((term) => [term.toLowerCase(), term]));
+  const existingBySlug = new Map(existingTerms.map((term) => [slugify(term), term]));
   return hints
-    .map((hint) => existingByLower.get(hint.toLowerCase()) || null)
+    .map((hint) => existingByLower.get(hint.toLowerCase()) || existingBySlug.get(slugify(hint)) || null)
     .filter((term): term is string => Boolean(term));
 }
 
