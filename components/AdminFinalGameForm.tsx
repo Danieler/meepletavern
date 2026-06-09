@@ -2,8 +2,9 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
-import { ExternalLink, Rocket, Save, Trash2 } from "lucide-react";
+import { ExternalLink, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
 import {
+  autocompleteGameEditorAction,
   deleteGameEditorAction,
   publishGameEditorAction,
   saveGameEditorAction,
@@ -21,6 +22,7 @@ const initialState: GameEditorActionState = {};
 export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProps) {
   const [saveState, saveAction, isSaving] = useActionState(saveGameEditorAction, initialState);
   const [publishState, publishAction, isPublishing] = useActionState(publishGameEditorAction, initialState);
+  const [autocompleteState, autocompleteAction, isAutocompleting] = useActionState(autocompleteGameEditorAction, initialState);
   const [primaryImageValue, setPrimaryImageValue] = useState(game.primaryImageId || "");
   const players = normalizeGamePlayers(game.players);
   const playtime = parsePlaytime(game.playtime);
@@ -40,11 +42,20 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
             <p className="mt-1 text-xl font-bold text-ink">{game.status}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isSaving || isPublishing}>
+            <button
+              className="button-secondary"
+              form="final-game-form"
+              formAction={autocompleteAction}
+              disabled={isSaving || isPublishing || isAutocompleting}
+            >
+              <WandSparkles size={18} aria-hidden="true" />
+              {isAutocompleting ? "Autocompletando..." : "Autocompletar campos editoriales"}
+            </button>
+            <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isSaving || isPublishing || isAutocompleting}>
               <Save size={18} aria-hidden="true" />
               Guardar borrador
             </button>
-            <button className="button-primary" form="final-game-form" formAction={publishAction} disabled={isSaving || isPublishing}>
+            <button className="button-primary" form="final-game-form" formAction={publishAction} disabled={isSaving || isPublishing || isAutocompleting}>
               <Rocket size={18} aria-hidden="true" />
               Publicar
             </button>
@@ -54,7 +65,7 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
                 form="final-game-form"
                 formAction={deleteGameEditorAction}
                 type="submit"
-                disabled={isSaving || isPublishing}
+                disabled={isSaving || isPublishing || isAutocompleting}
                 onClick={(event) => {
                   if (!window.confirm("¿Eliminar este borrador? Esta acción borra el juego y sus assets sueltos.")) {
                     event.preventDefault();
@@ -77,6 +88,7 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
 
       <Feedback state={saveState} />
       <Feedback state={publishState} />
+      <Feedback state={autocompleteState} />
 
       <form id="final-game-form" className="space-y-6">
         <input type="hidden" name="id" value={game.id} />
@@ -267,26 +279,46 @@ function Feedback({ state }: { state: GameEditorActionState }) {
       <div className="rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">
         <p>No se puede publicar todavía:</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          {state.errors.map((error) => {
-            const label = publishErrorLabel(error);
-
-            return (
-              <li key={error}>
-                <span className="font-black text-ink">{label}</span>
-                <span className="ml-2">{error}</span>
-              </li>
-            );
-          })}
+          {state.errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
         </ul>
+        {state.warnings?.length ? <WarningList warnings={state.warnings} className="mt-4" /> : null}
+      </div>
+    );
+  }
+
+  if (state.warnings?.length) {
+    return (
+      <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink">
+        <p>{state.message || "Se puede publicar, pero la ficha está incompleta."}</p>
+        <WarningList warnings={state.warnings} className="mt-3" />
       </div>
     );
   }
 
   if (state.message) {
-    return <p className="rounded-md border border-moss/20 bg-moss/10 px-3 py-2 text-sm font-semibold text-moss">{state.message}</p>;
+    return (
+      <p className="rounded-md border border-moss/20 bg-moss/10 px-3 py-2 text-sm font-semibold text-moss">
+        {state.message}
+      </p>
+    );
   }
 
   return null;
+}
+
+function WarningList({ warnings, className }: { warnings: string[]; className?: string }) {
+  return (
+    <div className={className}>
+      <p className="text-sm font-black text-ink">Recomendaciones para mejorar la ficha:</p>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm font-semibold text-ink/75">
+        {warnings.map((warning) => (
+          <li key={warning}>{warning}</li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function parsePlaytime(value: string | null) {
@@ -324,30 +356,4 @@ function resolvePrimaryImagePreviewUrl(
   }
 
   return game.coverImageUrl || game.imageUrl || null;
-}
-
-function publishErrorLabel(error: string) {
-  const labels: Record<string, string> = {
-    "Falta el título.": "Title",
-    "Falta el slug.": "Slug",
-    "Faltan jugadores mínimos y máximos.": "Players min / max",
-    "Falta la duración.": "Playtime",
-    "Falta la edad mínima.": "Min age",
-    "Falta la dificultad.": "Difficulty",
-    "Añade al menos una categoría.": "Categories",
-    "Añade al menos una mecánica.": "Mechanics",
-    "Falta la descripción corta.": "Short description",
-    "Falta la descripción.": "Description",
-    "Falta el veredicto rápido.": "Quick verdict",
-    "Falta 'Para quién es'.": "Best for",
-    "Falta 'Para quién no es'.": "Not for",
-    "Añade al menos un pro.": "Pros",
-    "Añade al menos un contra.": "Cons",
-    "Añade al menos una FAQ.": "FAQ",
-    "Falta el SEO title.": "SEO title",
-    "Falta el SEO description.": "SEO description",
-    "Selecciona una imagen principal o acepta fallback de imagen.": "Primary image"
-  };
-
-  return labels[error] || "Validación";
 }

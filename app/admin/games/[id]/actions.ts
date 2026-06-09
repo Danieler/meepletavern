@@ -4,11 +4,13 @@ import { GameStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gameRepository } from "@/lib/editorialRepositories";
+import { buildEditorialAutofill } from "@/lib/editorialAutofill";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
 
 export type GameEditorActionState = {
   errors?: string[];
+  warnings?: string[];
   message?: string;
 };
 
@@ -29,9 +31,12 @@ export async function saveGameEditorAction(
       throw new Error("No existe ese juego.");
     }
 
-    await gameRepository.update(id, toGameUpdateInput(formData, requestedStatus, editorGame.mediaAssets));
+    const savedGame = await gameRepository.update(id, toGameUpdateInput(formData, requestedStatus, editorGame.mediaAssets));
+    const validation = validateBeforePublish(savedGame);
     revalidateGameAdmin(id);
-    return { message: "Juego guardado." };
+    return validation.warnings.length
+      ? { message: "Juego guardado. Se puede publicar, pero la ficha está incompleta.", warnings: validation.warnings }
+      : { message: "Juego guardado. Ficha completa." };
   } catch (error) {
     return { errors: [errorMessage(error)] };
   }
@@ -56,7 +61,7 @@ export async function publishGameEditorAction(
     const validation = validateBeforePublish(savedGame);
 
     if (!validation.valid) {
-      return { errors: validation.errors };
+      return { errors: validation.errors, warnings: validation.warnings };
     }
 
     await gameRepository.update(id, {
@@ -65,7 +70,42 @@ export async function publishGameEditorAction(
     });
     revalidateGameAdmin(id);
     revalidatePublicGame(savedGame.slug);
-    return { message: "Juego publicado." };
+    return validation.warnings.length
+      ? { message: "Juego publicado. Se puede mejorar la ficha cuando quieras.", warnings: validation.warnings }
+      : { message: "Juego publicado. Ficha completa." };
+  } catch (error) {
+    return { errors: [errorMessage(error)] };
+  }
+}
+
+export async function autocompleteGameEditorAction(
+  _state: GameEditorActionState,
+  formData: FormData
+): Promise<GameEditorActionState> {
+  const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
+
+  try {
+    const editorGame = await gameRepository.getEditorById(id);
+    if (!editorGame) {
+      throw new Error("No existe ese juego.");
+    }
+
+    const requestedStatus = normalizeGameStatus(formData.get("status"));
+    const safeStatus = requestedStatus === GameStatus.published && editorGame.status !== GameStatus.published
+      ? GameStatus.review
+      : requestedStatus;
+    const baseInput = toGameUpdateInput(formData, safeStatus, editorGame.mediaAssets);
+    const completedInput = applyEditorialAutofill(baseInput);
+    const savedGame = await gameRepository.update(id, completedInput);
+    const validation = validateBeforePublish(savedGame);
+
+    revalidateGameAdmin(id);
+    return validation.warnings.length
+      ? {
+          message: "Campos editoriales autocompletados. Revisa la ficha antes de publicar.",
+          warnings: validation.warnings
+        }
+      : { message: "Campos editoriales autocompletados. Ficha completa." };
   } catch (error) {
     return { errors: [errorMessage(error)] };
   }
@@ -140,6 +180,54 @@ function toGameUpdateInput(formData: FormData, status: GameStatus, mediaAssets: 
     status,
     publishedAt: status === GameStatus.published ? new Date() : null
   };
+}
+
+function applyEditorialAutofill(input: Prisma.GameUpdateInput): Prisma.GameUpdateInput {
+  const title = stringInput(input.title) || stringInput(input.name) || "Nuevo juego";
+  const categories = stringArrayInput(input.categories);
+  const mechanics = stringArrayInput(input.mechanics);
+  const minPlayers = numberInput(input.minPlayers);
+  const maxPlayers = numberInput(input.maxPlayers);
+  const autofill = buildEditorialAutofill({
+    title,
+    publisher: stringInput(input.publisher),
+    description: stringInput(input.description),
+    shortDescription: stringInput(input.shortDescription) || stringInput(input.shortSummary),
+    quickVerdict: stringInput(input.quickVerdict) || stringInput(input.review),
+    categories,
+    mechanics,
+    players: { min: minPlayers, max: maxPlayers },
+    playtime: stringInput(input.playtime),
+    minAge: numberInput(input.minAge)
+  });
+
+  return {
+    ...input,
+    difficulty: stringInput(input.difficulty) || autofill.difficulty,
+    complexity: stringInput(input.complexity) || stringInput(input.difficulty) || autofill.difficulty,
+    categories: categories.length ? categories : autofill.categories,
+    mechanics: mechanics.length ? mechanics : autofill.mechanics,
+    bestFor: stringInput(input.bestFor) || autofill.bestFor,
+    notFor: stringInput(input.notFor) || autofill.notFor,
+    pros: stringArrayInput(input.pros).length ? input.pros : autofill.pros,
+    cons: stringArrayInput(input.cons).length ? input.cons : autofill.cons,
+    faq: normalizeGameFaq(input.faq).length ? input.faq : (autofill.faq as unknown as Prisma.InputJsonValue),
+    faqs: normalizeGameFaq(input.faq).length ? input.faq : (autofill.faq as unknown as Prisma.InputJsonValue)
+  };
+}
+
+function stringInput(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numberInput(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function stringArrayInput(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim())
+    : [];
 }
 
 function parseStringList(value: FormDataEntryValue | null) {

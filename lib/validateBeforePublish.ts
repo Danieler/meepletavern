@@ -4,6 +4,8 @@ import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 export type PublishValidationResult = {
   valid: boolean;
   errors: string[];
+  warnings: string[];
+  complete: boolean;
 };
 
 type PublishableGame = Pick<
@@ -40,6 +42,7 @@ type PublishableGame = Pick<
 
 export function validateBeforePublish(game: PublishableGame): PublishValidationResult {
   const errors: string[] = [];
+  const warnings: string[] = [];
   const players = normalizeGamePlayers(game.players);
   const faq = normalizeGameFaq(game.faq || game.faqs);
   const minPlayers = players.min ?? game.minPlayers;
@@ -47,84 +50,86 @@ export function validateBeforePublish(game: PublishableGame): PublishValidationR
   const minAge = game.minAge || parseFirstNumber(game.age);
 
   if (!text(game.title || game.name)) {
-    errors.push("Falta el título.");
+    errors.push("Nombre / title: falta el título.");
   }
 
   if (!text(game.slug)) {
-    errors.push("Falta el slug.");
+    errors.push("Slug: falta el slug para la ruta pública.");
   }
 
   if (!minPlayers || !maxPlayers) {
-    errors.push("Faltan jugadores mínimos y máximos.");
+    errors.push("Jugadores: falta el número de jugadores.");
   }
 
   if (!text(game.playtime)) {
-    errors.push("Falta la duración.");
+    errors.push("Duración: falta la duración.");
   }
 
   if (!minAge) {
-    errors.push("Falta la edad mínima.");
-  }
-
-  if (!text(game.difficulty || game.complexity)) {
-    errors.push("Falta la dificultad.");
-  }
-
-  if (!game.categories.length) {
-    errors.push("Añade al menos una categoría.");
-  }
-
-  if (!game.mechanics.length) {
-    errors.push("Añade al menos una mecánica.");
+    errors.push("Edad mínima: falta la edad mínima.");
   }
 
   if (!text(game.shortDescription || game.shortSummary)) {
-    errors.push("Falta la descripción corta.");
+    errors.push("Descripción corta: añade una descripción breve.");
   }
 
   if (!text(game.description)) {
-    errors.push("Falta la descripción.");
+    warnings.push("Descripción: completa la descripción editorial.");
   }
 
   if (!text(game.quickVerdict || game.review)) {
-    errors.push("Falta el veredicto rápido.");
+    warnings.push("Veredicto rápido: falta el veredicto rápido.");
+  }
+
+  if (!text(game.difficulty || game.complexity)) {
+    warnings.push("Dificultad: falta la dificultad.");
+  }
+
+  if (!game.categories.length) {
+    warnings.push("Categorías: añade al menos una categoría.");
+  }
+
+  if (!game.mechanics.length) {
+    warnings.push("Mecánicas: añade al menos una mecánica.");
   }
 
   if (!text(game.bestFor)) {
-    errors.push("Falta 'Para quién es'.");
+    warnings.push("Para quién es: falta este texto.");
   }
 
   if (!text(game.notFor)) {
-    errors.push("Falta 'Para quién no es'.");
+    warnings.push("Para quién no es: falta este texto.");
   }
 
   if (!game.pros.length) {
-    errors.push("Añade al menos un pro.");
+    warnings.push("Pros: añade al menos un pro.");
   }
 
   if (!game.cons.length) {
-    errors.push("Añade al menos un contra.");
+    warnings.push("Contras: añade al menos un contra.");
   }
 
   if (!faq.length) {
-    errors.push("Añade al menos una FAQ.");
+    warnings.push("FAQ: añade al menos una pregunta frecuente.");
   }
 
   if (!text(game.seoTitle)) {
-    errors.push("Falta el SEO title.");
+    warnings.push("SEO title: falta el SEO title.");
   }
 
   if (!text(game.seoDescription)) {
-    errors.push("Falta el SEO description.");
+    warnings.push("SEO description: falta el SEO description.");
   }
 
   if (!text(game.primaryImageId) && !game.imageFallbackAccepted) {
-    errors.push("Selecciona una imagen principal o acepta fallback de imagen.");
+    errors.push("Imagen principal: falta una imagen válida o aceptar placeholder.");
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
+    warnings,
+    complete: errors.length === 0 && warnings.length === 0
   };
 }
 
