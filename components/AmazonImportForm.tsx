@@ -124,8 +124,13 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
             Importación completada
           </div>
           <div className="mt-3 grid gap-3 text-sm text-ink/75 sm:grid-cols-2">
-            <InfoRow label="Título" value={state.result.title} />
+            <InfoRow label="Título original" value={state.result.amazonTitleOriginal || "No disponible"} />
+            <InfoRow label="Título limpio" value={state.result.cleanTitle} />
             <InfoRow label="ASIN" value={state.result.asin} />
+            <InfoRow label="URL limpia" value={state.result.sourceUrlClean} />
+            <InfoRow label="Jugadores detectados" value={state.result.detectedPlayers || "Pendiente"} />
+            <InfoRow label="Duración detectada" value={state.result.detectedPlaytime || "Pendiente"} />
+            <InfoRow label="Edad detectada" value={state.result.detectedAge ? `${state.result.detectedAge}+` : "Pendiente"} />
             <InfoRow label="Candidate" value={state.result.candidateStatus} />
             <InfoRow label="Imagen" value={state.result.imageStatus === "approved_public" ? "aprobada pública" : "placeholder"} />
           </div>

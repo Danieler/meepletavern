@@ -29,6 +29,10 @@ export function parseAmazonInput(input: unknown): ParsedAmazonInput {
   return { asin: null, inputType: "invalid" };
 }
 
+export function buildAmazonCanonicalUrl(asin: string) {
+  return `https://www.amazon.es/dp/${asin.trim().toUpperCase()}`;
+}
+
 function extractAsinFromUrl(value: string) {
   try {
     const url = new URL(value);

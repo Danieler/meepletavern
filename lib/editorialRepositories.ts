@@ -432,16 +432,16 @@ type CandidateForGameConversion = Prisma.GameCandidateGetPayload<{
 async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConversion, status: ConvertGameStatus): Promise<Prisma.GameCreateInput> {
   const metadata = normalizeCandidateMetadata(candidate.metadata);
   const aiDraft = normalizeAiDraft(candidate.aiDraft);
-  const title = cleanCandidateTitle(candidate.title, candidate.sourceUrl);
+  const title = getCandidateGameTitle(candidate, metadata);
   const players = extractCandidatePlayers(metadata);
-  const minAge = extractCandidateNumber(metadata, [
+  const minAge = normalizeCandidateAge(extractCandidateNumber(metadata, [
     "minAge",
     "age",
     "edad",
     "Edad mínima recomendada",
     "Edad minima recomendada",
     "Age"
-  ]);
+  ]));
   const playtime = extractCandidatePlaytime(metadata);
   const year = extractCandidateNumber(metadata, ["year", "año", "anio"]);
   const publisher = extractCandidatePublisher(metadata);
@@ -514,6 +514,10 @@ function buildCandidateDraftContent(
   metadata: Prisma.JsonObject,
   aiDraft: Prisma.JsonObject | null
 ) {
+  if (isAmazonMetadata(metadata) && !aiDraft) {
+    return buildAmazonCandidateDraftContent(candidate, metadata);
+  }
+
   if (aiDraft) {
     const draftFaq = normalizeGameFaq(aiDraft.faq);
     const fallbackFaq = buildFallbackFaq(candidate);
@@ -547,6 +551,23 @@ function buildCandidateDraftContent(
     faq: fallbackFaq,
     seoTitle: buildFallbackSeoTitle(candidate),
     seoDescription: buildFallbackSeoDescription(candidate)
+  };
+}
+
+function buildAmazonCandidateDraftContent(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
+  const title = getCandidateGameTitle(candidate, metadata);
+
+  return {
+    shortDescription: `Ficha preliminar de ${title}, importada para revisión editorial en MeepleTavern.`,
+    description: `${title} es una ficha preliminar importada desde una fuente comercial aprobada. Revisa jugadores, duración, edad, categorías, mecánicas y descripción editorial antes de publicarla.`,
+    quickVerdict: "Pendiente de valoración editorial.",
+    bestFor: null,
+    notFor: null,
+    pros: [],
+    cons: [],
+    faq: [],
+    seoTitle: `${title} | MeepleTavern`,
+    seoDescription: `Ficha de ${title} en MeepleTavern, pendiente de revisión editorial.`
   };
 }
 
@@ -684,7 +705,7 @@ function buildFallbackSeoDescription(candidate: CandidateForGameConversion) {
 function buildKnownDataSummary(metadata: Prisma.JsonObject) {
   const players = extractCandidatePlayers(metadata);
   const playtime = extractCandidatePlaytime(metadata);
-  const minAge = extractCandidateNumber(metadata, ["minAge", "age", "edad"]);
+  const minAge = normalizeCandidateAge(extractCandidateNumber(metadata, ["minAge", "age", "edad"]));
   const publisher = extractCandidatePublisher(metadata);
   const parts = [
     players.min && players.max ? `jugadores ${players.min}-${players.max}` : null,
@@ -778,6 +799,10 @@ function extractCandidateFactTextList(metadata: Prisma.JsonObject, keys: string[
 
 function extractCandidateMechanics(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
   const fromDirect = extractCandidateTextList(metadata, ["mechanics", "mechanic"]);
+  if (isAmazonMetadata(metadata)) {
+    return fromDirect;
+  }
+
   const features = extractStringArray(metadata, ["features"]).join(" ").toLowerCase();
   const values = new Set<string>(fromDirect);
 
@@ -806,6 +831,27 @@ function extractCandidateMechanics(candidate: CandidateForGameConversion, metada
   }
 
   return [...values];
+}
+
+function getCandidateGameTitle(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
+  const cleanTitle = cleanStringValue(metadata.cleanTitle);
+  if (cleanTitle) {
+    return cleanTitle;
+  }
+
+  return cleanCandidateTitle(candidate.title, candidate.sourceUrl);
+}
+
+function isAmazonMetadata(metadata: Prisma.JsonObject) {
+  return metadata.importedFrom === "amazon" || typeof metadata.asin === "string";
+}
+
+function normalizeCandidateAge(value: number | null) {
+  if (!value || value <= 0) {
+    return null;
+  }
+
+  return value > 30 ? Math.ceil(value / 12) : value;
 }
 
 function extractCandidateFact(metadata: Prisma.JsonObject, keys: string[]) {

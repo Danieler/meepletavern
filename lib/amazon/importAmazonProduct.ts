@@ -1,5 +1,5 @@
 import { EditorialFlag, GameCandidateStatus, GameStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage, Prisma, type Source } from "@prisma/client";
-import { parseAmazonInput } from "@/lib/amazon/parseAmazonInput";
+import { buildAmazonCanonicalUrl, parseAmazonInput } from "@/lib/amazon/parseAmazonInput";
 import { getAmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
 import { mapAmazonProductToCandidate, type AmazonNormalizedCandidate } from "@/lib/amazon/mapAmazonProductToCandidate";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
@@ -7,6 +7,7 @@ import { getSourcePolicy } from "@/lib/sourcePolicy";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 import { sourceRepository } from "@/lib/editorialRepositories";
+import { getTaxonomyTermNames } from "@/lib/taxonomy";
 
 export type AmazonImportResult = {
   candidateId: string;
@@ -14,7 +15,13 @@ export type AmazonImportResult = {
   sourceId: string;
   sourceUrl: string;
   asin: string;
+  amazonTitleOriginal: string | null;
+  cleanTitle: string;
+  sourceUrlClean: string;
   title: string;
+  detectedPlayers: string | null;
+  detectedPlaytime: string | null;
+  detectedAge: number | null;
   candidateStatus: GameCandidateStatus;
   imageStatus: "approved_public" | "placeholder";
   flags: EditorialFlag[];
@@ -29,6 +36,7 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
   if (parsedInput.inputType === "invalid" || !parsedInput.asin) {
     throw new Error("Introduce un ASIN válido o una URL de Amazon válida.");
   }
+  const sourceUrlClean = buildAmazonCanonicalUrl(parsedInput.asin);
 
   const source = await sourceRepository.getById(sourceId);
   if (!source) {
@@ -42,7 +50,7 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
   const sourcePolicy = getSourcePolicy(source);
   const product = await getAmazonProduct({
     asin: parsedInput.asin,
-    sourceUrl: rawAmazonInput
+    sourceUrl: sourceUrlClean
   });
   const mapped = mapAmazonProductToCandidate({
     product,
@@ -50,12 +58,20 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
       status: source.status,
       permissions: source.permissions
     },
-    sourceUrl: rawAmazonInput
+    sourceUrl: sourceUrlClean
   });
 
   const candidate = normalizeAmazonCandidate(mapped, sourcePolicy);
   const publicImageAllowed = Boolean(product.imageUrl) && sourcePolicy.canUseImagePublicly;
   const gameSlug = await ensureUniqueSlug(slugify(candidate.title));
+  const metadata = candidate.metadata;
+  const minPlayers = numberFromMetadata(metadata, "minPlayers");
+  const maxPlayers = numberFromMetadata(metadata, "maxPlayers");
+  const minPlayTime = numberFromMetadata(metadata, "minPlayTime");
+  const maxPlayTime = numberFromMetadata(metadata, "maxPlayTime");
+  const minAge = numberFromMetadata(metadata, "minAge");
+  const playtime = formatPlaytime(minPlayTime, maxPlayTime);
+  const taxonomy = await resolveAmazonTaxonomy(metadata);
 
   const result = await prisma.$transaction(async (transaction) => {
     const createdCandidate = await transaction.gameCandidate.create({
@@ -84,21 +100,25 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
         status: GameStatus.review,
         originalTitle: null,
         year: null,
-        players: {} as Prisma.InputJsonValue,
-        minPlayers: null,
-        maxPlayers: null,
-        playtime: null,
-        minAge: null,
-        age: null,
+        players: {
+          min: minPlayers,
+          max: maxPlayers,
+          label: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null
+        } as Prisma.InputJsonValue,
+        minPlayers,
+        maxPlayers,
+        playtime,
+        minAge,
+        age: minAge ? `${minAge}+` : null,
         difficulty: null,
         complexity: null,
-        categories: [],
-        mechanics: [],
+        categories: taxonomy.categories,
+        mechanics: taxonomy.mechanics,
         themes: [],
-        publisher: product.manufacturer || product.brand || null,
+        publisher: stringFromMetadata(metadata, "manufacturer") || stringFromMetadata(metadata, "brand") || null,
         spanishPublisher: null,
-        shortDescription: `Ficha preliminar de ${candidate.title}, pendiente de revisión editorial en MeepleTavern.`,
-        description: `${candidate.title} se ha importado como candidato desde una fuente comercial aprobada. Revisa jugadores, duración, edad, categorías y mecánicas antes de publicar.`,
+        shortDescription: `Ficha preliminar de ${candidate.title}, importada para revisión editorial en MeepleTavern.`,
+        description: `${candidate.title} es una ficha preliminar importada desde una fuente comercial aprobada. Revisa jugadores, duración, edad, categorías, mecánicas y descripción editorial antes de publicarla.`,
         quickVerdict: "Pendiente de valoración editorial.",
         bestFor: null,
         notFor: null,
@@ -106,8 +126,15 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
         cons: [],
         faq: [] as Prisma.InputJsonValue,
         faqs: [] as Prisma.InputJsonValue,
-        seoTitle: `${candidate.title} en revisión editorial`,
-        seoDescription: `Ficha preliminar de ${candidate.title} importada desde Amazon y pendiente de revisión editorial en MeepleTavern.`,
+        seoTitle: `${candidate.title} | MeepleTavern`,
+        seoDescription: `Ficha de ${candidate.title} en MeepleTavern, pendiente de revisión editorial.`,
+        buyUrl: candidate.sourceUrl,
+        sources: [
+          {
+            label: source.name,
+            url: candidate.sourceUrl
+          }
+        ] as Prisma.InputJsonValue,
         sourceIds: [source.id],
         imageFallbackAccepted: !(publicImageAllowed && product.imageUrl),
         imageStatus: publicImageAllowed && product.imageUrl ? "verified" : "placeholder",
@@ -163,12 +190,66 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
     sourceId: source.id,
     sourceUrl: candidate.sourceUrl,
     asin: parsedInput.asin,
+    amazonTitleOriginal: stringFromMetadata(metadata, "amazonTitleOriginal"),
+    cleanTitle: candidate.title,
+    sourceUrlClean,
     title: candidate.title,
+    detectedPlayers: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null,
+    detectedPlaytime: playtime,
+    detectedAge: minAge,
     candidateStatus: candidate.flags.length ? GameCandidateStatus.needs_review : GameCandidateStatus.pending,
     imageStatus: result.publicMediaAsset ? "approved_public" : "placeholder",
     flags: candidate.flags,
     publicImageUrl: result.publicMediaAsset ? result.publicMediaAsset.url : null
   };
+}
+
+async function resolveAmazonTaxonomy(metadata: Record<string, unknown>) {
+  const [existingCategories, existingMechanics] = await Promise.all([
+    getTaxonomyTermNames("category"),
+    getTaxonomyTermNames("mechanic")
+  ]);
+
+  return {
+    categories: filterExistingTerms(stringListFromMetadata(metadata, "categoryHints"), existingCategories),
+    mechanics: filterExistingTerms(stringListFromMetadata(metadata, "mechanicHints"), existingMechanics)
+  };
+}
+
+function filterExistingTerms(hints: string[], existingTerms: string[]) {
+  const existingByLower = new Map(existingTerms.map((term) => [term.toLowerCase(), term]));
+  return hints
+    .map((hint) => existingByLower.get(hint.toLowerCase()) || null)
+    .filter((term): term is string => Boolean(term));
+}
+
+function numberFromMetadata(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function stringFromMetadata(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function stringListFromMetadata(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim())
+    : [];
+}
+
+function formatPlaytime(min: number | null, max: number | null) {
+  if (min && max && min !== max) {
+    return `${min}-${max} min`;
+  }
+
+  if (min || max) {
+    return `${min || max} min`;
+  }
+
+  return null;
 }
 
 function normalizeAmazonCandidate(input: AmazonNormalizedCandidate, sourcePolicy: ReturnType<typeof getSourcePolicy>) {

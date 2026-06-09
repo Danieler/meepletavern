@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { buildAmazonCanonicalUrl } from "@/lib/amazon/parseAmazonInput";
 
 export type AmazonProduct = {
   asin: string;
@@ -273,19 +274,8 @@ function mapItemToProduct(item: AmazonPaapiItem, fallbackAsin: string): AmazonPr
   };
 }
 
-function buildAmazonDetailPageUrl(asin: string, sourceUrl?: string) {
-  if (sourceUrl) {
-    try {
-      const parsed = new URL(sourceUrl);
-      if (parsed.hostname.includes("amazon.")) {
-        return parsed.toString();
-      }
-    } catch {
-      // fallback to canonical Amazon URL below
-    }
-  }
-
-  return `https://www.amazon.es/dp/${asin}`;
+function buildAmazonDetailPageUrl(asin: string, _sourceUrl?: string) {
+  return buildAmazonCanonicalUrl(asin);
 }
 
 function meta(html: string, name: string) {
@@ -359,8 +349,16 @@ function extractFacts(html: string) {
     ["Número Modelo", /Número Modelo/i]
   ];
 
-  const facts: Record<string, string> = {};
+  const facts: Record<string, string> = {
+    ...extractFactsFromTables(html),
+    ...extractFactsFromDetailBullets(html)
+  };
+
   for (const [label, pattern] of factLabels) {
+    if (facts[label]) {
+      continue;
+    }
+
     const value = matchLabel(html, pattern);
     if (value) {
       facts[label] = value;
@@ -368,6 +366,46 @@ function extractFacts(html: string) {
   }
 
   return facts;
+}
+
+function extractFactsFromTables(html: string) {
+  const facts: Record<string, string> = {};
+  const rows = html.matchAll(/<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi);
+
+  for (const row of rows) {
+    const label = normalizeFactLabel(clean(stripTags(row[1] || "")));
+    const value = clean(stripTags(row[2] || ""));
+    if (label && value) {
+      facts[label] = value;
+    }
+  }
+
+  return facts;
+}
+
+function extractFactsFromDetailBullets(html: string) {
+  const facts: Record<string, string> = {};
+  const section = extractSection(html, "detailBullets_feature_div", 18000);
+  const items = section.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+
+  for (const item of items) {
+    const block = item[1] || "";
+    const label = normalizeFactLabel(clean(stripTags(/<span[^>]*class="[^"]*a-text-bold[^"]*"[^>]*>([\s\S]*?)<\/span>/i.exec(block)?.[1] || "")));
+    const value = clean(stripTags(block))
+      .replace(/^.*?:\s*/, "")
+      .replace(/‎/g, "")
+      .trim();
+
+    if (label && value) {
+      facts[label] = value;
+    }
+  }
+
+  return facts;
+}
+
+function normalizeFactLabel(value: string) {
+  return value.replace(/[:：‎]/g, "").replace(/\s+/g, " ").trim();
 }
 
 function extractLandingImageUrl(html: string) {
