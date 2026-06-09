@@ -3,6 +3,7 @@ import { generateGameDraft } from "@/lib/ai/aiGameGeneratorService";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 import { normalizeGamePayload, toPrismaUpdate, type GameFormPayload } from "@/lib/gamePayload";
+import { validateBeforePublish } from "@/lib/validateBeforePublish";
 
 export async function getPublishedGames(options?: { limit?: number; query?: string }) {
   const query = options?.query?.trim();
@@ -108,6 +109,18 @@ export async function updateGameFromPayload(id: string, payload: GameFormPayload
 }
 
 export async function publishGame(id: string) {
+  const game = await prisma.game.findUnique({ where: { id } });
+
+  if (!game) {
+    throw new Error("No existe ese juego.");
+  }
+
+  const validation = validateBeforePublish(game);
+
+  if (!validation.valid) {
+    throw new Error(validation.errors.join(" "));
+  }
+
   return prisma.game.update({
     where: { id },
     data: {

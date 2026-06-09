@@ -79,7 +79,7 @@ export default async function AdminGamesPage() {
                   <Td>{formatDate(game.updatedAt)}</Td>
                   <Td>
                     <div className="flex flex-wrap gap-2">
-                      <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/games/${game.id}/edit`}>
+                      <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/games/${game.id}`}>
                         <Pencil size={16} aria-hidden="true" />
                         Editar
                       </Link>
@@ -113,7 +113,7 @@ async function createManualGameAction() {
   "use server";
 
   const game = await createManualGameDraft();
-  redirect(`/admin/games/${game.id}/edit`);
+  redirect(`/admin/games/${game.id}`);
 }
 
 function Th({ children }: { children: React.ReactNode }) {

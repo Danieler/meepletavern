@@ -1,4 +1,14 @@
-import type { Prisma } from "@prisma/client";
+import type {
+  EditorialFlag,
+  GameCandidateStatus,
+  GameStatus,
+  MediaAssetStatus,
+  MediaAssetType,
+  MediaAssetUsage,
+  Prisma,
+  SourceStatus,
+  SourceType
+} from "@prisma/client";
 
 export const EDITORIAL_FLAGS = [
   "possible_duplicate",
@@ -10,32 +20,23 @@ export const EDITORIAL_FLAGS = [
   "needs_permission"
 ] as const;
 
-export type EditorialFlagKey = (typeof EDITORIAL_FLAGS)[number];
+// These domain contracts describe normalized editorial data after Json fields
+// are mapped. Prisma remains the source of truth for persisted enum values.
+export type EditorialFlagKey = EditorialFlag;
 
-export type SourceTypeKey =
-  | "publisher"
-  | "distributor"
-  | "shop"
-  | "affiliate_api"
-  | "open_data"
-  | "manual";
+export type SourceTypeKey = SourceType;
 
-export type SourceStatusKey = "not_contacted" | "contacted" | "approved" | "rejected";
+export type SourceStatusKey = SourceStatus;
 
-export type GameCandidateStatusKey =
-  | "pending"
-  | "needs_review"
-  | "approved"
-  | "rejected"
-  | "converted";
+export type GameCandidateStatusKey = GameCandidateStatus;
 
-export type GameStatusKey = "draft" | "review" | "published" | "archived";
+export type GameStatusKey = GameStatus;
 
-export type MediaAssetTypeKey = "cover" | "box" | "component" | "placeholder";
+export type MediaAssetTypeKey = MediaAssetType;
 
-export type MediaAssetStatusKey = "candidate" | "approved" | "rejected";
+export type MediaAssetStatusKey = MediaAssetStatus;
 
-export type MediaAssetUsageKey = "public" | "admin_only" | "purchase_only";
+export type MediaAssetUsageKey = MediaAssetUsage;
 
 export type SourcePermissions = {
   canUseMetadata: boolean;
@@ -57,6 +58,7 @@ export type CandidateImage = {
 export type GamePlayers = {
   min?: number | null;
   max?: number | null;
+  ideal?: number | null;
   label?: string | null;
 };
 

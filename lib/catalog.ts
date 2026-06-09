@@ -73,6 +73,7 @@ export type GameFilterInput = {
 const catalogGameSelect = {
   id: true,
   name: true,
+  title: true,
   slug: true,
   coverImageUrl: true,
   coverImageAlt: true,
@@ -83,6 +84,8 @@ const catalogGameSelect = {
   description: true,
   review: true,
   shortSummary: true,
+  shortDescription: true,
+  quickVerdict: true,
   pros: true,
   cons: true,
   bestFor: true,
@@ -92,6 +95,7 @@ const catalogGameSelect = {
   playtime: true,
   age: true,
   complexity: true,
+  difficulty: true,
   categories: true,
   mechanics: true,
   themes: true,
@@ -139,7 +143,12 @@ export async function getReviews() {
   const games = await prisma.game.findMany({
     where: {
       status: GameStatus.published,
-      OR: [{ review: { not: null } }, { shortSummary: { not: null } }]
+      OR: [
+        { quickVerdict: { not: null } },
+        { shortDescription: { not: null } },
+        { review: { not: null } },
+        { shortSummary: { not: null } }
+      ]
     },
     select: catalogGameSelect,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
@@ -153,7 +162,12 @@ export async function getReviewBySlug(slug: string) {
     where: {
       slug,
       status: GameStatus.published,
-      OR: [{ review: { not: null } }, { shortSummary: { not: null } }]
+      OR: [
+        { quickVerdict: { not: null } },
+        { shortDescription: { not: null } },
+        { review: { not: null } },
+        { shortSummary: { not: null } }
+      ]
     },
     select: catalogGameSelect
   });
@@ -335,13 +349,17 @@ async function getPublishedDbGames() {
 
 function toCatalogGame(game: CatalogDbGame): CatalogGame {
   const duration = parseDuration(game.playtime);
+  const title = game.title || game.name;
+  const shortDescription = game.shortDescription || game.shortSummary;
+  const quickVerdict = game.quickVerdict || game.review;
+  const difficulty = game.difficulty || game.complexity;
 
   return {
     id: game.id,
     slug: game.slug,
-    title: game.name,
+    title,
     coverImageUrl: game.coverImageUrl,
-    coverImageAlt: game.coverImageAlt || `Portada de ${game.name}`,
+    coverImageAlt: game.coverImageAlt || `Portada de ${title}`,
     imageSourceName: game.imageSourceName,
     imageSourceUrl: game.imageSourceUrl,
     imageLicenseNote: game.imageLicenseNote,
@@ -354,12 +372,12 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     durationMax: duration.max,
     age: game.age,
     ageValue: parseFirstNumber(game.age),
-    complexity: game.complexity,
+    complexity: difficulty,
     categories: game.categories,
     mechanics: game.mechanics,
     themes: game.themes,
-    description: game.description || game.shortSummary || "",
-    reviewSummary: game.shortSummary || game.review || game.description || "",
+    description: game.description || shortDescription || "",
+    reviewSummary: shortDescription || quickVerdict || game.description || "",
     pros: game.pros,
     cons: game.cons,
     recommendedFor: game.bestFor || "",
@@ -373,8 +391,9 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
 }
 
 function toReview(game: CatalogDbGame): Review | null {
-  const summary = game.shortSummary || game.review || game.description;
-  const bodySource = game.review || game.description || game.shortSummary;
+  const title = game.title || game.name;
+  const summary = game.shortDescription || game.shortSummary || game.quickVerdict || game.review || game.description;
+  const bodySource = game.quickVerdict || game.review || game.description || game.shortDescription || game.shortSummary;
 
   if (!summary || !bodySource) {
     return null;
@@ -383,11 +402,11 @@ function toReview(game: CatalogDbGame): Review | null {
   return {
     id: `review-${game.id}`,
     slug: game.slug,
-    title: `Reseña de ${game.name}`,
+    title: `Reseña de ${title}`,
     gameSlug: game.slug,
-    gameTitle: game.name,
+    gameTitle: title,
     coverImageUrl: game.coverImageUrl,
-    coverImageAlt: game.coverImageAlt || `Portada de ${game.name}`,
+    coverImageAlt: game.coverImageAlt || `Portada de ${title}`,
     imageSourceName: game.imageSourceName,
     imageSourceUrl: game.imageSourceUrl,
     imageLicenseNote: game.imageLicenseNote,

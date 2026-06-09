@@ -40,6 +40,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link className="button-secondary min-h-10" href="/admin/tavern">
               Taberna
             </Link>
+            <Link className="button-secondary min-h-10" href="/admin/sources">
+              Fuentes
+            </Link>
+            <Link className="button-secondary min-h-10" href="/admin/import">
+              Importar
+            </Link>
+            <Link className="button-secondary min-h-10" href="/admin/candidates">
+              Candidatos
+            </Link>
             <Link className="button-primary min-h-10" href="/admin/games/new-ai">
               Crear con IA
             </Link>
