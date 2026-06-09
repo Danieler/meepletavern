@@ -1,0 +1,3 @@
+ALTER TABLE "GameCandidate"
+ADD COLUMN "aiGenerated" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "aiReviewed" BOOLEAN NOT NULL DEFAULT false;

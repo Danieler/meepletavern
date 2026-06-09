@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Placeholder cooperativo">
+  <rect width="1200" height="750" fill="#1d2530"/><path d="M0 520c210-110 380-110 600 0s390 110 600 0v230H0z" fill="#2f6f62"/>
+  <circle cx="480" cy="315" r="74" fill="#f7f0df"/><circle cx="720" cy="315" r="74" fill="#f7f0df"/><path d="M390 505c55-95 365-95 420 0" fill="none" stroke="#c77b2b" stroke-width="42" stroke-linecap="round"/>
+  <text x="600" y="650" text-anchor="middle" font-family="Georgia,serif" font-size="56" font-weight="700" fill="#fff">Cooperativo</text>
+</svg>

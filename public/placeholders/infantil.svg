@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Placeholder infantil">
+  <rect width="1200" height="750" fill="#f7f0df"/><path d="M0 555c220-85 390-85 600 0s380 85 600 0v195H0z" fill="#c77b2b"/>
+  <rect x="420" y="210" width="360" height="270" rx="42" fill="#2f6f62"/><circle cx="520" cy="315" r="34" fill="#fff"/><circle cx="680" cy="315" r="34" fill="#fff"/><path d="M510 405c52 38 128 38 180 0" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round"/>
+  <text x="600" y="650" text-anchor="middle" font-family="Georgia,serif" font-size="60" font-weight="700" fill="#1d2530">Infantil</text>
+</svg>

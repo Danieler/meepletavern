@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Placeholder experto">
+  <rect width="1200" height="750" fill="#1d2530"/><path d="M600 115 945 570H255z" fill="#8f3048"/><path d="M600 210 800 520H400z" fill="#c77b2b"/><circle cx="600" cy="405" r="78" fill="#f7f0df"/>
+  <text x="600" y="660" text-anchor="middle" font-family="Georgia,serif" font-size="62" font-weight="700" fill="#fff">Experto</text>
+</svg>

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-label="Placeholder narrativo">
+  <rect width="1200" height="750" fill="#2f6f62"/><path d="M285 170h630v390H285z" fill="#f7f0df"/><path d="M600 170v390" stroke="#1d2530" stroke-width="10"/><path d="M365 270h170M365 340h150M665 270h170M665 340h135" stroke="#8f3048" stroke-width="22" stroke-linecap="round"/>
+  <text x="600" y="660" text-anchor="middle" font-family="Georgia,serif" font-size="58" font-weight="700" fill="#fff">Narrativo</text>
+</svg>
