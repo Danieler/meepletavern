@@ -64,7 +64,7 @@ export function GameCoverImage({
   }, [coverImageAlt, coverImageUrl, gameTitle, imageStatus]);
 
   return (
-    <div className={`relative overflow-hidden rounded-md bg-ink/5 ${variantClasses[variant]} ${className}`}>
+    <div className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-md bg-ink/5 ${variantClasses[variant]} ${className}`}>
       {showVerifiedCover ? (
         <img
           src={coverImageUrl || ""}
@@ -100,7 +100,7 @@ function MeepleTavernCoverPlaceholder({
       aria-label={`Portada pendiente de ${gameTitle}`}
       className="relative h-full min-h-full w-full overflow-hidden bg-ink/5 text-white"
     >
-      <img src={placeholderUrl(kind)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+      <img src={placeholderUrl(kind)} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover" />
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(29,37,48,0.72))]" />
       <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3">
         <span className="rounded-md bg-white/12 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-parchment">

@@ -9,6 +9,45 @@ type GameCardProps = {
 };
 
 export function GameCard({ game, compact }: GameCardProps) {
+  if (compact) {
+    return (
+      <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
+        <Link href={`/juegos/${game.slug}`} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 p-3 sm:p-4">
+          <GameCoverImage
+            {...game}
+            gameTitle={game.title}
+            variant="ranking"
+            showPlaceholderLabel={false}
+            className="self-start"
+          />
+          <div className="min-w-0 py-1">
+            <div className="flex flex-wrap gap-2">
+              {game.categories.slice(0, 2).map((category) => (
+                <span key={category} className="rounded-md bg-moss/10 px-2.5 py-1 text-xs font-semibold text-moss">
+                  {category}
+                </span>
+              ))}
+            </div>
+            <h3 className="mt-3 text-lg font-bold leading-tight text-ink">{game.title}</h3>
+            {game.publishedAt ? (
+              <p className="mt-1 text-xs font-semibold uppercase text-ink/45">{formatDate(game.publishedAt)}</p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-ink/58">
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={15} aria-hidden="true" />
+                {game.playersLabel || "Jugadores pendiente"}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock size={15} aria-hidden="true" />
+                {game.playtime || "Duración pendiente"}
+              </span>
+            </div>
+          </div>
+        </Link>
+      </article>
+    );
+  }
+
   return (
     <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
       <Link href={`/juegos/${game.slug}`} className="block">

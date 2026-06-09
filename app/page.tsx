@@ -118,13 +118,13 @@ export default async function Home() {
             />
             <div className="grid gap-5 lg:grid-cols-3">
               {latestReviews.map((review) => (
-                <ReviewCard key={review.slug} review={review} />
+                <ReviewCard key={review.slug} review={review} compact />
               ))}
             </div>
           </div>
         </section>
 
-        <section className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_0.9fr] lg:py-16">
+        <section className="container-page grid gap-8 py-12 lg:grid-cols-2 lg:py-16">
           <div>
             <SectionHeader
               eyebrow="Mejores para empezar"

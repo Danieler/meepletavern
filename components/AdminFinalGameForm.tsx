@@ -215,9 +215,16 @@ function Feedback({ state }: { state: GameEditorActionState }) {
       <div className="rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">
         <p>No se puede publicar todavía:</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          {state.errors.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
+          {state.errors.map((error) => {
+            const label = publishErrorLabel(error);
+
+            return (
+              <li key={error}>
+                <span className="font-black text-ink">{label}</span>
+                <span className="ml-2">{error}</span>
+              </li>
+            );
+          })}
         </ul>
       </div>
     );
@@ -242,4 +249,30 @@ function parsePlaytime(value: string | null) {
 function parseFirstNumber(value: string | null) {
   const match = value?.match(/\d+/);
   return match ? Number(match[0]) : null;
+}
+
+function publishErrorLabel(error: string) {
+  const labels: Record<string, string> = {
+    "Falta el título.": "Title",
+    "Falta el slug.": "Slug",
+    "Faltan jugadores mínimos y máximos.": "Players min / max",
+    "Falta la duración.": "Playtime",
+    "Falta la edad mínima.": "Min age",
+    "Falta la dificultad.": "Difficulty",
+    "Añade al menos una categoría.": "Categories",
+    "Añade al menos una mecánica.": "Mechanics",
+    "Falta la descripción corta.": "Short description",
+    "Falta la descripción.": "Description",
+    "Falta el veredicto rápido.": "Quick verdict",
+    "Falta 'Para quién es'.": "Best for",
+    "Falta 'Para quién no es'.": "Not for",
+    "Añade al menos un pro.": "Pros",
+    "Añade al menos un contra.": "Cons",
+    "Añade al menos una FAQ.": "FAQ",
+    "Falta el SEO title.": "SEO title",
+    "Falta el SEO description.": "SEO description",
+    "Selecciona una imagen principal o acepta fallback de imagen.": "Primary image"
+  };
+
+  return labels[error] || "Validación";
 }

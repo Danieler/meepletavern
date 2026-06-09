@@ -56,6 +56,7 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [coverPreviewError, setCoverPreviewError] = useState(false);
 
   const publicUrl = useMemo(
     () => (form.status === "published" ? `/juegos/${form.slug}` : null),
@@ -64,6 +65,9 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
 
   function updateField<K extends keyof AdminGameFormValues>(key: K, value: AdminGameFormValues[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    if (key === "coverImageUrl") {
+      setCoverPreviewError(false);
+    }
   }
 
   async function save(mode: SaveMode) {
@@ -211,7 +215,8 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
 
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Portada</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="grid gap-4 md:grid-cols-2">
             <Field label="Estado de imagen">
               <select
                 className="field-input"
@@ -261,6 +266,28 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
                 onChange={(event) => updateField("imageLicenseNote", event.target.value)}
               />
             </Field>
+          </div>
+            <div className="rounded-md border border-ink/10 bg-ink/5 p-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-ink/45">Vista previa</p>
+              <div className="mt-3 overflow-hidden rounded-md border border-ink/10 bg-white">
+                {form.coverImageUrl && !coverPreviewError ? (
+                  <img
+                    src={form.coverImageUrl}
+                    alt={form.coverImageAlt || form.name}
+                    className="aspect-[4/3] w-full object-cover"
+                    onError={() => setCoverPreviewError(true)}
+                  />
+                ) : (
+                  <div className="flex aspect-[4/3] items-center justify-center bg-parchment px-4 text-center text-sm font-semibold text-ink/55">
+                    {form.coverImageUrl ? "La imagen no carga en este momento." : "Todavía no hay URL de portada."}
+                  </div>
+                )}
+              </div>
+              <p className="mt-3 text-xs leading-5 text-ink/55">
+                Esta vista previa cambia al instante al editar la URL. El estado de publicación sigue
+                dependiendo de la validación editorial.
+              </p>
+            </div>
           </div>
         </section>
 

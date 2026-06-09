@@ -3,12 +3,16 @@ import { CalendarDays } from "lucide-react";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import type { Review } from "@/lib/catalog";
 
-export function ReviewCard({ review }: { review: Review }) {
+export function ReviewCard({ review, compact = false }: { review: Review; compact?: boolean }) {
+  const linkClassName = compact
+    ? "block"
+    : "grid min-w-0 gap-0 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]";
+
   return (
     <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
-      <Link href={`/resenas/${review.slug}`} className="grid gap-0 md:grid-cols-[220px_1fr]">
-        <GameCoverImage {...review} gameTitle={review.gameTitle} variant="review" />
-        <div className="p-5">
+      <Link href={`/resenas/${review.slug}`} className={linkClassName}>
+        <GameCoverImage {...review} gameTitle={review.gameTitle} variant={compact ? "card" : "review"} />
+        <div className="min-w-0 p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase text-ruby">{review.gameTitle}</p>
