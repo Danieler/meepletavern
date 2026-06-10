@@ -13,10 +13,10 @@ export function AdminStatusBadge({ status }: AdminStatusBadgeProps) {
   };
 
   const labels = {
-    [GameStatus.draft]: "Draft",
-    [GameStatus.review]: "Review",
-    [GameStatus.published]: "Published",
-    [GameStatus.archived]: "Archived"
+    [GameStatus.draft]: "Borrador",
+    [GameStatus.review]: "En revisión",
+    [GameStatus.published]: "Publicado",
+    [GameStatus.archived]: "Archivado"
   };
 
   return (

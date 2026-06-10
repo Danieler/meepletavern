@@ -23,22 +23,28 @@ export async function saveGameEditorAction(
   const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
   const requestedStatus = normalizeGameStatus(formData.get("status"));
 
-  if (requestedStatus === GameStatus.published) {
-    return { errors: ["Usa el botón Publicar para cambiar a published."] };
-  }
-
   try {
     const editorGame = await gameRepository.getEditorById(id);
     if (!editorGame) {
       throw new Error("No existe ese juego.");
     }
 
-    const savedGame = await gameRepository.update(id, toGameUpdateInput(formData, requestedStatus, editorGame.mediaAssets));
+    const savedGame = await gameRepository.update(
+      id,
+      toGameUpdateInput(formData, requestedStatus, editorGame.mediaAssets, editorGame.publishedAt)
+    );
     const validation = validateBeforePublish(savedGame);
     revalidateGameAdmin(id);
+    const statusMessage = {
+      [GameStatus.draft]: "Guardado como borrador.",
+      [GameStatus.review]: "Guardado en revisión.",
+      [GameStatus.published]: "Cambios guardados en la ficha publicada.",
+      [GameStatus.archived]: "Guardado como archivado."
+    }[savedGame.status];
+
     return validation.warnings.length
-      ? { message: "Juego guardado. Se puede publicar, pero la ficha está incompleta.", warnings: validation.warnings }
-      : { message: "Juego guardado. Ficha completa." };
+      ? { message: statusMessage, warnings: validation.warnings }
+      : { message: statusMessage };
   } catch (error) {
     return { errors: [errorMessage(error)] };
   }
@@ -58,7 +64,7 @@ export async function publishGameEditorAction(
 
     const savedGame = await gameRepository.update(
       id,
-      toGameUpdateInput(formData, GameStatus.review, editorGame.mediaAssets)
+      toGameUpdateInput(formData, GameStatus.review, editorGame.mediaAssets, editorGame.publishedAt)
     );
     const validation = validateBeforePublish(savedGame);
 
@@ -154,7 +160,12 @@ export async function deleteGameEditorAction(formData: FormData) {
   redirect(returnTo);
 }
 
-function toGameUpdateInput(formData: FormData, status: GameStatus, mediaAssets: Array<{ id: string; url: string }>): Prisma.GameUpdateInput {
+function toGameUpdateInput(
+  formData: FormData,
+  status: GameStatus,
+  mediaAssets: Array<{ id: string; url: string }>,
+  publishedAt?: Date | null
+): Prisma.GameUpdateInput {
   const title = requiredString(formData.get("title"), "El título es obligatorio.");
   const slug = requiredString(formData.get("slug"), "El slug es obligatorio.");
   const minPlayers = optionalPositiveInt(formData.get("minPlayers"));
@@ -212,7 +223,7 @@ function toGameUpdateInput(formData: FormData, status: GameStatus, mediaAssets: 
     ...(imageFields.coverImageUrl ? imageFields : {}),
     imageFallbackAccepted: formData.get("imageFallbackAccepted") === "on",
     status,
-    publishedAt: status === GameStatus.published ? new Date() : null
+    publishedAt: status === GameStatus.published ? publishedAt || new Date() : null
   };
 }
 

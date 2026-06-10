@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
 import { ExternalLink, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   saveGameEditorAction,
   type GameEditorActionState
 } from "@/app/admin/games/[id]/actions";
+import { AdminStatusBadge } from "@/components/AdminStatusBadge";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 
@@ -34,11 +35,24 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
   const playtime = parsePlaytime(game.playtime);
   const faq = normalizeGameFaq(game.faq || game.faqs);
   const publicUrl = game.status === GameStatus.published ? `/juegos/${game.slug}` : null;
+  const showPublishButton = game.status !== GameStatus.published;
   const primaryImagePreviewUrl = useMemo(
     () => resolvePrimaryImagePreviewUrl(primaryImageValue, game, mediaAssets),
     [game, mediaAssets, primaryImageValue]
   );
   const isBusy = isSaving || isPublishing || isCompletingWithAi;
+
+  useEffect(() => {
+    if (saveState.message && !saveState.errors?.length) {
+      router.refresh();
+    }
+  }, [router, saveState]);
+
+  useEffect(() => {
+    if (publishState.message && !publishState.errors?.length) {
+      router.refresh();
+    }
+  }, [router, publishState]);
 
   async function handleAiCompletion() {
     setIsCompletingWithAi(true);
@@ -89,7 +103,14 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-sm font-semibold text-ink/55">Estado actual</p>
-            <p className="mt-1 text-xl font-bold text-ink">{game.status}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <AdminStatusBadge status={game.status} />
+              <p className="text-sm leading-6 text-ink/60">
+                {game.status === GameStatus.published
+                  ? "Guardar cambios mantiene la ficha publicada."
+                  : "El estado se gestiona con los botones, no hace falta cambiarlo a mano."}
+              </p>
+            </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button className="button-secondary" type="button" onClick={handleAiCompletion} disabled={isBusy}>
@@ -98,27 +119,12 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
             </button>
             <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isBusy}>
               <Save size={18} aria-hidden="true" />
-              Guardar borrador
+              Guardar cambios
             </button>
-            <button className="button-primary" form="final-game-form" formAction={publishAction} disabled={isBusy}>
-              <Rocket size={18} aria-hidden="true" />
-              Publicar
-            </button>
-            {game.status !== GameStatus.published ? (
-              <button
-                className="button-danger"
-                form="final-game-form"
-                formAction={deleteGameEditorAction}
-                type="submit"
-                disabled={isBusy}
-                onClick={(event) => {
-                  if (!window.confirm("¿Eliminar este borrador? Esta acción borra el juego y sus assets sueltos.")) {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                <Trash2 size={18} aria-hidden="true" />
-                Eliminar
+            {showPublishButton ? (
+              <button className="button-primary" form="final-game-form" formAction={publishAction} disabled={isBusy}>
+                <Rocket size={18} aria-hidden="true" />
+                Publicar
               </button>
             ) : null}
             {publicUrl ? (
@@ -133,11 +139,12 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
 
       <Feedback state={aiCompletionState} errorTitle="No se pudo completar con IA:" />
       {aiCompletionState.suggestedTitle ? <SuggestedTitleNotice title={aiCompletionState.suggestedTitle} /> : null}
-      <Feedback state={saveState} errorTitle="No se puede publicar todavía:" />
-      <Feedback state={publishState} errorTitle="No se puede publicar todavía:" />
+      <Feedback state={saveState} errorTitle="No se pudo guardar:" />
+      <Feedback state={publishState} errorTitle="No se pudo publicar:" />
 
       <form id="final-game-form" className="space-y-6">
         <input type="hidden" name="id" value={game.id} />
+        <input type="hidden" name="status" value={game.status} />
 
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Datos principales</h2>
@@ -153,14 +160,6 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
             </Field>
             <Field label="Year">
               <input className="field-input" name="year" type="number" min="1" defaultValue={game.year || ""} />
-            </Field>
-            <Field label="Status">
-              <select className="field-input" name="status" defaultValue={game.status}>
-                <option value={GameStatus.draft}>draft</option>
-                <option value={GameStatus.review}>review</option>
-                <option value={GameStatus.published}>published</option>
-                <option value={GameStatus.archived}>archived</option>
-              </select>
             </Field>
             <Field label="Difficulty">
               <input className="field-input" name="difficulty" defaultValue={game.difficulty || game.complexity || ""} />
@@ -302,6 +301,34 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
                 su URL automáticamente.
               </p>
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-md border border-ruby/20 bg-ruby/5 p-5 shadow-soft">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-ink">Zona peligrosa</h2>
+              <p className="mt-1 text-sm leading-6 text-ink/60">
+                Eliminar deja la ficha fuera de la web. Solo úsalo si te has equivocado de verdad.
+              </p>
+            </div>
+            {game.status !== GameStatus.published ? (
+              <button
+                className="button-danger"
+                form="final-game-form"
+                formAction={deleteGameEditorAction}
+                type="submit"
+                disabled={isBusy}
+                onClick={(event) => {
+                  if (!window.confirm("¿Eliminar este borrador? Esta acción borra el juego y sus assets sueltos.")) {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                <Trash2 size={18} aria-hidden="true" />
+                Eliminar juego
+              </button>
+            ) : null}
           </div>
         </section>
       </form>
