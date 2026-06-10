@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Clock, Gauge, Users } from "lucide-react";
 import { GameCoverImage } from "@/components/GameCoverImage";
+import { getPrimaryGameTags } from "@/lib/gameDisplayTags";
 import type { CatalogGame } from "@/lib/catalog";
 
 type GameCardProps = {
@@ -9,6 +10,8 @@ type GameCardProps = {
 };
 
 export function GameCard({ game, compact }: GameCardProps) {
+  const primaryTags = getPrimaryGameTags(game, 2);
+
   if (compact) {
     return (
       <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
@@ -22,9 +25,9 @@ export function GameCard({ game, compact }: GameCardProps) {
           />
           <div className="min-w-0 py-1">
             <div className="flex flex-wrap gap-2">
-              {game.categories.slice(0, 2).map((category) => (
-                <span key={category} className="rounded-md bg-moss/10 px-2.5 py-1 text-xs font-semibold text-moss">
-                  {category}
+              {primaryTags.map((tag) => (
+                <span key={tag} className="rounded-md bg-moss/10 px-2.5 py-1 text-xs font-semibold text-moss">
+                  {tag}
                 </span>
               ))}
             </div>
@@ -55,12 +58,12 @@ export function GameCard({ game, compact }: GameCardProps) {
         <div className="p-4 sm:p-5">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="flex flex-wrap gap-2">
-              {game.categories.slice(0, 2).map((category) => (
+              {primaryTags.map((tag) => (
                 <span
-                  key={category}
+                  key={tag}
                   className="rounded-md bg-moss/10 px-2.5 py-1 text-xs font-semibold text-moss"
                 >
-                  {category}
+                  {tag}
                 </span>
               ))}
             </div>

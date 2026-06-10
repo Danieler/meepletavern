@@ -34,8 +34,8 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
     };
   }
 
-  const title = `${game.title}: reseña, duración y jugadores`;
-  const description = `${game.title} en MeepleTavern: jugadores, duración, dificultad, reseña, pros, contras, categorías, mecánicas y juegos parecidos.`;
+  const title = `${game.title}: ficha, duración y jugadores`;
+  const description = `${game.title} en MeepleTavern: jugadores, duración, dificultad, resumen editorial, pros, contras, categorías, mecánicas y juegos parecidos.`;
 
   return {
     title,
@@ -65,6 +65,8 @@ export default async function GamePage({ params }: GamePageProps) {
 
   const relatedGames = await getRelatedGames(game);
   const jsonLd = buildJsonLd(game);
+  const hasRichEditorialTags = game.mechanics.length > 0 || game.themes.length > 0;
+  const shouldShowCategories = game.categories.length > 0 && !hasRichEditorialTags;
 
   return (
     <PublicShell>
@@ -121,13 +123,6 @@ export default async function GamePage({ params }: GamePageProps) {
               </section>
             ) : null}
 
-            {game.reviewSummary ? (
-              <section>
-                <h2 className="text-2xl font-black text-ink">Reseña MeepleTavern</h2>
-                <p className="mt-4 text-base leading-8 text-ink/74">{game.reviewSummary}</p>
-              </section>
-            ) : null}
-
             {game.pros.length || game.cons.length ? <ProsCons pros={game.pros} cons={game.cons} /> : null}
 
             {game.recommendedFor || game.notRecommendedFor ? (
@@ -137,10 +132,10 @@ export default async function GamePage({ params }: GamePageProps) {
               </div>
             ) : null}
 
-            {game.categories.length || game.mechanics.length || game.themes.length ? (
+            {shouldShowCategories || game.mechanics.length || game.themes.length ? (
               <section className="space-y-4">
-                <SectionHeader title="Características" />
-                {game.categories.length ? (
+                <SectionHeader title={hasRichEditorialTags ? "Mecánicas y temática" : "Claves del juego"} />
+                {shouldShowCategories ? (
                   <TagSection title="Categorías">
                     {game.categories.map((category) => (
                       <CategoryTag key={category} value={category} />
