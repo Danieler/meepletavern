@@ -1,108 +1,66 @@
-import Link from "next/link";
+import { RatingBadge } from "@/components/RatingBadge";
 import type { CatalogGame } from "@/lib/catalog";
 
 export function GameRatings({ game }: { game: CatalogGame }) {
-  const hasBggData = Boolean(game.bggId || game.bggAverageRating || game.bggRank || game.bggWeight);
+  const externalRating = game.ratings.external;
+
+  if (!externalRating) {
+    return null;
+  }
+
+  const externalScore = externalRating.score;
+  const showScore = typeof externalRating.score === "number" && externalRating.confidence !== "low";
 
   return (
     <section className="container-page pb-10">
-      <div className={`grid gap-4 ${hasBggData ? "lg:grid-cols-[1fr_1.5fr]" : ""}`}>
-        <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink/45">MeepleTavern Score</p>
-          <p className="mt-3 text-3xl font-black text-ink">Pendiente</p>
-          <p className="mt-2 text-sm leading-6 text-ink/60">
-            La puntuación editorial numérica todavía no está disponible en esta ficha.
-          </p>
-        </article>
-
-        {hasBggData ? (
-          <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-ruby">BoardGameGeek</p>
-                <h2 className="mt-1 text-xl font-black text-ink">Datos de BoardGameGeek</h2>
-              </div>
-              {game.bggUrl ? (
-                <Link className="button-secondary min-h-9 px-3 py-1.5 text-sm" href={game.bggUrl} target="_blank" rel="noreferrer">
-                  Ver en BGG
-                </Link>
-              ) : null}
+      <article className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-4">
+            {showScore ? <RatingBadge rating={externalScore as number} size="lg" label="CE" /> : null}
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-ruby">Consenso externo</p>
+              <h2 className="mt-1 text-xl font-black text-ink">
+                {showScore ? externalRating.label : "Señales externas limitadas"}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-ink/65">{externalRating.explanation}</p>
             </div>
+          </div>
+          <div className="rounded-md border border-ink/10 bg-parchment/40 px-3 py-2 text-xs font-semibold text-ink/60">
+            {externalRating.sourcesCount} puntuaciones · confianza {confidenceLabel(externalRating.confidence)}
+          </div>
+        </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <Metric label="Rating BGG" value={formatNumber(game.bggAverageRating)} />
-              <Metric label="Bayes" value={formatNumber(game.bggBayesAverageRating)} />
-              <Metric label="Usuarios" value={formatInteger(game.bggUsersRated)} />
-              <Metric label="Rank" value={game.bggRank ? `#${formatInteger(game.bggRank)}` : "Sin rank"} />
-              <Metric label="Weight" value={formatNumber(game.bggWeight)} />
-              <Metric label="Votos weight" value={formatInteger(game.bggWeightVotes)} />
-            </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-ink/50">
+          <span>Estimación basada en señales públicas externas</span>
+          <span>·</span>
+          <span>actualizado el {formatDate(externalRating.lastCheckedAt)}</span>
+        </div>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <MiniInfo label="Jugadores" value={formatPlayers(game.bggMinPlayers, game.bggMaxPlayers)} />
-              <MiniInfo label="Duración" value={game.bggPlayingTime ? `${game.bggPlayingTime} min` : "Sin dato"} />
-              <MiniInfo label="Edad" value={game.bggMinAge ? `${game.bggMinAge}+` : "Sin dato"} />
-              <MiniInfo label="Año" value={game.bggYearPublished ? String(game.bggYearPublished) : "Sin dato"} />
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold text-ink/50">
-              <span>Datos de BoardGameGeek</span>
-              {game.bggLastSyncedAt ? <span>· sincronizado el {formatDate(game.bggLastSyncedAt)}</span> : null}
-            </div>
-          </article>
+        {externalRating.signals?.length ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {externalRating.signals.slice(0, 4).map((signal) => (
+              <span key={`${signal.sourceName}-${signal.sourceType}`} className="rounded-full bg-ink/5 px-3 py-1 text-xs font-semibold text-ink/70">
+                {signal.sourceName}
+                {signal.score !== undefined ? ` · ${signal.score.toFixed(1)}/10` : ""}
+              </span>
+            ))}
+          </div>
         ) : null}
-      </div>
+      </article>
     </section>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-ink/10 bg-parchment/40 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-ink/45">{label}</p>
-      <p className="mt-1 text-lg font-black text-ink">{value}</p>
-    </div>
-  );
-}
-
-function MiniInfo({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md bg-ink/5 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-ink/45">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-ink">{value}</p>
-    </div>
-  );
-}
-
-function formatNumber(value: number | null) {
-  if (value === null) {
-    return "Sin dato";
+function confidenceLabel(value: "low" | "medium" | "high") {
+  if (value === "high") {
+    return "alta";
   }
 
-  return new Intl.NumberFormat("es-ES", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 2
-  }).format(value);
-}
-
-function formatInteger(value: number | null) {
-  if (value === null) {
-    return "Sin dato";
+  if (value === "medium") {
+    return "media";
   }
 
-  return new Intl.NumberFormat("es-ES").format(value);
-}
-
-function formatPlayers(minPlayers: number | null, maxPlayers: number | null) {
-  if (!minPlayers && !maxPlayers) {
-    return "Sin dato";
-  }
-
-  if (minPlayers && maxPlayers && minPlayers !== maxPlayers) {
-    return `${minPlayers}-${maxPlayers}`;
-  }
-
-  return String(minPlayers || maxPlayers || "");
+  return "baja";
 }
 
 function formatDate(value: string) {

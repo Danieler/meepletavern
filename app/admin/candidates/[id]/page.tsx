@@ -39,10 +39,12 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
     const candidateImages = normalizeCandidateImages(candidate.candidateImages);
     const aiDraft = normalizeAiDraft(candidate.aiDraft);
     const sourcePolicy = getSourcePolicy(candidate.source);
-    const linkedGameId = candidate.mediaAssets.find((asset) => asset.gameId)?.gameId ?? null;
+    const linkedGameId = candidate.gameId ?? candidate.mediaAssets.find((asset) => asset.gameId)?.gameId ?? null;
     const canConvert =
       candidate.status !== GameCandidateStatus.converted &&
       candidate.status !== GameCandidateStatus.rejected;
+    const flowLabel = getFlowLabel(candidate.status, candidate.game);
+    const flowMessage = getFlowMessage(candidate.status, candidate.game);
 
     return (
       <div className="space-y-6">
@@ -52,43 +54,43 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
         </Link>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <SectionHeader title={candidate.title} description={`Estado: ${candidate.status}`} />
+          <SectionHeader title={candidate.title} description={`Estado del flujo: ${flowLabel}`} />
           <div className="flex flex-wrap gap-2">
+            {linkedGameId ? (
+              <Link className="button-primary" href={`/admin/games/${linkedGameId}`}>
+                <ExternalLink size={18} aria-hidden="true" />
+                Abrir ficha
+              </Link>
+            ) : canConvert ? (
+              <form action={convertCandidateAction}>
+                <input type="hidden" name="id" value={candidate.id} />
+                <button className="button-primary" type="submit">
+                  <FileInput size={18} aria-hidden="true" />
+                  Crear ficha y abrir
+                </button>
+              </form>
+            ) : null}
             <form action={rejectCandidateAction}>
               <input type="hidden" name="id" value={candidate.id} />
-              <button className="button-danger" type="submit" disabled={candidate.status === GameCandidateStatus.rejected}>
+              <button className="button-secondary" type="submit" disabled={candidate.status === GameCandidateStatus.rejected}>
                 <XCircle size={18} aria-hidden="true" />
                 Rechazar
               </button>
             </form>
             <form action={deleteCandidateAction}>
               <input type="hidden" name="id" value={candidate.id} />
-              <button className="button-danger" type="submit">
+              <button className="button-secondary" type="submit">
                 <Trash2 size={18} aria-hidden="true" />
                 Eliminar
               </button>
             </form>
-            <form action={convertCandidateAction}>
-              <input type="hidden" name="id" value={candidate.id} />
-              <button className="button-primary" type="submit" disabled={!canConvert}>
-                <FileInput size={18} aria-hidden="true" />
-                Convertir a draft
-              </button>
-            </form>
-            {!canConvert && linkedGameId ? (
-              <Link className="button-secondary" href={`/admin/games/${linkedGameId}`}>
-                <ExternalLink size={18} aria-hidden="true" />
-                Abrir juego creado
-              </Link>
-            ) : null}
           </div>
         </div>
 
-        {!canConvert && linkedGameId ? (
-          <div className="rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm text-ink/80">
-            Este candidato ya generó una ficha de juego durante la importación. La revisión debe continuar en el juego enlazado.
-          </div>
-        ) : null}
+        <div className={`rounded-md px-4 py-3 text-sm text-ink/80 ${candidate.gameId ? "border border-moss/20 bg-moss/10" : "border border-amber-300 bg-amber-50"}`}>
+          <p className="font-bold text-ink">{flowLabel}</p>
+          <p className="mt-1">{flowMessage}</p>
+        </div>
 
         <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
           <div className="space-y-5">
@@ -108,7 +110,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
               </dl>
             </Panel>
 
-            <Panel title="Metadata">
+            <Panel title="Metadatos">
               <JsonBlock value={metadata} />
             </Panel>
 
@@ -129,14 +131,14 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                           <select className="field-input mt-1" name="type" defaultValue={image.type || MediaAssetType.cover}>
                             {Object.values(MediaAssetType).map((type) => (
                               <option key={type} value={type}>
-                                {type}
+                                {mediaAssetTypeLabel(type)}
                               </option>
                             ))}
                           </select>
                         </label>
                         <button className="button-secondary" type="submit">
                           <ImagePlus size={18} aria-hidden="true" />
-                          Crear MediaAsset
+                          Crear asset multimedia
                         </button>
                       </form>
                     </div>
@@ -147,13 +149,13 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
               )}
             </Panel>
 
-            <Panel title="AI draft">
+            <Panel title="Borrador IA">
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <form action={generateAiDraftAction}>
                   <input type="hidden" name="id" value={candidate.id} />
                   <button className="button-secondary" type="submit">
                     <Bot size={18} aria-hidden="true" />
-                    {aiDraft ? "Regenerar aiDraft" : "Generar aiDraft"}
+                    {aiDraft ? "Regenerar borrador IA" : "Generar borrador IA"}
                   </button>
                 </form>
                 <span className="text-sm text-ink/60">
@@ -163,7 +165,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
               {aiDraft ? <JsonBlock value={aiDraft} /> : <p className="text-sm text-ink/60">Sin borrador IA.</p>}
             </Panel>
 
-            <Panel title="Media assets">
+            <Panel title="Assets multimedia">
               <p className="mb-4 text-sm text-ink/60">
                 Las imágenes solo serán públicas si el asset está aprobado, su uso es public y la fuente permite imágenes.
               </p>
@@ -188,7 +190,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                           <select className="field-input" name="status" defaultValue={asset.status}>
                             {Object.values(MediaAssetStatus).map((status) => (
                               <option key={status} value={status}>
-                                {status}
+                                {mediaAssetStatusLabel(status)}
                               </option>
                             ))}
                           </select>
@@ -197,7 +199,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                           <select className="field-input" name="usage" defaultValue={asset.usage}>
                             {Object.values(MediaAssetUsage).map((usage) => (
                               <option key={usage} value={usage}>
-                                {usage}
+                                {mediaAssetUsageLabel(usage)}
                               </option>
                             ))}
                           </select>
@@ -206,30 +208,30 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                           <select className="field-input" name="type" defaultValue={asset.type}>
                             {Object.values(MediaAssetType).map((type) => (
                               <option key={type} value={type}>
-                                {type}
+                                {mediaAssetTypeLabel(type)}
                               </option>
                             ))}
                           </select>
                         </Field>
-                        <Field label="Game ID">
+                        <Field label="ID de ficha">
                           <input className="field-input" name="gameId" defaultValue={asset.gameId || ""} />
                         </Field>
-                        <Field label="Candidate ID">
+                        <Field label="ID de candidato">
                           <input className="field-input" name="candidateId" defaultValue={asset.candidateId || candidate.id} />
                         </Field>
-                        <Field label="Source ID">
+                        <Field label="ID de fuente">
                           <input className="field-input" name="sourceId" defaultValue={asset.sourceId || candidate.sourceId} />
                         </Field>
-                        <Field label="Local path">
+                        <Field label="Ruta local">
                           <input className="field-input" name="localPath" defaultValue={asset.localPath || ""} />
                         </Field>
-                        <Field label="Attribution">
+                        <Field label="Atribución">
                           <input className="field-input" name="attribution" defaultValue={asset.attribution || ""} />
                         </Field>
                       </div>
                       <button className="button-primary mt-4" type="submit">
                         <Save size={18} aria-hidden="true" />
-                        Guardar asset
+                        Guardar asset multimedia
                       </button>
                     </form>
                   ))}
@@ -250,7 +252,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
               </dl>
             </Panel>
 
-            <Panel title="Flags">
+            <Panel title="Indicadores">
               <div className="flex flex-wrap gap-2">
                 {candidate.flags.map((flag) => (
                   <span key={flag} className="rounded-md bg-ember/10 px-2.5 py-1 text-xs font-semibold text-ink">
@@ -300,6 +302,95 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mt-1 block">{children}</span>
     </label>
   );
+}
+
+function getFlowLabel(status: GameCandidateStatus, game?: { status: string | null } | null) {
+  if (game) {
+    if (game.status === "published") {
+      return "Importado · publicado";
+    }
+
+    if (game.status === "review" || game.status === "draft") {
+      return "Importado · ficha creada";
+    }
+  }
+
+  if (status === GameCandidateStatus.approved) {
+    return "Listo para publicar";
+  }
+
+  if (status === GameCandidateStatus.needs_review) {
+    return "En revisión";
+  }
+
+  if (status === GameCandidateStatus.converted) {
+    return "Importado";
+  }
+
+  if (status === GameCandidateStatus.rejected) {
+    return "Rechazado";
+  }
+
+  return "Pendiente";
+}
+
+function getFlowMessage(status: GameCandidateStatus, game?: { status: string | null } | null) {
+  if (game) {
+    if (game.status === "published") {
+      return "La ficha ya existe y la revisión se hace sobre el juego publicado.";
+    }
+
+    return "La ficha ya está creada. Continúa la revisión directamente en el juego enlazado.";
+  }
+
+  if (status === GameCandidateStatus.approved) {
+    return "El candidato ya está listo para crear la ficha final y publicarlo cuando toque.";
+  }
+
+  if (status === GameCandidateStatus.needs_review) {
+    return "Este candidato necesita revisión antes de crear la ficha final.";
+  }
+
+  if (status === GameCandidateStatus.converted) {
+    return "La importación ya creó la ficha, pero todavía no se ha enlazado correctamente.";
+  }
+
+  return "Aún no se ha decidido si este candidato pasa a ficha o se descarta.";
+}
+
+function mediaAssetTypeLabel(value: MediaAssetType) {
+  switch (value) {
+    case MediaAssetType.cover:
+      return "Portada";
+    case MediaAssetType.box:
+      return "Caja";
+    case MediaAssetType.component:
+      return "Componente";
+    case MediaAssetType.placeholder:
+      return "Marcador";
+  }
+}
+
+function mediaAssetStatusLabel(value: MediaAssetStatus) {
+  switch (value) {
+    case MediaAssetStatus.candidate:
+      return "Candidato";
+    case MediaAssetStatus.approved:
+      return "Aprobado";
+    case MediaAssetStatus.rejected:
+      return "Rechazado";
+  }
+}
+
+function mediaAssetUsageLabel(value: MediaAssetUsage) {
+  switch (value) {
+    case MediaAssetUsage.public:
+      return "Público";
+    case MediaAssetUsage.admin_only:
+      return "Solo admin";
+    case MediaAssetUsage.purchase_only:
+      return "Solo compra";
+  }
 }
 
 function JsonBlock({ value }: { value: unknown }) {

@@ -124,6 +124,7 @@ model Game {
   seoTitle              String?
   seoDescription        String?
   buyUrl                String?
+  ratings               Json            @default("{}")
   bggId                 Int?
   bggUrl                String?
   bggDescriptionRaw     String?
@@ -154,6 +155,7 @@ model Game {
   updatedAt             DateTime        @updatedAt
   publishedAt           DateTime?
   mediaAssets           MediaAsset[]
+  candidates            GameCandidate[]
 
   @@index([status])
   @@index([createdAt])
@@ -188,6 +190,8 @@ model GameCandidate {
   sourceUrl            String
   title                String
   originalTitle        String?
+  gameId               String?
+  game                 Game?               @relation(fields: [gameId], references: [id], onDelete: SetNull)
   metadata             Json                @default("{}")
   extractedDescription String?
   candidateImages      Json                @default("[]")
@@ -202,6 +206,7 @@ model GameCandidate {
   mediaAssets          MediaAsset[]
 
   @@index([sourceId])
+  @@index([gameId])
   @@index([status])
   @@index([createdAt])
 }

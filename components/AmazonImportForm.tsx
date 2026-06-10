@@ -59,6 +59,15 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
         </p>
       </div>
 
+      <div className="mt-5 rounded-md border border-ink/10 bg-parchment/50 p-4">
+        <p className="text-sm font-bold text-ink">Qué se creará automáticamente</p>
+        <ul className="mt-2 space-y-1 text-sm leading-6 text-ink/70">
+          <li>• Un candidato nuevo para revisión editorial.</li>
+          <li>• Una ficha de juego en revisión, lista para completar y publicar.</li>
+          <li>• Imágenes públicas solo si la fuente lo permite.</li>
+        </ul>
+      </div>
+
       <form action={formAction} className="mt-5 space-y-5">
         <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
           <Field label="Fuente">
@@ -86,31 +95,34 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
         </div>
 
         {selectedSource ? (
-          <div className="rounded-md border border-ink/10 bg-parchment/60 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-sm font-bold text-ink">
+          <details className="rounded-md border border-ink/10 bg-parchment/60 p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-ink">
+              <span className="inline-flex items-center gap-2">
                 <Info size={16} aria-hidden="true" />
-                Permisos de la fuente
-              </div>
+                Más detalles de la fuente
+              </span>
+              <span className="text-xs font-semibold text-ink/45">Permisos y política</span>
+            </summary>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-ink/65">
+                {selectedSource.name} · {selectedSource.status}
+              </p>
               <Link className="button-secondary min-h-9 px-3 py-1.5 text-sm" href={`/admin/sources#source-${selectedSource.id}`}>
                 Editar fuente
               </Link>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <PermissionBadge label="metadata" value={selectedSource.permissions.canUseMetadata} />
-              <PermissionBadge label="images" value={selectedSource.permissions.canUseImages} />
-              <PermissionBadge label="descriptions" value={selectedSource.permissions.canUseDescriptions} />
-              <PermissionBadge label="prices" value={selectedSource.permissions.canUsePrices} />
-              <PermissionBadge label="store local" value={selectedSource.permissions.canStoreImagesLocally} />
+              <PermissionBadge label="Metadatos" value={selectedSource.permissions.canUseMetadata} />
+              <PermissionBadge label="Imágenes" value={selectedSource.permissions.canUseImages} />
+              <PermissionBadge label="Descripciones" value={selectedSource.permissions.canUseDescriptions} />
+              <PermissionBadge label="Precios" value={selectedSource.permissions.canUsePrices} />
+              <PermissionBadge label="Guardar localmente" value={selectedSource.permissions.canStoreImagesLocally} />
             </div>
             <p className="mt-3 text-xs leading-5 text-ink/55">
-              Si quieres cambiar un permiso como <span className="font-bold">descriptions</span>, usa <span className="font-bold">Editar fuente</span>.
-            </p>
-            <p className="mt-2 text-xs leading-5 text-ink/55">
               Las descripciones de Amazon no se copian a público. Si la API devuelve imagen y la política lo permite,
-              se crea un MediaAsset aprobado y público.
+              se crea un asset multimedia aprobado y público.
             </p>
-          </div>
+          </details>
         ) : null}
 
         <button className="button-primary" type="submit" disabled={pending}>
@@ -129,18 +141,20 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
         <article className="mt-4 rounded-md border border-moss/20 bg-moss/10 p-4">
           <div className="flex items-center gap-2 text-sm font-bold text-ink">
             <Sparkles size={16} aria-hidden="true" />
-            Importación completada
+            Importado · ficha en revisión
           </div>
           <div className="mt-3 grid gap-3 text-sm text-ink/75 sm:grid-cols-2">
             <InfoRow label="Título original" value={state.result.amazonTitleOriginal || "No disponible"} />
             <InfoRow label="Título limpio" value={state.result.cleanTitle} />
             <InfoRow label="ASIN" value={state.result.asin} />
             <InfoRow label="URL limpia" value={state.result.sourceUrlClean} />
+            <InfoRow label="Estado del flujo" value="Importado" />
+            <InfoRow label="Ficha" value="En revisión" />
             <InfoRow label="Jugadores detectados" value={state.result.detectedPlayers || "Pendiente"} />
             <InfoRow label="Duración detectada" value={state.result.detectedPlaytime || "Pendiente"} />
             <InfoRow label="Edad detectada" value={state.result.detectedAge ? `${state.result.detectedAge}+` : "Pendiente"} />
-            <InfoRow label="Candidate" value={state.result.candidateStatus} />
-            <InfoRow label="Imagen" value={state.result.imageStatus === "approved_public" ? "aprobada pública" : "placeholder"} />
+            <InfoRow label="Candidato" value="Creado" />
+            <InfoRow label="Imagen" value={state.result.imageStatus === "approved_public" ? "Aprobada pública" : "Marcador"}/>
             <InfoRow label="IA editorial" value={formatAiStatus(state.result.aiStatus)} />
           </div>
 
@@ -183,11 +197,11 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link className="button-secondary" href={`/admin/candidates/${state.result.candidateId}`}>
-              Ver candidate
-            </Link>
             <Link className="button-primary" href={`/admin/games/${state.result.gameId}`}>
-              Ver game
+              Abrir ficha
+            </Link>
+            <Link className="button-secondary" href={`/admin/candidates/${state.result.candidateId}`}>
+              Ver candidato
             </Link>
           </div>
         </article>

@@ -174,7 +174,7 @@ export function AdminBggEnrichment({ gameId, gameTitle, currentBgg }: AdminBggEn
     <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-sm font-bold uppercase tracking-wide text-ruby">Enrich with BGG</p>
+          <p className="text-sm font-bold uppercase tracking-wide text-ruby">Enriquecer con BGG</p>
           <h2 className="text-xl font-bold text-ink">BoardGameGeek</h2>
           <p className="mt-2 text-sm leading-6 text-ink/60">
             Usa BGG para enriquecer metadatos de referencia, puntuaciones y complejidad. No se importan imágenes.
@@ -184,7 +184,7 @@ export function AdminBggEnrichment({ gameId, gameTitle, currentBgg }: AdminBggEn
         <div className="flex flex-wrap gap-2">
           <a className="button-secondary min-h-9 px-3 py-1.5 text-sm" href="https://boardgamegeek.com/wiki/page/BGG_XML_API2" target="_blank" rel="noreferrer">
             <ExternalLink size={16} aria-hidden="true" />
-            Docs BGG
+            Documentación BGG
           </a>
         </div>
       </div>

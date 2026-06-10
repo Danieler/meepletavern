@@ -4,6 +4,9 @@ import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { prisma } from "@/lib/prisma";
+import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
+import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
+import type { GameRatingsData } from "@/lib/ratings/types";
 import { slugify } from "@/lib/slug";
 import { getTaxonomyTermNames } from "@/lib/taxonomy";
 
@@ -29,6 +32,7 @@ export type CatalogGame = GameImageFields & {
   categories: string[];
   mechanics: string[];
   themes: string[];
+  ratings: GameRatingsData;
   bggId: number | null;
   bggUrl: string | null;
   bggAverageRating: number | null;
@@ -126,6 +130,7 @@ const catalogGameSelect = {
   mechanics: true,
   themes: true,
   buyUrl: true,
+  ratings: true,
   bggId: true,
   bggUrl: true,
   bggAverageRating: true,
@@ -186,7 +191,7 @@ export async function getGameBySlug(slug: string) {
     select: catalogGameSelect
   });
 
-  return game ? toCatalogGame(game) : null;
+  return game ? await toCatalogGameWithFallbackRatings(game) : null;
 }
 
 export async function getGamesBySlugs(slugs: string[]) {
@@ -467,6 +472,7 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     categories,
     mechanics,
     themes,
+    ratings: normalizeGameRatings(game.ratings),
     bggId: game.bggId,
     bggUrl: game.bggUrl,
     bggAverageRating: game.bggAverageRating,
@@ -498,6 +504,50 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     addedAt: game.createdAt.toISOString(),
     updatedAt: game.updatedAt.toISOString(),
     publishedAt: game.publishedAt?.toISOString() || null
+  };
+}
+
+async function toCatalogGameWithFallbackRatings(game: CatalogDbGame): Promise<CatalogGame> {
+  const catalogGame = toCatalogGame(game);
+  if (catalogGame.ratings.external?.score !== undefined) {
+    return catalogGame;
+  }
+
+  if (!game.buyUrl) {
+    return catalogGame;
+  }
+
+  const candidate = await prisma.gameCandidate.findFirst({
+    where: { sourceUrl: game.buyUrl },
+    select: {
+      title: true,
+      extractedDescription: true,
+      metadata: true
+    }
+  });
+
+  if (!candidate) {
+    return catalogGame;
+  }
+
+  const ratingUpdate = await buildExternalRatingUpdate(
+    {
+      ratings: catalogGame.ratings,
+      sources: [],
+      buyUrl: game.buyUrl,
+      title: catalogGame.title,
+      name: catalogGame.title
+    },
+    {
+      title: candidate.title,
+      extractedDescription: candidate.extractedDescription,
+      metadata: candidate.metadata
+    }
+  );
+
+  return {
+    ...catalogGame,
+    ratings: normalizeGameRatings(ratingUpdate.ratings)
   };
 }
 

@@ -21,7 +21,7 @@ export async function deleteCandidateAction(formData: FormData) {
 
 export async function convertCandidateAction(formData: FormData) {
   const id = readId(formData);
-  const game = await convertCandidateToGame(id, "draft");
+  const game = await convertCandidateToGame(id, "review");
 
   revalidatePath("/admin/candidates");
   revalidatePath("/admin/games");

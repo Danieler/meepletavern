@@ -67,7 +67,7 @@ function SourceFields({ source }: { source?: Source }) {
           <select className="field-input" name="type" defaultValue={source?.type || SourceType.manual}>
             {sourceTypes.map((type) => (
               <option key={type} value={type}>
-                {type}
+                {sourceTypeLabel(type)}
               </option>
             ))}
           </select>
@@ -76,7 +76,7 @@ function SourceFields({ source }: { source?: Source }) {
           <select className="field-input" name="status" defaultValue={source?.status || SourceStatus.not_contacted}>
             {sourceStatuses.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {sourceStatusLabel(status)}
               </option>
             ))}
           </select>
@@ -92,7 +92,7 @@ function SourceFields({ source }: { source?: Source }) {
       <div className="rounded-md border border-ink/10 bg-ink/5 p-4">
         <p className="text-sm font-bold uppercase text-ink/45">Permisos</p>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
-          <Checkbox name="canUseMetadata" label="Puede usar metadata" defaultChecked={permissions.canUseMetadata} />
+          <Checkbox name="canUseMetadata" label="Puede usar metadatos" defaultChecked={permissions.canUseMetadata} />
           <Checkbox name="canUseImages" label="Puede usar imágenes" defaultChecked={permissions.canUseImages} />
           <Checkbox name="canUseDescriptions" label="Puede usar descripciones" defaultChecked={permissions.canUseDescriptions} />
           <Checkbox name="canUsePrices" label="Puede usar precios" defaultChecked={permissions.canUsePrices} />
@@ -151,4 +151,34 @@ function ActionFeedback({ state }: { state: SourceActionState }) {
   }
 
   return null;
+}
+
+function sourceTypeLabel(value: SourceType) {
+  switch (value) {
+    case SourceType.publisher:
+      return "Editorial";
+    case SourceType.distributor:
+      return "Distribuidor";
+    case SourceType.shop:
+      return "Tienda";
+    case SourceType.affiliate_api:
+      return "API de afiliados";
+    case SourceType.open_data:
+      return "Datos abiertos";
+    case SourceType.manual:
+      return "Manual";
+  }
+}
+
+function sourceStatusLabel(value: SourceStatus) {
+  switch (value) {
+    case SourceStatus.not_contacted:
+      return "Sin contacto";
+    case SourceStatus.contacted:
+      return "Contactada";
+    case SourceStatus.approved:
+      return "Aprobada";
+    case SourceStatus.rejected:
+      return "Rechazada";
+  }
 }

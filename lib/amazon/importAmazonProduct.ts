@@ -171,6 +171,14 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
       }
     });
 
+    await transaction.gameCandidate.update({
+      where: { id: createdCandidate.id },
+      data: {
+        status: candidateStatus,
+        gameId: createdGame.id
+      }
+    });
+
     const publicMediaAsset = publicImageAllowed && product.imageUrl
       ? await transaction.mediaAsset.create({
           data: {

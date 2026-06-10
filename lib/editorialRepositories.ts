@@ -12,6 +12,7 @@ import {
 } from "@prisma/client";
 import { generateEditorialDraft } from "@/lib/ai/editorialDraftService";
 import { extractAsmodeeCandidate, type NormalizedCandidate } from "@/lib/connectors/asmodeeConnector";
+import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import {
   normalizeAiDraft,
   normalizeCandidateImages,
@@ -136,7 +137,7 @@ export const gameCandidateRepository = {
   getById(id: string) {
     return prisma.gameCandidate.findUnique({
       where: { id },
-      include: { source: true, mediaAssets: true }
+      include: { source: true, mediaAssets: true, game: true }
     });
   },
 
@@ -393,7 +394,7 @@ export const mediaAssetRepository = {
 export async function convertCandidateToGame(candidateId: string, status: ConvertGameStatus) {
   const candidate = await prisma.gameCandidate.findUnique({
     where: { id: candidateId },
-    include: { source: true, mediaAssets: true }
+    include: { source: true, mediaAssets: true, game: true }
   });
 
   if (!candidate) {
@@ -418,7 +419,10 @@ export async function convertCandidateToGame(candidateId: string, status: Conver
 
     await transaction.gameCandidate.update({
       where: { id: candidate.id },
-      data: { status: GameCandidateStatus.converted }
+      data: {
+        status: GameCandidateStatus.converted,
+        gameId: createdGame.id
+      }
     });
 
     return createdGame;
@@ -428,7 +432,7 @@ export async function convertCandidateToGame(candidateId: string, status: Conver
 }
 
 type CandidateForGameConversion = Prisma.GameCandidateGetPayload<{
-  include: { source: true; mediaAssets: true };
+  include: { source: true; mediaAssets: true; game: true };
 }>;
 
 async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConversion, status: ConvertGameStatus): Promise<Prisma.GameCreateInput> {
@@ -449,6 +453,25 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
   const publisher = extractCandidatePublisher(metadata);
   const draftContent = buildCandidateDraftContent(candidate, metadata, aiDraft);
   const image = selectCandidateGameImage(candidate, title);
+  const ratingUpdate = await buildExternalRatingUpdate(
+    {
+      ratings: { users: { votesCount: 0, enabled: false } },
+      sources: [
+        {
+          label: candidate.source.name,
+          url: candidate.sourceUrl
+        }
+      ],
+      buyUrl: candidate.sourceUrl,
+      title,
+      name: title
+    },
+    {
+      title: candidate.title,
+      extractedDescription: candidate.extractedDescription,
+      metadata
+    }
+  );
 
   return {
     name: title,
@@ -488,6 +511,7 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
     cons: draftContent.cons,
     faq: draftContent.faq as unknown as Prisma.InputJsonValue,
     faqs: draftContent.faq as unknown as Prisma.InputJsonValue,
+    ratings: ratingUpdate.ratings as Prisma.InputJsonValue,
     seoTitle: draftContent.seoTitle,
     seoDescription: draftContent.seoDescription,
     buyUrl: candidate.sourceUrl,

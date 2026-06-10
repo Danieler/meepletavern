@@ -58,6 +58,8 @@ export function mapAmazonProductToCandidate(input: {
     sourceUrlClean,
     amazonTitleOriginal: input.product.title,
     cleanTitle,
+    amazonRating: input.product.rating ?? null,
+    amazonReviewCount: input.product.reviewCount ?? null,
     brand: cleanNoisyMetadataValue(input.product.brand) || null,
     manufacturer: cleanNoisyMetadataValue(input.product.manufacturer) || null,
     price: input.product.price ?? null,

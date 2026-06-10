@@ -11,6 +11,8 @@ export type AmazonProduct = {
   price?: number;
   currency?: string;
   availability?: string;
+  rating?: number;
+  reviewCount?: number;
   features?: string[];
   facts?: Record<string, string>;
 };
@@ -188,6 +190,8 @@ function mapPageToProduct(html: string, asin: string, detailPageUrl: string): Am
     extractLandingImageUrl(html) ||
     absoluteUrl(meta(html, "og:image") || meta(html, "twitter:image") || "", detailPageUrl);
   const facts = extractFacts(html);
+  const rating = extractCustomerRating(html);
+  const reviewCount = extractCustomerReviewCount(html);
   const brand = clean(meta(html, "product:brand") || facts["Marca"] || facts["Brand"] || matchLabel(html, /Marca|Brand/i));
   const manufacturer = clean(
     meta(html, "product:manufacturer") || facts["Fabricante"] || facts["Manufacturer"] || matchLabel(html, /Fabricante|Manufacturer/i)
@@ -207,6 +211,8 @@ function mapPageToProduct(html: string, asin: string, detailPageUrl: string): Am
     price: priceAmount,
     currency: currency || undefined,
     availability: availability || undefined,
+    rating,
+    reviewCount,
     features,
     facts
   };
@@ -432,6 +438,46 @@ function extractLandingImageUrl(html: string) {
 
   const src = attrValue(tag, "src");
   return src ? decode(src) : "";
+}
+
+function extractCustomerRating(html: string) {
+  const text = stripTags(html).replace(/\s+/g, " ");
+  const patterns = [
+    /(\d(?:[.,]\d)?)\s*de\s*5\s*estrellas/i,
+    /(\d(?:[.,]\d)?)\s*out of\s*5\s*stars/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match?.[1]) {
+      const value = Number.parseFloat(match[1].replace(",", "."));
+      if (Number.isFinite(value)) {
+        return Math.max(0, Math.min(5, value));
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function extractCustomerReviewCount(html: string) {
+  const text = stripTags(html).replace(/\s+/g, " ");
+  const patterns = [
+    /([\d.]+)\s*(?:valoraciones|opiniones|reseñas|reviews?|ratings?)/i,
+    /([\d.]+)\s*(?:customer reviews?|customer ratings?)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match?.[1]) {
+      const normalized = Number.parseInt(match[1].replace(/\./g, "").replace(/,/g, ""), 10);
+      if (Number.isFinite(normalized) && normalized >= 0) {
+        return normalized;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 function extractPriceText(html: string) {

@@ -4,6 +4,7 @@ import { completeGameEditorialFieldsWithBedrock, EditorialCompletionError } from
 import { importAmazonProductReview, type AmazonImportResult } from "@/lib/amazon/importAmazonProduct";
 import { gameCandidateRepository, gameRepository } from "@/lib/editorialRepositories";
 import { buildSafeEditorialPatch } from "@/lib/games/buildSafeEditorialPatch";
+import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { sanitizeEditorialFields } from "@/lib/import/sanitizeEditorialFields";
 
 export type AmazonImportState = {
@@ -46,6 +47,12 @@ async function autoCompleteImportedGameWithAi(result: AmazonImportResult): Promi
     };
   }
 
+  const ratingUpdate = await buildExternalRatingUpdate(game, {
+    title: candidate.title,
+    extractedDescription: candidate.extractedDescription,
+    metadata: candidate.metadata
+  });
+
   try {
     const completion = await completeGameEditorialFieldsWithBedrock(game, {
       title: candidate.title,
@@ -57,35 +64,53 @@ async function autoCompleteImportedGameWithAi(result: AmazonImportResult): Promi
       mode: "prefer_completion"
     });
 
-    if (appliedFields.length) {
+    if (appliedFields.length || typeof ratingUpdate.external.score === "number") {
       await gameRepository.update(result.gameId, {
         ...patch,
+        ratings: ratingUpdate.ratings,
         createdByAi: true
       });
     }
 
     return {
       ...result,
-      aiStatus: appliedFields.length ? "applied" : "no_changes",
+      aiStatus: appliedFields.length || typeof ratingUpdate.external.score === "number" ? "applied" : "no_changes",
       aiAppliedFields: appliedFields,
-      aiWarnings: sanitizedCompletion.warnings,
+      aiWarnings: [...sanitizedCompletion.warnings, ...ratingUpdate.warnings],
       aiSuggestedTitle: suggestedTitle
     };
   } catch (error) {
     if (error instanceof EditorialCompletionError && error.code === "aws_config") {
+      if (typeof ratingUpdate.external.score === "number") {
+        await gameRepository.update(result.gameId, {
+          ratings: ratingUpdate.ratings,
+          createdByAi: true
+        });
+      }
+
       return {
         ...result,
-        aiStatus: "unavailable",
+        aiStatus: typeof ratingUpdate.external.score === "number" ? "applied" : "unavailable",
         aiAppliedFields: [],
-        aiWarnings: []
+        aiWarnings: ratingUpdate.warnings
       };
+    }
+
+    if (typeof ratingUpdate.external.score === "number") {
+      await gameRepository.update(result.gameId, {
+        ratings: ratingUpdate.ratings,
+        createdByAi: true
+      });
     }
 
     return {
       ...result,
       aiStatus: "failed",
       aiAppliedFields: [],
-      aiWarnings: [error instanceof Error ? error.message : "La IA no pudo completar la ficha tras importar."]
+      aiWarnings: [
+        ...(error instanceof Error ? [error.message] : ["La IA no pudo completar la ficha tras importar."]),
+        ...ratingUpdate.warnings
+      ]
     };
   }
 }

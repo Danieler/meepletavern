@@ -44,6 +44,14 @@ export function AsmodeeImportForm({ sources }: AsmodeeImportFormProps) {
         </p>
       </div>
 
+      <div className="mt-5 rounded-md border border-ink/10 bg-parchment/50 p-4">
+        <p className="text-sm font-bold text-ink">Qué se creará</p>
+        <ul className="mt-2 space-y-1 text-sm leading-6 text-ink/70">
+          <li>• Un candidato para revisión editorial.</li>
+          <li>• Datos básicos limpios para completar después la ficha.</li>
+        </ul>
+      </div>
+
       <form action={createConnectorCandidateAction} className="mt-5 space-y-5">
         <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
           <Field label="Fuente">
@@ -79,15 +87,13 @@ export function AsmodeeImportForm({ sources }: AsmodeeImportFormProps) {
             <p className="mt-2 text-sm text-ink/65">
               {selectedSource.name} · {selectedSource.status}
             </p>
-            <p className="mt-2 text-xs leading-5 text-ink/55">
-              El conector extrae solo datos editoriales básicos y deja todo pendiente de revisión.
-            </p>
+            <p className="mt-2 text-xs leading-5 text-ink/55">El conector extrae solo datos editoriales básicos y deja todo pendiente de revisión.</p>
           </div>
         ) : null}
 
         <button className="button-primary" type="submit">
           <Upload size={18} aria-hidden="true" />
-          Crear con conector Asmodee
+          Crear candidato
         </button>
       </form>
     </section>

@@ -4,6 +4,7 @@ import { completeGameEditorialFieldsWithBedrock, EditorialCompletionError } from
 import { gameRepository } from "@/lib/editorialRepositories";
 import { buildSafeEditorialPatch } from "@/lib/games/buildSafeEditorialPatch";
 import { sanitizeEditorialFields } from "@/lib/import/sanitizeEditorialFields";
+import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -27,18 +28,24 @@ export async function POST(_request: Request, context: RouteContext) {
     const completion = await completeGameEditorialFieldsWithBedrock(game, candidate);
     const sanitizedCompletion = sanitizeEditorialFields(completion);
     const { patch, appliedFields, suggestedTitle } = buildSafeEditorialPatch(game, sanitizedCompletion);
-    const updatedGame = appliedFields.length
-      ? await gameRepository.update(id, patch)
-      : game;
+    const ratingUpdate = await buildExternalRatingUpdate(game, candidate);
+    const updatedGame = await gameRepository.update(id, {
+      ...patch,
+      ratings: ratingUpdate.ratings
+    });
 
     revalidateGameAdmin(id);
 
     return jsonNoStore({
       ok: true,
       game: updatedGame,
-      appliedFields,
+      appliedFields: [
+        ...appliedFields,
+        "ratings.external",
+        "ratings.users"
+      ],
       confidence: sanitizedCompletion.confidence,
-      warnings: sanitizedCompletion.warnings,
+      warnings: [...sanitizedCompletion.warnings, ...ratingUpdate.warnings],
       suggestedTitle
     });
   } catch (error) {

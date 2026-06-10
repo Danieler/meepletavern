@@ -174,10 +174,10 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
         <section id="contenido-editorial" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Datos principales</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Field label="Nombre del juego">
+            <Field label="Título">
               <input className="field-input" value={form.name} onChange={(event) => updateField("name", event.target.value)} />
             </Field>
-            <Field label="Slug">
+            <Field label="Identificador URL">
               <input className="field-input" value={form.slug} onChange={(event) => updateField("slug", event.target.value)} />
             </Field>
             <Field label="Estado">
@@ -186,10 +186,10 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
                 value={form.status}
                 onChange={(event) => updateField("status", event.target.value as AdminGameStatus)}
               >
-                <option value="draft">draft</option>
-                <option value="review">review</option>
-                <option value="published">published</option>
-                <option value="archived">archived</option>
+                <option value="draft">Borrador</option>
+                <option value="review">En revisión</option>
+                <option value="published">Publicado</option>
+                <option value="archived">Archivado</option>
               </select>
             </Field>
             <Field label="Jugadores mínimos">
@@ -223,10 +223,10 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
                 value={form.imageStatus}
                 onChange={(event) => updateField("imageStatus", event.target.value as AdminGameImageStatus)}
               >
-                <option value="missing">missing</option>
-                <option value="placeholder">placeholder</option>
-                <option value="needs_review">needs_review</option>
-                <option value="verified">verified</option>
+                <option value="missing">Sin imagen</option>
+                <option value="placeholder">Marcador</option>
+                <option value="needs_review">Pendiente de revisión</option>
+                <option value="verified">Verificada</option>
               </select>
             </Field>
             <Field label="URL portada verificada">
@@ -294,7 +294,7 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Contenido editorial</h2>
           <div className="mt-5 space-y-4">
-            <Field label="Resumen rápido">
+            <Field label="Resumen breve">
               <textarea
                 className="field-textarea min-h-24"
                 value={form.shortSummary}
@@ -304,14 +304,14 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
             <Field label="Descripción">
               <textarea className="field-textarea" value={form.description} onChange={(event) => updateField("description", event.target.value)} />
             </Field>
-            <Field label="Reseña corta">
+            <Field label="Veredicto breve">
               <textarea className="field-textarea" value={form.review} onChange={(event) => updateField("review", event.target.value)} />
             </Field>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Para quién es">
+              <Field label="Ideal para">
                 <textarea className="field-textarea" value={form.bestFor} onChange={(event) => updateField("bestFor", event.target.value)} />
               </Field>
-              <Field label="Para quién no es">
+              <Field label="No recomendado para">
                 <textarea className="field-textarea" value={form.notFor} onChange={(event) => updateField("notFor", event.target.value)} />
               </Field>
             </div>
@@ -319,11 +319,11 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
         </section>
 
         <section id="taxonomia" className="grid scroll-mt-24 gap-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft lg:grid-cols-2">
-          <EditableList label="Pros" values={form.pros} onChange={(values) => updateField("pros", values)} />
-          <EditableList label="Contras" values={form.cons} onChange={(values) => updateField("cons", values)} />
+          <EditableList label="Puntos a favor" values={form.pros} onChange={(values) => updateField("pros", values)} />
+          <EditableList label="Puntos en contra" values={form.cons} onChange={(values) => updateField("cons", values)} />
           <EditableList label="Categorías" values={form.categories} onChange={(values) => updateField("categories", values)} />
           <EditableList label="Mecánicas" values={form.mechanics} onChange={(values) => updateField("mechanics", values)} />
-          <EditableList label="Taberna / temáticas" values={form.themes} onChange={(values) => updateField("themes", values)} />
+          <EditableList label="Temáticas" values={form.themes} onChange={(values) => updateField("themes", values)} />
           <EditableList
             label="Juegos parecidos"
             values={form.similarGames}
@@ -377,10 +377,10 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">SEO y fuentes</h2>
           <div className="mt-5 space-y-4">
-            <Field label="Meta title">
+            <Field label="Título SEO">
               <input className="field-input" value={form.seoTitle} onChange={(event) => updateField("seoTitle", event.target.value)} />
             </Field>
-            <Field label="Meta description">
+            <Field label="Descripción SEO">
               <textarea
                 className="field-textarea min-h-24"
                 value={form.seoDescription}
