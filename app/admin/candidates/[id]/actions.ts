@@ -13,9 +13,10 @@ export async function rejectCandidateAction(formData: FormData) {
 
 export async function deleteCandidateAction(formData: FormData) {
   const id = readId(formData);
+  const returnTo = readOptionalString(formData, "returnTo") || "/admin/candidates";
   await gameCandidateRepository.delete(id);
   revalidatePath("/admin/candidates");
-  redirect("/admin/candidates");
+  redirect(returnTo);
 }
 
 export async function convertCandidateAction(formData: FormData) {
@@ -70,4 +71,9 @@ function readString(formData: FormData, key: string, message: string) {
   }
 
   return value.trim();
+}
+
+function readOptionalString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" && value.trim() ? value.trim() : "";
 }

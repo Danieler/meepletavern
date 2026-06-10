@@ -86,6 +86,7 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
     themes: taxonomy.themes,
     features: stringListFromMetadata(metadata, "features")
   });
+  const candidateStatus = GameCandidateStatus.converted;
 
   const result = await prisma.$transaction(async (transaction) => {
     const createdCandidate = await transaction.gameCandidate.create({
@@ -101,7 +102,9 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
         aiGenerated: false,
         aiReviewed: false,
         confidence: candidate.confidence,
-        status: candidate.flags.length ? GameCandidateStatus.needs_review : GameCandidateStatus.pending,
+        // This import flow already creates the review game in the same transaction,
+        // so the candidate must not remain convertible afterwards.
+        status: candidateStatus,
         flags: candidate.flags
       }
     });
@@ -211,7 +214,7 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
     detectedPlayers: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null,
     detectedPlaytime: playtime,
     detectedAge: minAge,
-    candidateStatus: candidate.flags.length ? GameCandidateStatus.needs_review : GameCandidateStatus.pending,
+    candidateStatus,
     imageStatus: result.publicMediaAsset ? "approved_public" : "placeholder",
     flags: candidate.flags,
     warnings: stringListFromMetadata(metadata, "importWarnings"),

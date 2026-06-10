@@ -24,3 +24,20 @@ test("buildEditorialSeedCopy writes stronger shortDescription and description fr
   assert.ok(copy.description.length > copy.shortDescription.length);
   assert.ok(!/meepletavern|importad|revisi[oó]n editorial/i.test(copy.description));
 });
+
+test("buildEditorialSeedCopy ignores english-heavy feature fragments", () => {
+  const copy = buildEditorialSeedCopy({
+    title: "Rebel Nemesis",
+    playersLabel: "5",
+    playtime: "120 min",
+    minAge: 9,
+    categories: ["Cooperativo"],
+    features: [
+      "immerse yourself in heart-pounding sci-fi survival horror as you navigate through the infested corridors",
+      "experience evolving threats as the intruders react to your actions and grow stronger over time"
+    ]
+  });
+
+  assert.ok(!/immerse|yourself|navigate|intruders|grow stronger/i.test(copy.description));
+  assert.match(copy.description, /experiencia cooperativa/i);
+});

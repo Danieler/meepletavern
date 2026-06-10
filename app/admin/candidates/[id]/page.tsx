@@ -39,6 +39,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
     const candidateImages = normalizeCandidateImages(candidate.candidateImages);
     const aiDraft = normalizeAiDraft(candidate.aiDraft);
     const sourcePolicy = getSourcePolicy(candidate.source);
+    const linkedGameId = candidate.mediaAssets.find((asset) => asset.gameId)?.gameId ?? null;
     const canConvert =
       candidate.status !== GameCandidateStatus.converted &&
       candidate.status !== GameCandidateStatus.rejected;
@@ -62,7 +63,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
             </form>
             <form action={deleteCandidateAction}>
               <input type="hidden" name="id" value={candidate.id} />
-              <button className="button-danger" type="submit" disabled={candidate.status === GameCandidateStatus.converted}>
+              <button className="button-danger" type="submit">
                 <Trash2 size={18} aria-hidden="true" />
                 Eliminar
               </button>
@@ -74,8 +75,20 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                 Convertir a draft
               </button>
             </form>
+            {!canConvert && linkedGameId ? (
+              <Link className="button-secondary" href={`/admin/games/${linkedGameId}`}>
+                <ExternalLink size={18} aria-hidden="true" />
+                Abrir juego creado
+              </Link>
+            ) : null}
           </div>
         </div>
+
+        {!canConvert && linkedGameId ? (
+          <div className="rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm text-ink/80">
+            Este candidato ya generó una ficha de juego durante la importación. La revisión debe continuar en el juego enlazado.
+          </div>
+        ) : null}
 
         <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
           <div className="space-y-5">

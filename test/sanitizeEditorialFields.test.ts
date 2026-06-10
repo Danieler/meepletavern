@@ -47,3 +47,42 @@ test("sanitizeEditorialFields removes Amazon garbage from editorial output", () 
   assert.equal(sanitized.faq.length, 2);
   assert.deepEqual(sanitized.warnings, []);
 });
+
+test("sanitizeEditorialFields removes english-heavy editorial fragments", () => {
+  const input: EditorialCompletion = {
+    cleanTitle: "Nemesis",
+    shortDescription: "Juego cooperativo de supervivencia espacial.",
+    longDescription:
+      "Nemesis propone tensión constante. enjoy a gameplay designed to deliver climactic moments where every decision matters.",
+    difficulty: "Alta",
+    categories: ["Cooperativo"],
+    mechanics: ["Supervivencia"],
+    themes: ["Ciencia ficción"],
+    bestFor: "Mesas que disfrutan la tensión narrativa.",
+    notFor: "Players who want a chill eurogame.",
+    pros: ["Atmósfera muy conseguida", "thrilling and rewarding experience"],
+    cons: ["Reglas exigentes", "Puede hacerse largo"],
+    faq: [
+      { question: "¿Es cooperativo?", answer: "Sí, aunque con bastante presión en la mesa." },
+      { question: "Is it beginner friendly?", answer: "No especialmente." },
+      { question: "¿Dura mucho?", answer: "Sí, suele pedir una sesión larga." }
+    ],
+    seoTitle: "Nemesis",
+    seoDescription: "Supervivencia espacial con mucha tensión.",
+    confidence: "high",
+    warnings: []
+  };
+
+  const sanitized = sanitizeEditorialFields(input);
+
+  assert.equal(sanitized.longDescription, "");
+  assert.equal(sanitized.notFor, "");
+  assert.deepEqual(sanitized.pros, ["Atmósfera muy conseguida"]);
+  assert.deepEqual(
+    sanitized.faq,
+    [
+      { question: "¿Es cooperativo?", answer: "Sí, aunque con bastante presión en la mesa." },
+      { question: "¿Dura mucho?", answer: "Sí, suele pedir una sesión larga." }
+    ]
+  );
+});

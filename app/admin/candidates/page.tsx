@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Eye, PlusCircle } from "lucide-react";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { DeleteCandidateButton } from "@/components/AdminDeleteButtons";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { gameCandidateRepository, type CandidateFilter } from "@/lib/editorialRepositories";
@@ -90,10 +91,17 @@ export default async function AdminCandidatesPage({ searchParams }: CandidatesPa
                     </Td>
                     <Td>{formatDate(candidate.createdAt)}</Td>
                     <Td>
-                      <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/candidates/${candidate.id}`}>
-                        <Eye size={16} aria-hidden="true" />
-                        Ver
-                      </Link>
+                      <div className="flex flex-wrap gap-2">
+                        <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/candidates/${candidate.id}`}>
+                          <Eye size={16} aria-hidden="true" />
+                          Ver
+                        </Link>
+                        <DeleteCandidateButton
+                          id={candidate.id}
+                          returnTo={`/admin/candidates?filter=${activeFilter}`}
+                          compact
+                        />
+                      </div>
                     </Td>
                   </tr>
                 ))}

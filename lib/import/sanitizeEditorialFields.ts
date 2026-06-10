@@ -1,4 +1,5 @@
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
+import { keepSpanishEditorialText } from "@/lib/editorialLanguage";
 import type { EditorialCompletion } from "@/lib/ai/editorialCompletionSchema";
 
 const EDITORIAL_GARBAGE_PATTERN =
@@ -55,7 +56,7 @@ function sanitizeTextList(values: string[], maxLength: number) {
 }
 
 function sanitizeText(value: string, maxLength = 1200) {
-  const cleaned = normalizeSpaces(value);
+  const cleaned = keepSpanishEditorialText(normalizeSpaces(value));
 
   if (!cleaned || cleaned.length > maxLength || containsEditorialGarbage(cleaned)) {
     return "";

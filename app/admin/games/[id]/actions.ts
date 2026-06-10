@@ -136,12 +136,22 @@ export async function autocompleteGameEditorAction(
 
 export async function deleteGameEditorAction(formData: FormData) {
   const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
+  const returnTo = optionalString(formData.get("returnTo")) || "/admin/games";
+
+  const game = await gameRepository.getById(id);
+  if (!game) {
+    throw new Error("No existe ese juego.");
+  }
 
   await gameRepository.delete(id);
   revalidateGameAdmin(id);
   revalidatePath("/admin/games");
+  revalidatePath("/admin/reviews");
   revalidatePath("/admin/candidates");
-  redirect("/admin/games");
+  if (game.slug) {
+    revalidatePublicGame(game.slug);
+  }
+  redirect(returnTo);
 }
 
 function toGameUpdateInput(formData: FormData, status: GameStatus, mediaAssets: Array<{ id: string; url: string }>): Prisma.GameUpdateInput {

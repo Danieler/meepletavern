@@ -1,3 +1,5 @@
+import { keepSpanishEditorialText } from "@/lib/editorialLanguage";
+
 export type EditorialSeedCopyInput = {
   title: string;
   originalTitle?: string | null;
@@ -195,12 +197,15 @@ function buildTaxonomySentence(input: EditorialSeedCopyInput) {
 }
 
 function buildHintSentence(input: EditorialSeedCopyInput) {
-  const hint = normalizeText(input.descriptionHint);
+  const hint = keepSpanishEditorialText(input.descriptionHint);
   if (hint) {
     return compactToSentence(hint, 280);
   }
 
-  const features = uniqueClean(input.features || []).slice(0, 2);
+  const features = (input.features || [])
+    .map(keepSpanishEditorialText)
+    .filter(Boolean)
+    .slice(0, 2) as string[];
   if (!features.length) {
     return "";
   }

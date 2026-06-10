@@ -41,6 +41,9 @@ export async function completeGameEditorialFieldsWithBedrock(
             text:
               "Eres un editor experto de juegos de mesa para TheMeepleTavern. " +
               "Escribe en español de España. " +
+              "Todo el texto final debe quedar completamente en español de España. " +
+              "Si alguna fuente o fragmento está en inglés, tradúcelo y adáptalo por completo antes de responder. " +
+              "No mezcles idiomas dentro de una misma frase ni dentro del mismo campo. " +
               "Devuelve solo JSON válido, sin markdown. " +
               "Prioriza especialmente shortDescription y longDescription: deben sonar editoriales, útiles y naturales, no como placeholders. " +
               "No inventes datos objetivos. " +
@@ -79,6 +82,9 @@ export async function completeGameEditorialFieldsWithBedrock(
                   '  "warnings": string[]\n' +
                   "}\n\n" +
                   "Restricciones:\n" +
+                  "- Todo el contenido textual final debe estar íntegramente en español de España.\n" +
+                  "- Si algún bullet, fact o descripción de origen está en inglés, tradúcelo antes de usarlo o descártalo si no aporta valor.\n" +
+                  "- No devuelvas frases híbridas con partes en inglés y partes en español.\n" +
                   "- shortDescription debe ser un resumen editorial potente de 1 o 2 frases, útil para catálogo.\n" +
                   "- longDescription debe ser una descripción editorial desarrollada, concreta y sin frases tipo 'importado' o 'pendiente de revisión'.\n" +
                   "- Si conoces rango de jugadores, duración o edad, intégralos con naturalidad en shortDescription o longDescription.\n" +

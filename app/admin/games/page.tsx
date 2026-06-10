@@ -3,6 +3,7 @@ import { ExternalLink, FilePlus2, Pencil, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { DeleteGameButton } from "@/components/AdminDeleteButtons";
 import { AdminStatusBadge } from "@/components/AdminStatusBadge";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
@@ -83,6 +84,12 @@ export default async function AdminGamesPage() {
                         <Pencil size={16} aria-hidden="true" />
                         Editar
                       </Link>
+                      <DeleteGameButton
+                        id={game.id}
+                        returnTo="/admin/games"
+                        published={game.status === GameStatus.published}
+                        compact
+                      />
                       {game.status === GameStatus.published ? (
                         <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/juegos/${game.slug}`}>
                           <ExternalLink size={16} aria-hidden="true" />

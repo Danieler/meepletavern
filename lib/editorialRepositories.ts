@@ -172,11 +172,15 @@ export const gameCandidateRepository = {
       throw new Error("No existe ese candidato.");
     }
 
-    if (candidate.status === GameCandidateStatus.converted) {
-      throw new Error("No se puede borrar un candidato ya convertido.");
-    }
-
     await prisma.$transaction(async (transaction) => {
+      await transaction.mediaAsset.updateMany({
+        where: {
+          candidateId: candidate.id,
+          gameId: { not: null }
+        },
+        data: { candidateId: null }
+      });
+
       await transaction.mediaAsset.deleteMany({
         where: {
           candidateId: candidate.id,
@@ -254,10 +258,6 @@ export const gameRepository = {
 
     if (!game) {
       throw new Error("No existe ese juego.");
-    }
-
-    if (game.status === GameStatus.published) {
-      throw new Error("No se puede borrar un juego publicado.");
     }
 
     const linkedCandidateIds = [...new Set(game.mediaAssets.map((asset) => asset.candidateId).filter((value): value is string => Boolean(value)))];

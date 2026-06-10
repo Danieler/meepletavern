@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { GameStatus } from "@prisma/client";
 import { Pencil } from "lucide-react";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { DeleteGameButton } from "@/components/AdminDeleteButtons";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { getAdminGames } from "@/lib/games";
@@ -37,10 +39,18 @@ export default async function AdminReviewsPage() {
                     <td className="max-w-xs px-4 py-3 text-ink/65">{game.review || "Pendiente"}</td>
                     <td className="px-4 py-3 text-ink/65">{game.status}</td>
                     <td className="px-4 py-3 text-right">
-                      <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/games/${game.id}/edit#contenido-editorial`}>
-                        <Pencil size={16} aria-hidden="true" />
-                        Editar
-                      </Link>
+                      <div className="flex justify-end gap-2">
+                        <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/games/${game.id}/edit#contenido-editorial`}>
+                          <Pencil size={16} aria-hidden="true" />
+                          Editar
+                        </Link>
+                        <DeleteGameButton
+                          id={game.id}
+                          returnTo="/admin/reviews"
+                          published={game.status === GameStatus.published}
+                          compact
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
