@@ -3,6 +3,7 @@ import { buildAmazonCanonicalUrl, parseAmazonInput } from "@/lib/amazon/parseAma
 import { getAmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
 import { mapAmazonProductToCandidate, type AmazonNormalizedCandidate } from "@/lib/amazon/mapAmazonProductToCandidate";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
+import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
@@ -73,6 +74,18 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
   const minAge = numberFromMetadata(metadata, "minAge");
   const playtime = formatPlaytime(minPlayTime, maxPlayTime);
   const taxonomy = await resolveAmazonTaxonomy(metadata);
+  const seedCopy = buildEditorialSeedCopy({
+    title: candidate.title,
+    originalTitle: candidate.originalTitle,
+    publisher: stringFromMetadata(metadata, "manufacturer") || stringFromMetadata(metadata, "brand") || null,
+    playersLabel: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null,
+    playtime,
+    minAge,
+    categories: taxonomy.categories,
+    mechanics: taxonomy.mechanics,
+    themes: taxonomy.themes,
+    features: stringListFromMetadata(metadata, "features")
+  });
 
   const result = await prisma.$transaction(async (transaction) => {
     const createdCandidate = await transaction.gameCandidate.create({
@@ -118,9 +131,9 @@ export async function importAmazonProductReview(input: { sourceId: unknown; amaz
         themes: taxonomy.themes,
         publisher: stringFromMetadata(metadata, "manufacturer") || stringFromMetadata(metadata, "brand") || null,
         spanishPublisher: null,
-        shortDescription: `${candidate.title} en MeepleTavern.`,
-        description: `${candidate.title} se ha importado desde una fuente comercial aprobada y puede revisarse en el editor antes de publicarse.`,
-        quickVerdict: "Pendiente de revisión editorial.",
+        shortDescription: seedCopy.shortDescription,
+        description: seedCopy.description,
+        quickVerdict: seedCopy.quickVerdict,
         bestFor: null,
         notFor: null,
         pros: [],

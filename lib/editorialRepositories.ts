@@ -25,6 +25,7 @@ import { isAsmodeeImportSource } from "@/lib/importSourceFilters";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { canShowMedia } from "@/lib/mediaSafety";
 import { prisma } from "@/lib/prisma";
+import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
 import { slugify } from "@/lib/slug";
 
@@ -558,11 +559,23 @@ function buildCandidateDraftContent(
 
 function buildAmazonCandidateDraftContent(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
   const title = getCandidateGameTitle(candidate, metadata);
+  const seedCopy = buildEditorialSeedCopy({
+    title,
+    originalTitle: candidate.originalTitle,
+    publisher: extractCandidatePublisher(metadata),
+    playersLabel: extractCandidatePlayers(metadata).label || null,
+    playtime: extractCandidatePlaytime(metadata),
+    minAge: normalizeCandidateAge(extractCandidateNumber(metadata, ["minAge", "age", "edad"])),
+    categories: sanitizeImportedList(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"]), "categories"),
+    mechanics: extractCandidateMechanics(candidate, metadata),
+    themes: sanitizeImportedList(extractCandidateTextList(metadata, ["themes", "theme", "themeHints"]), "themes"),
+    features: extractStringArray(metadata, ["features"])
+  });
 
   return {
-    shortDescription: `${title} en MeepleTavern.`,
-    description: `${title} se ha importado desde una fuente comercial aprobada y puede revisarse en el editor antes de publicarse.`,
-    quickVerdict: "Pendiente de revisión editorial.",
+    shortDescription: seedCopy.shortDescription,
+    description: seedCopy.description,
+    quickVerdict: seedCopy.quickVerdict,
     bestFor: null,
     notFor: null,
     pros: [],
@@ -612,27 +625,41 @@ function selectCandidateGameImage(candidate: CandidateForGameConversion, display
 
 function buildFallbackShortDescription(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
   const summary = candidate.extractedDescription?.trim();
-  const knownData = buildKnownDataSummary(metadata);
+  const seedCopy = buildEditorialSeedCopy({
+    title: getCandidateGameTitle(candidate, metadata),
+    originalTitle: candidate.originalTitle,
+    publisher: extractCandidatePublisher(metadata),
+    playersLabel: extractCandidatePlayers(metadata).label || null,
+    playtime: extractCandidatePlaytime(metadata),
+    minAge: normalizeCandidateAge(extractCandidateNumber(metadata, ["minAge", "age", "edad"])),
+    categories: sanitizeImportedList(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"]), "categories"),
+    mechanics: extractCandidateMechanics(candidate, metadata),
+    themes: sanitizeImportedList(extractCandidateTextList(metadata, ["themes", "theme", "themeHints"]), "themes"),
+    features: extractStringArray(metadata, ["features"]),
+    descriptionHint: summary
+  });
 
   if (summary) {
-    return truncateText(summary, 240);
+    return seedCopy.shortDescription;
   }
 
-  if (knownData) {
-    return `${candidate.source.name} · ${knownData}.`;
-  }
-
-  return `${candidate.source.name} · ficha importada para revisión.`;
+  return seedCopy.shortDescription;
 }
 
 function buildFallbackDescription(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
-  const parts = [
-    candidate.extractedDescription?.trim() || null,
-    buildKnownDataSummary(metadata) ? `Datos detectados: ${buildKnownDataSummary(metadata)}.` : null,
-    `Fuente original: ${candidate.sourceUrl}.`
-  ].filter(Boolean);
-
-  return parts.join("\n\n");
+  return buildEditorialSeedCopy({
+    title: getCandidateGameTitle(candidate, metadata),
+    originalTitle: candidate.originalTitle,
+    publisher: extractCandidatePublisher(metadata),
+    playersLabel: extractCandidatePlayers(metadata).label || null,
+    playtime: extractCandidatePlaytime(metadata),
+    minAge: normalizeCandidateAge(extractCandidateNumber(metadata, ["minAge", "age", "edad"])),
+    categories: sanitizeImportedList(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"]), "categories"),
+    mechanics: extractCandidateMechanics(candidate, metadata),
+    themes: sanitizeImportedList(extractCandidateTextList(metadata, ["themes", "theme", "themeHints"]), "themes"),
+    features: extractStringArray(metadata, ["features"]),
+    descriptionHint: candidate.extractedDescription?.trim() || null
+  }).description;
 }
 
 function buildFallbackQuickVerdict(candidate: CandidateForGameConversion) {

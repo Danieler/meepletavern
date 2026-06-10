@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
+import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
 
 export function AiGenerateForm() {
   const router = useRouter();
@@ -18,9 +19,7 @@ export function AiGenerateForm() {
     try {
       const response = await fetch("/api/admin/games/generate-ai", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: getAdminApiFetchHeaders(),
         body: JSON.stringify({ name })
       });
       const payload = (await response.json()) as { gameId?: string; error?: string };

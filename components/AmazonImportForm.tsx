@@ -87,9 +87,14 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
 
         {selectedSource ? (
           <div className="rounded-md border border-ink/10 bg-parchment/60 p-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-ink">
-              <Info size={16} aria-hidden="true" />
-              Permisos de la fuente
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-ink">
+                <Info size={16} aria-hidden="true" />
+                Permisos de la fuente
+              </div>
+              <Link className="button-secondary min-h-9 px-3 py-1.5 text-sm" href={`/admin/sources#source-${selectedSource.id}`}>
+                Editar fuente
+              </Link>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <PermissionBadge label="metadata" value={selectedSource.permissions.canUseMetadata} />
@@ -99,6 +104,9 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
               <PermissionBadge label="store local" value={selectedSource.permissions.canStoreImagesLocally} />
             </div>
             <p className="mt-3 text-xs leading-5 text-ink/55">
+              Si quieres cambiar un permiso como <span className="font-bold">descriptions</span>, usa <span className="font-bold">Editar fuente</span>.
+            </p>
+            <p className="mt-2 text-xs leading-5 text-ink/55">
               Las descripciones de Amazon no se copian a público. Si la API devuelve imagen y la política lo permite,
               se crea un MediaAsset aprobado y público.
             </p>

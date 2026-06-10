@@ -33,7 +33,7 @@ export function EditSourceForm({ source }: { source: Source }) {
   const [state, action, isPending] = useActionState(updateSourceAction, initialState);
 
   return (
-    <form action={action} className="space-y-4 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+    <form id={`source-${source.id}`} action={action} className="space-y-4 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
       <input type="hidden" name="id" value={source.id} />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>

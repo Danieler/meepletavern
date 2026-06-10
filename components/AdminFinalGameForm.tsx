@@ -1,15 +1,16 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
 import { ExternalLink, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
 import {
-  autocompleteGameEditorAction,
   deleteGameEditorAction,
   publishGameEditorAction,
   saveGameEditorAction,
   type GameEditorActionState
 } from "@/app/admin/games/[id]/actions";
+import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 
 type AdminFinalGameFormProps = {
@@ -18,11 +19,16 @@ type AdminFinalGameFormProps = {
 };
 
 const initialState: GameEditorActionState = {};
+type AiCompletionState = GameEditorActionState & {
+  suggestedTitle?: string | null;
+};
 
 export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProps) {
+  const router = useRouter();
   const [saveState, saveAction, isSaving] = useActionState(saveGameEditorAction, initialState);
   const [publishState, publishAction, isPublishing] = useActionState(publishGameEditorAction, initialState);
-  const [autocompleteState, autocompleteAction, isAutocompleting] = useActionState(autocompleteGameEditorAction, initialState);
+  const [aiCompletionState, setAiCompletionState] = useState<AiCompletionState>({});
+  const [isCompletingWithAi, setIsCompletingWithAi] = useState(false);
   const [primaryImageValue, setPrimaryImageValue] = useState(game.primaryImageId || "");
   const players = normalizeGamePlayers(game.players);
   const playtime = parsePlaytime(game.playtime);
@@ -32,6 +38,50 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
     () => resolvePrimaryImagePreviewUrl(primaryImageValue, game, mediaAssets),
     [game, mediaAssets, primaryImageValue]
   );
+  const isBusy = isSaving || isPublishing || isCompletingWithAi;
+
+  async function handleAiCompletion() {
+    setIsCompletingWithAi(true);
+    setAiCompletionState({});
+
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}/complete-editorial`, {
+        method: "POST",
+        headers: getAdminApiFetchHeaders()
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        appliedFields?: string[];
+        warnings?: string[];
+        suggestedTitle?: string | null;
+      };
+
+      if (!response.ok) {
+        setAiCompletionState({
+          errors: [payload.error || "No se pudieron completar los campos editoriales con IA."]
+        });
+        return;
+      }
+
+      setAiCompletionState({
+        message: payload.appliedFields?.length
+          ? "Campos editoriales completados con IA. Revisa la ficha antes de publicar."
+          : "La IA respondió, pero no se aplicaron cambios porque la ficha ya tenía contenido válido o mejor que la propuesta.",
+        warnings: payload.warnings || [],
+        suggestedTitle: payload.suggestedTitle || null
+      });
+
+      if (payload.appliedFields?.length) {
+        router.refresh();
+      }
+    } catch (error) {
+      setAiCompletionState({
+        errors: [error instanceof Error ? error.message : "No se pudieron completar los campos editoriales con IA."]
+      });
+    } finally {
+      setIsCompletingWithAi(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -42,20 +92,15 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
             <p className="mt-1 text-xl font-bold text-ink">{game.status}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              className="button-secondary"
-              form="final-game-form"
-              formAction={autocompleteAction}
-              disabled={isSaving || isPublishing || isAutocompleting}
-            >
+            <button className="button-secondary" type="button" onClick={handleAiCompletion} disabled={isBusy}>
               <WandSparkles size={18} aria-hidden="true" />
-              {isAutocompleting ? "Autocompletando..." : "Autocompletar campos editoriales"}
+              {isCompletingWithAi ? "Completando..." : "Completar campos editoriales con IA"}
             </button>
-            <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isSaving || isPublishing || isAutocompleting}>
+            <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isBusy}>
               <Save size={18} aria-hidden="true" />
               Guardar borrador
             </button>
-            <button className="button-primary" form="final-game-form" formAction={publishAction} disabled={isSaving || isPublishing || isAutocompleting}>
+            <button className="button-primary" form="final-game-form" formAction={publishAction} disabled={isBusy}>
               <Rocket size={18} aria-hidden="true" />
               Publicar
             </button>
@@ -65,7 +110,7 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
                 form="final-game-form"
                 formAction={deleteGameEditorAction}
                 type="submit"
-                disabled={isSaving || isPublishing || isAutocompleting}
+                disabled={isBusy}
                 onClick={(event) => {
                   if (!window.confirm("¿Eliminar este borrador? Esta acción borra el juego y sus assets sueltos.")) {
                     event.preventDefault();
@@ -86,9 +131,10 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
         </div>
       </section>
 
-      <Feedback state={saveState} />
-      <Feedback state={publishState} />
-      <Feedback state={autocompleteState} />
+      <Feedback state={aiCompletionState} errorTitle="No se pudo completar con IA:" />
+      {aiCompletionState.suggestedTitle ? <SuggestedTitleNotice title={aiCompletionState.suggestedTitle} /> : null}
+      <Feedback state={saveState} errorTitle="No se puede publicar todavía:" />
+      <Feedback state={publishState} errorTitle="No se puede publicar todavía:" />
 
       <form id="final-game-form" className="space-y-6">
         <input type="hidden" name="id" value={game.id} />
@@ -276,11 +322,11 @@ function NumberInput({ name, defaultValue }: { name: string; defaultValue: numbe
   return <input className="field-input" name={name} type="number" min="1" defaultValue={defaultValue || ""} />;
 }
 
-function Feedback({ state }: { state: GameEditorActionState }) {
+function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTitle: string }) {
   if (state.errors?.length) {
     return (
       <div className="rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">
-        <p>No se puede publicar todavía:</p>
+        <p>{errorTitle}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           {state.errors.map((error) => (
             <li key={error}>{error}</li>
@@ -309,6 +355,14 @@ function Feedback({ state }: { state: GameEditorActionState }) {
   }
 
   return null;
+}
+
+function SuggestedTitleNotice({ title }: { title: string }) {
+  return (
+    <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink">
+      Revisa el título actual. La IA sugiere usar: <span className="font-black">{title}</span>
+    </p>
+  );
 }
 
 function WarningList({ warnings, className }: { warnings: string[]; className?: string }) {

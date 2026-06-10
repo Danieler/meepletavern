@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ExternalLink, Rocket, Save, Trash2 } from "lucide-react";
+import { getAdminApiFetchHeaders, getAdminApiRequestHeaders } from "@/lib/adminApiClient";
 import { EditableList } from "@/components/EditableList";
 import type { FaqItem, SourceItem } from "@/lib/content";
 
@@ -81,9 +82,7 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
 
       const response = await fetch(`/api/admin/games/${form.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: getAdminApiFetchHeaders(),
         body: JSON.stringify({ ...form, status })
       });
       const payload = (await response.json()) as { error?: string; slug?: string; status?: AdminGameStatus };
@@ -98,7 +97,8 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
       if (mode === "publish" || mode === "archive") {
         const action = mode === "publish" ? "publish" : "archive";
         const actionResponse = await fetch(`/api/admin/games/${form.id}/${action}`, {
-          method: "POST"
+          method: "POST",
+          headers: getAdminApiRequestHeaders()
         });
         const actionPayload = (await actionResponse.json()) as {
           error?: string;
