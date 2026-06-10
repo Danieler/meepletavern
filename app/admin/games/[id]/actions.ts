@@ -1,13 +1,14 @@
 "use server";
 
 import { GameStatus, Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { gameRepository } from "@/lib/editorialRepositories";
 import { buildEditorialAutofill } from "@/lib/editorialAutofill";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { buildPublicEditorialCopy, needsPublicEditorialRewrite } from "@/lib/publicEditorialCopy";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
+import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
 
 export type GameEditorActionState = {
@@ -33,14 +34,15 @@ export async function saveGameEditorAction(
       id,
       toGameUpdateInput(formData, requestedStatus, editorGame.mediaAssets, editorGame.publishedAt)
     );
-    const validation = validateBeforePublish(savedGame);
+    const savedWithExternalRating = await persistExternalRating(savedGame);
+    const validation = validateBeforePublish(savedWithExternalRating);
     revalidateGameAdmin(id);
     const statusMessage = {
       [GameStatus.draft]: "Guardado como borrador.",
       [GameStatus.review]: "Guardado en revisión.",
       [GameStatus.published]: "Cambios guardados en la ficha publicada.",
       [GameStatus.archived]: "Guardado como archivado."
-    }[savedGame.status];
+    }[savedWithExternalRating.status];
 
     return validation.warnings.length
       ? { message: statusMessage, warnings: validation.warnings }
@@ -66,30 +68,31 @@ export async function publishGameEditorAction(
       id,
       toGameUpdateInput(formData, GameStatus.review, editorGame.mediaAssets, editorGame.publishedAt)
     );
-    const validation = validateBeforePublish(savedGame);
+    const savedWithExternalRating = await persistExternalRating(savedGame);
+    const validation = validateBeforePublish(savedWithExternalRating);
 
     if (!validation.valid) {
       return { errors: validation.errors, warnings: validation.warnings };
     }
 
     if (needsPublicEditorialRewrite({
-      title: savedGame.title || savedGame.name,
-      shortDescription: savedGame.shortDescription,
-      shortSummary: savedGame.shortSummary,
-      description: savedGame.description,
-      quickVerdict: savedGame.quickVerdict || savedGame.review,
-      review: savedGame.review
+      title: savedWithExternalRating.title || savedWithExternalRating.name,
+      shortDescription: savedWithExternalRating.shortDescription,
+      shortSummary: savedWithExternalRating.shortSummary,
+      description: savedWithExternalRating.description,
+      quickVerdict: savedWithExternalRating.quickVerdict || savedWithExternalRating.review,
+      review: savedWithExternalRating.review
     })) {
       await gameRepository.update(id, buildPublicEditorialCopy({
-        title: savedGame.title || savedGame.name,
-        playersLabel: formatPlayersLabel(savedGame.minPlayers, savedGame.maxPlayers, null),
-        playtime: savedGame.playtime,
-        complexity: savedGame.complexity || savedGame.difficulty,
-        shortDescription: savedGame.shortDescription,
-        shortSummary: savedGame.shortSummary,
-        description: savedGame.description,
-        quickVerdict: savedGame.quickVerdict || savedGame.review,
-        review: savedGame.review
+        title: savedWithExternalRating.title || savedWithExternalRating.name,
+        playersLabel: formatPlayersLabel(savedWithExternalRating.minPlayers, savedWithExternalRating.maxPlayers, null),
+        playtime: savedWithExternalRating.playtime,
+        complexity: savedWithExternalRating.complexity || savedWithExternalRating.difficulty,
+        shortDescription: savedWithExternalRating.shortDescription,
+        shortSummary: savedWithExternalRating.shortSummary,
+        description: savedWithExternalRating.description,
+        quickVerdict: savedWithExternalRating.quickVerdict || savedWithExternalRating.review,
+        review: savedWithExternalRating.review
       }));
     }
 
@@ -98,7 +101,7 @@ export async function publishGameEditorAction(
       publishedAt: new Date()
     });
     revalidateGameAdmin(id);
-    revalidatePublicGame(savedGame.slug);
+    revalidatePublicGame(savedWithExternalRating.slug);
     return validation.warnings.length
       ? { message: "Juego publicado. Se puede mejorar la ficha cuando quieras.", warnings: validation.warnings }
       : { message: "Juego publicado. Ficha completa." };
@@ -126,7 +129,8 @@ export async function autocompleteGameEditorAction(
     const baseInput = toGameUpdateInput(formData, safeStatus, editorGame.mediaAssets);
     const completedInput = applyEditorialAutofill(baseInput);
     const savedGame = await gameRepository.update(id, completedInput);
-    const validation = validateBeforePublish(savedGame);
+    const savedWithExternalRating = await persistExternalRating(savedGame);
+    const validation = validateBeforePublish(savedWithExternalRating);
 
     revalidateGameAdmin(id);
     return validation.warnings.length
@@ -409,9 +413,28 @@ function revalidateGameAdmin(id: string) {
 }
 
 function revalidatePublicGame(slug: string) {
+  revalidateTag("public-games");
   revalidatePath("/");
   revalidatePath("/juegos");
   revalidatePath(`/juegos/${slug}`);
   revalidatePath("/rankings");
   revalidatePath("/resenas");
+}
+
+async function persistExternalRating(game: {
+  id: string;
+  ratings: Prisma.JsonValue;
+  sources: Prisma.JsonValue;
+  buyUrl: string | null;
+  title: string | null;
+  name: string | null;
+}) {
+  const ratingUpdate = await buildExternalRatingUpdate({
+    ...game,
+    title: game.title || game.name || "Nuevo juego",
+    name: game.name || game.title || "Nuevo juego"
+  });
+  return gameRepository.update(game.id, {
+    ratings: ratingUpdate.ratings
+  });
 }

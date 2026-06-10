@@ -15,7 +15,12 @@ export function GameCard({ game, compact }: GameCardProps) {
   if (compact) {
     return (
       <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
-        <Link href={`/juegos/${game.slug}`} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 p-3 sm:p-4">
+        <Link
+          href={`/juegos/${game.slug}`}
+          prefetch
+          className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 p-3 sm:p-4 touch-manipulation cursor-pointer"
+          aria-label={`Abrir ficha de ${game.title}`}
+        >
           <GameCoverImage
             {...game}
             gameTitle={game.title}
@@ -53,7 +58,12 @@ export function GameCard({ game, compact }: GameCardProps) {
 
   return (
     <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
-      <Link href={`/juegos/${game.slug}`} className="block">
+      <Link
+        href={`/juegos/${game.slug}`}
+        prefetch
+        className="block touch-manipulation cursor-pointer"
+        aria-label={`Abrir ficha de ${game.title}`}
+      >
         <GameCoverImage {...game} gameTitle={game.title} variant="card" />
         <div className="p-4 sm:p-5">
           <div className="mb-3 flex items-start justify-between gap-3">

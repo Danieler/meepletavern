@@ -18,7 +18,7 @@ export function GameRatings({ game }: { game: CatalogGame }) {
           <div className="flex items-start gap-4">
             {showScore ? <RatingBadge rating={externalScore as number} size="lg" label="CE" /> : null}
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-ruby">Consenso externo</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-ruby">Consenso estándar</p>
               <h2 className="mt-1 text-xl font-black text-ink">
                 {showScore ? externalRating.label : "Señales externas limitadas"}
               </h2>

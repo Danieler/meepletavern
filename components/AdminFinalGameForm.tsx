@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
-import { ExternalLink, RefreshCcw, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
+import { ExternalLink, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
 import {
   deleteGameEditorAction,
   publishGameEditorAction,
@@ -32,8 +32,6 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
   const [publishState, publishAction, isPublishing] = useActionState(publishGameEditorAction, initialState);
   const [aiCompletionState, setAiCompletionState] = useState<AiCompletionState>({});
   const [isCompletingWithAi, setIsCompletingWithAi] = useState(false);
-  const [externalRatingState, setExternalRatingState] = useState<AiCompletionState>({});
-  const [isRecalculatingExternalRating, setIsRecalculatingExternalRating] = useState(false);
   const [primaryImageValue, setPrimaryImageValue] = useState(game.primaryImageId || "");
   const ratings = useMemo(() => normalizeGameRatings(game.ratings), [game.ratings]);
   const externalRating = ratings.external;
@@ -46,7 +44,7 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
     () => resolvePrimaryImagePreviewUrl(primaryImageValue, game, mediaAssets),
     [game, mediaAssets, primaryImageValue]
   );
-  const isBusy = isSaving || isPublishing || isCompletingWithAi || isRecalculatingExternalRating;
+  const isBusy = isSaving || isPublishing || isCompletingWithAi;
 
   useEffect(() => {
     if (saveState.message && !saveState.errors?.length) {
@@ -62,7 +60,6 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
 
   async function handleAiCompletion() {
     setIsCompletingWithAi(true);
-    setExternalRatingState({});
     setAiCompletionState({});
 
     try {
@@ -104,42 +101,6 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
     }
   }
 
-  async function handleRecalculateExternalRating() {
-    setIsRecalculatingExternalRating(true);
-    setAiCompletionState({});
-    setExternalRatingState({});
-
-    try {
-      const response = await fetch(`/api/admin/games/${game.id}/recalculate-external-rating`, {
-        method: "POST",
-        headers: getAdminApiFetchHeaders()
-      });
-      const payload = (await response.json()) as {
-        error?: string;
-        warnings?: string[];
-      };
-
-      if (!response.ok) {
-        setExternalRatingState({
-          errors: [payload.error || "No se pudo recalcular el consenso externo."]
-        });
-        return;
-      }
-
-      setExternalRatingState({
-        message: "Consenso externo recalculado.",
-        warnings: payload.warnings || []
-      });
-      router.refresh();
-    } catch (error) {
-      setExternalRatingState({
-        errors: [error instanceof Error ? error.message : "No se pudo recalcular el consenso externo."]
-      });
-    } finally {
-      setIsRecalculatingExternalRating(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
@@ -159,10 +120,6 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
             <button className="button-secondary" type="button" onClick={handleAiCompletion} disabled={isBusy}>
               <WandSparkles size={18} aria-hidden="true" />
               {isCompletingWithAi ? "Generando..." : "Generar descripción en español"}
-            </button>
-            <button className="button-secondary" type="button" onClick={handleRecalculateExternalRating} disabled={isBusy || isRecalculatingExternalRating}>
-              <RefreshCcw size={18} aria-hidden="true" />
-              {isRecalculatingExternalRating ? "Recalculando..." : "Recalcular consenso externo"}
             </button>
             <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isBusy}>
               <Save size={18} aria-hidden="true" />
@@ -187,13 +144,13 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink/55">Consenso externo</p>
+            <p className="text-sm font-semibold text-ink/55">Consenso estándar</p>
             <h2 className="mt-1 text-xl font-bold text-ink">
               {externalRating?.score !== undefined ? `${externalRating.score.toFixed(1)}/10 · ${externalRating.label}` : "Sin datos suficientes"}
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/65">
               {externalRating?.explanation ||
-                "Todavía no hay puntuaciones externas suficientes para calcular una media útil. Puedes recalcularlo cuando haya más datos."}
+                "Todavía no hay puntuaciones externas suficientes para calcular una media útil. Se actualiza al guardar o publicar la ficha."}
             </p>
           </div>
 
@@ -246,7 +203,6 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
 
       <Feedback state={aiCompletionState} errorTitle="No se pudo completar con IA:" />
       {aiCompletionState.suggestedTitle ? <SuggestedTitleNotice title={aiCompletionState.suggestedTitle} /> : null}
-      <Feedback state={externalRatingState} errorTitle="No se pudo recalcular el consenso externo:" />
       <Feedback state={saveState} errorTitle="No se pudo guardar:" />
       <Feedback state={publishState} errorTitle="No se pudo publicar:" />
 

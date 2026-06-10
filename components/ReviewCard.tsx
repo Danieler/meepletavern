@@ -10,7 +10,11 @@ export function ReviewCard({ review, compact = false }: { review: Review; compac
 
   return (
     <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
-      <Link href={`/resenas/${review.slug}`} className={linkClassName}>
+      <Link
+        href={`/resenas/${review.slug}`}
+        className={`${linkClassName} touch-manipulation cursor-pointer`}
+        aria-label={`Abrir reseña de ${review.title}`}
+      >
         <GameCoverImage {...review} gameTitle={review.gameTitle} variant={compact ? "card" : "review"} />
         <div className="min-w-0 p-5">
           <div className="flex items-start justify-between gap-4">

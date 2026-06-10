@@ -1,5 +1,5 @@
 import { GameStatus } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { getBggGameDetails, BggApiError } from "@/lib/bgg";
 import { buildBggGameUpdateInput } from "@/lib/bggEnrichment";
@@ -40,6 +40,8 @@ export async function POST(request: Request, context: RouteContext) {
     revalidatePath(`/admin/games/${id}`);
     revalidatePath(`/admin/games/${id}/edit`);
     if (updated.status === GameStatus.published) {
+      revalidateTag("public-games");
+      revalidatePath("/juegos");
       revalidatePath(`/juegos/${updated.slug}`);
     }
 

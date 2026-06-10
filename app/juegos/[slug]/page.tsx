@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ChevronRight, Clock, Gauge, Users } from "lucide-react";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
   };
 }
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function GamePage({ params }: GamePageProps) {
   const { slug } = await params;
@@ -64,7 +65,6 @@ export default async function GamePage({ params }: GamePageProps) {
     notFound();
   }
 
-  const relatedGames = await getRelatedGames(game);
   const jsonLd = buildJsonLd(game);
   const hasRichEditorialTags = game.mechanics.length > 0 || game.themes.length > 0;
   const shouldShowCategories = game.categories.length > 0 && !hasRichEditorialTags;
@@ -184,15 +184,9 @@ export default async function GamePage({ params }: GamePageProps) {
                 <BuyLinks links={game.buyLinks} />
               </Panel>
             ) : null}
-            {relatedGames.length ? (
-              <Panel title="Juegos parecidos">
-                <div className="grid gap-3">
-                  {relatedGames.map((related) => (
-                    <GameCard key={related.slug} game={related} compact />
-                  ))}
-                </div>
-              </Panel>
-            ) : null}
+            <Suspense fallback={null}>
+              <RelatedGamesPanel game={game} />
+            </Suspense>
           </aside>
         </section>
 
@@ -207,6 +201,24 @@ export default async function GamePage({ params }: GamePageProps) {
         </section>
       </main>
     </PublicShell>
+  );
+}
+
+async function RelatedGamesPanel({ game }: { game: CatalogGame }) {
+  const relatedGames = await getRelatedGames(game);
+
+  if (!relatedGames.length) {
+    return null;
+  }
+
+  return (
+    <Panel title="Juegos parecidos">
+      <div className="grid gap-3">
+        {relatedGames.map((related) => (
+          <GameCard key={related.slug} game={related} compact />
+        ))}
+      </div>
+    </Panel>
   );
 }
 

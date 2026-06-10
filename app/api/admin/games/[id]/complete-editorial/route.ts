@@ -1,4 +1,5 @@
-import { revalidatePath } from "next/cache";
+import { GameStatus } from "@prisma/client";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { completeGameEditorialFieldsWithBedrock, EditorialCompletionError } from "@/lib/ai/completeGameEditorialFieldsWithBedrock";
 import { gameRepository } from "@/lib/editorialRepositories";
@@ -35,6 +36,11 @@ export async function POST(_request: Request, context: RouteContext) {
     });
 
     revalidateGameAdmin(id);
+    if (updatedGame.status === GameStatus.published) {
+      revalidateTag("public-games");
+      revalidatePath("/juegos");
+      revalidatePath(`/juegos/${updatedGame.slug}`);
+    }
 
     return jsonNoStore({
       ok: true,

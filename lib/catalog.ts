@@ -1,10 +1,11 @@
 import { GameStatus, Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import type { GameImageFields } from "@/lib/gameImages";
 import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { prisma } from "@/lib/prisma";
-import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { slugify } from "@/lib/slug";
@@ -129,6 +130,7 @@ const catalogGameSelect = {
   categories: true,
   mechanics: true,
   themes: true,
+  similarGames: true,
   buyUrl: true,
   ratings: true,
   bggId: true,
@@ -177,34 +179,44 @@ const catalogGameSelect = {
 
 type CatalogDbGame = Prisma.GameGetPayload<{ select: typeof catalogGameSelect }>;
 
-export async function getCatalogGames() {
+export const getCatalogGames = cache(async function getCatalogGames() {
   const games = await getPublishedDbGames();
   return games.map(toCatalogGame);
-}
+});
 
-export async function getGameBySlug(slug: string) {
-  const game = await prisma.game.findFirst({
-    where: {
-      slug,
-      status: GameStatus.published
-    },
-    select: catalogGameSelect
-  });
+export const getGameBySlug = cache(async function getGameBySlug(slug: string) {
+  const game = await getPublishedDbGameBySlug(slug);
 
-  return game ? await toCatalogGameWithFallbackRatings(game) : null;
-}
+  return game ? toCatalogGame(game) : null;
+});
 
 export async function getGamesBySlugs(slugs: string[]) {
   if (!slugs.length) {
     return [];
   }
 
-  const games = await getCatalogGames();
-  const wanted = slugs.map(normalizeIdentifier);
+  const identifiers = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
+  const games = await prisma.game.findMany({
+    where: {
+      status: GameStatus.published,
+      OR: [
+        { slug: { in: identifiers } },
+        { title: { in: identifiers } },
+        { name: { in: identifiers } }
+      ]
+    },
+    select: catalogGameSelect,
+    take: Math.max(identifiers.length, 4)
+  });
+  const catalogGames = games.map(toCatalogGame);
 
-  return wanted
+  return identifiers
     .map((identifier) =>
-      games.find((game) => normalizeIdentifier(game.slug) === identifier || normalizeIdentifier(game.title) === identifier)
+      catalogGames.find(
+        (game) =>
+          normalizeIdentifier(game.slug) === normalizeIdentifier(identifier) ||
+          normalizeIdentifier(game.title) === normalizeIdentifier(identifier)
+      )
     )
     .filter(Boolean) as CatalogGame[];
 }
@@ -322,9 +334,25 @@ export async function getRelatedGames(game: CatalogGame) {
     return directMatches.filter((related) => related.slug !== game.slug).slice(0, 4);
   }
 
-  const games = await getCatalogGames();
+  const relatedFilters: Prisma.GameWhereInput[] = [];
+  if (game.categories.length) {
+    relatedFilters.push({ categories: { hasSome: game.categories } });
+  }
+  if (game.mechanics.length) {
+    relatedFilters.push({ mechanics: { hasSome: game.mechanics } });
+  }
+  if (game.themes.length) {
+    relatedFilters.push({ themes: { hasSome: game.themes } });
+  }
+
+  if (!relatedFilters.length) {
+    return [];
+  }
+
+  const games = await getRelatedDbGames(game.slug, game.categories, game.mechanics, game.themes);
+
   return games
-    .filter((candidate) => candidate.slug !== game.slug)
+    .map(toCatalogGame)
     .map((candidate) => ({
       game: candidate,
       score: overlapScore(game.categories, candidate.categories) + overlapScore(game.mechanics, candidate.mechanics) + overlapScore(game.themes, candidate.themes)
@@ -409,13 +437,62 @@ export function termHref(type: "category" | "mechanic" | "theme", term: string) 
   return `/juegos?${key}=${encodeURIComponent(term)}`;
 }
 
-async function getPublishedDbGames() {
-  return prisma.game.findMany({
-    where: { status: GameStatus.published },
-    select: catalogGameSelect,
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
-  });
-}
+const getPublishedDbGames = unstable_cache(
+  async function getPublishedDbGames() {
+    return prisma.game.findMany({
+      where: { status: GameStatus.published },
+      select: catalogGameSelect,
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
+    });
+  },
+  ["published-db-games"],
+  { revalidate: 300, tags: ["public-games"] }
+);
+
+const getPublishedDbGameBySlug = unstable_cache(
+  async function getPublishedDbGameBySlug(slug: string) {
+    return prisma.game.findFirst({
+      where: {
+        slug,
+        status: GameStatus.published
+      },
+      select: catalogGameSelect
+    });
+  },
+  ["published-db-game-by-slug"],
+  { revalidate: 300, tags: ["public-games"] }
+);
+
+const getRelatedDbGames = unstable_cache(
+  async function getRelatedDbGames(slug: string, categories: string[], mechanics: string[], themes: string[]) {
+    const relatedFilters: Prisma.GameWhereInput[] = [];
+    if (categories.length) {
+      relatedFilters.push({ categories: { hasSome: categories } });
+    }
+    if (mechanics.length) {
+      relatedFilters.push({ mechanics: { hasSome: mechanics } });
+    }
+    if (themes.length) {
+      relatedFilters.push({ themes: { hasSome: themes } });
+    }
+
+    if (!relatedFilters.length) {
+      return [];
+    }
+
+    return prisma.game.findMany({
+      where: {
+        status: GameStatus.published,
+        slug: { not: slug },
+        OR: relatedFilters
+      },
+      select: catalogGameSelect,
+      take: 12
+    });
+  },
+  ["related-db-games"],
+  { revalidate: 300, tags: ["public-games"] }
+);
 
 function toCatalogGame(game: CatalogDbGame): CatalogGame {
   const duration = parseDuration(game.playtime);
@@ -492,62 +569,18 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     bggCategories: game.bggCategories,
     bggMechanics: game.bggMechanics,
     bggFamilies: game.bggFamilies,
-    bggLastSyncedAt: game.bggLastSyncedAt?.toISOString() || null,
+    bggLastSyncedAt: toIsoString(game.bggLastSyncedAt),
     description: publicDescription,
     reviewSummary: publicSummary,
     pros: game.pros,
     cons: game.cons,
     recommendedFor: game.bestFor || "",
     notRecommendedFor: game.notFor || "",
-    similarGames: [],
+    similarGames: game.similarGames,
     buyLinks: game.buyUrl ? [{ store: "Comprar", url: game.buyUrl }] : [],
-    addedAt: game.createdAt.toISOString(),
-    updatedAt: game.updatedAt.toISOString(),
-    publishedAt: game.publishedAt?.toISOString() || null
-  };
-}
-
-async function toCatalogGameWithFallbackRatings(game: CatalogDbGame): Promise<CatalogGame> {
-  const catalogGame = toCatalogGame(game);
-  if (catalogGame.ratings.external?.score !== undefined) {
-    return catalogGame;
-  }
-
-  if (!game.buyUrl) {
-    return catalogGame;
-  }
-
-  const candidate = await prisma.gameCandidate.findFirst({
-    where: { sourceUrl: game.buyUrl },
-    select: {
-      title: true,
-      extractedDescription: true,
-      metadata: true
-    }
-  });
-
-  if (!candidate) {
-    return catalogGame;
-  }
-
-  const ratingUpdate = await buildExternalRatingUpdate(
-    {
-      ratings: catalogGame.ratings,
-      sources: [],
-      buyUrl: game.buyUrl,
-      title: catalogGame.title,
-      name: catalogGame.title
-    },
-    {
-      title: candidate.title,
-      extractedDescription: candidate.extractedDescription,
-      metadata: candidate.metadata
-    }
-  );
-
-  return {
-    ...catalogGame,
-    ratings: normalizeGameRatings(ratingUpdate.ratings)
+    addedAt: toIsoString(game.createdAt) || new Date().toISOString(),
+    updatedAt: toIsoString(game.updatedAt) || new Date().toISOString(),
+    publishedAt: toIsoString(game.publishedAt)
   };
 }
 
@@ -597,8 +630,20 @@ function toReview(game: CatalogDbGame): Review | null {
     placeholderKind,
     summary,
     body: splitParagraphs(bodySource),
-    publishedAt: (game.publishedAt || game.updatedAt || game.createdAt).toISOString()
+    publishedAt: toIsoString(game.publishedAt || game.updatedAt || game.createdAt) || new Date().toISOString()
   };
+}
+
+function toIsoString(value: Date | string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  return value;
 }
 
 function pickSafeMedia(game: CatalogDbGame) {
