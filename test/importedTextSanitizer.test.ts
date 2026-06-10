@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sanitizeAmazonImportedText, sanitizeImportedList } from "@/lib/importedTextSanitizer";
+import { sanitizeAmazonImportedText, sanitizeImportedList, sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 
 test("sanitizeAmazonImportedText rejects Amazon payment/legal fragments", () => {
   assert.equal(sanitizeAmazonImportedText("de seguridad de pagos encripta tu información durante la tra"), null);
@@ -16,4 +16,9 @@ test("sanitizeImportedList keeps short game terms and removes garbage", () => {
     ),
     ["Fantasía", "Roles ocultos"]
   );
+});
+
+test("sanitizeImportedTitle removes trailing Amazon-style codes", () => {
+  assert.equal(sanitizeImportedTitle("Virus (TRG-01vir) (1138753.62)"), "Virus");
+  assert.equal(sanitizeImportedTitle("Virus (edición española)"), "Virus (edición española)");
 });

@@ -21,6 +21,30 @@ export function sanitizeAmazonImportedText(text: string): string | null {
   return cleaned;
 }
 
+export function sanitizeImportedTitle(title: string) {
+  let cleaned = normalizeText(title);
+
+  if (!cleaned) {
+    return "";
+  }
+
+  while (true) {
+    const bracketMatch = /(?:\s*[\[(]\s*([^\[\]()]{1,24})\s*[\])]\s*)$/.exec(cleaned);
+    if (!bracketMatch) {
+      break;
+    }
+
+    if (!looksLikeImportedCode(bracketMatch[1])) {
+      break;
+    }
+
+    cleaned = cleaned.slice(0, bracketMatch.index).trimEnd();
+  }
+
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+  return cleaned;
+}
+
 export function sanitizeImportedList(values: string[], fieldType: ImportedListFieldType): string[] {
   const maxWords = fieldType === "tags" ? 5 : 4;
   const seen = new Map<string, string>();
@@ -60,6 +84,17 @@ export function sanitizeImportedFacts(facts: Record<string, string>) {
 
 function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function looksLikeImportedCode(value: string) {
+  const normalized = value.replace(/\s+/g, "").trim();
+  return Boolean(
+    normalized &&
+      normalized.length <= 24 &&
+      /\d/.test(normalized) &&
+      !/\s/.test(value) &&
+      /^[A-Za-z0-9.-]+$/.test(normalized)
+  );
 }
 
 function countWords(value: string) {

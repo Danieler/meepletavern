@@ -94,7 +94,7 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
           <div className="flex flex-col gap-2 sm:flex-row">
             <button className="button-secondary" type="button" onClick={handleAiCompletion} disabled={isBusy}>
               <WandSparkles size={18} aria-hidden="true" />
-              {isCompletingWithAi ? "Completando..." : "Completar campos editoriales con IA"}
+              {isCompletingWithAi ? "Generando..." : "Generar descripción en español"}
             </button>
             <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isBusy}>
               <Save size={18} aria-hidden="true" />

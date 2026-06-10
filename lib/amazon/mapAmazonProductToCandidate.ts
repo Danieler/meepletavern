@@ -4,7 +4,8 @@ import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/edit
 import {
   sanitizeAmazonImportedText,
   sanitizeImportedFacts,
-  sanitizeImportedList
+  sanitizeImportedList,
+  sanitizeImportedTitle
 } from "@/lib/importedTextSanitizer";
 import { getSourcePolicy } from "@/lib/sourcePolicy";
 import type { AmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
@@ -116,7 +117,7 @@ export function mapAmazonProductToCandidate(input: {
 }
 
 function cleanAmazonTitle(title: string, asin: string) {
-  let cleaned = title
+  let cleaned = sanitizeImportedTitle(title)
     .trim()
     .replace(/\s*:\s*Amazon\.es:.*$/i, "")
     .replace(/\s*Amazon\.es\s*:\s*Juguetes.*$/i, "");

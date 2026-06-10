@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { AdminBggEnrichment } from "@/components/AdminBggEnrichment";
 import { AdminFinalGameForm } from "@/components/AdminFinalGameForm";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
@@ -34,6 +35,15 @@ export default async function GameEditorPage({ params }: GameEditorPageProps) {
         <SectionHeader
           title={`Editor final: ${game.title || game.name}`}
           description="Guarda borradores y publica solo cuando la validación editorial esté completa."
+        />
+        <AdminBggEnrichment
+          gameId={game.id}
+          gameTitle={game.title || game.name}
+          currentBgg={{
+            bggId: game.bggId,
+            bggUrl: game.bggUrl,
+            bggLastSyncedAt: game.bggLastSyncedAt?.toISOString() || null
+          }}
         />
         <AdminFinalGameForm game={game} mediaAssets={game.mediaAssets} />
       </div>

@@ -2,6 +2,7 @@ import type { Game, Prisma } from "@prisma/client";
 import type { EditorialCompletion } from "@/lib/ai/editorialCompletionSchema";
 import { containsEditorialGarbage } from "@/lib/import/sanitizeEditorialFields";
 import { normalizeGameFaq } from "@/lib/editorialMappers";
+import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 
 const VALID_DIFFICULTIES = new Set(["Muy fácil", "Fácil", "Media", "Alta", "Muy alta"]);
 const SUSPICIOUS_TITLES = new Set(["maldito games", "asmodee", "devir", "zygomatic", "hasbro"]);
@@ -162,7 +163,7 @@ export function buildSafeEditorialPatch(
 
 function buildSuggestedTitle(game: Game, completion: EditorialCompletion) {
   const currentTitle = normalizeText(game.title || game.name);
-  const cleanTitle = normalizeText(completion.cleanTitle);
+  const cleanTitle = normalizeText(sanitizeImportedTitle(completion.cleanTitle || ""));
 
   if (!cleanTitle || cleanTitle.toLocaleLowerCase("es") === currentTitle.toLocaleLowerCase("es")) {
     return null;
@@ -181,7 +182,12 @@ function buildSuggestedTitle(game: Game, completion: EditorialCompletion) {
 
 function isSuspiciousTitle(value: string | null) {
   const normalized = normalizeText(value).toLocaleLowerCase("es");
-  return SUSPICIOUS_TITLES.has(normalized);
+  if (SUSPICIOUS_TITLES.has(normalized)) {
+    return true;
+  }
+
+  const cleaned = normalizeText(sanitizeImportedTitle(value || ""));
+  return Boolean(normalized && cleaned && cleaned !== normalizeText(value));
 }
 
 function isReplaceableText(value: string | null) {

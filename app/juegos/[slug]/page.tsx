@@ -8,6 +8,7 @@ import { CollectionButtons } from "@/components/CollectionButtons";
 import { GameCard } from "@/components/GameCard";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameStats } from "@/components/GameStats";
+import { GameRatings } from "@/components/GameRatings";
 import { MechanicTag } from "@/components/MechanicTag";
 import { ProsCons } from "@/components/ProsCons";
 import { PublicShell } from "@/components/PublicShell";
@@ -106,6 +107,8 @@ export default async function GamePage({ params }: GamePageProps) {
         <section className="container-page -mt-6 pb-8">
           <GameStats game={game} />
         </section>
+
+        <GameRatings game={game} />
 
         <section className="container-page grid gap-8 pb-14 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
           <aside className="space-y-5">

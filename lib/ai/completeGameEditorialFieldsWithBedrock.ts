@@ -3,6 +3,7 @@ import type { Game, Prisma } from "@prisma/client";
 import { editorialCompletionSchema, type EditorialCompletion } from "@/lib/ai/editorialCompletionSchema";
 import { getBedrockRuntimeClient } from "@/lib/ai/bedrockClient";
 import { normalizeCandidateMetadata } from "@/lib/editorialMappers";
+import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 
 const DEFAULT_BEDROCK_MODEL = "amazon.nova-micro-v1:0";
 
@@ -44,6 +45,9 @@ export async function completeGameEditorialFieldsWithBedrock(
               "Todo el texto final debe quedar completamente en español de España. " +
               "Si alguna fuente o fragmento está en inglés, tradúcelo y adáptalo por completo antes de responder. " +
               "No mezcles idiomas dentro de una misma frase ni dentro del mismo campo. " +
+              "Ignora y elimina cualquier código interno de catálogo o Amazon en el título o en la descripción, como (TRG-01vir), (1138753.62) o referencias parecidas. " +
+              "Usa los datos de BGG solo como referencia factual y nunca copies ni traduzcas literalmente su descripción. " +
+              "Tampoco hagas una paráfrasis ligera de la descripción de BGG: escribe texto original, editorial y propio de MeepleTavern. " +
               "Devuelve solo JSON válido, sin markdown. " +
               "Prioriza especialmente shortDescription y longDescription: deben sonar editoriales, útiles y naturales, no como placeholders. " +
               "No inventes datos objetivos. " +
@@ -85,6 +89,8 @@ export async function completeGameEditorialFieldsWithBedrock(
                   "- Todo el contenido textual final debe estar íntegramente en español de España.\n" +
                   "- Si algún bullet, fact o descripción de origen está en inglés, tradúcelo antes de usarlo o descártalo si no aporta valor.\n" +
                   "- No devuelvas frases híbridas con partes en inglés y partes en español.\n" +
+                  "- Elimina cualquier código interno de catálogo o Amazon en el título o en la descripción, como (TRG-01vir), (1138753.62) o referencias similares.\n" +
+                  "- No copies referencias técnicas, ASIN, SKU, códigos de producto ni sufijos de inventario.\n" +
                   "- shortDescription debe ser un resumen editorial potente de 1 o 2 frases, útil para catálogo.\n" +
                   "- longDescription debe ser una descripción editorial desarrollada, concreta y sin frases tipo 'importado' o 'pendiente de revisión'.\n" +
                   "- Si conoces rango de jugadores, duración o edad, intégralos con naturalidad en shortDescription o longDescription.\n" +
@@ -138,10 +144,13 @@ function buildPromptInput(game: Game, sourceContext?: CompletionSourceContext | 
   const amazonFeatures = toStringList(metadata.features).slice(0, 8).map((item) => truncate(item, 180));
 
   return {
-    title: compact(game.title || game.name, 160),
+    title: compact(sanitizeImportedTitle(game.title || game.name || ""), 160),
     publisher: compact(game.publisher, 120),
     brand: compact(readMetadataString(metadata, ["brand", "manufacturer", "publisher"]), 120),
-    amazonTitle: compact(readMetadataString(metadata, ["amazonTitleOriginal"]) || sourceContext?.title || null, 220),
+    amazonTitle: compact(
+      sanitizeImportedTitle(readMetadataString(metadata, ["amazonTitleOriginal"]) || sourceContext?.title || ""),
+      220
+    ),
     amazonDescription: compact(sourceContext?.extractedDescription, 700),
     amazonBullets: amazonFeatures,
     facts: extractFacts(metadata),
@@ -151,6 +160,29 @@ function buildPromptInput(game: Game, sourceContext?: CompletionSourceContext | 
     age: compact(game.age || (typeof metadata.minAge === "number" ? `${metadata.minAge}+` : null), 80),
     duration: compact(game.playtime, 80),
     language: compact(readMetadataString(metadata, ["language"]) || readFact(metadata, ["Idioma", "Language"]), 80),
+    bgg: {
+      id: game.bggId,
+      url: compact(game.bggUrl, 220),
+      descriptionRaw: compact(game.bggDescriptionRaw, 2000),
+      averageRating: game.bggAverageRating,
+      bayesAverageRating: game.bggBayesAverageRating,
+      usersRated: game.bggUsersRated,
+      rank: game.bggRank,
+      weight: game.bggWeight,
+      weightVotes: game.bggWeightVotes,
+      yearPublished: game.bggYearPublished,
+      minPlayers: game.bggMinPlayers,
+      maxPlayers: game.bggMaxPlayers,
+      playingTime: game.bggPlayingTime,
+      minAge: game.bggMinAge,
+      designers: game.bggDesigners,
+      artists: game.bggArtists,
+      publishers: game.bggPublishers,
+      categories: game.bggCategories,
+      mechanics: game.bggMechanics,
+      families: game.bggFamilies,
+      lastSyncedAt: game.bggLastSyncedAt?.toISOString() || null
+    },
     existingCategories: game.categories.slice(0, 5),
     existingMechanics: game.mechanics.slice(0, 6),
     existingThemes: game.themes.slice(0, 5)
