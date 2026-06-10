@@ -159,3 +159,45 @@ test("buildSafeEditorialPatch keeps existing good editorial content", () => {
   assert.deepEqual(result.patch, {});
   assert.equal(result.suggestedTitle, null);
 });
+
+test("buildSafeEditorialPatch can prefer model completion during import flows", () => {
+  const result = buildSafeEditorialPatch(
+    buildGame({
+      title: "Rebel Nemesis",
+      name: "Rebel Nemesis",
+      shortDescription: "Rebel Nemesis es un juego cooperativo para 5 jugadores.",
+      shortSummary: "Rebel Nemesis es un juego cooperativo para 5 jugadores.",
+      description: "Rebel Nemesis propone una experiencia cooperativa pensada para coordinar decisiones de grupo.",
+      categories: ["Cooperativo"],
+      mechanics: ["Cartas"],
+      themes: ["Ciencia ficción"]
+    }),
+    {
+      cleanTitle: "Rebel Nemesis",
+      shortDescription: "Cooperativo de supervivencia espacial para grupos que disfrutan la presión constante y la coordinación.",
+      longDescription: "Rebel Nemesis plantea una lucha tensa por sobrevivir en una nave hostil, con decisiones compartidas y amenazas que obligan a coordinar cada turno.",
+      difficulty: "Alta",
+      categories: ["Cooperativo", "Temático"],
+      mechanics: ["Gestión de mano", "Cooperación"],
+      themes: ["Ciencia ficción", "Supervivencia"],
+      bestFor: "Mesas que disfrutan de presión, coordinación y narrativa emergente.",
+      notFor: "Quien busque partidas relajadas o poco confrontadas con el sistema.",
+      pros: ["Tensión constante", "Muy buena conversación de mesa", "Tema integrado en las decisiones"],
+      cons: ["Puede castigar errores pronto", "Exige implicación del grupo"],
+      faq: [
+        { question: "¿Es cooperativo?", answer: "Sí, toda la mesa comparte objetivos y presión." },
+        { question: "¿Tiene mucha tensión?", answer: "Sí, la sensación de amenaza es una de sus claves." },
+        { question: "¿Encaja en grupos expertos?", answer: "Sí, sobre todo si disfrutan optimizando en equipo." }
+      ],
+      seoTitle: "Rebel Nemesis: supervivencia cooperativa espacial",
+      seoDescription: "Ficha editorial de Rebel Nemesis con sensaciones, dificultad y tipo de experiencia.",
+      confidence: "high",
+      warnings: []
+    },
+    { mode: "prefer_completion" }
+  );
+
+  assert.equal(result.patch.shortDescription, "Cooperativo de supervivencia espacial para grupos que disfrutan la presión constante y la coordinación.");
+  assert.equal(result.patch.description, "Rebel Nemesis plantea una lucha tensa por sobrevivir en una nave hostil, con decisiones compartidas y amenazas que obligan a coordinar cada turno.");
+  assert.deepEqual(result.patch.mechanics, ["Gestión de mano", "Cooperación"]);
+});

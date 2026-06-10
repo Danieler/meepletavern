@@ -41,3 +41,18 @@ test("buildEditorialSeedCopy ignores english-heavy feature fragments", () => {
   assert.ok(!/immerse|yourself|navigate|intruders|grow stronger/i.test(copy.description));
   assert.match(copy.description, /experiencia cooperativa/i);
 });
+
+test("buildEditorialSeedCopy avoids taxonomy boilerplate phrasing", () => {
+  const copy = buildEditorialSeedCopy({
+    title: "Rebel Nemesis",
+    playersLabel: "5",
+    playtime: "120 min",
+    minAge: 9,
+    categories: ["Cooperativo"],
+    mechanics: ["Investigación"],
+    themes: ["Misterio"]
+  });
+
+  assert.doesNotMatch(copy.description, /Por los datos disponibles, encaja cerca de etiquetas/i);
+  assert.match(copy.description, /la cooperación|la investigación|el misterio/i);
+});

@@ -187,13 +187,20 @@ function buildTaxonomySentence(input: EditorialSeedCopyInput) {
     ...(input.categories || []),
     ...(input.mechanics || []),
     ...(input.themes || [])
-  ]).slice(0, 5);
+  ])
+    .map(adaptEditorialTag)
+    .filter(Boolean)
+    .slice(0, 3) as string[];
 
   if (!tags.length) {
     return "";
   }
 
-  return `Por los datos disponibles, encaja cerca de etiquetas como ${formatList(tags.map((tag) => tag.toLowerCase()))}.`;
+  if (tags.length === 1) {
+    return `Entre sus rasgos más claros aparece ${tags[0]}.`;
+  }
+
+  return `Entre sus rasgos más claros aparecen ${formatList(tags)}.`;
 }
 
 function buildHintSentence(input: EditorialSeedCopyInput) {
@@ -332,4 +339,39 @@ function simplifyFeature(value: string) {
       .replace(/\b(juego de mesa|board game|amazon\.es|juguetes y juegos)\b/gi, "")
       .replace(/\s{2,}/g, " ")
   ).toLowerCase();
+}
+
+function adaptEditorialTag(value: string) {
+  const normalized = normalizeText(value).toLowerCase();
+
+  if (!normalized) {
+    return "";
+  }
+
+  const exactMap: Record<string, string> = {
+    cooperativo: "la cooperación",
+    cooperativa: "la cooperación",
+    colaborativo: "la cooperación",
+    colaborativa: "la cooperación",
+    investigación: "la investigación",
+    investigacion: "la investigación",
+    misterio: "el misterio",
+    fantasía: "la fantasía",
+    fantasia: "la fantasía",
+    cartas: "el juego con cartas",
+    dados: "el uso de dados",
+    rol: "el componente de rol",
+    asimétrico: "la asimetría",
+    asimetrico: "la asimetría",
+    temático: "el peso temático",
+    tematico: "el peso temático",
+    aventura: "la aventura",
+    estrategia: "la estrategia"
+  };
+
+  if (exactMap[normalized]) {
+    return exactMap[normalized];
+  }
+
+  return normalized;
 }

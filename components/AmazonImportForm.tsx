@@ -141,6 +141,7 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
             <InfoRow label="Edad detectada" value={state.result.detectedAge ? `${state.result.detectedAge}+` : "Pendiente"} />
             <InfoRow label="Candidate" value={state.result.candidateStatus} />
             <InfoRow label="Imagen" value={state.result.imageStatus === "approved_public" ? "aprobada pública" : "placeholder"} />
+            <InfoRow label="IA editorial" value={formatAiStatus(state.result.aiStatus)} />
           </div>
 
           {state.result.flags.length ? (
@@ -158,6 +159,23 @@ export function AmazonImportForm({ sources }: AmazonImportFormProps) {
               <p className="font-black text-ink">Avisos de importación</p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {state.result.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {state.result.aiSuggestedTitle ? (
+            <div className="mt-4 rounded-md border border-moss/20 bg-white px-3 py-2 text-sm font-semibold text-ink/80">
+              La IA sugiere revisar el título como: <span className="text-moss">{state.result.aiSuggestedTitle}</span>
+            </div>
+          ) : null}
+
+          {state.result.aiWarnings?.length ? (
+            <div className="mt-4 rounded-md border border-ink/10 bg-white px-3 py-2 text-sm font-semibold text-ink/75">
+              <p className="font-black text-ink">Avisos de IA</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {state.result.aiWarnings.map((warning) => (
                   <li key={warning}>{warning}</li>
                 ))}
               </ul>
@@ -202,4 +220,24 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <p className="mt-1 font-semibold text-ink">{value}</p>
     </div>
   );
+}
+
+function formatAiStatus(value?: "applied" | "no_changes" | "unavailable" | "failed") {
+  if (value === "applied") {
+    return "completada";
+  }
+
+  if (value === "no_changes") {
+    return "sin cambios";
+  }
+
+  if (value === "failed") {
+    return "falló";
+  }
+
+  if (value === "unavailable") {
+    return "no disponible";
+  }
+
+  return "pendiente";
 }

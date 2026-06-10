@@ -28,6 +28,10 @@ export type AmazonImportResult = {
   flags: EditorialFlag[];
   warnings: string[];
   publicImageUrl: string | null;
+  aiStatus?: "applied" | "no_changes" | "unavailable" | "failed";
+  aiAppliedFields?: string[];
+  aiWarnings?: string[];
+  aiSuggestedTitle?: string | null;
 };
 
 export async function importAmazonProductReview(input: { sourceId: unknown; amazonInput: unknown }): Promise<AmazonImportResult> {

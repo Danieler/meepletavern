@@ -14,9 +14,18 @@ export type SafeEditorialPatchResult = {
   suggestedTitle: string | null;
 };
 
-export function buildSafeEditorialPatch(game: Game, completion: EditorialCompletion): SafeEditorialPatchResult {
+type BuildSafeEditorialPatchOptions = {
+  mode?: "conservative" | "prefer_completion";
+};
+
+export function buildSafeEditorialPatch(
+  game: Game,
+  completion: EditorialCompletion,
+  options?: BuildSafeEditorialPatchOptions
+): SafeEditorialPatchResult {
   const patch: Prisma.GameUpdateInput = {};
   const appliedFields: string[] = [];
+  const mode = options?.mode || "conservative";
 
   applyTextField({
     field: "shortDescription",
@@ -81,7 +90,7 @@ export function buildSafeEditorialPatch(game: Game, completion: EditorialComplet
   applyListField("cons", game.cons, completion.cons, 2);
 
   const currentFaq = normalizeGameFaq(game.faq || game.faqs);
-  if (completion.faq.length >= 3 && isReplaceableFaq(currentFaq)) {
+  if (completion.faq.length >= 3 && (mode === "prefer_completion" || isReplaceableFaq(currentFaq))) {
     patch.faq = completion.faq as unknown as Prisma.InputJsonValue;
     patch.faqs = completion.faq as unknown as Prisma.InputJsonValue;
     appliedFields.push("faq");
@@ -120,7 +129,11 @@ export function buildSafeEditorialPatch(game: Game, completion: EditorialComplet
     shouldReplaceCurrent: (value: string | null) => boolean;
     assign: (value: string) => void;
   }) {
-    if (!isUsefulText(input.nextValue) || !input.shouldReplaceCurrent(input.currentValue)) {
+    if (!isUsefulText(input.nextValue)) {
+      return;
+    }
+
+    if (mode !== "prefer_completion" && !input.shouldReplaceCurrent(input.currentValue)) {
       return;
     }
 
@@ -134,7 +147,11 @@ export function buildSafeEditorialPatch(game: Game, completion: EditorialComplet
     nextValue: string[],
     minItems = 1
   ) {
-    if (nextValue.length < minItems || !isReplaceableList(currentValue)) {
+    if (nextValue.length < minItems) {
+      return;
+    }
+
+    if (mode !== "prefer_completion" && !isReplaceableList(currentValue)) {
       return;
     }
 
