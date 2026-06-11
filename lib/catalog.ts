@@ -35,26 +35,6 @@ export type CatalogGame = GameImageFields & {
   mechanics: string[];
   themes: string[];
   ratings: GameRatingsData;
-  bggId: number | null;
-  bggUrl: string | null;
-  bggAverageRating: number | null;
-  bggBayesAverageRating: number | null;
-  bggUsersRated: number | null;
-  bggRank: number | null;
-  bggWeight: number | null;
-  bggWeightVotes: number | null;
-  bggYearPublished: number | null;
-  bggMinPlayers: number | null;
-  bggMaxPlayers: number | null;
-  bggPlayingTime: number | null;
-  bggMinAge: number | null;
-  bggDesigners: string[];
-  bggArtists: string[];
-  bggPublishers: string[];
-  bggCategories: string[];
-  bggMechanics: string[];
-  bggFamilies: string[];
-  bggLastSyncedAt: string | null;
   description: string;
   reviewSummary: string;
   pros: string[];
@@ -135,26 +115,6 @@ const catalogGameSelect = {
   similarGames: true,
   buyUrl: true,
   ratings: true,
-  bggId: true,
-  bggUrl: true,
-  bggAverageRating: true,
-  bggBayesAverageRating: true,
-  bggUsersRated: true,
-  bggRank: true,
-  bggWeight: true,
-  bggWeightVotes: true,
-  bggYearPublished: true,
-  bggMinPlayers: true,
-  bggMaxPlayers: true,
-  bggPlayingTime: true,
-  bggMinAge: true,
-  bggDesigners: true,
-  bggArtists: true,
-  bggPublishers: true,
-  bggCategories: true,
-  bggMechanics: true,
-  bggFamilies: true,
-  bggLastSyncedAt: true,
   mediaAssets: {
     select: {
       id: true,
@@ -522,26 +482,6 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     mechanics,
     themes,
     ratings: normalizeGameRatings(game.ratings),
-    bggId: game.bggId,
-    bggUrl: game.bggUrl,
-    bggAverageRating: game.bggAverageRating,
-    bggBayesAverageRating: game.bggBayesAverageRating,
-    bggUsersRated: game.bggUsersRated,
-    bggRank: game.bggRank,
-    bggWeight: game.bggWeight,
-    bggWeightVotes: game.bggWeightVotes,
-    bggYearPublished: game.bggYearPublished,
-    bggMinPlayers: game.bggMinPlayers,
-    bggMaxPlayers: game.bggMaxPlayers,
-    bggPlayingTime: game.bggPlayingTime,
-    bggMinAge: game.bggMinAge,
-    bggDesigners: game.bggDesigners,
-    bggArtists: game.bggArtists,
-    bggPublishers: game.bggPublishers,
-    bggCategories: game.bggCategories,
-    bggMechanics: game.bggMechanics,
-    bggFamilies: game.bggFamilies,
-    bggLastSyncedAt: toIsoString(game.bggLastSyncedAt),
     description: publicDescription,
     reviewSummary: publicSummary,
     pros: game.pros,

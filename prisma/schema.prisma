@@ -109,27 +109,6 @@ model Game {
   seoDescription        String?
   buyUrl                String?
   ratings               Json            @default("{}")
-  bggId                 Int?
-  bggUrl                String?
-  bggDescriptionRaw     String?
-  bggAverageRating      Float?
-  bggBayesAverageRating Float?
-  bggUsersRated         Int?
-  bggRank               Int?
-  bggWeight             Float?
-  bggWeightVotes        Int?
-  bggYearPublished      Int?
-  bggMinPlayers         Int?
-  bggMaxPlayers         Int?
-  bggPlayingTime        Int?
-  bggMinAge             Int?
-  bggDesigners          String[]        @default([])
-  bggArtists            String[]        @default([])
-  bggPublishers         String[]        @default([])
-  bggCategories         String[]        @default([])
-  bggMechanics          String[]        @default([])
-  bggFamilies           String[]        @default([])
-  bggLastSyncedAt       DateTime?
   sources               Json?
   sourceIds             String[]        @default([])
   primaryImageId        String?
