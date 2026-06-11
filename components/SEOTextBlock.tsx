@@ -5,10 +5,9 @@ type SEOTextBlockProps = {
 
 export function SEOTextBlock({ title, children }: SEOTextBlockProps) {
   return (
-    <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-      <h2 className="text-2xl font-black text-ink">{title}</h2>
-      <div className="mt-4 space-y-4 text-sm leading-7 text-ink/70">{children}</div>
+    <section className="tavern-card p-6">
+      <h2 className="tavern-title text-2xl">{title}</h2>
+      <div className="mt-4 space-y-4 text-sm leading-7 text-walnut/80">{children}</div>
     </section>
   );
 }
-

@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { BrandIcon } from "@/components/BrandIcon";
 
 type BuyButtonProps = {
   url: string | null;
@@ -11,9 +11,8 @@ export function BuyButton({ url }: BuyButtonProps) {
 
   return (
     <a className="button-primary" href={url} rel="nofollow sponsored noopener noreferrer" target="_blank">
-      <ExternalLink size={18} aria-hidden="true" />
+      <BrandIcon name="tag" size={20} />
       Ver oferta
     </a>
   );
 }
-

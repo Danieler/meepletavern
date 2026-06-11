@@ -25,12 +25,12 @@ export function PublicAuthControls() {
   const { user, loading, signOut } = useAuth();
 
   if (loading) {
-    return <span className="text-sm font-semibold text-ink/45">Cuenta...</span>;
+    return <span className="text-sm font-semibold text-parchment/60">Cuenta...</span>;
   }
 
   if (!user) {
     return (
-      <Link className="button-secondary min-h-10 px-3" href="/auth">
+      <Link className="button-secondary min-h-10 border-ember/40 bg-white/10 px-3 text-parchment hover:bg-ember hover:text-white" href="/auth">
         Mi cuenta
       </Link>
     );
@@ -44,12 +44,12 @@ export function PublicAuthControls() {
 
   return (
     <div className="flex items-center gap-2">
-      <Link className="rounded-md px-3 py-2 text-sm font-bold text-ink/70 transition hover:bg-ink/5 hover:text-ink" href="/mi-perfil">
+      <Link className="rounded-md px-3 py-2 text-sm font-bold text-parchment/80 transition hover:bg-white/10 hover:text-ember" href="/mi-perfil">
         {label}
       </Link>
       <button
         type="button"
-        className="button-secondary min-h-10 px-3"
+        className="button-secondary min-h-10 border-ember/40 bg-white/10 px-3 text-parchment hover:bg-ember hover:text-white"
         onClick={async () => {
           const result = await signOut();
           if (result.ok) {

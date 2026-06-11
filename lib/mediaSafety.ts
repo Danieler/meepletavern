@@ -25,7 +25,7 @@ export function canShowMedia(asset: MediaSafetyAsset | null | undefined, source:
 }
 
 export function placeholderUrl(kind: PlaceholderKind = "general") {
-  return `/placeholders/${kind}.svg`;
+  return "/brand/meepletavern-mark.png";
 }
 
 export function inferPlaceholderKind(input: {

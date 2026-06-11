@@ -1,5 +1,5 @@
 import type { Game } from "@prisma/client";
-import { Baby, Brain, Clock, Tags, Users } from "lucide-react";
+import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 
 type GameQuickFactsProps = {
   game: Game;
@@ -10,22 +10,21 @@ export function GameQuickFacts({ game }: GameQuickFactsProps) {
     {
       label: "Jugadores",
       value: formatPlayers(game.minPlayers, game.maxPlayers),
-      icon: Users
+      icon: "users"
     },
-    { label: "Duración", value: game.playtime, icon: Clock },
-    { label: "Edad", value: game.age, icon: Baby },
-    { label: "Complejidad", value: game.complexity, icon: Brain },
-    { label: "Categorías", value: game.categories.join(", "), icon: Tags }
+    { label: "Duración", value: game.playtime, icon: "clock" },
+    { label: "Edad", value: game.age, icon: "calendar" },
+    { label: "Complejidad", value: game.complexity, icon: "gauge" },
+    { label: "Categorías", value: game.categories.join(", "), icon: "tag" }
   ].filter((fact) => fact.value);
 
   return (
     <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       {facts.map((fact) => {
-        const Icon = fact.icon;
         return (
           <div key={fact.label} className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
             <dt className="flex items-center gap-2 text-xs font-bold uppercase text-ink/45">
-              <Icon size={16} aria-hidden="true" />
+              <BrandIcon name={fact.icon as BrandIconName} size={17} />
               {fact.label}
             </dt>
             <dd className="mt-2 text-sm font-semibold leading-6 text-ink">{fact.value}</dd>

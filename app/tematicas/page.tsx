@@ -22,7 +22,7 @@ export default async function ThemesPage() {
           <div className="container-page">
             <p className="text-sm font-bold uppercase text-ember">Historias y mundos</p>
             <h1 className="mt-3 text-4xl font-black sm:text-5xl">Temáticas de juegos de mesa</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/76">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">
               Fantasía, ciencia ficción, terror, espacio, mazmorras y otros mundos para elegir la
               mesa por lo que apetece vivir.
             </p>

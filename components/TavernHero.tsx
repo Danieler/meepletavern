@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Search, Sparkles } from "lucide-react";
+import { BrandIcon } from "@/components/BrandIcon";
 import { siteConfig } from "@/lib/site";
 
 type TavernHeroProps = {
@@ -21,7 +21,7 @@ export function TavernHero({ query }: TavernHeroProps) {
       <div className="container-page relative flex min-h-[620px] items-center py-16 sm:min-h-[680px]">
         <div className="max-w-2xl">
           <p className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white backdrop-blur">
-            <Sparkles size={16} aria-hidden="true" />
+            <BrandIcon name="star" size={18} />
             Archivo de juegos en español
           </p>
           <h1 className="text-5xl font-black text-white sm:text-6xl lg:text-7xl">
@@ -30,7 +30,7 @@ export function TavernHero({ query }: TavernHeroProps) {
           <p className="mt-5 text-2xl font-semibold text-parchment sm:text-3xl">
             {siteConfig.claim}
           </p>
-          <p className="mt-4 max-w-xl text-base leading-7 text-white/82 sm:text-lg">
+          <p className="mt-4 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
             {siteConfig.subclaim}
           </p>
           <form action="/" className="mt-8 flex w-full max-w-xl flex-col gap-3 sm:flex-row">
@@ -38,11 +38,7 @@ export function TavernHero({ query }: TavernHeroProps) {
               Buscar juegos
             </label>
             <div className="relative flex-1">
-              <Search
-                size={18}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/45"
-                aria-hidden="true"
-              />
+              <BrandIcon name="search" size={20} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-70" />
               <input
                 id="search"
                 name="q"
@@ -52,7 +48,7 @@ export function TavernHero({ query }: TavernHeroProps) {
               />
             </div>
             <button className="button-primary bg-ember text-ink hover:bg-parchment" type="submit">
-              <Search size={18} aria-hidden="true" />
+              <BrandIcon name="search" size={20} />
               Buscar
             </button>
           </form>
