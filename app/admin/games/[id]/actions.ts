@@ -164,6 +164,28 @@ export async function deleteGameEditorAction(formData: FormData) {
   redirect(returnTo);
 }
 
+export async function deleteGamesBulkAction(formData: FormData) {
+  const ids = readStringList(formData, "ids");
+  const returnTo = optionalString(formData.get("returnTo")) || "/admin/games";
+
+  if (!ids.length) {
+    throw new Error("Selecciona al menos un juego.");
+  }
+
+  for (const id of ids) {
+    const deletedGame = await gameRepository.delete(id);
+    revalidateGameAdmin(id);
+    if (deletedGame.slug) {
+      revalidatePublicGame(deletedGame.slug);
+    }
+  }
+
+  revalidatePath("/admin/games");
+  revalidatePath("/admin/reviews");
+  revalidatePath("/admin/candidates");
+  redirect(returnTo);
+}
+
 function toGameUpdateInput(
   formData: FormData,
   status: GameStatus,
@@ -327,6 +349,13 @@ function requiredString(value: FormDataEntryValue | null, message: string) {
 
 function optionalString(value: FormDataEntryValue | null) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readStringList(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean);
 }
 
 function optionalPositiveInt(value: FormDataEntryValue | null) {

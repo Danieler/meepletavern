@@ -217,40 +217,15 @@ export async function getGamesBySlugs(slugs: string[]) {
     .filter(Boolean) as CatalogGame[];
 }
 
-export async function getReviews() {
-  const games = await prisma.game.findMany({
-    where: {
-      status: GameStatus.published,
-      OR: [
-        { quickVerdict: { not: null } },
-        { shortDescription: { not: null } },
-        { review: { not: null } },
-        { shortSummary: { not: null } }
-      ]
-    },
-    select: catalogGameSelect,
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
-  });
-
-  return games.map(toReview).filter(Boolean) as Review[];
+export async function getReviews(): Promise<Review[]> {
+  // Las reseñas públicas son manuales. Los juegos del catálogo no deben convertirse
+  // automáticamente en reseñas por tener texto editorial.
+  return [] as Review[];
 }
 
-export async function getReviewBySlug(slug: string) {
-  const game = await prisma.game.findFirst({
-    where: {
-      slug,
-      status: GameStatus.published,
-      OR: [
-        { quickVerdict: { not: null } },
-        { shortDescription: { not: null } },
-        { review: { not: null } },
-        { shortSummary: { not: null } }
-      ]
-    },
-    select: catalogGameSelect
-  });
-
-  return game ? toReview(game) : null;
+export async function getReviewBySlug(slug: string): Promise<Review | null> {
+  void slug;
+  return null;
 }
 
 export async function getRankings() {

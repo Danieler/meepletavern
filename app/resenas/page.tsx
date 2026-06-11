@@ -31,11 +31,20 @@ export default async function ReviewsPage() {
         </section>
         <section className="container-page py-12">
           <SectionHeader title="Últimas reseñas" />
-          <div className="grid gap-5">
-            {reviews.map((review) => (
-              <ReviewCard key={review.slug} review={review} />
-            ))}
-          </div>
+          {reviews.length ? (
+            <div className="grid gap-5">
+              {reviews.map((review) => (
+                <ReviewCard key={review.slug} review={review} />
+              ))}
+            </div>
+          ) : (
+            <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
+              <p className="text-sm font-semibold text-ink/65">
+                De momento las reseñas se publicarán manualmente. Esta sección todavía no tiene
+                contenido.
+              </p>
+            </section>
+          )}
         </section>
         <section className="container-page pb-14">
           <SEOTextBlock title="Reseñas largas, fichas rápidas y recomendaciones">

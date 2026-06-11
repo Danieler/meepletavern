@@ -109,20 +109,22 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-y border-ink/10 bg-white py-12 lg:py-16">
-          <div className="container-page">
-            <SectionHeader
-              eyebrow="Últimas reseñas"
-              title="Crónicas recién servidas"
-              description="Artículos preparados para resolver dudas antes de comprar, sacar a mesa o enseñar un juego."
-            />
-            <div className="grid gap-5 lg:grid-cols-3">
-              {latestReviews.map((review) => (
-                <ReviewCard key={review.slug} review={review} compact />
-              ))}
+        {latestReviews.length ? (
+          <section className="border-y border-ink/10 bg-white py-12 lg:py-16">
+            <div className="container-page">
+              <SectionHeader
+                eyebrow="Últimas reseñas"
+                title="Crónicas recién servidas"
+                description="Artículos preparados para resolver dudas antes de comprar, sacar a mesa o enseñar un juego."
+              />
+              <div className="grid gap-5 lg:grid-cols-3">
+                {latestReviews.map((review) => (
+                  <ReviewCard key={review.slug} review={review} compact />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         <section className="container-page grid gap-8 py-12 lg:grid-cols-2 lg:py-16">
           <div>

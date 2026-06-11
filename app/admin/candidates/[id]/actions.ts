@@ -19,6 +19,22 @@ export async function deleteCandidateAction(formData: FormData) {
   redirect(returnTo);
 }
 
+export async function deleteCandidatesBulkAction(formData: FormData) {
+  const ids = readStringList(formData, "ids");
+  const returnTo = readOptionalString(formData, "returnTo") || "/admin/candidates";
+
+  if (!ids.length) {
+    throw new Error("Selecciona al menos un candidato.");
+  }
+
+  for (const id of ids) {
+    await gameCandidateRepository.delete(id);
+  }
+
+  revalidatePath("/admin/candidates");
+  redirect(returnTo);
+}
+
 export async function convertCandidateAction(formData: FormData) {
   const id = readId(formData);
   const game = await convertCandidateToGame(id, "review");
@@ -70,4 +86,11 @@ function readString(formData: FormData, key: string, message: string) {
 function readOptionalString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function readStringList(formData: FormData, key: string) {
+  return formData
+    .getAll(key)
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean);
 }
