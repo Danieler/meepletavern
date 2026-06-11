@@ -84,7 +84,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
         </button>
 
         {inLibrary ? (
-          <Link className="button-secondary justify-start" href="/mi-biblioteca">
+          <Link className="button-secondary justify-start" href="/mi-perfil">
             <LibraryBig size={18} aria-hidden="true" />
             Ver mi colección
           </Link>

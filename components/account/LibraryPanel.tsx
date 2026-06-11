@@ -16,7 +16,11 @@ type LibraryEntry = {
   };
 };
 
-export function LibraryPanel() {
+type LibraryPanelProps = {
+  embedded?: boolean;
+};
+
+export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
   const { user, loading, warning, isConfigured } = useAuth();
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [fetching, setFetching] = useState(false);
@@ -98,7 +102,7 @@ export function LibraryPanel() {
         <p className="mt-3 text-sm font-semibold text-ink/65">
           Entra con tu cuenta para guardar los juegos que ya tienes.
         </p>
-        <Link className="button-primary mt-5 inline-flex" href="/auth?next=%2Fmi-biblioteca">
+        <Link className="button-primary mt-5 inline-flex" href="/auth?next=%2Fmi-perfil">
           Entrar
         </Link>
       </section>
@@ -107,13 +111,22 @@ export function LibraryPanel() {
 
   return (
     <section className="space-y-6">
-      <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-        <p className="text-sm font-bold uppercase text-ember">Cuenta</p>
-        <h1 className="mt-3 text-4xl font-black text-ink sm:text-5xl">Mi colección</h1>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-ink/72">
-          Aquí verás los juegos que has marcado como parte de tu colección.
-        </p>
-      </section>
+      {embedded ? (
+        <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
+          <h2 className="text-2xl font-black text-ink">Mi colección</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-ink/72">
+            Aquí verás los juegos que has marcado como parte de tu colección.
+          </p>
+        </section>
+      ) : (
+        <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
+          <p className="text-sm font-bold uppercase text-ember">Cuenta</p>
+          <h1 className="mt-3 text-4xl font-black text-ink sm:text-5xl">Mi colección</h1>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-ink/72">
+            Aquí verás los juegos que has marcado como parte de tu colección.
+          </p>
+        </section>
+      )}
 
       {warning ? (
         <section className="rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">

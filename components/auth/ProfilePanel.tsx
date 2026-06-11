@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LibraryPanel } from "@/components/account/LibraryPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 function formatDate(value: string | undefined) {
@@ -110,107 +111,105 @@ export function ProfilePanel() {
 
   return (
     <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-bold uppercase text-moss">Mi perfil</p>
-            <h1 className="mt-2 text-3xl font-black text-ink">
-              {profile?.displayName || user.email || "Usuario"}
-            </h1>
-            <p className="mt-2 text-sm font-semibold text-ink/60">
-              Gestiona aquí los datos básicos de tu cuenta.
-            </p>
+      <div className="space-y-6">
+        <div className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase text-moss">Mi perfil</p>
+              <h1 className="mt-2 text-3xl font-black text-ink">
+                {profile?.displayName || user.email || "Usuario"}
+              </h1>
+              <p className="mt-2 text-sm font-semibold text-ink/60">
+                Gestiona aquí los datos básicos de tu cuenta.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="button-secondary"
+              disabled={signingOut}
+              onClick={async () => {
+                setSigningOut(true);
+                const result = await signOut();
+                setSigningOut(false);
+                if (result.ok) {
+                  router.replace("/");
+                  router.refresh();
+                  return;
+                }
+                setFeedback(result.message ?? "No hemos podido cerrar la sesión.");
+              }}
+            >
+              {signingOut ? "Saliendo..." : "Cerrar sesión"}
+            </button>
           </div>
-          <button
-            type="button"
-            className="button-secondary"
-            disabled={signingOut}
-            onClick={async () => {
-              setSigningOut(true);
-              const result = await signOut();
-              setSigningOut(false);
-              if (result.ok) {
-                router.replace("/");
-                router.refresh();
+
+          {warning ? (
+            <div className="mt-5 rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
+              {warning}
+            </div>
+          ) : null}
+
+          {feedback ? (
+            <div className="mt-5 rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm font-semibold text-moss">
+              {feedback}
+            </div>
+          ) : null}
+
+          <form
+            className="mt-6 space-y-4"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setSaving(true);
+              const response = await fetch("/api/account/profile", {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ displayName: name })
+              });
+              const payload = (await response.json().catch(() => null)) as
+                | {
+                    account?: {
+                      id: string;
+                      authUserId: string;
+                      email: string;
+                      displayName: string | null;
+                      createdAt: string;
+                    };
+                    error?: string;
+                  }
+                | null;
+              setSaving(false);
+              if (!response.ok || !payload?.account) {
+                setFeedback(payload?.error || "No hemos podido actualizar tu perfil.");
                 return;
               }
-              setFeedback(result.message ?? "No hemos podido cerrar la sesión.");
+
+              setProfile(payload.account);
+              setName(payload.account.displayName || "");
+              setFeedback("Perfil actualizado.");
+              if (response.ok) {
+                router.refresh();
+              }
             }}
           >
-            {signingOut ? "Saliendo..." : "Cerrar sesión"}
-          </button>
+            <label className="block">
+              <span className="text-sm font-bold text-ink">Nombre visible</span>
+              <input
+                className="focus-ring mt-2 min-h-11 w-full rounded-md border border-ink/10 bg-white px-3 text-sm text-ink"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Tu nombre"
+              />
+            </label>
+
+            <button className="button-primary" disabled={saving} type="submit">
+              {saving ? "Guardando..." : "Guardar perfil"}
+            </button>
+          </form>
         </div>
 
-        {warning ? (
-          <div className="mt-5 rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
-            {warning}
-          </div>
-        ) : null}
-
-        {feedback ? (
-          <div className="mt-5 rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm font-semibold text-moss">
-            {feedback}
-          </div>
-        ) : null}
-
-        <form
-          className="mt-6 space-y-4"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            setSaving(true);
-            const response = await fetch("/api/account/profile", {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ displayName: name })
-            });
-            const payload = (await response.json().catch(() => null)) as
-              | {
-                  account?: {
-                    id: string;
-                    authUserId: string;
-                    email: string;
-                    displayName: string | null;
-                    createdAt: string;
-                  };
-                  error?: string;
-                }
-              | null;
-            setSaving(false);
-            if (!response.ok || !payload?.account) {
-              setFeedback(payload?.error || "No hemos podido actualizar tu perfil.");
-              return;
-            }
-
-            setProfile(payload.account);
-            setName(payload.account.displayName || "");
-            setFeedback("Perfil actualizado.");
-            if (response.ok) {
-              router.refresh();
-            }
-          }}
-        >
-          <label className="block">
-            <span className="text-sm font-bold text-ink">Nombre visible</span>
-            <input
-              className="focus-ring mt-2 min-h-11 w-full rounded-md border border-ink/10 bg-white px-3 text-sm text-ink"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Tu nombre"
-            />
-          </label>
-
-          <button className="button-primary" disabled={saving} type="submit">
-            {saving ? "Guardando..." : "Guardar perfil"}
-          </button>
-        </form>
-
-        <div className="mt-6">
-          <Link className="button-secondary" href="/mi-biblioteca">
-            Ver mi colección
-          </Link>
-        </div>
+        <LibraryPanel embedded />
       </div>
 
       <aside className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
