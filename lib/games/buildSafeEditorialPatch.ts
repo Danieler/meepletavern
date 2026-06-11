@@ -1,8 +1,9 @@
 import type { Game, Prisma } from "@prisma/client";
 import type { EditorialCompletion } from "@/lib/ai/editorialCompletionSchema";
 import { containsEditorialGarbage } from "@/lib/import/sanitizeEditorialFields";
-import { normalizeGameFaq } from "@/lib/editorialMappers";
+import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
+import { slugify } from "@/lib/slug";
 
 const VALID_DIFFICULTIES = new Set(["Muy fácil", "Fácil", "Media", "Alta", "Muy alta"]);
 const SUSPICIOUS_TITLES = new Set(["maldito games", "asmodee", "devir", "zygomatic", "hasbro"]);
@@ -27,6 +28,26 @@ export function buildSafeEditorialPatch(
   const patch: Prisma.GameUpdateInput = {};
   const appliedFields: string[] = [];
   const mode = options?.mode || "conservative";
+  const suggestedTitle = buildSuggestedTitle(game, completion);
+
+  if (mode === "prefer_completion" && suggestedTitle) {
+    patch.title = suggestedTitle;
+    patch.name = suggestedTitle;
+    patch.slug = slugify(suggestedTitle) || game.slug;
+    appliedFields.push("title");
+  }
+
+  applyTextField({
+    field: "publisher",
+    currentValue: game.publisher,
+    nextValue: completion.publisher,
+    shouldReplaceCurrent: isReplaceableText,
+    assign(value) {
+      patch.publisher = value;
+    }
+  });
+
+  applyStructuredFields();
 
   applyTextField({
     field: "shortDescription",
@@ -120,17 +141,19 @@ export function buildSafeEditorialPatch(
   return {
     patch,
     appliedFields,
-    suggestedTitle: buildSuggestedTitle(game, completion)
+    suggestedTitle
   };
 
   function applyTextField(input: {
     field: string;
     currentValue: string | null;
-    nextValue: string;
+    nextValue: string | null | undefined;
     shouldReplaceCurrent: (value: string | null) => boolean;
     assign: (value: string) => void;
   }) {
-    if (!isUsefulText(input.nextValue)) {
+    const nextValue = normalizeText(input.nextValue);
+
+    if (!isUsefulText(nextValue)) {
       return;
     }
 
@@ -138,7 +161,7 @@ export function buildSafeEditorialPatch(
       return;
     }
 
-    input.assign(input.nextValue);
+    input.assign(nextValue);
     appliedFields.push(input.field);
   }
 
@@ -158,6 +181,44 @@ export function buildSafeEditorialPatch(
 
     patch[field] = nextValue;
     appliedFields.push(field);
+  }
+
+  function applyStructuredFields() {
+    if (mode !== "prefer_completion") {
+      return;
+    }
+
+    const currentPlayers = normalizeGamePlayers(game.players);
+    const currentMinPlayers = currentPlayers.min ?? game.minPlayers;
+    const currentMaxPlayers = currentPlayers.max ?? game.maxPlayers;
+    const currentMinAge = game.minAge || parseFirstNumber(game.age);
+    const hasStructuredCompletion =
+      hasPositiveInteger(completion.minPlayers) &&
+      hasPositiveInteger(completion.maxPlayers) &&
+      hasPositiveInteger(completion.minPlayTime) &&
+      hasPositiveInteger(completion.maxPlayTime) &&
+      hasPositiveInteger(completion.minAge);
+
+    if (!hasStructuredCompletion) {
+      return;
+    }
+
+    if (currentMinPlayers && currentMaxPlayers && game.playtime && currentMinAge) {
+      return;
+    }
+
+    patch.players = normalizeGamePlayers({
+      min: completion.minPlayers,
+      max: completion.maxPlayers,
+      ideal: currentPlayers.ideal ?? null,
+      label: formatPlayersLabel(completion.minPlayers, completion.maxPlayers)
+    }) as unknown as Prisma.InputJsonValue;
+    patch.minPlayers = completion.minPlayers;
+    patch.maxPlayers = completion.maxPlayers;
+    patch.playtime = formatPlaytime(completion.minPlayTime, completion.maxPlayTime);
+    patch.minAge = completion.minAge;
+    patch.age = `${completion.minAge}+`;
+    appliedFields.push("structuredData");
   }
 }
 
@@ -233,4 +294,41 @@ function isUsefulText(value: string | null | undefined) {
 
 function normalizeText(value: string | null | undefined) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+}
+
+function hasPositiveInteger(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function formatPlayersLabel(minPlayers: number | null, maxPlayers: number | null) {
+  if (!hasPositiveInteger(minPlayers) && !hasPositiveInteger(maxPlayers)) {
+    return null;
+  }
+
+  if (hasPositiveInteger(minPlayers) && hasPositiveInteger(maxPlayers) && minPlayers !== maxPlayers) {
+    return `${minPlayers}-${maxPlayers}`;
+  }
+
+  return String(minPlayers || maxPlayers || "");
+}
+
+function formatPlaytime(minPlayTime: number | null, maxPlayTime: number | null) {
+  if (!hasPositiveInteger(minPlayTime) && !hasPositiveInteger(maxPlayTime)) {
+    return null;
+  }
+
+  if (hasPositiveInteger(minPlayTime) && hasPositiveInteger(maxPlayTime) && minPlayTime !== maxPlayTime) {
+    return `${minPlayTime}-${maxPlayTime} min`;
+  }
+
+  return `${minPlayTime || maxPlayTime} min`;
+}
+
+function parseFirstNumber(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/\d+/);
+  return match ? Number(match[0]) : null;
 }

@@ -1,6 +1,5 @@
-import { MediaAssetStatus, MediaAssetUsage, SourceStatus } from "@prisma/client";
+import { MediaAssetStatus, MediaAssetUsage } from "@prisma/client";
 import type { MediaAsset, Source } from "@prisma/client";
-import { normalizeSourcePermissions } from "@/lib/editorialMappers";
 
 export type PlaceholderKind =
   | "general"
@@ -12,20 +11,16 @@ export type PlaceholderKind =
   | "familiar";
 
 type MediaSafetyAsset = Pick<MediaAsset, "status" | "usage">;
-type MediaSafetySource = Pick<Source, "status" | "permissions"> | null | undefined;
+type MediaSafetySource = Pick<Source, "id"> | Pick<Source, "name" | "baseUrl"> | null | undefined;
 
 export function canShowMedia(asset: MediaSafetyAsset | null | undefined, source: MediaSafetySource) {
   if (!asset || !source) {
     return false;
   }
 
-  const permissions = normalizeSourcePermissions(source.permissions);
-
   return (
     asset.status === MediaAssetStatus.approved &&
-    asset.usage === MediaAssetUsage.public &&
-    source.status === SourceStatus.approved &&
-    permissions.canUseImages
+    asset.usage === MediaAssetUsage.public
   );
 }
 

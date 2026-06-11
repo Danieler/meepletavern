@@ -47,6 +47,7 @@ function buildGame(overrides: Partial<Parameters<typeof buildSafeEditorialPatch>
     faq: [],
     seoTitle: "Maldito Games | MeepleTavern",
     seoDescription: null,
+    ratings: {},
     buyUrl: "https://www.amazon.es/dp/B0ABC12345",
     sources: [],
     sourceIds: [],
@@ -57,12 +58,18 @@ function buildGame(overrides: Partial<Parameters<typeof buildSafeEditorialPatch>
     updatedAt: new Date("2026-06-10T10:00:00.000Z"),
     publishedAt: null,
     ...overrides
-  };
+  } as Parameters<typeof buildSafeEditorialPatch>[0];
 }
 
 test("buildSafeEditorialPatch fills only replaceable editorial fields", () => {
   const completion: EditorialCompletion = {
     cleanTitle: "Brass Birmingham",
+    publisher: "Roxley",
+    minPlayers: 2,
+    maxPlayers: 4,
+    minPlayTime: 60,
+    maxPlayTime: 120,
+    minAge: 14,
     shortDescription: "Euro exigente sobre redes, industria y timing.",
     longDescription: "Brass Birmingham premia la planificación de mano, el tempo de los ingresos y la lectura del mapa compartido.",
     difficulty: "Alta",
@@ -133,6 +140,12 @@ test("buildSafeEditorialPatch keeps existing good editorial content", () => {
     }),
     {
       cleanTitle: "Heat",
+      publisher: "Days of Wonder",
+      minPlayers: 1,
+      maxPlayers: 6,
+      minPlayTime: 30,
+      maxPlayTime: 60,
+      minAge: 10,
       shortDescription: "Otra propuesta",
       longDescription: "Otro texto",
       difficulty: "Alta",
@@ -174,6 +187,12 @@ test("buildSafeEditorialPatch can prefer model completion during import flows", 
     }),
     {
       cleanTitle: "Rebel Nemesis",
+      publisher: "Awaken Realms",
+      minPlayers: 1,
+      maxPlayers: 5,
+      minPlayTime: 90,
+      maxPlayTime: 180,
+      minAge: 14,
       shortDescription: "Cooperativo de supervivencia espacial para grupos que disfrutan la presión constante y la coordinación.",
       longDescription: "Rebel Nemesis plantea una lucha tensa por sobrevivir en una nave hostil, con decisiones compartidas y amenazas que obligan a coordinar cada turno.",
       difficulty: "Alta",
@@ -200,4 +219,52 @@ test("buildSafeEditorialPatch can prefer model completion during import flows", 
   assert.equal(result.patch.shortDescription, "Cooperativo de supervivencia espacial para grupos que disfrutan la presión constante y la coordinación.");
   assert.equal(result.patch.description, "Rebel Nemesis plantea una lucha tensa por sobrevivir en una nave hostil, con decisiones compartidas y amenazas que obligan a coordinar cada turno.");
   assert.deepEqual(result.patch.mechanics, ["Gestión de mano", "Cooperación"]);
+  assert.equal(result.patch.publisher, "Awaken Realms");
+  assert.equal(result.patch.minPlayers, 1);
+  assert.equal(result.patch.maxPlayers, 5);
+  assert.equal(result.patch.playtime, "90-180 min");
+  assert.equal(result.patch.minAge, 14);
+});
+
+test("buildSafeEditorialPatch can replace suspicious imported titles during prefer_completion", () => {
+  const result = buildSafeEditorialPatch(
+    buildGame({
+      title: "Maldito Games",
+      name: "Maldito Games",
+      slug: "maldito-games"
+    }),
+    {
+      cleanTitle: "Brass Birmingham",
+      publisher: "Roxley",
+      minPlayers: 2,
+      maxPlayers: 4,
+      minPlayTime: 60,
+      maxPlayTime: 120,
+      minAge: 14,
+      shortDescription: "Euro exigente sobre redes, industria y timing.",
+      longDescription: "Brass Birmingham premia la planificación de mano y la lectura del mapa compartido.",
+      difficulty: "Alta",
+      categories: ["Estrategia", "Eurogame"],
+      mechanics: ["Gestión de mano", "Desarrollo de redes"],
+      themes: ["Industria"],
+      bestFor: "Mesas que disfrutan optimizando turnos.",
+      notFor: "Quien prefiera juegos ligeros.",
+      pros: ["Alta profundidad táctica", "Interacción constante", "Escala bien"],
+      cons: ["Explicación inicial exigente", "Castiga errores de tempo"],
+      faq: [
+        { question: "¿Es duro de aprender?", answer: "Tiene reglas accesibles, pero dominarlo lleva partidas." },
+        { question: "¿Funciona a dos?", answer: "Sí, mantiene tensión y control del mapa." },
+        { question: "¿Qué destaca?", answer: "La gestión de mano y la lucha por redes." }
+      ],
+      seoTitle: "Brass Birmingham: reseña y opinión",
+      seoDescription: "Ficha editorial de Brass Birmingham con dificultad y sensaciones.",
+      confidence: "high",
+      warnings: []
+    },
+    { mode: "prefer_completion" }
+  );
+
+  assert.equal(result.patch.title, "Brass Birmingham");
+  assert.equal(result.patch.name, "Brass Birmingham");
+  assert.equal(result.patch.slug, "brass-birmingham");
 });

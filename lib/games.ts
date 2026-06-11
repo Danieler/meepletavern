@@ -1,5 +1,4 @@
 import { GameStatus, Prisma } from "@prisma/client";
-import { generateGameDraft } from "@/lib/ai/aiGameGeneratorService";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 import { normalizeGamePayload, toPrismaUpdate, type GameFormPayload } from "@/lib/gamePayload";
@@ -53,21 +52,6 @@ export async function getAdminGames() {
 export async function getAdminGameById(id: string) {
   return prisma.game.findUnique({
     where: { id }
-  });
-}
-
-export async function createGeneratedGameDraft(name: string) {
-  const draft = await generateGameDraft({ name });
-  const slug = await ensureUniqueSlug(draft.slug);
-
-  return prisma.game.create({
-    data: {
-      ...draft,
-      slug,
-      status: GameStatus.draft,
-      createdByAi: true,
-      publishedAt: null
-    }
   });
 }
 

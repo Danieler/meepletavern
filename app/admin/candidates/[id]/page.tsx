@@ -1,21 +1,19 @@
 import { GameCandidateStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Bot, ChevronLeft, ExternalLink, FileInput, ImagePlus, Save, Trash2, XCircle } from "lucide-react";
+import { ChevronLeft, ExternalLink, FileInput, ImagePlus, Save, Trash2, XCircle } from "lucide-react";
 import {
   convertCandidateAction,
   createMediaFromCandidateImageAction,
   deleteCandidateAction,
-  generateAiDraftAction,
   rejectCandidateAction,
   updateMediaAssetAction
 } from "@/app/admin/candidates/[id]/actions";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
-import { normalizeAiDraft, normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
+import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { gameCandidateRepository } from "@/lib/editorialRepositories";
-import { getSourcePolicy } from "@/lib/sourcePolicy";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +35,6 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
 
     const metadata = normalizeCandidateMetadata(candidate.metadata);
     const candidateImages = normalizeCandidateImages(candidate.candidateImages);
-    const aiDraft = normalizeAiDraft(candidate.aiDraft);
-    const sourcePolicy = getSourcePolicy(candidate.source);
     const linkedGameId = candidate.gameId ?? candidate.mediaAssets.find((asset) => asset.gameId)?.gameId ?? null;
     const canConvert =
       candidate.status !== GameCandidateStatus.converted &&
@@ -97,7 +93,6 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
             <Panel title="Origen">
               <dl className="grid gap-3 text-sm">
                 <Info label="Fuente" value={candidate.source.name} />
-                <Info label="Estado de fuente" value={candidate.source.status} />
                 <div>
                   <dt className="font-bold text-ink/55">URL de origen</dt>
                   <dd className="mt-1">
@@ -149,31 +144,10 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
               )}
             </Panel>
 
-            <Panel title="Borrador IA">
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                <form action={generateAiDraftAction}>
-                  <input type="hidden" name="id" value={candidate.id} />
-                  <button className="button-secondary" type="submit">
-                    <Bot size={18} aria-hidden="true" />
-                    {aiDraft ? "Regenerar borrador IA" : "Generar borrador IA"}
-                  </button>
-                </form>
-                <span className="text-sm text-ink/60">
-                  Generado: {candidate.aiGenerated ? "sí" : "no"} · Revisado: {candidate.aiReviewed ? "sí" : "no"}
-                </span>
-              </div>
-              {aiDraft ? <JsonBlock value={aiDraft} /> : <p className="text-sm text-ink/60">Sin borrador IA.</p>}
-            </Panel>
-
             <Panel title="Assets multimedia">
               <p className="mb-4 text-sm text-ink/60">
-                Las imágenes solo serán públicas si el asset está aprobado, su uso es public y la fuente permite imágenes.
+                Las imágenes solo serán públicas si el asset está aprobado y su uso es `public`.
               </p>
-              {!sourcePolicy.canUseImagePublicly ? (
-                <p className="mb-4 rounded-md bg-ember/10 p-3 text-sm font-semibold text-ink">
-                  Esta fuente no permite imágenes públicas ahora mismo. Si guardas usage public se conservará como admin_only.
-                </p>
-              ) : null}
               {candidate.mediaAssets.length ? (
                 <div className="grid gap-4">
                   {candidate.mediaAssets.map((asset) => (

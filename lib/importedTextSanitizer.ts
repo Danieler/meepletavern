@@ -2,15 +2,15 @@ import { slugify } from "@/lib/slug";
 
 export type ImportedListFieldType = "themes" | "categories" | "mechanics" | "tags";
 
-const AMAZON_GARBAGE_PATTERN =
+const COMMERCIAL_GARBAGE_PATTERN =
   /(seguridad de pagos|encripta tu informaci[oó]n|durante la transacci[oó]n|pol[ií]tica de devoluciones|devoluciones gratis|env[ií]o gratis|\bamazon\b|compra verificada|n[uú]mero de modelo|clasificaci[oó]n en los m[aá]s vendidos|producto en amazon|a[nñ]adir al carrito|comprar ahora|patrocinado|otros vendedores|frecuentemente comprados juntos|\bprecio\b|iva incluido|cup[oó]n|oferta|entrega|disponibilidad|garant[ií]a|transacci[oó]n|checkout|vendedor|tarjeta|cliente|pago)/i;
 
 const TRUNCATED_GARBAGE_PATTERN = /\b(tra|transa|informaci[oó]|devolu|garant|disponi)$/i;
 
-export function sanitizeAmazonImportedText(text: string): string | null {
+export function sanitizeImportedText(text: string): string | null {
   const cleaned = normalizeText(text);
 
-  if (!cleaned || AMAZON_GARBAGE_PATTERN.test(cleaned)) {
+  if (!cleaned || COMMERCIAL_GARBAGE_PATTERN.test(cleaned)) {
     return null;
   }
 
@@ -19,6 +19,10 @@ export function sanitizeAmazonImportedText(text: string): string | null {
   }
 
   return cleaned;
+}
+
+export function sanitizeAmazonImportedText(text: string) {
+  return sanitizeImportedText(text);
 }
 
 export function sanitizeImportedTitle(title: string) {
@@ -50,7 +54,7 @@ export function sanitizeImportedList(values: string[], fieldType: ImportedListFi
   const seen = new Map<string, string>();
 
   for (const value of values) {
-    const cleaned = sanitizeAmazonImportedText(value);
+    const cleaned = sanitizeImportedText(value);
     if (!cleaned || cleaned.length > 42 || countWords(cleaned) > maxWords || looksLikeSentence(cleaned)) {
       continue;
     }
@@ -71,7 +75,7 @@ export function sanitizeImportedFacts(facts: Record<string, string>) {
   let discardedCount = 0;
 
   for (const [key, value] of Object.entries(facts)) {
-    const cleaned = sanitizeAmazonImportedText(value);
+    const cleaned = sanitizeImportedText(value);
     if (cleaned) {
       cleanFacts[key] = cleaned;
     } else {

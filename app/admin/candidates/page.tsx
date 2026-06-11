@@ -19,7 +19,6 @@ const filters: { value: CandidateFilter; label: string }[] = [
   { value: "ready", label: "Ready" },
   { value: "needs_review", label: "Needs review" },
   { value: "missing_data", label: "Missing data" },
-  { value: "needs_permission", label: "Needs permission" },
   { value: "duplicates", label: "Duplicates" },
   { value: "rejected", label: "Rejected" }
 ];

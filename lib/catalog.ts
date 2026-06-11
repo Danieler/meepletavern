@@ -163,11 +163,7 @@ const catalogGameSelect = {
       source: {
         select: {
           name: true,
-          baseUrl: true,
-          status: true,
-          permissions: true,
-          attributionRequired: true,
-          attributionText: true
+          baseUrl: true
         }
       }
     }
@@ -534,7 +530,7 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
     imageSourceName: safeMedia?.source?.name || (publicCoverImage ? "URL editorial" : null),
     imageSourceUrl: safeMedia?.source?.baseUrl || null,
-    imageLicenseNote: safeMedia?.attribution || safeMedia?.source?.attributionText || null,
+    imageLicenseNote: safeMedia?.attribution || null,
     imageStatus: publicCoverImage ? "verified" : "placeholder",
     placeholderKind,
     playersMin: game.minPlayers,
@@ -625,7 +621,7 @@ function toReview(game: CatalogDbGame): Review | null {
     coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
     imageSourceName: safeMedia?.source?.name || (publicCoverImage ? "URL editorial" : null),
     imageSourceUrl: safeMedia?.source?.baseUrl || null,
-    imageLicenseNote: safeMedia?.attribution || safeMedia?.source?.attributionText || null,
+    imageLicenseNote: safeMedia?.attribution || null,
     imageStatus: publicCoverImage ? "verified" : "placeholder",
     placeholderKind,
     summary,

@@ -15,22 +15,6 @@ enum GameStatus {
   archived
 }
 
-enum SourceType {
-  publisher
-  distributor
-  shop
-  affiliate_api
-  open_data
-  manual
-}
-
-enum SourceStatus {
-  not_contacted
-  contacted
-  approved
-  rejected
-}
-
 enum GameCandidateStatus {
   pending
   needs_review
@@ -162,24 +146,14 @@ model Game {
 }
 
 model Source {
-  id                  String          @id @default(cuid())
-  name                String
-  baseUrl             String
-  type                SourceType
-  status              SourceStatus    @default(not_contacted)
-  permissions         Json            @default("{}")
-  attributionRequired Boolean         @default(false)
-  attributionText     String?
-  notes               String?
-  contactEmail        String?
-  permissionProofUrl  String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  candidates          GameCandidate[]
-  mediaAssets         MediaAsset[]
+  id         String          @id @default(cuid())
+  name       String
+  baseUrl    String
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  candidates GameCandidate[]
+  mediaAssets MediaAsset[]
 
-  @@index([type])
-  @@index([status])
   @@index([createdAt])
 }
 

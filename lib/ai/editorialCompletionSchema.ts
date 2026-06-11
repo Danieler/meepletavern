@@ -1,35 +1,46 @@
 import { z } from "zod";
 
-const shortString = (max: number) => z.string().trim().min(1).max(max);
+export const EDITORIAL_DIFFICULTIES = ["Muy fácil", "Fácil", "Media", "Alta", "Muy alta"] as const;
+export const EDITORIAL_CONFIDENCE_LEVELS = ["low", "medium", "high"] as const;
+
+const trimmedString = (max: number) => z.string().trim().max(max);
+const optionalTrimmedString = (max: number) => trimmedString(max).nullable().optional().default(null);
+const optionalPositiveInt = (max: number) => z.number().int().positive().max(max).nullable().optional().default(null);
 
 const tagArray = (maxItems: number) =>
-  z.array(shortString(40)).min(1).max(maxItems);
+  z.array(trimmedString(40)).max(maxItems);
 
 const bulletArray = (minItems: number, maxItems: number) =>
-  z.array(shortString(220)).min(minItems).max(maxItems);
+  z.array(trimmedString(220)).max(maxItems);
 
 const faqItemSchema = z.object({
-  question: shortString(140),
-  answer: shortString(320)
+  question: trimmedString(140),
+  answer: trimmedString(320)
 });
 
 export const editorialCompletionSchema = z.object({
-  cleanTitle: z.string().trim().min(1).max(160).nullable(),
-  shortDescription: shortString(300),
-  longDescription: shortString(1200),
-  difficulty: z.enum(["Muy fácil", "Fácil", "Media", "Alta", "Muy alta"]),
+  cleanTitle: z.string().trim().max(160).nullable(),
+  publisher: optionalTrimmedString(120),
+  minPlayers: optionalPositiveInt(20),
+  maxPlayers: optionalPositiveInt(20),
+  minPlayTime: optionalPositiveInt(600),
+  maxPlayTime: optionalPositiveInt(600),
+  minAge: optionalPositiveInt(30),
+  shortDescription: trimmedString(300),
+  longDescription: trimmedString(1200),
+  difficulty: z.union([z.enum(EDITORIAL_DIFFICULTIES), z.literal("")]),
   categories: tagArray(5),
   mechanics: tagArray(6),
   themes: tagArray(5),
-  bestFor: shortString(260),
-  notFor: shortString(260),
+  bestFor: trimmedString(260),
+  notFor: trimmedString(260),
   pros: bulletArray(3, 6),
   cons: bulletArray(2, 5),
-  faq: z.array(faqItemSchema).min(3).max(6),
-  seoTitle: shortString(70),
-  seoDescription: shortString(160),
-  confidence: z.enum(["low", "medium", "high"]),
-  warnings: z.array(shortString(220)).max(12)
-}).strict();
+  faq: z.array(faqItemSchema).max(6),
+  seoTitle: trimmedString(70),
+  seoDescription: trimmedString(160),
+  confidence: z.enum(EDITORIAL_CONFIDENCE_LEVELS),
+  warnings: z.array(trimmedString(220)).max(12)
+});
 
 export type EditorialCompletion = z.infer<typeof editorialCompletionSchema>;

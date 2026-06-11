@@ -43,24 +43,23 @@ export async function updateSourceAction(
   }
 }
 
+export async function deleteSourceAction(formData: FormData): Promise<void> {
+  const id = stringValue(formData.get("id"));
+
+  if (!id) {
+    throw new Error("Falta el identificador de la fuente.");
+  }
+
+  await sourceRepository.delete(id);
+  revalidatePath("/admin/sources");
+  revalidatePath("/admin/import");
+  revalidatePath("/admin/candidates");
+}
+
 function readSourceForm(formData: FormData) {
   return {
     name: formData.get("name"),
-    baseUrl: formData.get("baseUrl"),
-    type: formData.get("type"),
-    status: formData.get("status"),
-    permissions: {
-      canUseMetadata: formData.get("canUseMetadata") === "on",
-      canUseImages: formData.get("canUseImages") === "on",
-      canUseDescriptions: formData.get("canUseDescriptions") === "on",
-      canUsePrices: formData.get("canUsePrices") === "on",
-      canStoreImagesLocally: formData.get("canStoreImagesLocally") === "on"
-    },
-    attributionRequired: formData.get("attributionRequired") === "on",
-    attributionText: formData.get("attributionText"),
-    notes: formData.get("notes"),
-    contactEmail: formData.get("contactEmail"),
-    permissionProofUrl: formData.get("permissionProofUrl")
+    baseUrl: formData.get("baseUrl")
   };
 }
 

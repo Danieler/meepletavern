@@ -6,28 +6,19 @@ import {
   MediaAssetStatus,
   MediaAssetType,
   MediaAssetUsage,
-  Prisma,
-  SourceStatus,
-  SourceType
+  Prisma
 } from "@prisma/client";
-import { generateEditorialDraft } from "@/lib/ai/editorialDraftService";
-import { extractAsmodeeCandidate, type NormalizedCandidate } from "@/lib/connectors/asmodeeConnector";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import {
-  normalizeAiDraft,
   normalizeCandidateImages,
   normalizeCandidateMetadata,
   normalizeGameFaq,
-  normalizeGamePlayers,
-  normalizeSourcePermissions
+  normalizeGamePlayers
 } from "@/lib/editorialMappers";
-import type { SourcePermissions } from "@/lib/editorialTypes";
-import { isAsmodeeImportSource } from "@/lib/importSourceFilters";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { canShowMedia } from "@/lib/mediaSafety";
 import { prisma } from "@/lib/prisma";
 import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
-import { getSourcePolicy } from "@/lib/sourcePolicy";
 import { slugify } from "@/lib/slug";
 
 export type CandidateFilter =
@@ -35,21 +26,12 @@ export type CandidateFilter =
   | "ready"
   | "needs_review"
   | "missing_data"
-  | "needs_permission"
   | "duplicates"
   | "rejected";
 
 export type CreateSourceInput = {
   name: unknown;
   baseUrl: unknown;
-  type: unknown;
-  status: unknown;
-  permissions?: unknown;
-  attributionRequired?: unknown;
-  attributionText?: unknown;
-  notes?: unknown;
-  contactEmail?: unknown;
-  permissionProofUrl?: unknown;
 };
 
 export type UpdateSourceInput = Partial<CreateSourceInput>;
@@ -67,18 +49,6 @@ export type ManualCandidateInput = {
   maxPlayTime?: unknown;
   publisher?: unknown;
   candidateImageUrl?: unknown;
-};
-
-export type ConnectorCandidateInput = {
-  sourceId: unknown;
-  sourceUrl: unknown;
-};
-
-export type BulkImportResult = {
-  url: string;
-  status: "success" | "failed" | "duplicate" | "needs_review";
-  candidateId?: string;
-  message?: string;
 };
 
 export type UpdateMediaAssetInput = {
@@ -122,6 +92,12 @@ export const sourceRepository = {
       where: { id },
       data: toSourceUpdateData(input)
     });
+  },
+
+  delete(id: string) {
+    return prisma.source.delete({
+      where: { id }
+    });
   }
 };
 
@@ -143,10 +119,6 @@ export const gameCandidateRepository = {
 
   create(input: ManualCandidateInput) {
     return createManualGameCandidate(input);
-  },
-
-  createFromConnector(input: ConnectorCandidateInput) {
-    return createConnectorGameCandidate(input);
   },
 
   update(id: string, input: Prisma.GameCandidateUpdateInput) {
@@ -195,30 +167,6 @@ export const gameCandidateRepository = {
     });
 
     return candidate;
-  },
-
-  async generateAiDraft(id: string) {
-    const candidate = await prisma.gameCandidate.findUnique({ where: { id } });
-
-    if (!candidate) {
-      throw new Error("No existe ese candidato.");
-    }
-
-    const aiDraft = generateEditorialDraft({
-      title: candidate.title,
-      originalTitle: candidate.originalTitle,
-      metadata: candidate.metadata,
-      extractedDescription: candidate.extractedDescription
-    });
-
-    return prisma.gameCandidate.update({
-      where: { id },
-      data: {
-        aiDraft: aiDraft as Prisma.InputJsonValue,
-        aiGenerated: true,
-        aiReviewed: false
-      }
-    });
   }
 };
 
@@ -344,8 +292,7 @@ export const mediaAssetRepository = {
         url: normalizedUrl,
         type: normalizeMediaAssetType(typeInput),
         status: MediaAssetStatus.candidate,
-        usage: MediaAssetUsage.admin_only,
-        attribution: candidate.source.attributionText
+        usage: MediaAssetUsage.admin_only
       }
     });
   },
@@ -367,21 +314,16 @@ export const mediaAssetRepository = {
       throw new Error("No existe ese asset.");
     }
 
-    const source = input.sourceId ? await sourceRepository.getById(requiredString(input.sourceId, "Fuente inválida.")) : current.source;
     const requestedUsage = normalizeMediaAssetUsage(input.usage);
-    const safeUsage =
-      requestedUsage === MediaAssetUsage.public && (!source || !getSourcePolicy(source).canUseImagePublicly)
-        ? MediaAssetUsage.admin_only
-        : requestedUsage;
     const data: Prisma.MediaAssetUncheckedUpdateInput = {
       status: normalizeMediaAssetStatus(input.status),
-      usage: safeUsage,
+      usage: requestedUsage,
       type: normalizeMediaAssetType(input.type),
       attribution: optionalString(input.attribution),
       localPath: optionalString(input.localPath),
       gameId: optionalId(input.gameId),
       candidateId: optionalId(input.candidateId),
-      sourceId: source?.id ?? null
+      sourceId: optionalId(input.sourceId) ?? current.sourceId
     };
 
     return prisma.mediaAsset.update({
@@ -414,15 +356,14 @@ export async function convertCandidateToGame(candidateId: string, status: Conver
 
     await transaction.mediaAsset.updateMany({
       where: { candidateId: candidate.id, gameId: null },
-      data: { gameId: createdGame.id }
+      data: {
+        gameId: createdGame.id,
+        candidateId: null
+      }
     });
 
-    await transaction.gameCandidate.update({
-      where: { id: candidate.id },
-      data: {
-        status: GameCandidateStatus.converted,
-        gameId: createdGame.id
-      }
+    await transaction.gameCandidate.delete({
+      where: { id: candidate.id }
     });
 
     return createdGame;
@@ -437,7 +378,6 @@ type CandidateForGameConversion = Prisma.GameCandidateGetPayload<{
 
 async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConversion, status: ConvertGameStatus): Promise<Prisma.GameCreateInput> {
   const metadata = normalizeCandidateMetadata(candidate.metadata);
-  const aiDraft = normalizeAiDraft(candidate.aiDraft);
   const title = getCandidateGameTitle(candidate, metadata);
   const players = extractCandidatePlayers(metadata);
   const minAge = normalizeCandidateAge(extractCandidateNumber(metadata, [
@@ -451,7 +391,7 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
   const playtime = extractCandidatePlaytime(metadata);
   const year = extractCandidateNumber(metadata, ["year", "año", "anio"]);
   const publisher = extractCandidatePublisher(metadata);
-  const draftContent = buildCandidateDraftContent(candidate, metadata, aiDraft);
+  const draftContent = buildCandidateDraftContent(candidate, metadata);
   const image = selectCandidateGameImage(candidate, title);
   const ratingUpdate = await buildExternalRatingUpdate(
     {
@@ -531,38 +471,17 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
     imageSourceUrl: image.imageSourceUrl,
     imageLicenseNote: image.imageLicenseNote,
     imageStatus: image.imageStatus,
-    createdByAi: Boolean(aiDraft),
+    createdByAi: false,
     publishedAt: null
   };
 }
 
 function buildCandidateDraftContent(
   candidate: CandidateForGameConversion,
-  metadata: Prisma.JsonObject,
-  aiDraft: Prisma.JsonObject | null
+  metadata: Prisma.JsonObject
 ) {
-  if (isAmazonMetadata(metadata) && !aiDraft) {
+  if (isAmazonMetadata(metadata)) {
     return buildAmazonCandidateDraftContent(candidate, metadata);
-  }
-
-  if (aiDraft) {
-    const draftFaq = normalizeGameFaq(aiDraft.faq);
-    const fallbackFaq = buildFallbackFaq(candidate);
-    const pros = stringArrayFromDraft(aiDraft, "pros");
-    const cons = stringArrayFromDraft(aiDraft, "cons");
-
-    return {
-      shortDescription: stringFromDraft(aiDraft, "shortDescription") || buildFallbackShortDescription(candidate, metadata),
-      description: stringFromDraft(aiDraft, "description") || buildFallbackDescription(candidate, metadata),
-      quickVerdict: stringFromDraft(aiDraft, "quickVerdict") || buildFallbackQuickVerdict(candidate),
-      bestFor: stringFromDraft(aiDraft, "bestFor") || buildFallbackBestFor(candidate, metadata),
-      notFor: stringFromDraft(aiDraft, "notFor") || buildFallbackNotFor(candidate),
-      pros: pros.length ? pros : buildFallbackPros(candidate, metadata),
-      cons: cons.length ? cons : buildFallbackCons(candidate),
-      faq: draftFaq.length ? draftFaq : fallbackFaq,
-      seoTitle: stringFromDraft(aiDraft, "seoTitle") || buildFallbackSeoTitle(candidate),
-      seoDescription: stringFromDraft(aiDraft, "seoDescription") || buildFallbackSeoDescription(candidate)
-    };
   }
 
   const fallbackFaq = buildFallbackFaq(candidate);
@@ -641,7 +560,7 @@ function selectCandidateGameImage(candidate: CandidateForGameConversion, display
     coverImageUrl: imageUrl,
     imageSourceName: candidate.source.name,
     imageSourceUrl: candidate.source.baseUrl,
-    imageLicenseNote: selectedAsset?.attribution || candidate.source.attributionText || null,
+    imageLicenseNote: selectedAsset?.attribution || null,
     coverImageAlt: `Portada de ${displayTitle}`,
     imageStatus: isVerified ? GameImageStatus.verified : GameImageStatus.needs_review
   };
@@ -1075,12 +994,6 @@ async function createManualGameCandidate(input: ManualCandidateInput) {
     throw new Error("No existe esa fuente.");
   }
 
-  const sourcePolicy = getSourcePolicy(source);
-
-  if (!sourcePolicy.canCreateCandidate) {
-    throw new Error("No se pueden crear candidatos desde una fuente rechazada.");
-  }
-
   const originalTitle = optionalString(input.originalTitle);
   const year = optionalPositiveInt(input.year);
   const minPlayers = optionalPositiveInt(input.minPlayers);
@@ -1094,13 +1007,11 @@ async function createManualGameCandidate(input: ManualCandidateInput) {
     candidateImageUrl ? [{ url: candidateImageUrl, type: "cover", sourceUrl }] : []
   );
   const flags = calculateManualCandidateFlags({
-    source,
     minPlayers,
     maxPlayers,
     minAge,
     minPlayTime,
-    maxPlayTime,
-    candidateImageUrl
+    maxPlayTime
   });
   const status = flags.length ? GameCandidateStatus.needs_review : GameCandidateStatus.pending;
   const metadata = normalizeCandidateMetadata({
@@ -1121,7 +1032,6 @@ async function createManualGameCandidate(input: ManualCandidateInput) {
       originalTitle,
       metadata: metadata as Prisma.InputJsonValue,
       candidateImages: candidateImages as unknown as Prisma.InputJsonValue,
-      aiDraft: normalizeAiDraft(null) as Prisma.InputJsonValue,
       confidence,
       status,
       flags
@@ -1136,8 +1046,7 @@ async function createManualGameCandidate(input: ManualCandidateInput) {
         url: candidateImages[0].url,
         type: MediaAssetType.cover,
         status: MediaAssetStatus.candidate,
-        usage: MediaAssetUsage.admin_only,
-        attribution: source.attributionText
+        usage: MediaAssetUsage.admin_only
       }
     });
   }
@@ -1145,128 +1054,10 @@ async function createManualGameCandidate(input: ManualCandidateInput) {
   return candidate;
 }
 
-async function createConnectorGameCandidate(input: ConnectorCandidateInput) {
-  const sourceId = requiredString(input.sourceId, "Selecciona una fuente.");
-  const sourceUrl = requiredString(input.sourceUrl, "La URL de origen es obligatoria.");
-  const source = await sourceRepository.getById(sourceId);
-
-  if (!source) {
-    throw new Error("No existe esa fuente.");
-  }
-
-  const sourcePolicy = getSourcePolicy(source);
-
-  if (!sourcePolicy.canCreateCandidate) {
-    throw new Error("No se pueden crear candidatos desde una fuente rechazada.");
-  }
-
-  if (!isAsmodeeImportSource(source)) {
-    throw new Error("Selecciona una fuente compatible con Asmodee.");
-  }
-
-  const duplicate = await findCandidateDuplicate(sourceId, sourceUrl);
-
-  if (duplicate) {
-    throw new Error("Ya existe un candidato para esa URL.");
-  }
-
-  const normalized = await extractAsmodeeCandidate(sourceUrl);
-  return createCandidateFromNormalized(source, normalized);
-}
-
-export async function bulkImportCandidates(sourceIdInput: unknown, urlsInput: unknown, limitInput: unknown): Promise<BulkImportResult[]> {
-  const sourceId = requiredString(sourceIdInput, "Selecciona una fuente.");
-  const source = await sourceRepository.getById(sourceId);
-
-  if (!source) {
-    throw new Error("No existe esa fuente.");
-  }
-
-  if (!getSourcePolicy(source).canCreateCandidate) {
-    throw new Error("No se pueden crear candidatos desde una fuente rechazada.");
-  }
-
-  if (!isAsmodeeImportSource(source)) {
-    throw new Error("Selecciona una fuente compatible con Asmodee.");
-  }
-
-  const urls = parseBulkUrls(urlsInput);
-  const limit = Math.min(optionalPositiveInt(limitInput) || 10, 20);
-  const limitedUrls = urls.slice(0, limit);
-  const results: BulkImportResult[] = [];
-
-  for (const url of limitedUrls) {
-    try {
-      const duplicate = await findCandidateDuplicate(source.id, url);
-
-      if (duplicate) {
-        results.push({ url, status: "duplicate", candidateId: duplicate.id, message: "Ya existía un candidato para esta URL." });
-        continue;
-      }
-
-      const normalized = await extractAsmodeeCandidate(url);
-      const candidate = await createCandidateFromNormalized(source, normalized);
-      results.push({
-        url,
-        status: candidate.status === GameCandidateStatus.needs_review ? "needs_review" : "success",
-        candidateId: candidate.id
-      });
-    } catch (error) {
-      results.push({
-        url,
-        status: "failed",
-        message: error instanceof Error ? error.message : "No se pudo importar la URL."
-      });
-    }
-  }
-
-  return results;
-}
-
-async function createCandidateFromNormalized(
-  source: NonNullable<Awaited<ReturnType<typeof sourceRepository.getById>>>,
-  normalized: NormalizedCandidate
-) {
-  const sourcePolicy = getSourcePolicy(source);
-  const candidateImages = normalizeCandidateImages(normalized.candidateImages);
-  const flags = mergeFlags([
-    ...normalized.flags,
-    ...(candidateImages.length && !sourcePolicy.canUseImagePublicly ? [EditorialFlag.image_not_allowed] : []),
-    ...(source.status !== SourceStatus.approved ? [EditorialFlag.needs_permission] : []),
-    ...(normalized.confidence < 0.5 ? [EditorialFlag.low_confidence] : [])
-  ]);
-
-  return prisma.gameCandidate.create({
-    data: {
-      sourceId: source.id,
-      sourceUrl: normalized.sourceUrl,
-      title: normalized.title,
-      originalTitle: normalized.originalTitle,
-      metadata: normalizeCandidateMetadata(normalized.metadata) as Prisma.InputJsonValue,
-      extractedDescription: normalized.extractedDescription,
-      candidateImages: candidateImages as unknown as Prisma.InputJsonValue,
-      aiDraft: normalizeAiDraft(null) as Prisma.InputJsonValue,
-      aiGenerated: false,
-      aiReviewed: false,
-      confidence: normalized.confidence,
-      status: flags.length ? GameCandidateStatus.needs_review : GameCandidateStatus.pending,
-      flags
-    }
-  });
-}
-
 function toSourceCreateData(input: CreateSourceInput): Prisma.SourceCreateInput {
   return {
     name: requiredString(input.name, "El nombre de la fuente es obligatorio."),
-    baseUrl: requiredString(input.baseUrl, "La URL base es obligatoria."),
-    type: normalizeSourceType(input.type),
-    status: normalizeSourceStatus(input.status),
-    permissions: normalizeSourcePermissions(input.permissions) as unknown as Prisma.InputJsonValue,
-    attributionRequired: input.attributionRequired === true,
-    attributionText: optionalString(input.attributionText),
-    notes: optionalString(input.notes),
-    contactEmail: optionalString(input.contactEmail),
-    permissionProofUrl: optionalString(input.permissionProofUrl)
+    baseUrl: normalizeBaseUrl(input.baseUrl)
   };
 }
 
@@ -1278,45 +1069,17 @@ function toSourceUpdateData(input: UpdateSourceInput): Prisma.SourceUpdateInput 
   }
 
   if ("baseUrl" in input) {
-    data.baseUrl = requiredString(input.baseUrl, "La URL base es obligatoria.");
-  }
-
-  if ("type" in input) {
-    data.type = normalizeSourceType(input.type);
-  }
-
-  if ("status" in input) {
-    data.status = normalizeSourceStatus(input.status);
-  }
-
-  if ("permissions" in input) {
-    data.permissions = normalizeSourcePermissions(input.permissions) as unknown as Prisma.InputJsonValue;
-  }
-
-  if ("attributionRequired" in input) {
-    data.attributionRequired = input.attributionRequired === true;
-  }
-
-  if ("attributionText" in input) {
-    data.attributionText = optionalString(input.attributionText);
-  }
-
-  if ("notes" in input) {
-    data.notes = optionalString(input.notes);
-  }
-
-  if ("contactEmail" in input) {
-    data.contactEmail = optionalString(input.contactEmail);
-  }
-
-  if ("permissionProofUrl" in input) {
-    data.permissionProofUrl = optionalString(input.permissionProofUrl);
+    data.baseUrl = normalizeBaseUrl(input.baseUrl);
   }
 
   return data;
 }
 
 function candidateWhere(filter: CandidateFilter): Prisma.GameCandidateWhereInput {
+  const excludeConverted: Prisma.GameCandidateWhereInput = {
+    NOT: { status: GameCandidateStatus.converted }
+  };
+
   if (filter === "ready") {
     return {
       status: { in: [GameCandidateStatus.pending, GameCandidateStatus.approved] },
@@ -1330,36 +1093,41 @@ function candidateWhere(filter: CandidateFilter): Prisma.GameCandidateWhereInput
 
   if (filter === "missing_data") {
     return {
-      flags: { hasSome: [...missingDataFlags] }
+      AND: [
+        excludeConverted,
+        {
+          flags: { hasSome: [...missingDataFlags] }
+        }
+      ]
     };
   }
 
-  if (filter === "needs_permission") {
-    return { flags: { has: EditorialFlag.needs_permission } };
-  }
-
   if (filter === "duplicates") {
-    return { flags: { has: EditorialFlag.possible_duplicate } };
+    return {
+      AND: [
+        excludeConverted,
+        {
+          flags: { has: EditorialFlag.possible_duplicate }
+        }
+      ]
+    };
   }
 
   if (filter === "rejected") {
     return { status: GameCandidateStatus.rejected };
   }
 
-  return {};
+  return excludeConverted;
 }
 
 function calculateManualCandidateFlags(input: {
-  source: { status: SourceStatus; permissions: Prisma.JsonValue };
   minPlayers: number | null;
   maxPlayers: number | null;
   minAge: number | null;
   minPlayTime: number | null;
   maxPlayTime: number | null;
-  candidateImageUrl: string | null;
 }) {
   const flags: EditorialFlag[] = [];
-  const policy = getSourcePolicy(input.source);
 
   if (!input.minPlayers || !input.maxPlayers) {
     flags.push(EditorialFlag.missing_players);
@@ -1371,14 +1139,6 @@ function calculateManualCandidateFlags(input: {
 
   if (!input.minAge) {
     flags.push(EditorialFlag.missing_age);
-  }
-
-  if (input.candidateImageUrl && !policy.canUseImagePublicly) {
-    flags.push(EditorialFlag.image_not_allowed);
-  }
-
-  if (input.source.status !== SourceStatus.approved) {
-    flags.push(EditorialFlag.needs_permission);
   }
 
   return [...new Set(flags)];
@@ -1397,14 +1157,22 @@ async function ensureUniqueGameSlug(baseSlug: string) {
   return slug;
 }
 
-function normalizeSourceType(value: unknown) {
-  return typeof value === "string" && value in SourceType ? (value as SourceType) : SourceType.manual;
-}
+function normalizeBaseUrl(value: unknown) {
+  const rawValue = requiredString(value, "La URL base es obligatoria.");
+  const withProtocol = /^[a-z]+:\/\//i.test(rawValue) ? rawValue : `https://${rawValue}`;
 
-function normalizeSourceStatus(value: unknown) {
-  return typeof value === "string" && value in SourceStatus
-    ? (value as SourceStatus)
-    : SourceStatus.not_contacted;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(withProtocol);
+  } catch {
+    throw new Error("La URL base no es válida.");
+  }
+
+  if (!parsedUrl.hostname) {
+    throw new Error("La URL base no es válida.");
+  }
+
+  return parsedUrl.origin;
 }
 
 function normalizeMediaAssetType(value: unknown) {
@@ -1456,23 +1224,6 @@ function stringOrNull(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function stringFromDraft(draft: Prisma.JsonObject | null, key: string) {
-  const value = draft?.[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function stringArrayFromDraft(draft: Prisma.JsonObject | null, key: string) {
-  const value = draft?.[key];
-
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    .map((item) => item.trim());
-}
-
 function formatPlaytime(minInput: unknown, maxInput: unknown) {
   const min = numberOrNull(minInput);
   const max = numberOrNull(maxInput);
@@ -1486,21 +1237,6 @@ function formatPlaytime(minInput: unknown, maxInput: unknown) {
   }
 
   return null;
-}
-
-function parseBulkUrls(input: unknown) {
-  if (typeof input !== "string") {
-    return [];
-  }
-
-  return [
-    ...new Set(
-      input
-        .split(/\r?\n/)
-        .map((url) => url.trim())
-        .filter(Boolean)
-    )
-  ];
 }
 
 function mergeFlags(flags: EditorialFlag[]) {

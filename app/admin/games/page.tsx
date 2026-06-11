@@ -1,5 +1,5 @@
 import { GameStatus } from "@prisma/client";
-import { ExternalLink, FilePlus2, Pencil, Sparkles } from "lucide-react";
+import { ExternalLink, FilePlus2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
@@ -32,18 +32,12 @@ export default async function AdminGamesPage() {
           title="Juegos"
           description="Gestiona borradores, fichas publicadas y contenido archivado."
         />
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <form action={createManualGameAction}>
-            <button className="button-secondary w-full" type="submit">
-              <FilePlus2 size={18} aria-hidden="true" />
-              Nuevo juego manual
-            </button>
-          </form>
-          <Link className="button-primary" href="/admin/games/new-ai">
-            <Sparkles size={18} aria-hidden="true" />
-            Crear con IA
-          </Link>
-        </div>
+        <form action={createManualGameAction}>
+          <button className="button-secondary w-full sm:w-auto" type="submit">
+            <FilePlus2 size={18} aria-hidden="true" />
+            Nuevo juego manual
+          </button>
+        </form>
       </div>
 
       {databaseError ? (
@@ -57,7 +51,6 @@ export default async function AdminGamesPage() {
                 <Th>Nombre</Th>
                 <Th>Estado</Th>
                 <Th>Slug</Th>
-                <Th>IA</Th>
                 <Th>Creado</Th>
                 <Th>Actualizado</Th>
                 <Th>Acciones</Th>
@@ -75,7 +68,6 @@ export default async function AdminGamesPage() {
                   <Td>
                     <code className="rounded-md bg-ink/5 px-2 py-1 text-xs text-ink/70">{game.slug}</code>
                   </Td>
-                  <Td>{game.createdByAi ? "Sí" : "No"}</Td>
                   <Td>{formatDate(game.createdAt)}</Td>
                   <Td>{formatDate(game.updatedAt)}</Td>
                   <Td>
@@ -102,7 +94,7 @@ export default async function AdminGamesPage() {
               ))}
               {!games.length ? (
                 <tr>
-                  <td className="px-4 py-10 text-center text-ink/60" colSpan={7}>
+                  <td className="px-4 py-10 text-center text-ink/60" colSpan={6}>
                     Todavía no hay juegos.
                   </td>
                 </tr>

@@ -3,23 +3,10 @@ import type {
   CandidateImage,
   GameFaqItem,
   GamePlayers,
-  MediaAssetTypeKey,
-  SourcePermissions
+  MediaAssetTypeKey
 } from "@/lib/editorialTypes";
 
 const mediaAssetTypes = new Set<MediaAssetTypeKey>(["cover", "box", "component", "placeholder"]);
-
-export function normalizeSourcePermissions(input: unknown): SourcePermissions {
-  const record = isRecord(input) ? input : {};
-
-  return {
-    canUseMetadata: record.canUseMetadata === true,
-    canUseImages: record.canUseImages === true,
-    canUseDescriptions: record.canUseDescriptions === true,
-    canUsePrices: record.canUsePrices === true,
-    canStoreImagesLocally: record.canStoreImagesLocally === true
-  };
-}
 
 export function normalizeCandidateMetadata(input: unknown): Prisma.JsonObject {
   return normalizeJsonObject(input);
@@ -57,14 +44,6 @@ export function normalizeCandidateImages(input: unknown): CandidateImage[] {
       };
     })
     .filter(Boolean) as CandidateImage[];
-}
-
-export function normalizeAiDraft(input: unknown): Prisma.JsonObject | null {
-  if (!isRecord(input)) {
-    return null;
-  }
-
-  return normalizeJsonObject(input);
 }
 
 export function normalizeGamePlayers(input: unknown): GamePlayers {

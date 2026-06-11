@@ -1,7 +1,40 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gameCandidateRepository } from "@/lib/editorialRepositories";
+import { autoCompleteImportedGameWithAi, cleanupImportedCandidate, type ImportedGameResult } from "@/lib/import/importedGame";
+import { importSourceProductReview } from "@/lib/import/importSourceProduct";
+
+export type ImportSourceState = {
+  error: string | null;
+  result: ImportedGameResult | null;
+};
+
+export async function importSourceAction(_state: ImportSourceState, formData: FormData): Promise<ImportSourceState> {
+  try {
+    const imported = await importSourceProductReview({
+      sourceId: formData.get("sourceId"),
+      sourceInput: formData.get("sourceInput")
+    });
+    const result = await autoCompleteImportedGameWithAi(imported);
+    await cleanupImportedCandidate(imported.candidateId);
+
+    revalidatePath("/admin/import");
+    revalidatePath("/admin/games");
+    revalidatePath("/admin/candidates");
+
+    return {
+      error: null,
+      result
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "No se pudo importar el juego.",
+      result: null
+    };
+  }
+}
 
 export async function createManualCandidateAction(formData: FormData) {
   const candidate = await gameCandidateRepository.create({
@@ -17,15 +50,6 @@ export async function createManualCandidateAction(formData: FormData) {
     maxPlayTime: formData.get("maxPlayTime"),
     publisher: formData.get("publisher"),
     candidateImageUrl: formData.get("candidateImageUrl")
-  });
-
-  redirect(`/admin/candidates/${candidate.id}`);
-}
-
-export async function createConnectorCandidateAction(formData: FormData) {
-  const candidate = await gameCandidateRepository.createFromConnector({
-    sourceId: formData.get("sourceId"),
-    sourceUrl: formData.get("sourceUrl")
   });
 
   redirect(`/admin/candidates/${candidate.id}`);

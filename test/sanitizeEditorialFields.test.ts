@@ -6,6 +6,12 @@ import type { EditorialCompletion } from "@/lib/ai/editorialCompletionSchema";
 test("sanitizeEditorialFields removes Amazon garbage from editorial output", () => {
   const input: EditorialCompletion = {
     cleanTitle: "Heat",
+    publisher: null,
+    minPlayers: null,
+    maxPlayers: null,
+    minPlayTime: null,
+    maxPlayTime: null,
+    minAge: null,
     shortDescription: "Juego de carreras con seguridad de pagos encripta tu información durante la transacción.",
     longDescription: "Carreras tácticas para grupos que disfrutan optimizando el riesgo.",
     difficulty: "Media",
@@ -51,6 +57,12 @@ test("sanitizeEditorialFields removes Amazon garbage from editorial output", () 
 test("sanitizeEditorialFields removes english-heavy editorial fragments", () => {
   const input: EditorialCompletion = {
     cleanTitle: "Nemesis",
+    publisher: null,
+    minPlayers: null,
+    maxPlayers: null,
+    minPlayTime: null,
+    maxPlayTime: null,
+    minAge: null,
     shortDescription: "Juego cooperativo de supervivencia espacial.",
     longDescription:
       "Nemesis propone tensión constante. enjoy a gameplay designed to deliver climactic moments where every decision matters.",

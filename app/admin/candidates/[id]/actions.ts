@@ -28,12 +28,6 @@ export async function convertCandidateAction(formData: FormData) {
   redirect(`/admin/games/${game.id}`);
 }
 
-export async function generateAiDraftAction(formData: FormData) {
-  const id = readId(formData);
-  await gameCandidateRepository.generateAiDraft(id);
-  revalidatePath(`/admin/candidates/${id}`);
-}
-
 export async function createMediaFromCandidateImageAction(formData: FormData) {
   const id = readId(formData);
   const imageUrl = readString(formData, "imageUrl", "Falta la URL de imagen.");

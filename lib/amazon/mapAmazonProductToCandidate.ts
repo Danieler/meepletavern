@@ -7,10 +7,8 @@ import {
   sanitizeImportedList,
   sanitizeImportedTitle
 } from "@/lib/importedTextSanitizer";
-import { getSourcePolicy } from "@/lib/sourcePolicy";
 import type { AmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
 import type { CandidateImage } from "@/lib/editorialTypes";
-import type { Source } from "@prisma/client";
 
 export type AmazonNormalizedCandidate = {
   sourceUrl: string;
@@ -36,10 +34,8 @@ const GARBAGE_TEXT_PATTERN =
 
 export function mapAmazonProductToCandidate(input: {
   product: AmazonProduct;
-  source: Pick<Source, "status" | "permissions">;
   sourceUrl: string;
 }): AmazonNormalizedCandidate {
-  const policy = getSourcePolicy(input.source);
   const hasImage = Boolean(input.product.imageUrl);
   const sourceUrlClean = buildAmazonCanonicalUrl(input.product.asin);
   const cleanTitle = cleanAmazonTitle(input.product.title, input.product.asin);
@@ -100,9 +96,7 @@ export function mapAmazonProductToCandidate(input: {
   const flags = mergeFlags([
     ...(detected.minPlayers && detected.maxPlayers ? [] : [EditorialFlag.missing_players]),
     ...(detected.minPlayTime && detected.maxPlayTime ? [] : [EditorialFlag.missing_playtime]),
-    ...(detected.minAge ? [] : [EditorialFlag.missing_age]),
-    ...(hasImage && !policy.canUseImagePublicly ? [EditorialFlag.image_not_allowed] : []),
-    ...(input.source.status !== "approved" ? [EditorialFlag.needs_permission] : [])
+    ...(detected.minAge ? [] : [EditorialFlag.missing_age])
   ]);
   const confidence = confidenceFor(input.product, hasImage, detected);
 

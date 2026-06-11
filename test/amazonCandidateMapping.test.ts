@@ -11,16 +11,6 @@ test("mapAmazonProductToCandidate cleans Amazon-style title noise", () => {
       features: ["Juego cooperativo", "Miniaturas"],
       facts: {}
     },
-    source: {
-      status: "approved",
-      permissions: {
-        canUseMetadata: true,
-        canUseImages: true,
-        canUseDescriptions: true,
-        canUsePrices: true,
-        canStoreImagesLocally: true
-      }
-    },
     sourceUrl: "https://www.amazon.es/dp/B0BP8CMFZ7"
   });
 
@@ -39,16 +29,6 @@ test("mapAmazonProductToCandidate extracts table data and normalizes Amazon age 
         "Edad mínima recomendada": "168",
         "Número de jugadores": "1-6",
         "Tiempo de juego estimado": "60 Minutos"
-      }
-    },
-    source: {
-      status: "approved",
-      permissions: {
-        canUseMetadata: true,
-        canUseImages: true,
-        canUseDescriptions: false,
-        canUsePrices: true,
-        canStoreImagesLocally: false
       }
     },
     sourceUrl: "https://www.amazon.es/CMON-Zombicide-Cooperativo-Jugadores-Minutos/dp/B0FBH154N1/ref=vse_cards_0"
@@ -77,16 +57,6 @@ test("mapAmazonProductToCandidate reads table labels before values", () => {
         "Tiempo de juego estimado": "60"
       }
     },
-    source: {
-      status: "approved",
-      permissions: {
-        canUseMetadata: true,
-        canUseImages: true,
-        canUseDescriptions: false,
-        canUsePrices: true,
-        canStoreImagesLocally: false
-      }
-    },
     sourceUrl: "https://www.amazon.es/dp/B0TABLE001"
   });
 
@@ -107,16 +77,6 @@ test("mapAmazonProductToCandidate discards Amazon legal text from theme facts", 
         "Número de jugadores": "8-18 jugadores"
       },
       features: ["Roles ocultos, aldeanos, noche, votación y acusaciones."]
-    },
-    source: {
-      status: "approved",
-      permissions: {
-        canUseMetadata: true,
-        canUseImages: true,
-        canUseDescriptions: false,
-        canUsePrices: true,
-        canStoreImagesLocally: false
-      }
     },
     sourceUrl: "https://www.amazon.es/dp/B092R6L3T3/ref=emc_bcc_2_i"
   });

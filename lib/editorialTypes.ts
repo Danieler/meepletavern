@@ -5,9 +5,7 @@ import type {
   MediaAssetStatus,
   MediaAssetType,
   MediaAssetUsage,
-  Prisma,
-  SourceStatus,
-  SourceType
+  Prisma
 } from "@prisma/client";
 
 export const EDITORIAL_FLAGS = [
@@ -24,10 +22,6 @@ export const EDITORIAL_FLAGS = [
 // are mapped. Prisma remains the source of truth for persisted enum values.
 export type EditorialFlagKey = EditorialFlag;
 
-export type SourceTypeKey = SourceType;
-
-export type SourceStatusKey = SourceStatus;
-
 export type GameCandidateStatusKey = GameCandidateStatus;
 
 export type GameStatusKey = GameStatus;
@@ -37,14 +31,6 @@ export type MediaAssetTypeKey = MediaAssetType;
 export type MediaAssetStatusKey = MediaAssetStatus;
 
 export type MediaAssetUsageKey = MediaAssetUsage;
-
-export type SourcePermissions = {
-  canUseMetadata: boolean;
-  canUseImages: boolean;
-  canUseDescriptions: boolean;
-  canUsePrices: boolean;
-  canStoreImagesLocally: boolean;
-};
 
 export type CandidateImage = {
   url: string;
@@ -71,14 +57,6 @@ export type Source = {
   id: string;
   name: string;
   baseUrl: string;
-  type: SourceTypeKey;
-  status: SourceStatusKey;
-  permissions: SourcePermissions;
-  attributionRequired: boolean;
-  attributionText?: string | null;
-  notes?: string | null;
-  contactEmail?: string | null;
-  permissionProofUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -92,9 +70,6 @@ export type GameCandidate = {
   metadata: Prisma.JsonObject;
   extractedDescription?: string | null;
   candidateImages: CandidateImage[];
-  aiDraft?: Prisma.JsonObject | null;
-  aiGenerated: boolean;
-  aiReviewed: boolean;
   confidence: number;
   status: GameCandidateStatusKey;
   flags: EditorialFlagKey[];
