@@ -5,9 +5,9 @@ import { Suspense } from "react";
 import { ChevronRight, Clock, Gauge, Users } from "lucide-react";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
-import { CollectionButtons } from "@/components/CollectionButtons";
 import { GameCard } from "@/components/GameCard";
 import { GameCoverImage } from "@/components/GameCoverImage";
+import { GameLibraryPanel } from "@/components/GameLibraryPanel";
 import { GameStats } from "@/components/GameStats";
 import { GameRatings } from "@/components/GameRatings";
 import { MechanicTag } from "@/components/MechanicTag";
@@ -113,9 +113,7 @@ export default async function GamePage({ params }: GamePageProps) {
         <section className="container-page grid gap-8 pb-14 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
           <aside className="space-y-5">
             <GameCoverImage {...game} gameTitle={game.title} variant="detail" priority className="border border-ink/10 shadow-soft" />
-            <Panel title="Colección">
-              <CollectionButtons />
-            </Panel>
+            <GameLibraryPanel gameId={game.id} />
           </aside>
 
           <article className="space-y-9">

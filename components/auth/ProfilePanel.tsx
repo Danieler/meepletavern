@@ -205,6 +205,12 @@ export function ProfilePanel() {
             {saving ? "Guardando..." : "Guardar perfil"}
           </button>
         </form>
+
+        <div className="mt-6">
+          <Link className="button-secondary" href="/mi-biblioteca">
+            Ver mi colección
+          </Link>
+        </div>
       </div>
 
       <aside className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">

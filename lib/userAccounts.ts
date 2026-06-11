@@ -37,3 +37,9 @@ export async function upsertAppUserFromAuthUser(user: Pick<SupabaseUser, "id" | 
     }
   });
 }
+
+export async function getAppUserByAuthUserId(authUserId: string) {
+  return prisma.user.findUnique({
+    where: { authUserId }
+  });
+}
