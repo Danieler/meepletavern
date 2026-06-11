@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
 export function middleware(request: NextRequest) {
+  return handleRequest(request);
+}
+
+async function handleRequest(request: NextRequest) {
   const isAdminPath =
     request.nextUrl.pathname.startsWith("/admin") ||
     request.nextUrl.pathname.startsWith("/api/admin");
 
   if (!isAdminPath) {
-    return NextResponse.next();
+    if (!isSupabaseConfigured) {
+      return NextResponse.next();
+    }
+
+    const client = createSupabaseMiddlewareClient(request);
+    await client.supabase.auth.getUser();
+    return client.response;
   }
+
+  const response = NextResponse.next();
 
   if (!isAuthorized(request)) {
     return new NextResponse("Autenticacion requerida", {
@@ -19,7 +33,6 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  const response = NextResponse.next();
   response.headers.set("X-Robots-Tag", "noindex, nofollow");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -65,5 +78,7 @@ function decodeBasicAuth(header: string) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"]
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+  ]
 };

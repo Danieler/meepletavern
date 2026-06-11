@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Beer, Search } from "lucide-react";
+import { PublicAuthControls } from "@/components/PublicAuthControls";
 import { siteConfig } from "@/lib/site";
 
 const navItems = [
@@ -41,8 +42,10 @@ export function PublicHeader() {
             </Link>
           ))}
         </nav>
+        <div className="flex items-center justify-end">
+          <PublicAuthControls />
+        </div>
       </div>
     </header>
   );
 }
-
