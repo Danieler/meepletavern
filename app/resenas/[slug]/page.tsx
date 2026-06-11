@@ -60,6 +60,9 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                 <p className="text-sm font-bold uppercase text-ember">{review.gameTitle}</p>
                 <h1 className="mt-3 text-4xl font-black sm:text-5xl">{review.title}</h1>
                 <p className="mt-5 max-w-3xl text-lg leading-8 text-white/78">{review.summary}</p>
+                <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-white/60">
+                  Por {review.authorName}
+                </p>
                 <Link className="button-secondary mt-7 border-white/20 bg-white/10 text-white hover:text-parchment" href={`/juegos/${review.gameSlug}`}>
                   Ver ficha de {review.gameTitle}
                 </Link>

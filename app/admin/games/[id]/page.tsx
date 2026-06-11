@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, SquarePen } from "lucide-react";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { AdminBggEnrichment } from "@/components/AdminBggEnrichment";
 import { AdminFinalGameForm } from "@/components/AdminFinalGameForm";
@@ -36,6 +36,12 @@ export default async function GameEditorPage({ params }: GameEditorPageProps) {
           title={`Editor final: ${game.title || game.name}`}
           description="Guarda borradores y publica solo cuando la validación editorial esté completa."
         />
+        <div className="mb-6">
+          <Link className="button-secondary" href={`/admin/reviews/new?gameId=${game.id}`}>
+            <SquarePen size={18} aria-hidden="true" />
+            Crear reseña de este juego
+          </Link>
+        </div>
         <AdminBggEnrichment
           gameId={game.id}
           gameTitle={game.title || game.name}

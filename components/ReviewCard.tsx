@@ -21,6 +21,7 @@ export function ReviewCard({ review, compact = false }: { review: Review; compac
             <div>
               <p className="text-xs font-bold uppercase text-ruby">{review.gameTitle}</p>
               <h2 className="mt-2 text-2xl font-black text-ink">{review.title}</h2>
+              <p className="mt-2 text-xs font-semibold uppercase text-ink/45">Por {review.authorName}</p>
             </div>
           </div>
           <p className="mt-3 text-sm leading-6 text-ink/70">{review.summary}</p>

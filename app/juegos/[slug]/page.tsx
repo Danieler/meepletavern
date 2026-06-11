@@ -106,6 +106,11 @@ export default async function GamePage({ params }: GamePageProps) {
 
         <section className="container-page -mt-6 pb-8">
           <GameStats game={game} />
+          <div className="mt-5">
+            <Link className="button-secondary" href={`/juegos/${game.slug}/resena`}>
+              Escribir una reseña
+            </Link>
+          </div>
         </section>
 
         <GameRatings game={game} />

@@ -1,59 +1,56 @@
 "use client";
 
-import { GameStatus } from "@prisma/client";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { deleteGamesBulkAction } from "@/app/admin/games/[id]/actions";
-import { DeleteGameButton } from "@/components/AdminDeleteButtons";
+import { deleteReviewsBulkAction } from "@/app/admin/reviews/actions";
 
 type AdminReviewRow = {
   id: string;
-  name: string;
-  shortSummary: string | null;
-  review: string | null;
-  status: GameStatus;
+  title: string;
+  slug: string;
+  authorName: string;
+  createdByAdmin: boolean;
+  createdAt: string;
+  game: {
+    id: string;
+    title: string;
+    slug: string;
+  };
 };
 
 export function AdminReviewsTable({
-  games,
+  reviews,
   returnTo
 }: {
-  games: AdminReviewRow[];
+  reviews: AdminReviewRow[];
   returnTo: string;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
-    setSelectedIds((current) => current.filter((id) => games.some((game) => game.id === id)));
-  }, [games]);
+    setSelectedIds((current) => current.filter((id) => reviews.some((review) => review.id === id)));
+  }, [reviews]);
 
-  const allSelected = games.length > 0 && selectedIds.length === games.length;
-  const hasPublishedSelected = games.some(
-    (game) => selectedIds.includes(game.id) && game.status === GameStatus.published
-  );
+  const allSelected = reviews.length > 0 && selectedIds.length === reviews.length;
 
   return (
     <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
       <div className="flex flex-col gap-3 border-b border-ink/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-ink/60">
-          {selectedIds.length ? `${selectedIds.length} seleccionados` : "Selecciona juegos para borrarlos en bloque."}
+          {selectedIds.length
+            ? `${selectedIds.length} seleccionadas`
+            : "Solo se muestran reseñas creadas de verdad."}
         </p>
         <form
-          action={deleteGamesBulkAction}
+          action={deleteReviewsBulkAction}
           onSubmit={(event) => {
             if (!selectedIds.length) {
               event.preventDefault();
               return;
             }
 
-            const confirmed = window.confirm(
-              hasPublishedSelected
-                ? "¿Eliminar los juegos seleccionados? Algunos están publicados y desaparecerán de la web pública."
-                : "¿Eliminar los juegos seleccionados?"
-            );
-
-            if (!confirmed) {
+            if (!window.confirm("¿Eliminar las reseñas seleccionadas?")) {
               event.preventDefault();
             }
           }}
@@ -64,7 +61,7 @@ export function AdminReviewsTable({
           <input type="hidden" name="returnTo" value={returnTo} />
           <button className="button-danger min-h-9 px-3 py-1.5" disabled={!selectedIds.length} type="submit">
             <Trash2 size={16} aria-hidden="true" />
-            Eliminar seleccionados
+            Eliminar seleccionadas
           </button>
         </form>
       </div>
@@ -76,65 +73,91 @@ export function AdminReviewsTable({
               <ThCheckbox>
                 <input
                   type="checkbox"
-                  aria-label="Seleccionar todos los juegos"
+                  aria-label="Seleccionar todas las reseñas"
                   checked={allSelected}
                   onChange={(event) => {
-                    setSelectedIds(event.target.checked ? games.map((game) => game.id) : []);
+                    setSelectedIds(event.target.checked ? reviews.map((review) => review.id) : []);
                   }}
                 />
               </ThCheckbox>
-              <th className="px-4 py-3">Juego</th>
-              <th className="px-4 py-3">Resumen</th>
               <th className="px-4 py-3">Reseña</th>
-              <th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3">Juego</th>
+              <th className="px-4 py-3">Autor</th>
+              <th className="px-4 py-3">Tipo</th>
+              <th className="px-4 py-3">Creada</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-ink/10">
-            {games.map((game) => {
-              const checked = selectedIds.includes(game.id);
+            {reviews.map((review) => {
+              const checked = selectedIds.includes(review.id);
 
               return (
-                <tr key={game.id}>
+                <tr key={review.id}>
                   <TdCheckbox>
                     <input
                       type="checkbox"
-                      aria-label={`Seleccionar ${game.name}`}
+                      aria-label={`Seleccionar ${review.title}`}
                       checked={checked}
                       onChange={(event) => {
                         setSelectedIds((current) =>
                           event.target.checked
-                            ? [...current, game.id]
-                            : current.filter((id) => id !== game.id)
+                            ? [...current, review.id]
+                            : current.filter((id) => id !== review.id)
                         );
                       }}
                     />
                   </TdCheckbox>
-                  <td className="px-4 py-3 font-bold text-ink">{game.name}</td>
-                  <td className="max-w-xs px-4 py-3 text-ink/65">{game.shortSummary || "Pendiente"}</td>
-                  <td className="max-w-xs px-4 py-3 text-ink/65">{game.review || "Pendiente"}</td>
-                  <td className="px-4 py-3 text-ink/65">{game.status}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-bold text-ink">{review.title}</div>
+                    <div className="text-xs text-ink/45">/{review.slug}</div>
+                  </td>
+                  <td className="px-4 py-3 text-ink/70">
+                    <Link className="font-semibold text-moss hover:text-ink" href={`/admin/games/${review.game.id}`}>
+                      {review.game.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-ink/70">{review.authorName}</td>
+                  <td className="px-4 py-3 text-ink/70">
+                    {review.createdByAdmin ? "Admin" : "Usuario"}
+                  </td>
+                  <td className="px-4 py-3 text-ink/70">{formatDate(review.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/games/${game.id}/edit#contenido-editorial`}>
+                      <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/reviews/${review.id}`}>
                         <Pencil size={16} aria-hidden="true" />
                         Editar
                       </Link>
-                      <DeleteGameButton
-                        id={game.id}
-                        returnTo={returnTo}
-                        published={game.status === GameStatus.published}
-                        compact
-                      />
+                      <form
+                        action={deleteReviewsBulkAction}
+                        onSubmit={(event) => {
+                          if (!window.confirm("¿Eliminar esta reseña?")) {
+                            event.preventDefault();
+                          }
+                        }}
+                      >
+                        <input type="hidden" name="ids" value={review.id} />
+                        <input type="hidden" name="returnTo" value={returnTo} />
+                        <button className="button-danger min-h-9 px-3 py-1.5" type="submit">
+                          <Trash2 size={16} aria-hidden="true" />
+                          Eliminar
+                        </button>
+                      </form>
                     </div>
                   </td>
                 </tr>
               );
             })}
-            {!games.length ? (
+            {!reviews.length ? (
               <tr>
                 <td className="px-4 py-10 text-center text-ink/60" colSpan={6}>
-                  Todavía no hay juegos.
+                  <div className="flex flex-col items-center gap-3">
+                    <p>Todavía no hay reseñas creadas.</p>
+                    <Link className="button-secondary" href="/admin/games">
+                      <Plus size={16} aria-hidden="true" />
+                      Ir a juegos para crear una reseña
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ) : null}
@@ -143,6 +166,14 @@ export function AdminReviewsTable({
       </div>
     </div>
   );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(value));
 }
 
 function ThCheckbox({ children }: { children: React.ReactNode }) {

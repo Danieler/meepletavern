@@ -26,25 +26,72 @@ type AiCompletionState = GameEditorActionState & {
   suggestedTitle?: string | null;
 };
 
+type EditorDraftValues = {
+  title: string;
+  slug: string;
+  originalTitle: string;
+  year: string;
+  difficulty: string;
+  minPlayers: string;
+  maxPlayers: string;
+  idealPlayers: string;
+  minPlayTime: string;
+  maxPlayTime: string;
+  minAge: string;
+  categories: string;
+  mechanics: string;
+  themes: string;
+  publisher: string;
+  spanishPublisher: string;
+  shortDescription: string;
+  description: string;
+  quickVerdict: string;
+  bestFor: string;
+  notFor: string;
+  pros: string;
+  cons: string;
+  faq: string;
+  seoTitle: string;
+  seoDescription: string;
+  primaryImageId: string;
+  imageFallbackAccepted: boolean;
+};
+
 export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProps) {
   const router = useRouter();
   const [saveState, saveAction, isSaving] = useActionState(saveGameEditorAction, initialState);
   const [publishState, publishAction, isPublishing] = useActionState(publishGameEditorAction, initialState);
   const [aiCompletionState, setAiCompletionState] = useState<AiCompletionState>({});
   const [isCompletingWithAi, setIsCompletingWithAi] = useState(false);
-  const [primaryImageValue, setPrimaryImageValue] = useState(game.primaryImageId || "");
   const ratings = useMemo(() => normalizeGameRatings(game.ratings), [game.ratings]);
   const externalRating = ratings.external;
   const players = normalizeGamePlayers(game.players);
   const playtime = parsePlaytime(game.playtime);
   const faq = normalizeGameFaq(game.faq || game.faqs);
+  const initialDraftValues = useMemo(
+    () =>
+      buildDraftValues(
+        game,
+        normalizeGamePlayers(game.players),
+        parsePlaytime(game.playtime),
+        normalizeGameFaq(game.faq || game.faqs)
+      ),
+    [game]
+  );
+  const [draftValues, setDraftValues] = useState<EditorDraftValues>(() =>
+    initialDraftValues
+  );
   const publicUrl = game.status === GameStatus.published ? `/juegos/${game.slug}` : null;
   const showPublishButton = game.status !== GameStatus.published;
   const primaryImagePreviewUrl = useMemo(
-    () => resolvePrimaryImagePreviewUrl(primaryImageValue, game, mediaAssets),
-    [game, mediaAssets, primaryImageValue]
+    () => resolvePrimaryImagePreviewUrl(draftValues.primaryImageId, game, mediaAssets),
+    [draftValues.primaryImageId, game, mediaAssets]
   );
   const isBusy = isSaving || isPublishing || isCompletingWithAi;
+
+  useEffect(() => {
+    setDraftValues(initialDraftValues);
+  }, [initialDraftValues]);
 
   useEffect(() => {
     if (saveState.message && !saveState.errors?.length) {
@@ -99,6 +146,10 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
     } finally {
       setIsCompletingWithAi(false);
     }
+  }
+
+  function updateDraftField<K extends keyof EditorDraftValues>(key: K, value: EditorDraftValues[K]) {
+    setDraftValues((current) => ({ ...current, [key]: value }));
   }
 
   return (
@@ -214,19 +265,48 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
           <h2 className="text-xl font-bold text-ink">Datos principales</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <Field label="Título">
-              <input className="field-input" name="title" required defaultValue={game.title || game.name} />
+              <input
+                className="field-input"
+                name="title"
+                required
+                value={draftValues.title}
+                onChange={(event) => updateDraftField("title", event.target.value)}
+              />
             </Field>
             <Field label="Identificador URL">
-              <input className="field-input" name="slug" required defaultValue={game.slug} />
+              <input
+                className="field-input"
+                name="slug"
+                required
+                value={draftValues.slug}
+                onChange={(event) => updateDraftField("slug", event.target.value)}
+              />
             </Field>
             <Field label="Título original">
-              <input className="field-input" name="originalTitle" defaultValue={game.originalTitle || ""} />
+              <input
+                className="field-input"
+                name="originalTitle"
+                value={draftValues.originalTitle}
+                onChange={(event) => updateDraftField("originalTitle", event.target.value)}
+              />
             </Field>
             <Field label="Año">
-              <input className="field-input" name="year" type="number" min="1" defaultValue={game.year || ""} />
+              <input
+                className="field-input"
+                name="year"
+                type="number"
+                min="1"
+                value={draftValues.year}
+                onChange={(event) => updateDraftField("year", event.target.value)}
+              />
             </Field>
             <Field label="Dificultad">
-              <input className="field-input" name="difficulty" defaultValue={game.difficulty || game.complexity || ""} />
+              <input
+                className="field-input"
+                name="difficulty"
+                value={draftValues.difficulty}
+                onChange={(event) => updateDraftField("difficulty", event.target.value)}
+              />
             </Field>
           </div>
         </section>
@@ -235,22 +315,46 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
           <h2 className="text-xl font-bold text-ink">Mesa</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             <Field label="Jugadores mínimos">
-              <NumberInput name="minPlayers" defaultValue={players.min ?? game.minPlayers} />
+              <NumberInput
+                name="minPlayers"
+                value={draftValues.minPlayers}
+                onChange={(value) => updateDraftField("minPlayers", value)}
+              />
             </Field>
             <Field label="Jugadores máximos">
-              <NumberInput name="maxPlayers" defaultValue={players.max ?? game.maxPlayers} />
+              <NumberInput
+                name="maxPlayers"
+                value={draftValues.maxPlayers}
+                onChange={(value) => updateDraftField("maxPlayers", value)}
+              />
             </Field>
             <Field label="Jugadores ideales">
-              <NumberInput name="idealPlayers" defaultValue={players.ideal ?? null} />
+              <NumberInput
+                name="idealPlayers"
+                value={draftValues.idealPlayers}
+                onChange={(value) => updateDraftField("idealPlayers", value)}
+              />
             </Field>
             <Field label="Duración mínima">
-              <NumberInput name="minPlayTime" defaultValue={playtime.min} />
+              <NumberInput
+                name="minPlayTime"
+                value={draftValues.minPlayTime}
+                onChange={(value) => updateDraftField("minPlayTime", value)}
+              />
             </Field>
             <Field label="Duración máxima">
-              <NumberInput name="maxPlayTime" defaultValue={playtime.max} />
+              <NumberInput
+                name="maxPlayTime"
+                value={draftValues.maxPlayTime}
+                onChange={(value) => updateDraftField("maxPlayTime", value)}
+              />
             </Field>
             <Field label="Edad mínima">
-              <NumberInput name="minAge" defaultValue={game.minAge || parseFirstNumber(game.age)} />
+              <NumberInput
+                name="minAge"
+                value={draftValues.minAge}
+                onChange={(value) => updateDraftField("minAge", value)}
+              />
             </Field>
           </div>
         </section>
@@ -259,19 +363,44 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
           <h2 className="text-xl font-bold text-ink">Taxonomía y editoriales</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <Field label="Categorías">
-              <textarea className="field-textarea min-h-28" name="categories" defaultValue={game.categories.join("\n")} />
+              <textarea
+                className="field-textarea min-h-28"
+                name="categories"
+                value={draftValues.categories}
+                onChange={(event) => updateDraftField("categories", event.target.value)}
+              />
             </Field>
             <Field label="Mecánicas">
-              <textarea className="field-textarea min-h-28" name="mechanics" defaultValue={game.mechanics.join("\n")} />
+              <textarea
+                className="field-textarea min-h-28"
+                name="mechanics"
+                value={draftValues.mechanics}
+                onChange={(event) => updateDraftField("mechanics", event.target.value)}
+              />
             </Field>
             <Field label="Temáticas">
-              <textarea className="field-textarea min-h-28" name="themes" defaultValue={game.themes.join("\n")} />
+              <textarea
+                className="field-textarea min-h-28"
+                name="themes"
+                value={draftValues.themes}
+                onChange={(event) => updateDraftField("themes", event.target.value)}
+              />
             </Field>
             <Field label="Editorial">
-              <input className="field-input" name="publisher" defaultValue={game.publisher || ""} />
+              <input
+                className="field-input"
+                name="publisher"
+                value={draftValues.publisher}
+                onChange={(event) => updateDraftField("publisher", event.target.value)}
+              />
             </Field>
             <Field label="Editorial en España">
-              <input className="field-input" name="spanishPublisher" defaultValue={game.spanishPublisher || ""} />
+              <input
+                className="field-input"
+                name="spanishPublisher"
+                value={draftValues.spanishPublisher}
+                onChange={(event) => updateDraftField("spanishPublisher", event.target.value)}
+              />
             </Field>
           </div>
         </section>
@@ -280,20 +409,45 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
           <h2 className="text-xl font-bold text-ink">Contenido editorial</h2>
           <div className="mt-5 space-y-4">
             <Field label="Descripción breve">
-              <textarea className="field-textarea min-h-24" name="shortDescription" defaultValue={game.shortDescription || game.shortSummary || ""} />
+              <textarea
+                className="field-textarea min-h-24"
+                name="shortDescription"
+                value={draftValues.shortDescription}
+                onChange={(event) => updateDraftField("shortDescription", event.target.value)}
+              />
             </Field>
             <Field label="Descripción">
-              <textarea className="field-textarea min-h-40" name="description" defaultValue={game.description || ""} />
+              <textarea
+                className="field-textarea min-h-40"
+                name="description"
+                value={draftValues.description}
+                onChange={(event) => updateDraftField("description", event.target.value)}
+              />
             </Field>
             <Field label="Veredicto rápido">
-              <textarea className="field-textarea min-h-28" name="quickVerdict" defaultValue={game.quickVerdict || game.review || ""} />
+              <textarea
+                className="field-textarea min-h-28"
+                name="quickVerdict"
+                value={draftValues.quickVerdict}
+                onChange={(event) => updateDraftField("quickVerdict", event.target.value)}
+              />
             </Field>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Ideal para">
-                <textarea className="field-textarea min-h-28" name="bestFor" defaultValue={game.bestFor || ""} />
+                <textarea
+                  className="field-textarea min-h-28"
+                  name="bestFor"
+                  value={draftValues.bestFor}
+                  onChange={(event) => updateDraftField("bestFor", event.target.value)}
+                />
               </Field>
               <Field label="No recomendado para">
-                <textarea className="field-textarea min-h-28" name="notFor" defaultValue={game.notFor || ""} />
+                <textarea
+                  className="field-textarea min-h-28"
+                  name="notFor"
+                  value={draftValues.notFor}
+                  onChange={(event) => updateDraftField("notFor", event.target.value)}
+                />
               </Field>
             </div>
           </div>
@@ -301,20 +455,45 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
 
         <section className="grid gap-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft lg:grid-cols-2">
           <Field label="Puntos a favor">
-            <textarea className="field-textarea min-h-32" name="pros" defaultValue={game.pros.join("\n")} />
+            <textarea
+              className="field-textarea min-h-32"
+              name="pros"
+              value={draftValues.pros}
+              onChange={(event) => updateDraftField("pros", event.target.value)}
+            />
           </Field>
           <Field label="Puntos en contra">
-            <textarea className="field-textarea min-h-32" name="cons" defaultValue={game.cons.join("\n")} />
+            <textarea
+              className="field-textarea min-h-32"
+              name="cons"
+              value={draftValues.cons}
+              onChange={(event) => updateDraftField("cons", event.target.value)}
+            />
           </Field>
           <Field label="FAQ (Pregunta | Respuesta)">
-            <textarea className="field-textarea min-h-40" name="faq" defaultValue={faq.map((item) => `${item.question} | ${item.answer}`).join("\n")} />
+            <textarea
+              className="field-textarea min-h-40"
+              name="faq"
+              value={draftValues.faq}
+              onChange={(event) => updateDraftField("faq", event.target.value)}
+            />
           </Field>
           <div className="space-y-4">
             <Field label="Título SEO">
-              <input className="field-input" name="seoTitle" defaultValue={game.seoTitle || ""} />
+              <input
+                className="field-input"
+                name="seoTitle"
+                value={draftValues.seoTitle}
+                onChange={(event) => updateDraftField("seoTitle", event.target.value)}
+              />
             </Field>
             <Field label="Descripción SEO">
-              <textarea className="field-textarea min-h-24" name="seoDescription" defaultValue={game.seoDescription || ""} />
+              <textarea
+                className="field-textarea min-h-24"
+                name="seoDescription"
+                value={draftValues.seoDescription}
+                onChange={(event) => updateDraftField("seoDescription", event.target.value)}
+              />
             </Field>
           </div>
         </section>
@@ -328,8 +507,8 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
                   className="field-input"
                   name="primaryImageId"
                   list="media-assets"
-                  value={primaryImageValue}
-                  onChange={(event) => setPrimaryImageValue(event.target.value)}
+                  value={draftValues.primaryImageId}
+                  onChange={(event) => updateDraftField("primaryImageId", event.target.value)}
                   placeholder="ID de asset o https://..."
                 />
                 <datalist id="media-assets">
@@ -341,7 +520,12 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
                 </datalist>
               </Field>
               <label className="mt-7 flex items-center gap-2 rounded-md bg-ink/5 px-3 py-2 text-sm font-semibold text-ink/70">
-                <input name="imageFallbackAccepted" type="checkbox" defaultChecked={game.imageFallbackAccepted} />
+                <input
+                  name="imageFallbackAccepted"
+                  type="checkbox"
+                  checked={draftValues.imageFallbackAccepted}
+                  onChange={(event) => updateDraftField("imageFallbackAccepted", event.target.checked)}
+                />
                 Aceptar fallback de imagen
               </label>
             </div>
@@ -409,8 +593,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function NumberInput({ name, defaultValue }: { name: string; defaultValue: number | null | undefined }) {
-  return <input className="field-input" name={name} type="number" min="1" defaultValue={defaultValue || ""} />;
+function NumberInput({
+  name,
+  value,
+  onChange
+}: {
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      className="field-input"
+      name={name}
+      type="number"
+      min="1"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
 }
 
 function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTitle: string }) {
@@ -543,4 +744,42 @@ function resolvePrimaryImagePreviewUrl(
   }
 
   return game.coverImageUrl || game.imageUrl || null;
+}
+
+function buildDraftValues(
+  game: Game,
+  players: ReturnType<typeof normalizeGamePlayers>,
+  playtime: ReturnType<typeof parsePlaytime>,
+  faq: ReturnType<typeof normalizeGameFaq>
+): EditorDraftValues {
+  return {
+    title: game.title || game.name,
+    slug: game.slug,
+    originalTitle: game.originalTitle || "",
+    year: game.year ? String(game.year) : "",
+    difficulty: game.difficulty || game.complexity || "",
+    minPlayers: players.min ? String(players.min) : game.minPlayers ? String(game.minPlayers) : "",
+    maxPlayers: players.max ? String(players.max) : game.maxPlayers ? String(game.maxPlayers) : "",
+    idealPlayers: players.ideal ? String(players.ideal) : "",
+    minPlayTime: playtime.min ? String(playtime.min) : "",
+    maxPlayTime: playtime.max ? String(playtime.max) : "",
+    minAge: game.minAge ? String(game.minAge) : parseFirstNumber(game.age) ? String(parseFirstNumber(game.age)) : "",
+    categories: game.categories.join("\n"),
+    mechanics: game.mechanics.join("\n"),
+    themes: game.themes.join("\n"),
+    publisher: game.publisher || "",
+    spanishPublisher: game.spanishPublisher || "",
+    shortDescription: game.shortDescription || game.shortSummary || "",
+    description: game.description || "",
+    quickVerdict: game.quickVerdict || game.review || "",
+    bestFor: game.bestFor || "",
+    notFor: game.notFor || "",
+    pros: game.pros.join("\n"),
+    cons: game.cons.join("\n"),
+    faq: faq.map((item) => `${item.question} | ${item.answer}`).join("\n"),
+    seoTitle: game.seoTitle || "",
+    seoDescription: game.seoDescription || "",
+    primaryImageId: game.primaryImageId || "",
+    imageFallbackAccepted: game.imageFallbackAccepted
+  };
 }

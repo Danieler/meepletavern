@@ -6,6 +6,7 @@ import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { prisma } from "@/lib/prisma";
+import { getPublishedReviewBySlug, getPublishedReviews } from "@/lib/reviews";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { slugify } from "@/lib/slug";
@@ -76,6 +77,7 @@ export type Review = GameImageFields & {
   gameTitle: string;
   summary: string;
   body: string[];
+  authorName: string;
   publishedAt: string;
 };
 
@@ -218,14 +220,13 @@ export async function getGamesBySlugs(slugs: string[]) {
 }
 
 export async function getReviews(): Promise<Review[]> {
-  // Las reseñas públicas son manuales. Los juegos del catálogo no deben convertirse
-  // automáticamente en reseñas por tener texto editorial.
-  return [] as Review[];
+  const reviews = await getPublishedReviews();
+  return reviews.map(toPublishedReview).filter(Boolean) as Review[];
 }
 
 export async function getReviewBySlug(slug: string): Promise<Review | null> {
-  void slug;
-  return null;
+  const review = await getPublishedReviewBySlug(slug);
+  return review ? toPublishedReview(review) : null;
 }
 
 export async function getRankings() {
@@ -555,53 +556,34 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
   };
 }
 
-function toReview(game: CatalogDbGame): Review | null {
-  const title = game.title || game.name;
-  const summary = getPublicReviewSummary({
-    title,
-    shortDescription: game.shortDescription,
-    shortSummary: game.shortSummary,
-    description: game.description,
-    quickVerdict: game.quickVerdict || game.review
-  });
-  const bodySource = getPublicGameDescription({
-    title,
-    shortDescription: game.shortDescription,
-    shortSummary: game.shortSummary,
-    description: game.description,
-    quickVerdict: game.quickVerdict || game.review
-  });
-
-  if (!summary || !bodySource) {
+function toPublishedReview(review: Awaited<ReturnType<typeof getPublishedReviewBySlug>>): Review | null {
+  if (!review) {
     return null;
   }
 
-  const safeMedia = pickSafeMedia(game);
-  const publicCoverImage = safeMedia?.url || resolveLegacyPublicImage(game);
-  const difficulty = game.difficulty || game.complexity;
-  const placeholderKind = inferPlaceholderKind({
-    categories: game.categories,
-    mechanics: game.mechanics,
-    themes: game.themes,
-    difficulty
-  });
+  const gameTitle = review.game.title || review.game.name;
+  const imageUrl =
+    review.game.imageStatus === "verified"
+      ? review.game.coverImageUrl || review.game.imageUrl || null
+      : review.game.coverImageUrl || review.game.imageUrl || null;
 
   return {
-    id: `review-${game.id}`,
-    slug: game.slug,
-    title: `Reseña de ${title}`,
-    gameSlug: game.slug,
-    gameTitle: title,
-    coverImageUrl: publicCoverImage,
-    coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
-    imageSourceName: safeMedia?.source?.name || (publicCoverImage ? "URL editorial" : null),
-    imageSourceUrl: safeMedia?.source?.baseUrl || null,
-    imageLicenseNote: safeMedia?.attribution || null,
-    imageStatus: publicCoverImage ? "verified" : "placeholder",
-    placeholderKind,
-    summary,
-    body: splitParagraphs(bodySource),
-    publishedAt: toIsoString(game.publishedAt || game.updatedAt || game.createdAt) || new Date().toISOString()
+    id: review.id,
+    slug: review.slug,
+    title: review.title,
+    gameSlug: review.game.slug,
+    gameTitle,
+    coverImageUrl: imageUrl,
+    coverImageAlt: review.game.coverImageAlt || `Imagen editorial de ${gameTitle}`,
+    imageSourceName: imageUrl ? "Portada del juego" : null,
+    imageSourceUrl: null,
+    imageLicenseNote: null,
+    imageStatus: imageUrl ? "verified" : "placeholder",
+    placeholderKind: "board-game",
+    summary: review.summary,
+    body: splitParagraphs(review.body),
+    authorName: review.authorName,
+    publishedAt: toIsoString(review.publishedAt) || new Date().toISOString()
   };
 }
 
