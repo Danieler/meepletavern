@@ -84,12 +84,12 @@ export default async function Home() {
                     Editor's Pick
                   </div>
                   <div className="relative h-28">
-                    <Image
+                    <img
                       src={editorsPick.coverImageUrl || siteConfig.heroImage}
                       alt={editorsPick.coverImageAlt || editorsPick.title}
-                      fill
-                      sizes="360px"
-                      className="object-cover"
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
                     />
                   </div>
                   <div className="p-5">
@@ -150,7 +150,7 @@ export default async function Home() {
                   <Link href={`/juegos/${game.slug}`} className="grid grid-cols-[34px_54px_1fr_auto] items-center gap-3 py-3 text-sm transition hover:text-ember">
                     <span className="flex h-7 w-7 items-center justify-center rounded-md bg-walnut font-black text-white">{index + 1}</span>
                     <span className="relative h-9 overflow-hidden rounded-md border border-walnut/20">
-                      <Image src={game.coverImageUrl || siteConfig.markImage} alt="" fill sizes="54px" className="object-cover" />
+                      <img src={game.coverImageUrl || siteConfig.markImage} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                     </span>
                     <span className="min-w-0 truncate font-bold text-wood">{game.title}</span>
                     <span className="inline-flex items-center gap-1 font-black text-ember">
