@@ -9,8 +9,6 @@ import {
   type Source
 } from "@prisma/client";
 import { completeGameEditorialFieldsWithBedrock, EditorialCompletionError } from "@/lib/ai/completeGameEditorialFieldsWithBedrock";
-import { BggApiError, getBggGameDetails, searchBggGames } from "@/lib/bgg";
-import { buildBggGameUpdateInput } from "@/lib/bggEnrichment";
 import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { gameCandidateRepository, gameRepository } from "@/lib/editorialRepositories";
@@ -20,7 +18,6 @@ import { prisma } from "@/lib/prisma";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { slugify } from "@/lib/slug";
 import { getTaxonomyTermNames } from "@/lib/taxonomy";
-import { validateBeforePublish } from "@/lib/validateBeforePublish";
 
 export type NormalizedImportedCandidate = {
   sourceUrl: string;
@@ -339,25 +336,12 @@ export async function autoCompleteImportedGameWithAi(result: ImportedGameResult)
     };
   }
 
-  const bggEnrichment = await enrichStructuredFieldsFromBggIfNeeded(result.gameId, nextResult.title);
-  const enrichedGame = bggEnrichment.game;
-  const finalAppliedFields = [
-    ...(nextResult.aiAppliedFields || []),
-    ...(bggEnrichment.applied ? ["bgg.structuredData"] : [])
-  ];
-
   return {
     ...nextResult,
-    detectedPlayers:
-      enrichedGame ? formatDetectedPlayers(enrichedGame.minPlayers, enrichedGame.maxPlayers) || nextResult.detectedPlayers : nextResult.detectedPlayers,
-    detectedPlaytime: enrichedGame?.playtime || nextResult.detectedPlaytime,
-    detectedAge: enrichedGame?.minAge || nextResult.detectedAge,
     aiStatus:
-      finalAppliedFields.length || typeof ratingUpdate.external.score === "number"
+      (nextResult.aiAppliedFields?.length || 0) > 0 || typeof ratingUpdate.external.score === "number"
         ? "applied"
-        : nextResult.aiStatus || "no_changes",
-    aiAppliedFields: finalAppliedFields,
-    aiWarnings: [...(nextResult.aiWarnings || []), ...bggEnrichment.warnings]
+        : nextResult.aiStatus || "no_changes"
   };
 }
 
@@ -475,92 +459,6 @@ function playtimeFromPatch(patch: Prisma.GameUpdateInput) {
 
 function ageFromPatch(patch: Prisma.GameUpdateInput) {
   return typeof patch.minAge === "number" && Number.isFinite(patch.minAge) && patch.minAge > 0 ? patch.minAge : null;
-}
-
-async function enrichStructuredFieldsFromBggIfNeeded(gameId: string, title: string) {
-  const game = await gameRepository.getEditorById(gameId);
-
-  if (!game) {
-    return { game: null, applied: false, warnings: ["No se pudo recargar la ficha tras importar."] };
-  }
-
-  const validation = validateBeforePublish(game);
-  const needsStructuredFields = validation.errors.some((error) =>
-    error.startsWith("Jugadores:") || error.startsWith("Duración:") || error.startsWith("Edad mínima:")
-  );
-
-  if (!needsStructuredFields) {
-    return { game, applied: false, warnings: [] as string[] };
-  }
-
-  try {
-    const matches = await searchBggGames(title);
-    const selected = pickBestBggMatch(matches, title);
-
-    if (!selected) {
-      return {
-        game,
-        applied: false,
-        warnings: ["BGG no encontró una coincidencia clara para completar jugadores, duración y edad."]
-      };
-    }
-
-    const details = await getBggGameDetails(selected.bggId);
-    const updatedGame = await gameRepository.update(gameId, buildBggGameUpdateInput(game, details));
-
-    return {
-      game: updatedGame,
-      applied: true,
-      warnings: [`Se completaron jugadores, duración y edad usando BGG (${details.name}).`]
-    };
-  } catch (error) {
-    if (shouldHideBggWarning(error)) {
-      return {
-        game,
-        applied: false,
-        warnings: []
-      };
-    }
-
-    return {
-      game,
-      applied: false,
-      warnings: [error instanceof Error ? error.message : "No se pudieron completar los datos estructurados con BGG."]
-    };
-  }
-}
-
-function shouldHideBggWarning(error: unknown) {
-  return error instanceof BggApiError && (error.code === "missing_token" || error.code === "unauthorized");
-}
-
-function pickBestBggMatch(matches: Array<{ bggId: number; name: string; yearPublished: number | null }>, title: string) {
-  if (!matches.length) {
-    return null;
-  }
-
-  const normalizedTitle = normalizeComparableTitle(title);
-  return (
-    matches.find((match) => normalizeComparableTitle(match.name) === normalizedTitle) ||
-    matches.find((match) => normalizeComparableTitle(match.name).includes(normalizedTitle) || normalizedTitle.includes(normalizeComparableTitle(match.name))) ||
-    matches[0]
-  );
-}
-
-function normalizeComparableTitle(value: string) {
-  return value
-    .toLocaleLowerCase("es")
-    .replace(/[:\-.,/]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function formatDetectedPlayers(minPlayers: number | null, maxPlayers: number | null) {
-  if (!minPlayers || !maxPlayers) {
-    return null;
-  }
-
-  return minPlayers === maxPlayers ? `${minPlayers}` : `${minPlayers}-${maxPlayers}`;
 }
 
 async function ensureUniqueSlug(baseSlug: string) {

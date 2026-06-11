@@ -54,15 +54,13 @@ export async function completeGameEditorialFieldsWithBedrock(
               "Si alguna fuente o fragmento está en inglés, tradúcelo y adáptalo por completo antes de responder. " +
               "No mezcles idiomas dentro de una misma frase ni dentro del mismo campo. " +
               "Ignora y elimina cualquier código interno de catálogo o Amazon en el título o en la descripción, como (TRG-01vir), (1138753.62) o referencias parecidas. " +
-              "Usa los datos de BGG solo como referencia factual y nunca copies ni traduzcas literalmente su descripción. " +
-              "Tampoco hagas una paráfrasis ligera de la descripción de BGG: escribe texto original, editorial y propio de MeepleTavern. " +
               "Devuelve solo JSON válido, sin markdown. " +
               "Prioriza especialmente shortDescription y longDescription: deben sonar editoriales, útiles y naturales, no como placeholders. " +
               "No inventes datos objetivos. " +
               "No inventes precio, stock, autor, año, premios, componentes exactos ni expansiones. " +
               "No incluyas textos de Amazon sobre envío, pagos, devoluciones, garantía, ASIN, carrito, vendedores, ofertas o cupones. " +
               "Puedes inferir campos editoriales razonables como dificultad, categorías, mecánicas, temáticas, pros, contras, bestFor, notFor y FAQ. " +
-              "Si el juego es conocido y el título coincide claramente con una edición real, también puedes completar jugadores, duración, edad y editorial usando conocimiento general fiable de catálogo o BGG. " +
+              "Si el juego es conocido y el título coincide claramente con una edición real, también puedes completar jugadores, duración, edad y editorial usando conocimiento general fiable de catálogo. " +
               "Si no tienes suficiente seguridad en un dato objetivo, devuelve null en ese campo. " +
               "Las categorías, mecánicas y temáticas deben ser etiquetas cortas. " +
               "Si faltan datos, omítelos con naturalidad en vez de escribir texto de relleno. " +
@@ -185,29 +183,6 @@ function buildPromptInput(game: Game, sourceContext?: CompletionSourceContext | 
     age: compact(game.age || (typeof metadata.minAge === "number" ? `${metadata.minAge}+` : null), 80),
     duration: compact(game.playtime, 80),
     language: compact(readMetadataString(metadata, ["language"]) || readFact(metadata, ["Idioma", "Language"]), 80),
-    bgg: {
-      id: game.bggId,
-      url: compact(game.bggUrl, 220),
-      descriptionRaw: compact(game.bggDescriptionRaw, 2000),
-      averageRating: game.bggAverageRating,
-      bayesAverageRating: game.bggBayesAverageRating,
-      usersRated: game.bggUsersRated,
-      rank: game.bggRank,
-      weight: game.bggWeight,
-      weightVotes: game.bggWeightVotes,
-      yearPublished: game.bggYearPublished,
-      minPlayers: game.bggMinPlayers,
-      maxPlayers: game.bggMaxPlayers,
-      playingTime: game.bggPlayingTime,
-      minAge: game.bggMinAge,
-      designers: game.bggDesigners,
-      artists: game.bggArtists,
-      publishers: game.bggPublishers,
-      categories: game.bggCategories,
-      mechanics: game.bggMechanics,
-      families: game.bggFamilies,
-      lastSyncedAt: game.bggLastSyncedAt?.toISOString() || null
-    },
     existingCategories: game.categories.slice(0, 5),
     existingMechanics: game.mechanics.slice(0, 6),
     existingThemes: game.themes.slice(0, 5)
