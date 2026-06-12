@@ -35,7 +35,7 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
           <div className="container-page">
             <p className="text-sm font-bold uppercase text-ember">Archivo de juegos</p>
             <h1 className="mt-3 text-4xl font-black sm:text-5xl">Catálogo de juegos de mesa</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/76">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">
               Busca por título, filtra por mesa, compara peso y salta entre categorías, mecánicas
               y temáticas sin perder el hilo.
             </p>

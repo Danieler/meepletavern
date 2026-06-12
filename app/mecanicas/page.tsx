@@ -22,7 +22,7 @@ export default async function MechanicsPage() {
           <div className="container-page">
             <p className="text-sm font-bold uppercase text-ember">Herramientas de juego</p>
             <h1 className="mt-3 text-4xl font-black sm:text-5xl">Mecánicas de juegos de mesa</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/76">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">
               Rutas para encontrar juegos por cómo se juegan: cartas, dados, mayorías, campaña,
               control de áreas o construcción de motores.
             </p>

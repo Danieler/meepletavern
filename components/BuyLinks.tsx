@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { BrandIcon } from "@/components/BrandIcon";
 import type { BuyLink } from "@/lib/catalog";
 
 export function BuyLinks({ links }: { links: BuyLink[] }) {
@@ -17,10 +17,9 @@ export function BuyLinks({ links }: { links: BuyLink[] }) {
           target="_blank"
         >
           <span>{link.store}</span>
-          <ExternalLink size={17} aria-hidden="true" />
+          <BrandIcon name="tag" size={18} />
         </a>
       ))}
     </div>
   );
 }
-

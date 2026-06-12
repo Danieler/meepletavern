@@ -4,8 +4,14 @@
 
 :root {
   color-scheme: light;
-  --background: #fbfaf6;
-  --foreground: #1d2530;
+  --background: #f7f1e6;
+  --foreground: #1f1f1f;
+  --wood: #3b2116;
+  --walnut: #5a3a24;
+  --amber: #d89b2b;
+  --parchment: #f7f1e6;
+  --paper: #fffaf0;
+  --line: rgba(90, 58, 36, 0.22);
 }
 
 * {
@@ -19,11 +25,32 @@ html {
 body {
   margin: 0;
   background:
-    linear-gradient(180deg, rgba(247, 240, 223, 0.72), rgba(255, 255, 255, 0.96) 34rem),
+    radial-gradient(circle at 18% 0%, rgba(216, 155, 43, 0.16), transparent 28rem),
+    linear-gradient(180deg, rgba(255, 250, 240, 0.94), rgba(247, 241, 230, 0.98) 34rem),
     var(--background);
   color: var(--foreground);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    "Source Sans 3", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body::before {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  opacity: 0.58;
+  background-image:
+    linear-gradient(90deg, rgba(90, 58, 36, 0.035) 1px, transparent 1px),
+    linear-gradient(rgba(90, 58, 36, 0.028) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 a {
@@ -37,35 +64,74 @@ img {
 
 @layer components {
   .container-page {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-8;
   }
 
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-ember focus:ring-offset-2;
   }
 
   .button-primary {
-    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-amber-950/20 bg-ember px-4 py-2.5 text-sm font-black text-white shadow-soft transition hover:bg-[#c47f18] disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-secondary {
-    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ink/15 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-moss/40 hover:text-moss disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-walnut/35 bg-parchment px-4 py-2.5 text-sm font-black text-walnut shadow-sm transition hover:border-ember hover:text-wood disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-danger {
-    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ruby/20 bg-white px-4 py-2.5 text-sm font-semibold text-ruby transition hover:bg-ruby hover:text-white disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ruby/25 bg-parchment px-4 py-2.5 text-sm font-black text-ruby transition hover:bg-ruby hover:text-white disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .field-label {
-    @apply text-sm font-semibold text-ink;
+    @apply text-sm font-bold text-wood;
   }
 
   .field-input {
-    @apply focus-ring w-full rounded-md border border-ink/15 bg-white px-3 py-2.5 text-sm text-ink shadow-sm placeholder:text-ink/35;
+    @apply focus-ring w-full rounded-md border border-walnut/25 bg-[#fffaf0] px-3 py-2.5 text-sm text-ink shadow-sm placeholder:text-walnut/45;
   }
 
   .field-textarea {
-    @apply focus-ring min-h-32 w-full rounded-md border border-ink/15 bg-white px-3 py-2.5 text-sm leading-6 text-ink shadow-sm placeholder:text-ink/35;
+    @apply focus-ring min-h-32 w-full rounded-md border border-walnut/25 bg-[#fffaf0] px-3 py-2.5 text-sm leading-6 text-ink shadow-sm placeholder:text-walnut/45;
+  }
+
+  .tavern-card {
+    @apply rounded-md border border-walnut/20 bg-[#fffaf0] shadow-soft;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 14px 32px rgba(59, 33, 22, 0.1);
+  }
+
+  .tavern-panel {
+    @apply rounded-md border border-walnut/25 bg-parchment/90 shadow-tavern;
+    background-image:
+      radial-gradient(circle at 24px 18px, rgba(216, 155, 43, 0.08), transparent 16rem),
+      linear-gradient(180deg, rgba(255, 250, 240, 0.9), rgba(247, 241, 230, 0.96));
+  }
+
+  .wood-surface {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 16%),
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 11px),
+      linear-gradient(90deg, #2a160f, #4a2819 34%, #32180f 70%, #1c0e09);
+  }
+
+  .tavern-title {
+    @apply font-display font-black text-wood;
+    letter-spacing: 0;
+  }
+
+  .tavern-eyebrow {
+    @apply text-xs font-black uppercase tracking-[0.16em] text-ember;
+  }
+
+  .tavern-pill {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-walnut/20 bg-[#efe4d2] px-2.5 py-1 text-xs font-bold text-walnut;
+  }
+
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
-

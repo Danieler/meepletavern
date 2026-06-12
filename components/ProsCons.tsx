@@ -1,4 +1,4 @@
-import { Check, Minus } from "lucide-react";
+import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 
 type ProsConsProps = {
   pros: string[];
@@ -15,17 +15,17 @@ export function ProsCons({ pros, cons }: ProsConsProps) {
 }
 
 function ListPanel({ title, items, tone }: { title: string; items: string[]; tone: "good" | "bad" }) {
-  const Icon = tone === "good" ? Check : Minus;
+  const icon: BrandIconName = tone === "good" ? "star" : "bookmark";
   const iconClass = tone === "good" ? "bg-moss/10 text-moss" : "bg-ruby/10 text-ruby";
 
   return (
-    <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-      <h2 className="text-xl font-bold text-ink">{title}</h2>
+    <section className="tavern-card p-5">
+      <h2 className="font-display text-xl font-black text-wood">{title}</h2>
       <ul className="mt-4 space-y-3">
         {items.map((item) => (
-          <li key={item} className="flex gap-3 text-sm leading-6 text-ink/72">
+          <li key={item} className="flex gap-3 text-sm leading-6 text-walnut/80">
             <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${iconClass}`}>
-              <Icon size={15} aria-hidden="true" />
+              <BrandIcon name={icon} size={18} />
             </span>
             <span>{item}</span>
           </li>

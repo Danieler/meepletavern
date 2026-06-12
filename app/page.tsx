@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Compass, Dice5, Flame, Shield, Sparkles } from "lucide-react";
+import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
 import { PublicShell } from "@/components/PublicShell";
@@ -34,72 +34,168 @@ export default async function Home() {
   ]);
   const latestReviews = reviews.slice(0, 3);
   const topRanking = popularGames.slice(0, 5);
+  const editorsPick = popularGames[0];
 
   return (
     <PublicShell>
       <main>
-        <section className="relative overflow-hidden bg-ink text-white">
-          <Image
-            src={siteConfig.heroImage}
-            alt="Mesa de juegos de mesa en una taberna acogedora"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover opacity-50"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(29,37,48,0.94),rgba(47,111,98,0.74)_48%,rgba(143,48,72,0.38))]" />
-          <div className="container-page relative grid min-h-[620px] items-center gap-10 py-16 lg:grid-cols-[1fr_420px]">
-            <div className="max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm font-bold text-parchment">
-                <Sparkles size={16} aria-hidden="true" />
-                Taberna digital de juegos de mesa
-              </p>
-              <h1 className="mt-5 text-5xl font-black text-white sm:text-6xl lg:text-7xl">
-                MeepleTavern
+        <section className="container-page pt-5">
+          <div className="tavern-panel relative grid min-h-[360px] overflow-hidden p-5 sm:p-8 lg:grid-cols-[minmax(430px,1fr)_minmax(300px,0.72fr)_320px] lg:items-stretch">
+            <div className="relative z-10 flex flex-col justify-center py-6 lg:py-10">
+              <h1 className="font-display max-w-3xl text-5xl font-black leading-[0.95] text-wood sm:text-6xl">
+                Discover. Play. Love.
               </h1>
-              <p className="mt-5 text-2xl font-bold text-parchment sm:text-3xl">
-                Encuentra tu próxima partida
+              <p className="font-display mt-2 text-3xl font-black leading-tight text-wood sm:text-4xl">
+                Find your next favorite game.
               </p>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-white/80 sm:text-lg">
-                Catálogo, reseñas, rankings y recomendaciones de juegos de mesa en español, con
-                alma de taberna y cabeza de archivo.
+              <p className="mt-5 max-w-xl text-lg leading-7 text-walnut">
+                In-depth reviews, honest ratings, and expert recommendations to help you choose
+                better games and play more.
               </p>
-              <div className="mt-8 max-w-2xl">
+              <div className="mt-6 max-w-2xl">
                 <GameSearch variant="hero" />
               </div>
-            </div>
-            <aside className="rounded-md border border-white/12 bg-white/10 p-5 shadow-soft backdrop-blur">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-md bg-ember text-ink">
-                  <Dice5 size={24} aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="text-sm font-bold text-parchment">Salón de la fama</p>
-                  <h2 className="text-2xl font-black text-white">Top de la semana</h2>
-                </div>
-              </div>
-              <ol className="mt-5 space-y-3">
-                {topRanking.map((game, index) => (
-                  <li key={game.slug}>
-                    <Link
-                      href={`/juegos/${game.slug}`}
-                      className="grid grid-cols-[34px_1fr_auto] items-center gap-3 rounded-md bg-white/10 p-3 transition hover:bg-white/20"
-                    >
-                      <span className="font-black text-ember">{index + 1}</span>
-                      <span className="font-bold text-white">{game.title}</span>
-                      <span className="text-sm font-black text-parchment">{game.playersLabel || game.playtime || "Ficha"}</span>
-                    </Link>
-                  </li>
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-walnut">
+                <span>Popular Searches:</span>
+                {["Deck Building", "Worker Placement", "Cooperative", "2 Player", "Party Games"].map((term) => (
+                  <Link key={term} href={`/juegos?q=${encodeURIComponent(term)}`} className="tavern-pill">
+                    {term}
+                  </Link>
                 ))}
-              </ol>
+              </div>
+            </div>
+
+            <div className="relative mt-6 min-h-[260px] overflow-hidden border-y border-walnut/20 lg:mt-0 lg:border-x lg:border-y-0">
+              <Image
+                src={siteConfig.heroImage}
+                alt="Mesa de juegos de mesa en una taberna acogedora"
+                fill
+                priority
+                sizes="(min-width: 1024px) 40vw, 100vw"
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,241,230,0.92),transparent_24%,transparent_76%,rgba(247,241,230,0.86))]" />
+            </div>
+
+            <aside className="relative z-10 mt-6 self-center lg:-ml-10 lg:mt-0">
+              {editorsPick ? (
+                <Link href={`/juegos/${editorsPick.slug}`} className="tavern-card block overflow-hidden transition hover:-translate-y-0.5">
+                  <div className="relative h-11 bg-ember text-center font-display text-lg font-black uppercase leading-11 text-white">
+                    Editor's Pick
+                  </div>
+                  <div className="relative h-28">
+                    <img
+                      src={editorsPick.coverImageUrl || siteConfig.heroImage}
+                      alt={editorsPick.coverImageAlt || editorsPick.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="p-5">
+                    <h2 className="font-display text-2xl font-black text-wood">{editorsPick.title}</h2>
+                    <p className="mt-2 flex items-center gap-2 text-lg font-black text-ember">
+                      <BrandIcon name="star" size={20} />
+                      {editorsPick.ratings.external?.score?.toFixed(1) || "MT"}
+                      <span className="text-sm text-walnut">{editorsPick.ratings.external?.label || "Recomendado"}</span>
+                    </p>
+                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-walnut/80">{editorsPick.reviewSummary}</p>
+                    <div className="mt-5 flex flex-wrap gap-3 text-xs font-bold text-walnut">
+                      <span className="inline-flex items-center gap-1"><BrandIcon name="users" size={15} />{editorsPick.playersLabel || "Jugadores"}</span>
+                      <span className="inline-flex items-center gap-1"><BrandIcon name="clock" size={15} />{editorsPick.playtime || "Duración"}</span>
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="tavern-card p-6">
+                  <div className="flex items-start gap-4">
+                    <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-ember/40 bg-ember/10">
+                      <BrandIcon name="meeple" size={34} />
+                    </span>
+                    <div>
+                      <p className="font-display text-xl font-black text-wood">Our Mission</p>
+                      <p className="mt-2 text-sm leading-6 text-walnut/80">
+                        Help gamers discover great board games through honest reviews, community
+                        ratings, and thoughtful discussion.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </aside>
           </div>
         </section>
 
-        <section className="container-page py-12 lg:py-16">
+        <section className="container-page grid gap-5 py-5 lg:grid-cols-[1.15fr_0.75fr_0.8fr]">
+          <HomePanel title="Top Rated Games" icon="star" href="/rankings">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+              {popularGames.slice(0, 5).map((game) => (
+                <GameCard key={game.slug} game={game} poster />
+              ))}
+            </div>
+          </HomePanel>
+
+          <HomePanel title="Latest Reviews" icon="star" href="/resenas">
+            <div className="grid gap-3">
+              {latestReviews.map((review) => (
+                <ReviewCard key={review.slug} review={review} list />
+              ))}
+            </div>
+          </HomePanel>
+
+          <HomePanel title="Trending This Week" icon="star" href="/rankings">
+            <ol className="divide-y divide-walnut/15">
+              {topRanking.map((game, index) => (
+                <li key={game.slug}>
+                  <Link href={`/juegos/${game.slug}`} className="grid grid-cols-[34px_54px_1fr_auto] items-center gap-3 py-3 text-sm transition hover:text-ember">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-walnut font-black text-white">{index + 1}</span>
+                    <span className="relative h-9 overflow-hidden rounded-md border border-walnut/20">
+                      <img src={game.coverImageUrl || siteConfig.markImage} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                    </span>
+                    <span className="min-w-0 truncate font-bold text-wood">{game.title}</span>
+                    <span className="inline-flex items-center gap-1 font-black text-ember">
+                      <BrandIcon name="star" size={14} />
+                      {game.ratings.external?.score?.toFixed(1) || ""}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </HomePanel>
+        </section>
+
+        <section className="container-page grid gap-5 pb-6 lg:grid-cols-[1.1fr_1fr_260px]">
+          <HomePanel title="Best By Category" icon="trophy" href="/categorias">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+              {beginnerGames.slice(0, 5).map((game) => (
+                <GameCard key={game.slug} game={game} poster />
+              ))}
+            </div>
+          </HomePanel>
+
+          <HomePanel title="Recently Added Games" icon="star" href="/juegos">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {newGames.map((game) => (
+                <GameCard key={game.slug} game={game} poster />
+              ))}
+            </div>
+          </HomePanel>
+
+          <HomePanel title="Browse By" icon="grid">
+            <div className="grid gap-1">
+              <QuickLink href="/mecanicas" title="Mechanics" icon="settings" compact />
+              <QuickLink href="/tematicas" title="Themes" icon="tag" compact />
+              <QuickLink href="/categorias" title="Categories" icon="crown" compact />
+              <QuickLink href="/rankings" title="Top lists" icon="flame" compact />
+              <QuickLink href="/juegos" title="Player Count" icon="users" compact />
+            </div>
+          </HomePanel>
+        </section>
+
+        <section className="container-page py-8 lg:py-12">
           <SectionHeader
             eyebrow="Juegos populares"
-            title="Los títulos que más llenan mesas"
+            title="Games worth your table"
             description="Una primera selección de juegos con buena valoración, conversación y recorrido entre aficionados."
           />
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -110,7 +206,7 @@ export default async function Home() {
         </section>
 
         {latestReviews.length ? (
-          <section className="border-y border-ink/10 bg-white py-12 lg:py-16">
+          <section className="border-y border-walnut/15 bg-[#fffaf0]/70 py-12 lg:py-16">
             <div className="container-page">
               <SectionHeader
                 eyebrow="Últimas reseñas"
@@ -149,7 +245,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-t border-ink/10 bg-[#f5f7f4] py-12 lg:py-16">
+        <section className="border-t border-walnut/15 bg-parchment py-12 lg:py-16">
           <div className="container-page grid gap-5 lg:grid-cols-3">
             <SEOTextBlock title="Catálogo de juegos de mesa">
               <p>
@@ -175,10 +271,10 @@ export default async function Home() {
 
         <section className="container-page py-12 lg:py-16">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <QuickLink href="/juegos" title="Archivo de juegos" icon={Compass} />
-            <QuickLink href="/rankings" title="Rankings" icon={Flame} />
-            <QuickLink href="/resenas" title="Reseñas" icon={BookOpen} />
-            <QuickLink href="/categorias" title="Categorías" icon={Shield} />
+            <QuickLink href="/juegos" title="Archivo de juegos" icon="grid" />
+            <QuickLink href="/rankings" title="Rankings" icon="flame" />
+            <QuickLink href="/resenas" title="Reseñas" icon="book" />
+            <QuickLink href="/categorias" title="Categorías" icon="crown" />
           </div>
         </section>
       </main>
@@ -189,21 +285,52 @@ export default async function Home() {
 function QuickLink({
   href,
   title,
-  icon: Icon
+  icon,
+  compact = false
 }: {
   href: string;
   title: string;
-  icon: React.ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
+  icon: BrandIconName;
+  compact?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-md border border-ink/10 bg-white p-4 font-bold text-ink shadow-soft transition hover:border-moss/40 hover:text-moss"
+      className={`flex items-center gap-3 rounded-md border border-walnut/15 bg-[#fffaf0]/75 font-bold text-walnut shadow-sm transition hover:border-ember hover:text-wood ${compact ? "p-2.5" : "p-4"}`}
     >
-      <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-moss/10 text-moss">
-        <Icon size={19} aria-hidden={true} />
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-ember/10">
+        <BrandIcon name={icon} size={compact ? 20 : 24} />
       </span>
       {title}
     </Link>
+  );
+}
+
+function HomePanel({
+  title,
+  icon,
+  href,
+  children
+}: {
+  title: string;
+  icon: BrandIconName;
+  href?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="tavern-card p-4">
+      <div className="mb-4 flex items-center justify-between gap-4 border-b border-walnut/15 pb-3">
+        <h2 className="font-display flex items-center gap-2 text-lg font-black uppercase text-wood">
+          <BrandIcon name={icon} size={20} />
+          {title}
+        </h2>
+        {href ? (
+          <Link href={href} className="text-xs font-black text-ember transition hover:text-wood">
+            View all
+          </Link>
+        ) : null}
+      </div>
+      {children}
+    </section>
   );
 }

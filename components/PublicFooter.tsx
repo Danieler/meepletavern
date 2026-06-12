@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getCategoryTerms, getPopularGames } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
@@ -6,11 +7,19 @@ export async function PublicFooter() {
   const [categoryTerms, popularGames] = await Promise.all([getCategoryTerms(), getPopularGames(5)]);
 
   return (
-    <footer className="border-t border-ink/10 bg-ink text-white">
+    <footer className="wood-surface border-t border-ember/30 text-white">
       <div className="container-page grid gap-8 py-10 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
         <div>
-          <h2 className="text-2xl font-black">{siteConfig.name}</h2>
-          <p className="mt-4 text-sm leading-6 text-white/70">
+          <div className="relative h-14 w-44">
+            <Image
+              src={siteConfig.logoImage}
+              alt={siteConfig.name}
+              fill
+              sizes="176px"
+              className="object-contain object-left"
+            />
+          </div>
+          <p className="mt-4 text-sm leading-6 text-parchment/72">
             Una taberna digital para descubrir juegos de mesa, comparar reseñas, explorar rankings
             y encontrar la próxima partida con criterio.
           </p>
@@ -46,11 +55,11 @@ export async function PublicFooter() {
 function FooterColumn({ title, links }: { title: string; links: Array<{ href: string; label: string }> }) {
   return (
     <div>
-      <h3 className="text-sm font-bold uppercase text-ember">{title}</h3>
-      <ul className="mt-4 space-y-2 text-sm text-white/70">
+      <h3 className="text-sm font-black uppercase tracking-wide text-ember">{title}</h3>
+      <ul className="mt-4 space-y-2 text-sm text-parchment/70">
         {links.map((link) => (
           <li key={`${link.href}-${link.label}`}>
-            <Link className="hover:text-white" href={link.href}>
+            <Link className="hover:text-ember" href={link.href}>
               {link.label}
             </Link>
           </li>

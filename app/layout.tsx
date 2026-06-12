@@ -9,6 +9,10 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`
   },
   description: siteConfig.subclaim,
+  icons: {
+    icon: siteConfig.markImage,
+    apple: siteConfig.markImage
+  },
   openGraph: {
     title: `${siteConfig.name} - ${siteConfig.claim}`,
     description: siteConfig.subclaim,
@@ -26,4 +30,3 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
-

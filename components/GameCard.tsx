@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, Gauge, Users } from "lucide-react";
+import { BrandIcon } from "@/components/BrandIcon";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { getPrimaryGameTags } from "@/lib/gameDisplayTags";
 import type { CatalogGame } from "@/lib/catalog";
@@ -7,14 +7,41 @@ import type { CatalogGame } from "@/lib/catalog";
 type GameCardProps = {
   game: CatalogGame;
   compact?: boolean;
+  poster?: boolean;
 };
 
-export function GameCard({ game, compact }: GameCardProps) {
+export function GameCard({ game, compact, poster }: GameCardProps) {
   const primaryTags = getPrimaryGameTags(game, 2);
+
+  if (poster) {
+    return (
+      <article className="group min-w-0">
+        <Link href={`/juegos/${game.slug}`} prefetch className="block" aria-label={`Abrir ficha de ${game.title}`}>
+          <div className="relative overflow-hidden rounded-md border border-walnut/20 bg-walnut/10 shadow-sm transition group-hover:-translate-y-0.5">
+            <GameCoverImage
+              {...game}
+              gameTitle={game.title}
+              variant="card"
+              showPlaceholderLabel={false}
+              className="rounded-none"
+            />
+            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-wood/80 px-2 py-1 text-sm font-black text-white">
+              <BrandIcon name="star" size={15} />
+              {game.ratings.external?.score?.toFixed(1) || "MT"}
+            </span>
+          </div>
+          <h3 className="mt-2 truncate text-sm font-black text-wood">{game.title}</h3>
+          <p className="mt-1 truncate text-xs font-semibold text-walnut/70">
+            {[game.playersLabel, game.playtime, game.complexity].filter(Boolean).join(" · ")}
+          </p>
+        </Link>
+      </article>
+    );
+  }
 
   if (compact) {
     return (
-      <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
+      <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/50">
         <Link
           href={`/juegos/${game.slug}`}
           prefetch
@@ -31,22 +58,22 @@ export function GameCard({ game, compact }: GameCardProps) {
           <div className="min-w-0 py-1">
             <div className="flex flex-wrap gap-2">
               {primaryTags.map((tag) => (
-                <span key={tag} className="rounded-md bg-moss/10 px-2.5 py-1 text-xs font-semibold text-moss">
+                <span key={tag} className="tavern-pill">
                   {tag}
                 </span>
               ))}
             </div>
-            <h3 className="mt-3 text-lg font-bold leading-tight text-ink">{game.title}</h3>
+            <h3 className="font-display mt-3 text-lg font-black leading-tight text-wood">{game.title}</h3>
             {game.publishedAt ? (
-              <p className="mt-1 text-xs font-semibold uppercase text-ink/45">{formatDate(game.publishedAt)}</p>
+              <p className="mt-1 text-xs font-semibold uppercase text-walnut/50">{formatDate(game.publishedAt)}</p>
             ) : null}
-            <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-ink/58">
+            <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-walnut/70">
               <span className="inline-flex items-center gap-1.5">
-                <Users size={15} aria-hidden="true" />
+                <BrandIcon name="users" size={16} />
                 {game.playersLabel || "Jugadores pendiente"}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Clock size={15} aria-hidden="true" />
+                <BrandIcon name="clock" size={16} />
                 {game.playtime || "Duración pendiente"}
               </span>
             </div>
@@ -57,7 +84,7 @@ export function GameCard({ game, compact }: GameCardProps) {
   }
 
   return (
-    <article className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:-translate-y-0.5 hover:border-moss/30">
+    <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/50">
       <Link
         href={`/juegos/${game.slug}`}
         prefetch
@@ -71,31 +98,31 @@ export function GameCard({ game, compact }: GameCardProps) {
               {primaryTags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-md bg-moss/10 px-2.5 py-1 text-xs font-semibold text-moss"
+                  className="tavern-pill"
                 >
                   {tag}
                 </span>
               ))}
             </div>
           </div>
-          <h3 className="text-xl font-bold text-ink">{game.title}</h3>
+          <h3 className="font-display text-xl font-black text-wood">{game.title}</h3>
           {game.publishedAt ? (
-            <p className="mt-1 text-xs font-semibold uppercase text-ink/45">{formatDate(game.publishedAt)}</p>
+            <p className="mt-1 text-xs font-semibold uppercase text-walnut/50">{formatDate(game.publishedAt)}</p>
           ) : null}
           {!compact ? (
-            <p className="mt-3 line-clamp-3 text-sm leading-6 text-ink/68">{game.reviewSummary}</p>
+            <p className="mt-3 line-clamp-3 text-sm leading-6 text-walnut/80">{game.reviewSummary}</p>
           ) : null}
-          <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-ink/58">
+          <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-walnut/70">
             <span className="inline-flex items-center gap-1.5">
-              <Users size={15} aria-hidden="true" />
+              <BrandIcon name="users" size={16} />
               {game.playersLabel || "Jugadores pendiente"}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Clock size={15} aria-hidden="true" />
+              <BrandIcon name="clock" size={16} />
               {game.playtime || "Duración pendiente"}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Gauge size={15} aria-hidden="true" />
+              <BrandIcon name="gauge" size={16} />
               {game.complexity || "Complejidad pendiente"}
             </span>
           </div>

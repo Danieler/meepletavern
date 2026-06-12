@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Flame } from "lucide-react";
+import { BrandIcon } from "@/components/BrandIcon";
 import { PublicShell } from "@/components/PublicShell";
 import { RankingList } from "@/components/RankingList";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -31,7 +31,7 @@ export default async function RankingsPage() {
           <div className="container-page">
             <p className="text-sm font-bold uppercase text-ember">Salón de la fama</p>
             <h1 className="mt-3 text-4xl font-black sm:text-5xl">Rankings de juegos de mesa</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/76">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">
               Listas editoriales para comparar por tipo de mesa, momento, género y nivel de
               experiencia.
             </p>
@@ -44,7 +44,7 @@ export default async function RankingsPage() {
               <div className="flex items-start justify-between gap-4">
                 <SectionHeader title={ranking.title} description={ranking.description} />
                 <Link className="button-secondary shrink-0" href={`/rankings/${ranking.slug}`}>
-                  <Flame size={17} aria-hidden="true" />
+                  <BrandIcon name="flame" size={18} />
                   Ver ranking
                 </Link>
               </div>

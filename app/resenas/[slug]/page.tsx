@@ -59,7 +59,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
               <div>
                 <p className="text-sm font-bold uppercase text-ember">{review.gameTitle}</p>
                 <h1 className="mt-3 text-4xl font-black sm:text-5xl">{review.title}</h1>
-                <p className="mt-5 max-w-3xl text-lg leading-8 text-white/78">{review.summary}</p>
+                <p className="mt-5 max-w-3xl text-lg leading-8 text-white/80">{review.summary}</p>
                 <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-white/60">
                   Por {review.authorName}
                 </p>
@@ -77,7 +77,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
             </div>
           </section>
           <section className="container-page grid gap-8 py-12 lg:grid-cols-[minmax(0,760px)_240px]">
-            <div className="space-y-6 text-lg leading-9 text-ink/76">
+            <div className="space-y-6 text-lg leading-9 text-ink/75">
               {review.body.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
