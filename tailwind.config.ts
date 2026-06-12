@@ -22,8 +22,8 @@ const config: Config = {
         parchment: "#f7f1e6"
       },
       boxShadow: {
-        soft: "0 14px 32px rgba(59, 33, 22, 0.12)",
-        tavern: "0 18px 46px rgba(59, 33, 22, 0.18)",
+        soft: "0 10px 24px rgba(59, 33, 22, 0.1)",
+        tavern: "0 14px 34px rgba(59, 33, 22, 0.15)",
         insetPanel: "inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 0 rgba(90,58,36,0.08)"
       }
     }

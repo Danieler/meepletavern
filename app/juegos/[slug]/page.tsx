@@ -130,7 +130,7 @@ export default async function GamePage({ params }: GamePageProps) {
                 </div>
                 {game.ratings.external?.score ? (
                   <div className="flex min-w-40 flex-col items-center justify-center rounded-[18px] border-4 border-ember bg-walnut p-5 text-center text-white shadow-tavern">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-parchment">Overall rating</p>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-parchment">Valoración general</p>
                     <p className="font-display text-6xl font-black">{game.ratings.external.score.toFixed(1)}</p>
                     <p className="font-display text-lg font-black text-ember">{game.ratings.external.label}</p>
                     <BrandIcon name="star" size={26} className="mt-2" />
@@ -150,14 +150,14 @@ export default async function GamePage({ params }: GamePageProps) {
                     </TagSection>
                   ) : null}
                   {game.mechanics.length ? (
-                    <TagSection title="Mechanisms">
+                    <TagSection title="Mecánicas">
                       {game.mechanics.map((mechanic) => (
                         <MechanicTag key={mechanic} value={mechanic} />
                       ))}
                     </TagSection>
                   ) : null}
                   {game.themes.length ? (
-                    <TagSection title="Themes">
+                    <TagSection title="Temáticas">
                       {game.themes.map((theme) => (
                         <Link
                           key={theme}
@@ -173,7 +173,7 @@ export default async function GamePage({ params }: GamePageProps) {
               ) : null}
 
               <div className="wood-surface grid overflow-hidden rounded-md border border-ember/30 text-sm font-black uppercase tracking-wide text-parchment sm:grid-cols-4">
-                {["Overview", "Review", "Details", "Related Games"].map((label, index) => (
+                {["Resumen", "Reseña", "Detalles", "Juegos relacionados"].map((label, index) => (
                   <span key={label} className={`border-ember/20 px-4 py-4 text-center ${index ? "sm:border-l" : "text-ember"}`}>
                     {label}
                   </span>
@@ -182,7 +182,7 @@ export default async function GamePage({ params }: GamePageProps) {
 
             {game.description ? (
               <section className="tavern-card p-6">
-                <h2 className="font-display text-2xl font-black text-wood">Review Summary</h2>
+                <h2 className="font-display text-2xl font-black text-wood">Resumen de la reseña</h2>
                 <p className="mt-4 text-base leading-8 text-walnut/80">{game.description}</p>
               </section>
             ) : null}
@@ -294,11 +294,11 @@ function CommunityScore({ game }: { game: CatalogGame }) {
   const score = game.ratings.external?.score;
 
   return (
-    <Panel title="Community score">
+    <Panel title="Valoración de la comunidad">
       <div className="flex items-center gap-5">
         <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-4 border-ember bg-walnut font-display font-black text-white">
           <span className="text-4xl">{score ? score.toFixed(1) : "MT"}</span>
-          <span className="text-xs text-ember">{game.ratings.external?.label || "Score"}</span>
+          <span className="text-xs text-ember">{game.ratings.external?.label || "Nota"}</span>
         </div>
         <div className="grid flex-1 gap-2">
           {[5, 4, 3, 2, 1].map((value) => (
@@ -318,7 +318,7 @@ function CommunityScore({ game }: { game: CatalogGame }) {
 
 function GalleryPreview({ game }: { game: CatalogGame }) {
   return (
-    <Panel title="Gallery">
+    <Panel title="Galería">
       <div className="grid grid-cols-4 gap-2">
         {[0, 1, 2].map((item) => (
           <div key={item} className="relative aspect-square overflow-hidden rounded-md border border-walnut/20">
@@ -326,11 +326,11 @@ function GalleryPreview({ game }: { game: CatalogGame }) {
           </div>
         ))}
         <div className="flex aspect-square items-center justify-center rounded-md bg-wood text-center text-sm font-black uppercase text-white">
-          +12<br />more
+          +12<br />más
         </div>
       </div>
       <Link href={`/juegos/${game.slug}`} className="button-secondary mt-4 w-full text-xs uppercase tracking-wide">
-        View all images
+        Ver todas las imágenes
       </Link>
     </Panel>
   );

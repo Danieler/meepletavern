@@ -5,12 +5,12 @@ import { PublicAuthControls } from "@/components/PublicAuthControls";
 import { siteConfig } from "@/lib/site";
 
 const navItems = [
-  { href: "/resenas", label: "Reviews" },
-  { href: "/rankings", label: "Ratings" },
-  { href: "/juegos", label: "Browse games" },
-  { href: "/categorias", label: "Top lists" },
-  { href: "/mecanicas", label: "Articles" },
-  { href: "/tematicas", label: "Community" }
+  { href: "/resenas", label: "Reseñas" },
+  { href: "/rankings", label: "Rankings" },
+  { href: "/juegos", label: "Juegos" },
+  { href: "/categorias", label: "Categorías" },
+  { href: "/mecanicas", label: "Mecánicas" },
+  { href: "/tematicas", label: "Temáticas" }
 ];
 
 export function PublicHeader() {
@@ -37,7 +37,7 @@ export function PublicHeader() {
                 Tavern
               </span>
               <span className="mt-1 block text-[10px] font-black uppercase tracking-[0.18em] text-parchment/80">
-                Reviews · ratings · discovery
+                reseñas · rankings · descubrimientos
               </span>
             </span>
           </Link>

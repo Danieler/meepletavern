@@ -97,14 +97,12 @@ img {
 
   .tavern-card {
     @apply rounded-md border border-walnut/20 bg-[#fffaf0] shadow-soft;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 14px 32px rgba(59, 33, 22, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 24px rgba(59, 33, 22, 0.08);
   }
 
   .tavern-panel {
     @apply rounded-md border border-walnut/25 bg-parchment/90 shadow-tavern;
-    background-image:
-      radial-gradient(circle at 24px 18px, rgba(216, 155, 43, 0.08), transparent 16rem),
-      linear-gradient(180deg, rgba(255, 250, 240, 0.9), rgba(247, 241, 230, 0.96));
+    background-image: linear-gradient(180deg, rgba(255, 250, 240, 0.88), rgba(247, 241, 230, 0.94));
   }
 
   .wood-surface {
