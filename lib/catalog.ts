@@ -225,32 +225,23 @@ export async function getRankingGames(ranking: Ranking) {
   const games = await getCatalogGames();
 
   if (ranking.type === "category" && ranking.term) {
-    return sortGames(
-      games.filter((game) => game.categories.includes(ranking.term as string)),
-      "fecha"
-    );
+    return sortGamesByEffectiveRating(games.filter((game) => game.categories.includes(ranking.term as string)));
   }
 
   if (ranking.type === "mechanic" && ranking.term) {
-    return sortGames(
-      games.filter((game) => game.mechanics.includes(ranking.term as string)),
-      "fecha"
-    );
+    return sortGamesByEffectiveRating(games.filter((game) => game.mechanics.includes(ranking.term as string)));
   }
 
   if (ranking.type === "theme" && ranking.term) {
-    return sortGames(
-      games.filter((game) => game.themes.includes(ranking.term as string)),
-      "fecha"
-    );
+    return sortGamesByEffectiveRating(games.filter((game) => game.themes.includes(ranking.term as string)));
   }
 
-  return sortGames(games, "fecha");
+  return sortGamesByEffectiveRating(games);
 }
 
 export async function getPopularGames(limit = 6) {
   const games = await getCatalogGames();
-  return sortGames(games, "fecha").slice(0, limit);
+  return sortGamesByEffectiveRating(games).slice(0, limit);
 }
 
 export async function getBeginnerGames(limit = 5) {
@@ -349,6 +340,10 @@ export async function filterGames(input: GameFilterInput) {
 export function sortGames(games: CatalogGame[], sort = "nombre") {
   const sorted = [...games];
 
+  if (sort === "valoracion") {
+    return sortGamesByEffectiveRating(sorted);
+  }
+
   if (sort === "fecha") {
     return sorted.sort((a, b) => dateValue(b.publishedAt || b.addedAt) - dateValue(a.publishedAt || a.addedAt));
   }
@@ -358,6 +353,31 @@ export function sortGames(games: CatalogGame[], sort = "nombre") {
   }
 
   return sorted.sort((a, b) => a.title.localeCompare(b.title, "es"));
+}
+
+export function getEffectiveRatingScore(game: CatalogGame) {
+  return game.ratings.combined?.score ?? game.ratings.external?.score ?? null;
+}
+
+export function sortGamesByEffectiveRating(games: CatalogGame[]) {
+  return [...games].sort((a, b) => {
+    const scoreA = getEffectiveRatingScore(a);
+    const scoreB = getEffectiveRatingScore(b);
+
+    if (typeof scoreA === "number" && typeof scoreB === "number") {
+      return scoreB - scoreA || a.title.localeCompare(b.title, "es");
+    }
+
+    if (typeof scoreA === "number") {
+      return -1;
+    }
+
+    if (typeof scoreB === "number") {
+      return 1;
+    }
+
+    return a.title.localeCompare(b.title, "es");
+  });
 }
 
 export async function getCategoryTerms() {

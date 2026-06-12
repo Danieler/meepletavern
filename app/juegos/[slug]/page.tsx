@@ -6,9 +6,11 @@ import { ChevronRight } from "lucide-react";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
+import { CommunityScorePanel } from "@/components/CommunityScorePanel";
 import { GameCard } from "@/components/GameCard";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameLibraryPanel } from "@/components/GameLibraryPanel";
+import { GameRatingSummary } from "@/components/GameRatingSummary";
 import { GameStats } from "@/components/GameStats";
 import { GameRatings } from "@/components/GameRatings";
 import { MechanicTag } from "@/components/MechanicTag";
@@ -125,18 +127,7 @@ export default async function GamePage({ params }: GamePageProps) {
                     </p>
                     <h2 className="font-display mt-2 text-5xl font-black text-wood">{game.title}</h2>
                   </div>
-                  {game.ratings.external?.score ? (
-                    <div className="flex self-start rounded-[18px] border-2 border-ember bg-walnut px-5 py-4 text-white shadow-soft lg:flex-col lg:items-center lg:text-center">
-                      <div className="flex flex-1 items-center gap-4 lg:flex-col lg:gap-1">
-                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-parchment lg:max-w-28">Valoración general</p>
-                        <p className="font-display text-5xl font-black leading-none">{game.ratings.external.score.toFixed(1)}</p>
-                      </div>
-                      <div className="ml-4 flex items-center gap-2 border-l border-parchment/20 pl-4 lg:ml-0 lg:mt-2 lg:border-l-0 lg:border-t lg:pl-0 lg:pt-2">
-                        <BrandIcon name="star" size={18} />
-                        <p className="font-display text-base font-black text-ember">{game.ratings.external.label}</p>
-                      </div>
-                    </div>
-                  ) : null}
+                  <GameRatingSummary initialRatings={game.ratings} />
                 </div>
                 {introDescription || bodyDescription ? (
                   <div className="space-y-4">
@@ -288,27 +279,9 @@ function MiniMetric({
 }
 
 function CommunityScore({ game }: { game: CatalogGame }) {
-  const score = game.ratings.external?.score;
-
   return (
-    <Panel title="Valoración de la comunidad">
-      <div className="flex items-center gap-5">
-        <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-4 border-ember bg-walnut font-display font-black text-white">
-          <span className="text-4xl">{score ? score.toFixed(1) : "MT"}</span>
-          <span className="text-xs text-ember">{game.ratings.external?.label || "Nota"}</span>
-        </div>
-        <div className="grid flex-1 gap-2">
-          {[5, 4, 3, 2, 1].map((value) => (
-            <div key={value} className="grid grid-cols-[18px_1fr_34px] items-center gap-2 text-xs font-bold text-walnut">
-              <span>{value}</span>
-              <span className="h-2 overflow-hidden rounded-full bg-walnut/12">
-                <span className="block h-full rounded-full bg-ember" style={{ width: `${value * 14}%` }} />
-              </span>
-              <span>{value === 5 ? "58%" : value === 4 ? "28%" : value === 3 ? "10%" : value === 2 ? "3%" : "1%"}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+    <Panel title="Opinión de jugadores">
+      <CommunityScorePanel initialRatings={game.ratings} />
     </Panel>
   );
 }

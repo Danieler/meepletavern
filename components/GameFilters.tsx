@@ -47,6 +47,7 @@ const filters: Array<{ title: string; items: FilterLink[] }> = [
 
 const sortItems = [
   { label: "Nombre", value: "nombre" },
+  { label: "Valoración", value: "valoracion" },
   { label: "Fecha de añadido", value: "fecha" },
   { label: "Dificultad", value: "dificultad" }
 ];

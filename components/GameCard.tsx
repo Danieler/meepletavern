@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BrandIcon } from "@/components/BrandIcon";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { getPrimaryGameTags } from "@/lib/gameDisplayTags";
-import type { CatalogGame } from "@/lib/catalog";
+import { getEffectiveRatingScore, type CatalogGame } from "@/lib/catalog";
 
 type GameCardProps = {
   game: CatalogGame;
@@ -12,6 +12,7 @@ type GameCardProps = {
 
 export function GameCard({ game, compact, poster }: GameCardProps) {
   const primaryTags = getPrimaryGameTags(game, 2);
+  const ratingScore = getEffectiveRatingScore(game);
 
   if (poster) {
     return (
@@ -27,7 +28,7 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
             />
             <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-wood/80 px-2 py-1 text-sm font-black text-white">
               <BrandIcon name="star" size={15} />
-              {game.ratings.external?.score?.toFixed(1) || "MT"}
+              {typeof ratingScore === "number" ? ratingScore.toFixed(1) : "MT"}
             </span>
           </div>
           <h3 className="mt-2 truncate text-sm font-black text-wood">{game.title}</h3>

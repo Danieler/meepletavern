@@ -21,11 +21,14 @@ export function normalizeGameRatings(value: unknown): GameRatingsData {
   const record = value as Record<string, unknown>;
   const users = isRecord(record.users) ? record.users : {};
   const external = normalizeExternalRating(record.external);
+  const combined = normalizeExternalRating(record.combined);
 
   return {
     ...(external ? { external } : {}),
+    ...(combined ? { combined } : {}),
     users: {
       votesCount: positiveInteger(users.votesCount),
+      ...(typeof numberValue(users.averageScore) === "number" ? { averageScore: clamp(numberValue(users.averageScore) as number, 0, 10) } : {}),
       enabled: users.enabled === true
     }
   };

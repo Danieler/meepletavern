@@ -4,6 +4,9 @@ import { Prisma, GameImportProposalStatus, type Game, type GameImportProposal } 
 import { z } from "zod";
 import { getBedrockRuntimeClient } from "@/lib/ai/bedrockClient";
 import { prisma } from "@/lib/prisma";
+import { calculateExternalRating } from "@/lib/ratings/calculateExternalRating";
+import { buildExternalSignalFromSearchResult } from "@/lib/ratings/externalSignals";
+import { buildGameRatingsPatch } from "@/lib/ratings/gameRatings";
 
 const DEFAULT_BEDROCK_MODEL = process.env.BEDROCK_MODEL_ID?.trim() || "amazon.nova-micro-v1:0";
 const PROPOSAL_PROVIDER = "tavily_nova_micro";
@@ -137,8 +140,13 @@ function buildBoardGameSearchQueries(game: Game) {
     game.originalTitle ? exact(game.originalTitle) : null,
     "BoardGameGeek overview gameplay rules mechanisms"
   ].filter(Boolean).join(" ").slice(0, 400);
+  const ratingsQuery = [
+    exact(cleanTitle || title),
+    game.originalTitle ? exact(game.originalTitle) : null,
+    "BoardGameGeek rating Amazon rating reseña nota puntuación review score board game"
+  ].filter(Boolean).join(" ").slice(0, 400);
 
-  return [...new Set([metadataQuery, gameplayQuery, bggQuery])];
+  return [...new Set([metadataQuery, gameplayQuery, bggQuery, ratingsQuery])];
 }
 
 export async function searchBoardGameWithTavily(game: Game) {
@@ -517,6 +525,7 @@ export async function autoApplyGameWebAutofill(gameId: string) {
   }
 
   const search = await searchBoardGameWithTavily(game);
+  await updateGameExternalRatingFromWebSearch(game, search.results);
   const extracted = await extractBoardGameFieldsWithNova({
     game,
     tavilyResults: search.results
@@ -539,6 +548,36 @@ export async function autoApplyGameWebAutofill(gameId: string) {
     skipped: false,
     warnings: extracted.notes
   };
+}
+
+export async function updateGameExternalRatingFromWebSearch(game: Game, tavilyResults: TavilyResult[]) {
+  const signals = tavilyResults
+    .map((result) =>
+      buildExternalSignalFromSearchResult(
+        {
+          title: result.title || undefined,
+          url: result.url,
+          snippet: result.content || undefined,
+          content: result.content
+        },
+        game.title || game.name
+      )
+    )
+    .filter((signal): signal is NonNullable<typeof signal> => Boolean(signal));
+
+  const external = calculateExternalRating(signals);
+
+  await prisma.game.update({
+    where: { id: game.id },
+    data: {
+      ratings: buildGameRatingsPatch({
+        currentRatings: game.ratings,
+        external
+      })
+    }
+  });
+
+  return external;
 }
 
 function getAutoApplyAiWebFields(game: Game) {

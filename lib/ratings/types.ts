@@ -49,8 +49,10 @@ export type ExternalRating = {
 
 export type GameRatingsData = {
   external?: ExternalRating;
+  combined?: ExternalRating;
   users: {
     votesCount: number;
+    averageScore?: number;
     enabled: boolean;
   };
 };
