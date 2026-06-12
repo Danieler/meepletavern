@@ -43,6 +43,7 @@ const aiProposalSchema = z.object({
   year: sourceRefSchema,
   categories: sourceRefSchema,
   mechanics: sourceRefSchema,
+  shortDescription: sourceRefSchema.default({ value: null, confidence: 0, sourceUrl: null, sourceTitle: null }),
   description: sourceRefSchema,
   externalSources: z.array(
     z.object({
@@ -59,6 +60,21 @@ const aiProposalSchema = z.object({
 export type AiWebProposal = z.infer<typeof aiProposalSchema>;
 type TavilyResult = z.infer<typeof tavilyResultSchema>;
 type AiWebProposalField = Exclude<keyof AiWebProposal, "externalSources" | "needsHumanReview" | "notes">;
+type PromptSource = {
+  kind: "imported_source" | "direct_source" | "web_search";
+  title: string | null;
+  url: string | null;
+  content: string | null;
+  priority: number;
+  score: number | null;
+};
+type ImportedCandidateContext = {
+  title: string;
+  sourceUrl: string;
+  extractedDescription: string | null;
+  metadata: Prisma.JsonValue;
+  confidence: number;
+};
 
 const AI_WEB_PROPOSAL_FIELDS: AiWebProposalField[] = [
   "players",
@@ -70,6 +86,7 @@ const AI_WEB_PROPOSAL_FIELDS: AiWebProposalField[] = [
   "year",
   "categories",
   "mechanics",
+  "shortDescription",
   "description"
 ];
 
@@ -91,9 +108,9 @@ export function buildBoardGameSearchQuery(game: Game) {
     game.publisher,
     game.year ? String(game.year) : null,
     game.buyUrl,
-    readSourceValue(game.sources, "ean"),
-    readSourceValue(game.sources, "asin"),
-    "board game juego de mesa players age play time designer publisher mechanics"
+    ...readSourceValues(game.sources, "ean"),
+    ...readSourceValues(game.sources, "asin"),
+    "board game juego de mesa players age play time designer publisher mechanics cómo se juega reglas reseña descripción"
   ].filter(Boolean);
 
   return parts.join(" ").slice(0, 400);
@@ -130,6 +147,7 @@ export async function extractBoardGameFieldsWithNova(input: {
   game: Game;
   tavilyResults: TavilyResult[];
 }) {
+  const sourceContext = await buildPromptSourceContext(input.game, input.tavilyResults);
   const fallbackProposal = buildFallbackProposal(input.game, input.tavilyResults);
   const region = process.env.AWS_REGION?.trim();
   if (!region) {
@@ -157,13 +175,11 @@ export async function extractBoardGameFieldsWithNova(input: {
       minAge: input.game.minAge,
       categories: input.game.categories,
       mechanics: input.game.mechanics,
+      shortDescription: input.game.shortDescription,
+      shortSummary: input.game.shortSummary,
       description: input.game.description
     },
-    sources: input.tavilyResults.slice(0, 4).map((result) => ({
-      title: result.title,
-      url: result.url,
-      snippet: truncate(result.content, 900)
-    }))
+    sourceContext
   };
 
   const body = {
@@ -172,15 +188,26 @@ export async function extractBoardGameFieldsWithNova(input: {
       {
         text:
           "You are a board game metadata extractor for a CMS. " +
-          "Use only the provided web sources and the current game record. Return valid JSON only. " +
-          "Treat the current game record as an allowed fallback source: if it already has a value and the web sources do not contradict it, keep that value instead of returning null. " +
+          "Use only the provided sourceContext and current game record. Return valid JSON only. " +
+          "Sources are ordered by priority. Prefer imported_source, then direct_source, then web_search. " +
+          "Treat the current game record as context, not as proof of editorial quality. Keep existing objective values when sources do not contradict them, but improve weak copy when better sourceContext exists. " +
           "Read players and play time carefully from titles and snippets, including formats like '1-6 jugadores', '1 a 6 players', '60 minutos' and '60-90 min'. " +
+          "For description.value, write useful editorial copy in Spanish focused on what the game is about and what players actually do. " +
+          "For shortDescription.value, write a separate concrete hook of 180-260 characters. It must introduce why the game is interesting without repeating the same sentence or structure as description.value. " +
+          "A good description explains the objective, the core turn loop, the main decisions/tension, the player interaction and the table feel. " +
+          "The current game record may contain a shortDescription/shortSummary and a long description. Do not repeat the same sentence, opening, player count or age recommendation across short and long copy. " +
+          "Do not use description.value to restate alreadyDisplayedFacts such as players, duration, age, publisher or year unless essential; those facts are displayed elsewhere. " +
+          "If you improve description.value, make it complement the short copy: start with gameplay/objective, not with the same facts. " +
+          "For known board games, explain the actual gameplay instead of describing it generically. For example, mention concrete actions such as placing tiles, playing cards, assigning workers, scoring areas, revealing clues or managing resources when supported. " +
+          "Do not write generic SEO filler such as 'propuesta de mesa', 'foco en la experiencia de juego', 'contexto temático', 'para disfrutar en grupo' or vague restatements of players/playtime/age. " +
+          "When the provided source has enough material, description.value should be substantial: 700-1100 characters in 2 readable paragraphs inside the same string. " +
+          "If the sources only provide commercial noise and no gameplay detail, return null for description instead of inventing filler. " +
           "If a value is not clearly supported by the sources or current record, return null. " +
           "Every extracted field must include value, confidence, sourceUrl, sourceTitle. " +
           "If sources conflict, prefer official publisher sources and reduce confidence. " +
-          "Do not copy long descriptions verbatim. Summarize descriptions in Spanish. " +
+          "Do not copy long descriptions verbatim. Rewrite and synthesize descriptions in Spanish. " +
           "Set needsHumanReview true if any important field has confidence below 0.75. " +
-          "Keep arrays short and descriptions below 500 characters."
+          "Keep arrays short."
       }
     ],
     messages: [
@@ -200,6 +227,7 @@ export async function extractBoardGameFieldsWithNova(input: {
                 year: { value: null, confidence: 0, sourceUrl: null, sourceTitle: null },
                 categories: { value: [], confidence: 0, sourceUrl: null, sourceTitle: null },
                 mechanics: { value: [], confidence: 0, sourceUrl: null, sourceTitle: null },
+                shortDescription: { value: null, confidence: 0, sourceUrl: null, sourceTitle: null },
                 description: { value: null, confidence: 0, sourceUrl: null, sourceTitle: null },
                 externalSources: [{ name: "string", url: "https://example.com", type: "metadata", confidence: 0 }],
                 needsHumanReview: true,
@@ -213,7 +241,7 @@ export async function extractBoardGameFieldsWithNova(input: {
     ],
     inferenceConfig: {
       temperature: 0,
-      maxTokens: 1800
+      maxTokens: 2600
     }
   };
 
@@ -383,10 +411,15 @@ export async function applyGameImportProposalFields(input: {
       appliedFields.push(field);
     }
 
+    if (field === "shortDescription" && typeof extracted.shortDescription.value === "string" && extracted.shortDescription.value.trim() && canApplyStructuredField(input.emptyOnly, game.shortDescription, game.shortSummary)) {
+      const value = extracted.shortDescription.value.trim();
+      update.shortDescription = value;
+      update.shortSummary = value;
+      appliedFields.push(field);
+    }
+
     if (field === "description" && typeof extracted.description.value === "string" && extracted.description.value.trim() && canApply(input.emptyOnly, game.description)) {
       update.description = extracted.description.value.trim();
-      update.shortDescription = extracted.description.value.trim().slice(0, 300);
-      update.shortSummary = extracted.description.value.trim().slice(0, 300);
       appliedFields.push(field);
     }
 
@@ -461,8 +494,169 @@ export function getMissingAiWebFields(game: Game) {
     !game.year ? "year" : null,
     !game.categories.length ? "categories" : null,
     !game.mechanics.length ? "mechanics" : null,
+    !game.shortDescription && !game.shortSummary ? "shortDescription" : null,
     !game.description ? "description" : null
   ].filter(Boolean) as string[];
+}
+
+async function buildPromptSourceContext(game: Game, tavilyResults: TavilyResult[]) {
+  const importedCandidate = await findImportedCandidateContext(game);
+  const sources = buildPromptSources(game, tavilyResults, importedCandidate);
+  const preferredCopySource =
+    sources.find((source) => source.kind === "imported_source" && source.content) ||
+    sources.find((source) => source.kind === "direct_source" && source.content) ||
+    sources.find((source) => source.content) ||
+    null;
+
+  return {
+    alreadyDisplayedFacts: {
+      players: game.minPlayers && game.maxPlayers ? `${game.minPlayers}-${game.maxPlayers}` : null,
+      duration: game.playtime,
+      age: game.age || (game.minAge ? `${game.minAge}+` : null),
+      publisher: game.publisher,
+      year: game.year
+    },
+    preferredCopySource: preferredCopySource
+      ? {
+          kind: preferredCopySource.kind,
+          title: preferredCopySource.title,
+          url: preferredCopySource.url,
+          priority: preferredCopySource.priority
+        }
+      : null,
+    sources: sources.slice(0, 6).map((source) => ({
+      kind: source.kind,
+      priority: source.priority,
+      title: source.title,
+      url: source.url,
+      score: source.score,
+      content: truncate(source.content, source.kind === "imported_source" ? 4200 : 2400)
+    })),
+    copyRules: [
+      "shortDescription: gancho concreto y distinto de la descripción larga; no debe repetir datos visibles abajo.",
+      "description: explicar de qué va y en qué consiste jugar; evitar repetir jugadores, duración, edad, editorial o año.",
+      "si no hay detalles de gameplay, no inventar: devolver null en description."
+    ]
+  };
+}
+
+async function findImportedCandidateContext(game: Game): Promise<ImportedCandidateContext | null> {
+  const sourceUrls = readGameSourceUrls(game);
+  const conditions: Prisma.GameCandidateWhereInput[] = [{ gameId: game.id }];
+
+  for (const sourceUrl of sourceUrls) {
+    conditions.push({ sourceUrl });
+  }
+
+  const candidate = await prisma.gameCandidate.findFirst({
+    where: { OR: conditions },
+    orderBy: [{ updatedAt: "desc" }],
+    select: {
+      title: true,
+      sourceUrl: true,
+      extractedDescription: true,
+      metadata: true,
+      confidence: true
+    }
+  });
+
+  return candidate;
+}
+
+function buildPromptSources(
+  game: Game,
+  tavilyResults: TavilyResult[],
+  importedCandidate: ImportedCandidateContext | null
+): PromptSource[] {
+  const sources: PromptSource[] = [];
+
+  if (importedCandidate) {
+    const metadata = readJsonObject(importedCandidate.metadata);
+    const metadataText = [
+      importedCandidate.extractedDescription,
+      ...readMetadataStringList(metadata, "features"),
+      ...readMetadataFacts(metadata)
+    ].filter(Boolean).join("\n");
+
+    sources.push({
+      kind: "imported_source",
+      title: importedCandidate.title,
+      url: importedCandidate.sourceUrl,
+      content: metadataText || null,
+      priority: 100,
+      score: importedCandidate.confidence
+    });
+  }
+
+  const directUrls = new Set(readGameSourceUrls(game).map(normalizeUrlKey));
+
+  for (const result of tavilyResults) {
+    const isDirect = directUrls.has(normalizeUrlKey(result.url));
+    sources.push({
+      kind: isDirect ? "direct_source" : "web_search",
+      title: result.title,
+      url: result.url,
+      content: result.content,
+      priority: isDirect ? 80 : 40,
+      score: result.score
+    });
+  }
+
+  return dedupePromptSources(sources).sort((left, right) => right.priority - left.priority || (right.score || 0) - (left.score || 0));
+}
+
+function readGameSourceUrls(game: Game) {
+  return [...new Set([game.buyUrl, ...readSourceValues(game.sources, "url")].filter((value): value is string => Boolean(value && /^https?:\/\//i.test(value))))];
+}
+
+function readJsonObject(value: Prisma.JsonValue): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function readMetadataStringList(metadata: Record<string, unknown>, key: string) {
+  const value = metadata[key];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim()).slice(0, 8)
+    : [];
+}
+
+function readMetadataFacts(metadata: Record<string, unknown>) {
+  const facts = metadata.facts;
+  if (!facts || typeof facts !== "object" || Array.isArray(facts)) {
+    return [];
+  }
+
+  return Object.entries(facts)
+    .filter(([, value]) => typeof value === "string" && value.trim().length > 0)
+    .map(([key, value]) => `${key}: ${value}`)
+    .slice(0, 10);
+}
+
+function dedupePromptSources(sources: PromptSource[]) {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    const key = source.url ? normalizeUrlKey(source.url) : `${source.kind}:${source.title}:${source.content?.slice(0, 80)}`;
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeUrlKey(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return value.trim();
+  }
 }
 
 function buildFallbackProposal(game: Game, tavilyResults: TavilyResult[]) {
@@ -503,8 +697,11 @@ function buildCurrentGameProposal(game: Game): AiWebProposal {
   if (game.mechanics.length) {
     proposal.mechanics = sourceRef(game.mechanics, 0.99, currentSource);
   }
-  if (game.description) {
-    proposal.description = sourceRef(game.description, 0.99, currentSource);
+  if (isUsefulShortDescription(game.shortDescription || game.shortSummary)) {
+    proposal.shortDescription = sourceRef(game.shortDescription || game.shortSummary, 0.92, currentSource);
+  }
+  if (isUsefulDescription(game.description)) {
+    proposal.description = sourceRef(game.description, 0.92, currentSource);
   }
 
   if (hasAnyProposalValue(proposal)) {
@@ -557,11 +754,100 @@ function mergeProposals(primary: AiWebProposal, fallback: AiWebProposal): AiWebP
     }
   }
 
+  if (isWeakDescription(merged.description.value)) {
+    if (isUsefulDescription(fallback.description.value)) {
+      merged.description = fallback.description;
+    } else {
+      merged.description = sourceRef(null, 0);
+      merged.notes.push("Se descartó una descripción demasiado genérica; regenera con una fuente con más detalle de juego.");
+    }
+  }
+
+  if (hasSourceRefValue(merged.shortDescription) && !isUsefulShortDescription(merged.shortDescription.value)) {
+    if (isUsefulShortDescription(fallback.shortDescription.value)) {
+      merged.shortDescription = fallback.shortDescription;
+    } else {
+      merged.shortDescription = sourceRef(null, 0);
+      merged.notes.push("Se descartó una descripción breve demasiado genérica o poco concreta.");
+    }
+  }
+
+  if (isRedundantCopy(merged.shortDescription.value, merged.description.value)) {
+    if (hasSourceRefValue(fallback.shortDescription) && !isRedundantCopy(fallback.shortDescription.value, merged.description.value)) {
+      merged.shortDescription = fallback.shortDescription;
+    } else {
+      merged.shortDescription = sourceRef(null, 0);
+      merged.notes.push("Se descartó una descripción breve demasiado parecida a la descripción larga.");
+    }
+  }
+
   merged.externalSources = mergeExternalSources(primary.externalSources, fallback.externalSources);
   merged.notes = [...new Set([...primary.notes, ...fallback.notes])];
   merged.needsHumanReview = primary.needsHumanReview || fallback.needsHumanReview;
 
   return merged;
+}
+
+function isWeakDescription(value: unknown) {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const text = value.trim();
+  if (!text) {
+    return false;
+  }
+
+  return text.length < 420 || hasGenericDescriptionLanguage(text) || !hasGameplayDetail(text);
+}
+
+function isUsefulDescription(value: unknown) {
+  return typeof value === "string" && value.trim().length >= 420 && !hasGenericDescriptionLanguage(value) && hasGameplayDetail(value);
+}
+
+function isUsefulShortDescription(value: unknown) {
+  return typeof value === "string" && value.trim().length >= 90 && value.trim().length <= 320 && !hasGenericDescriptionLanguage(value) && hasGameplayDetail(value);
+}
+
+function isRedundantCopy(shortValue: unknown, longValue: unknown) {
+  if (typeof shortValue !== "string" || typeof longValue !== "string") {
+    return false;
+  }
+
+  const shortText = normalizeComparableText(shortValue);
+  const longText = normalizeComparableText(longValue);
+
+  if (!shortText || !longText) {
+    return false;
+  }
+
+  if (longText.includes(shortText) || shortText.includes(longText)) {
+    return true;
+  }
+
+  const shortWords = new Set(shortText.split(" ").filter((word) => word.length > 3));
+  const longWords = longText.split(" ").filter((word) => word.length > 3);
+  const sharedWords = longWords.filter((word) => shortWords.has(word)).length;
+
+  return shortWords.size >= 8 && sharedWords / shortWords.size > 0.72;
+}
+
+function normalizeComparableText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasGenericDescriptionLanguage(value: string) {
+  return /(propuesta de mesa|foco en la experiencia de juego|contexto tem[aá]tico|pensad[oa] para disfrutar|ideal para grupos|ofrece una experiencia|se presenta como|din[aá]mica accesible)/i.test(value);
+}
+
+function hasGameplayDetail(value: string) {
+  return /(objetivo|gana|punt[ou]s?|turno|ronda|carta|cartas|loseta|losetas|meeple|coloca|roba|juega|construye|expande|controla|decisi[oó]n|decisiones|cooper|compite|estrategia|tablero)/i.test(value);
 }
 
 function createEmptyProposal(notes: string[] = []): AiWebProposal {
@@ -575,6 +861,7 @@ function createEmptyProposal(notes: string[] = []): AiWebProposal {
     year: sourceRef(null, 0),
     categories: sourceRef([], 0),
     mechanics: sourceRef([], 0),
+    shortDescription: sourceRef(null, 0),
     description: sourceRef(null, 0),
     externalSources: [],
     needsHumanReview: true,
@@ -606,6 +893,7 @@ function cloneProposal(proposal: AiWebProposal): AiWebProposal {
     year: { ...proposal.year },
     categories: { ...proposal.categories },
     mechanics: { ...proposal.mechanics },
+    shortDescription: { ...proposal.shortDescription },
     description: { ...proposal.description },
     externalSources: [...proposal.externalSources],
     needsHumanReview: proposal.needsHumanReview,
@@ -735,12 +1023,31 @@ function exact(value: string) {
   return `"${value.replaceAll('"', "")}"`;
 }
 
-function readSourceValue(value: Prisma.JsonValue | null, key: string) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
+function readSourceValues(value: Prisma.JsonValue | null, key: string): string[] {
+  if (!value) {
+    return [];
   }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => readSourceValues(item as Prisma.JsonValue, key));
+  }
+
+  if (typeof value !== "object") {
+    return [];
+  }
+
   const record = value as Record<string, unknown>;
-  return typeof record[key] === "string" ? record[key] : null;
+  const sourceValue = record[key];
+
+  if (typeof sourceValue === "string" && sourceValue.trim()) {
+    return [sourceValue.trim()];
+  }
+
+  if (Array.isArray(sourceValue)) {
+    return sourceValue.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim());
+  }
+
+  return [];
 }
 
 function truncate(value: string | null, max: number) {
@@ -859,6 +1166,7 @@ function parsePartialProposalJson(value: string) {
     "year",
     "categories",
     "mechanics",
+    "shortDescription",
     "description"
   ];
   const proposal: Record<string, unknown> = {
@@ -1061,12 +1369,13 @@ function isMissingProposalTableError(error: unknown) {
 }
 
 async function extractKnownSourceWithTavily(client: ReturnType<typeof tavily>, game: Game) {
-  if (!game.buyUrl?.startsWith("http")) {
+  const sourceUrls = readGameSourceUrls(game).slice(0, 3);
+  if (!sourceUrls.length) {
     return [];
   }
 
   try {
-    const extracted = await client.extract([game.buyUrl], {
+    const extracted = await client.extract(sourceUrls, {
       extractDepth: "basic",
       format: "text",
       includeImages: false
@@ -1075,7 +1384,7 @@ async function extractKnownSourceWithTavily(client: ReturnType<typeof tavily>, g
     return extracted.results.map((result) => ({
       title: result.title || game.title || game.name,
       url: result.url,
-      content: truncate(result.rawContent, 2500),
+      content: truncate(result.rawContent, 4500),
       score: 1
     }));
   } catch {

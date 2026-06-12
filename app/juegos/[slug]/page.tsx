@@ -69,6 +69,8 @@ export default async function GamePage({ params }: GamePageProps) {
   const jsonLd = buildJsonLd(game);
   const hasRichEditorialTags = game.mechanics.length > 0 || game.themes.length > 0;
   const shouldShowCategories = game.categories.length > 0 && !hasRichEditorialTags;
+  const introDescription = isRedundantText(game.reviewSummary, game.description) ? "" : game.reviewSummary;
+  const bodyDescription = isWeakBodyDescription(game.description, introDescription, game) ? "" : game.description;
 
   return (
     <PublicShell>
@@ -136,8 +138,15 @@ export default async function GamePage({ params }: GamePageProps) {
                     </div>
                   ) : null}
                 </div>
-                {game.description ? (
-                  <p className="text-base leading-8 text-ink lg:text-lg lg:leading-9">{game.description}</p>
+                {introDescription || bodyDescription ? (
+                  <div className="space-y-4">
+                    {introDescription ? (
+                      <p className="text-lg font-semibold leading-8 text-ink lg:text-xl lg:leading-9">{introDescription}</p>
+                    ) : null}
+                    {bodyDescription ? (
+                      <p className="text-base leading-8 text-ink/85 lg:text-lg lg:leading-9">{bodyDescription}</p>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
 
@@ -352,6 +361,71 @@ function GalleryImageTile({ image }: { image: CatalogGame["galleryImages"][numbe
       ) : null}
     </figure>
   );
+}
+
+function isWeakBodyDescription(body: string | null | undefined, intro: string | null | undefined, game: CatalogGame) {
+  if (!body) {
+    return true;
+  }
+
+  return Boolean(
+    (intro && isRedundantText(intro, body)) ||
+    isMostlyRepeatedMetadata(body, game) ||
+    (hasGenericPublicCopy(body) && !hasGameplaySpecifics(body))
+  );
+}
+
+function isRedundantText(left: string | null | undefined, right: string | null | undefined) {
+  const normalizedLeft = normalizeComparablePublicText(left);
+  const normalizedRight = normalizeComparablePublicText(right);
+
+  if (!normalizedLeft || !normalizedRight) {
+    return false;
+  }
+
+  if (normalizedLeft === normalizedRight || normalizedRight.includes(normalizedLeft) || normalizedLeft.includes(normalizedRight)) {
+    return true;
+  }
+
+  const leftWords = new Set(normalizedLeft.split(" ").filter((word) => word.length > 3));
+  const rightWords = normalizedRight.split(" ").filter((word) => word.length > 3);
+  const sharedWords = rightWords.filter((word) => leftWords.has(word)).length;
+
+  return leftWords.size >= 8 && sharedWords / leftWords.size > 0.72;
+}
+
+function normalizeComparablePublicText(value: string | null | undefined) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isMostlyRepeatedMetadata(value: string, game: CatalogGame) {
+  const text = normalizeComparablePublicText(value);
+  const words = text.split(" ").filter((word) => word.length > 3);
+
+  if (words.length > 55) {
+    return false;
+  }
+
+  const repeatsPlayers = Boolean(game.playersLabel && text.includes(normalizeComparablePublicText(game.playersLabel)));
+  const repeatsDuration = Boolean(game.playtime && text.includes(normalizeComparablePublicText(game.playtime)));
+  const repeatsAge = Boolean(game.age && text.includes(normalizeComparablePublicText(game.age)));
+  const repeatedFacts = [repeatsPlayers, repeatsDuration, repeatsAge].filter(Boolean).length;
+
+  return repeatedFacts >= 2 && !hasGameplaySpecifics(value);
+}
+
+function hasGameplaySpecifics(value: string) {
+  return /(objetivo|turno|ronda|loseta|losetas|meeple|obreros?|camino|ciudad|monasterio|granja|campo|coloca|roba|juega|punt[ou]s?|mayor[ií]a|control|decisi[oó]n|estrategia|bloquea|expande|construye)/i.test(value);
+}
+
+function hasGenericPublicCopy(value: string) {
+  return /(propuesta de mesa|foco en la experiencia de juego|contexto tem[aá]tico|pensad[oa] para disfrutar|ideal para grupos|ofrece una experiencia|se presenta como|din[aá]mica accesible)/i.test(value);
 }
 
 function buildJsonLd(game: CatalogGame) {

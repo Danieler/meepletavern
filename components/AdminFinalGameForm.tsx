@@ -67,6 +67,7 @@ const AI_WEB_FIELDS = [
   "year",
   "categories",
   "mechanics",
+  "shortDescription",
   "description"
 ] as const;
 
@@ -998,6 +999,7 @@ function fieldLabel(field: (typeof AI_WEB_FIELDS)[number]) {
     year: "Año",
     categories: "Categorías",
     mechanics: "Mecánicas",
+    shortDescription: "Descripción breve",
     description: "Descripción"
   }[field];
 }
@@ -1029,6 +1031,10 @@ function currentValueLabel(game: Game, field: (typeof AI_WEB_FIELDS)[number]) {
 
   if (field === "mechanics") {
     return game.mechanics.join(", ") || "Vacío";
+  }
+
+  if (field === "shortDescription") {
+    return game.shortDescription || game.shortSummary || "Vacío";
   }
 
   return game.description || "Vacío";
@@ -1129,11 +1135,17 @@ function applyAiWebProposalToDraft(
     }
   }
 
+  if (applied.has("shortDescription") && typeof proposal.extractedFields.shortDescription?.value === "string") {
+    const shortDescription = proposal.extractedFields.shortDescription.value.trim();
+    if (shortDescription) {
+      next.shortDescription = shortDescription;
+    }
+  }
+
   if (applied.has("description") && typeof proposal.extractedFields.description?.value === "string") {
     const description = proposal.extractedFields.description.value.trim();
     if (description) {
       next.description = description;
-      next.shortDescription = description.slice(0, 300);
     }
   }
 
