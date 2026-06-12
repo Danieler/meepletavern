@@ -38,7 +38,7 @@ export function mapAmazonProductToCandidate(input: {
 }): AmazonNormalizedCandidate {
   const hasImage = Boolean(input.product.imageUrl);
   const sourceUrlClean = buildAmazonCanonicalUrl(input.product.asin);
-  const cleanTitle = cleanAmazonTitle(input.product.title, input.product.asin);
+  const cleanTitle = cleanAmazonTitle(input.product.title, input.product.asin, input.product.brand, input.product.manufacturer);
   const cleanProduct = sanitizeAmazonProduct(input.product);
   const detected = detectTableData(cleanProduct);
   const categoryHints = inferCategoryHints(cleanProduct);
@@ -112,11 +112,12 @@ export function mapAmazonProductToCandidate(input: {
   };
 }
 
-function cleanAmazonTitle(title: string, asin: string) {
+function cleanAmazonTitle(title: string, asin: string, brand?: string | null, manufacturer?: string | null) {
   let cleaned = sanitizeImportedTitle(title)
     .trim()
     .replace(/\s*:\s*Amazon\.es:.*$/i, "")
-    .replace(/\s*Amazon\.es\s*:\s*Juguetes.*$/i, "");
+    .replace(/\s*Amazon\.es\s*:\s*Juguetes.*$/i, "")
+    .replace(/^Hasbro\s+Gaming\s*,\s*/i, "");
 
   const separatorParts = cleaned.split(/\s+-\s+|,/).map((part) => part.trim()).filter(Boolean);
   if (separatorParts.length > 1) {
@@ -132,8 +133,30 @@ function cleanAmazonTitle(title: string, asin: string) {
     .replace(/\s+/g, " ")
     .trim();
 
+  cleaned = removeLeadingMaker(cleaned, brand || manufacturer);
   cleaned = normalizeZombicideTitle(cleaned);
+  cleaned = normalizeRiskTitle(cleaned);
   return cleaned || `Producto Amazon ${asin}`;
+}
+
+function removeLeadingMaker(title: string, maker?: string | null) {
+  const cleanMaker = maker?.replace(/\s+/g, " ").trim();
+  if (!title || !cleanMaker) {
+    return title;
+  }
+
+  const makerPattern = new RegExp(`^${escapeRegExp(cleanMaker)}\\s+(.{3,80})$`, "i");
+  const match = makerPattern.exec(title);
+  if (!match?.[1]) {
+    return title;
+  }
+
+  const rest = match[1].trim();
+  return looksLikeCommercialTail(rest) ? title : rest;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function looksLikeCommercialTail(value: string) {
@@ -151,6 +174,27 @@ function normalizeZombicideTitle(value: string) {
   const bareZombicide = /^Zombicide\s+(?!:)(.+)$/i.exec(value);
   if (bareZombicide?.[1]) {
     return `Zombicide: ${bareZombicide[1].trim()}`;
+  }
+
+  return value;
+}
+
+function normalizeRiskTitle(value: string) {
+  if (!/^Risk\b/i.test(value)) {
+    return value;
+  }
+
+  const normalized = value.replace(/\s+/g, " ").trim();
+  const riskSuffix = normalized.replace(/^Risk\b\s*/i, "").trim();
+  if (!riskSuffix) {
+    return "Risk";
+  }
+
+  if (
+    /^[:,-]/.test(riskSuffix) &&
+    /(conquista|estrat[eé]gica|ej[eé]rcito|juguete|tablero mundial|territorios|continentes|juegos para fiestas|regalo|multijugador|acci[oó]n|aventura)/i.test(riskSuffix)
+  ) {
+    return "Risk";
   }
 
   return value;

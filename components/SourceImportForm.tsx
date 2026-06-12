@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Info, Loader2, Sparkles, Upload } from "lucide-react";
-import { importSourceAction, type ImportSourceState } from "@/app/admin/import/actions";
+import { Info, Loader2, Upload } from "lucide-react";
 
 type ImportSource = {
   id: string;
@@ -14,18 +13,14 @@ type ImportSource = {
 type SourceImportFormProps = {
   sources: ImportSource[];
   initialSourceId?: string;
+  initialError?: string;
 };
 
-const initialState: ImportSourceState = {
-  error: null,
-  result: null
-};
-
-export function SourceImportForm({ sources, initialSourceId = "" }: SourceImportFormProps) {
+export function SourceImportForm({ sources, initialSourceId = "", initialError = "" }: SourceImportFormProps) {
   const initialSelectedSourceId =
     sources.find((source) => source.id === initialSourceId)?.id || sources[0]?.id || "";
   const [selectedSourceId, setSelectedSourceId] = useState(initialSelectedSourceId);
-  const [state, formAction, pending] = useActionState(importSourceAction, initialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedSource = useMemo(
     () => sources.find((source) => source.id === selectedSourceId) || sources[0] || null,
@@ -64,7 +59,7 @@ export function SourceImportForm({ sources, initialSourceId = "" }: SourceImport
         </ul>
       </div>
 
-      <form action={formAction} className="mt-5 space-y-5">
+      <form action="/admin/import/run" className="mt-5 space-y-5" method="post" onSubmit={() => setIsSubmitting(true)}>
         <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
           <Field label="Fuente">
             <select
@@ -112,91 +107,33 @@ export function SourceImportForm({ sources, initialSourceId = "" }: SourceImport
           </div>
         ) : null}
 
-        <button className="button-primary" type="submit" disabled={pending}>
-          {pending ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <Upload size={18} aria-hidden="true" />}
-          {pending ? "Importando..." : "Importar juego"}
-        </button>
+        <ImportSubmitButton pending={isSubmitting} />
       </form>
 
-      {pending ? (
-        <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-ember/20 bg-ember/10 px-4 py-3 text-sm font-semibold text-ink">
-          <Loader2 className="animate-spin" size={16} aria-hidden="true" />
-          Importando datos, creando ficha y completando campos con IA...
-        </p>
-      ) : null}
-
-      {state.error ? (
+      {initialError ? (
         <p className="mt-4 rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">
-          {state.error}
+          {initialError}
         </p>
-      ) : null}
-
-      {state.result ? (
-        <article className="mt-4 rounded-md border border-moss/20 bg-moss/10 p-4">
-          <div className="flex items-center gap-2 text-sm font-bold text-ink">
-            <Sparkles size={16} aria-hidden="true" />
-            Importado · ficha en revisión
-          </div>
-          <div className="mt-3 grid gap-3 text-sm text-ink/75 sm:grid-cols-2">
-            <InfoRow label="Título detectado" value={state.result.title} />
-            <InfoRow label="Título original" value={state.result.originalTitle || "No disponible"} />
-            <InfoRow label="Fuente" value={state.result.sourceName} />
-            <InfoRow label="URL origen" value={state.result.sourceUrlClean} />
-            <InfoRow label="Precio detectado" value={state.result.detectedPrice || "No disponible"} />
-            <InfoRow label="Editorial detectada" value={state.result.detectedPublisher || "No disponible"} />
-            <InfoRow label="Jugadores detectados" value={state.result.detectedPlayers || "Pendiente"} />
-            <InfoRow label="Duración detectada" value={state.result.detectedPlaytime || "Pendiente"} />
-            <InfoRow label="Edad detectada" value={state.result.detectedAge ? `${state.result.detectedAge}+` : "Pendiente"} />
-            <InfoRow label="Imagen" value={state.result.imageStatus === "approved_public" ? "Aprobada pública" : "Marcador"} />
-            <InfoRow label="IA editorial" value={formatAiStatus(state.result.aiStatus)} />
-          </div>
-
-          {state.result.flags.length ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {state.result.flags.map((flag) => (
-                <span key={flag} className="rounded-md bg-white px-2.5 py-1 text-xs font-bold text-ink/70">
-                  {flag}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          {state.result.warnings.length ? (
-            <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-ink/75">
-              <p className="font-black text-ink">Avisos de importación</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                {state.result.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {state.result.aiWarnings?.length ? (
-            <div className="mt-4 rounded-md border border-ink/10 bg-white px-3 py-2 text-sm font-semibold text-ink/75">
-              <p className="font-black text-ink">Avisos de IA</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                {state.result.aiWarnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {state.result.aiSuggestedTitle ? (
-            <div className="mt-4 rounded-md border border-moss/20 bg-white px-3 py-2 text-sm font-semibold text-ink/80">
-              La IA sugiere revisar el título como: <span className="text-moss">{state.result.aiSuggestedTitle}</span>
-            </div>
-          ) : null}
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link className="button-primary" href={`/admin/games/${state.result.gameId}`}>
-              Abrir ficha
-            </Link>
-          </div>
-        </article>
       ) : null}
     </section>
+  );
+}
+
+function ImportSubmitButton({ pending }: { pending: boolean }) {
+  return (
+    <div className="space-y-4">
+      <button className="button-primary" type="submit" disabled={pending}>
+        {pending ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <Upload size={18} aria-hidden="true" />}
+        {pending ? "Importando..." : "Importar juego"}
+      </button>
+
+      {pending ? (
+        <p className="inline-flex items-center gap-2 rounded-md border border-ember/20 bg-ember/10 px-4 py-3 text-sm font-semibold text-ink">
+          <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+          Importando datos, creando ficha y completando campos con IA. Al terminar se abrirá la ficha.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -207,35 +144,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mt-1 block">{children}</span>
     </label>
   );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-ink/45">{label}</p>
-      <p className="mt-1 font-semibold text-ink">{value}</p>
-    </div>
-  );
-}
-
-function formatAiStatus(value?: "applied" | "no_changes" | "unavailable" | "failed") {
-  if (value === "applied") {
-    return "completada";
-  }
-
-  if (value === "no_changes") {
-    return "sin cambios";
-  }
-
-  if (value === "failed") {
-    return "falló";
-  }
-
-  if (value === "unavailable") {
-    return "no disponible";
-  }
-
-  return "pendiente";
 }
 
 function isAmazonSource(source: ImportSource) {

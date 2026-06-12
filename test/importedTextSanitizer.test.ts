@@ -22,3 +22,12 @@ test("sanitizeImportedTitle removes trailing Amazon-style codes", () => {
   assert.equal(sanitizeImportedTitle("Virus (TRG-01vir) (1138753.62)"), "Virus");
   assert.equal(sanitizeImportedTitle("Virus (edición española)"), "Virus (edición española)");
 });
+
+test("sanitizeImportedTitle normalizes noisy marketplace Risk title", () => {
+  assert.equal(
+    sanitizeImportedTitle(
+      "Hasbro Gaming, Risk: El Juego de la Conquista Estratégica, Ejército de Juguete, Tablero Mundial, 42 Territorios, 6 Continentes, Estrategia, Juegos para Fiestas, Regalo Multijugador, Acción y Aventura"
+    ),
+    "Risk"
+  );
+});

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 type AdminImportPageProps = {
   searchParams?: Promise<{
     sourceId?: string;
+    error?: string;
   }>;
 };
 
@@ -40,6 +41,7 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
             baseUrl: source.baseUrl
           }))}
           initialSourceId={params?.sourceId || ""}
+          initialError={params?.error || ""}
         />
       </div>
     );

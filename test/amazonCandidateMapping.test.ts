@@ -19,6 +19,22 @@ test("mapAmazonProductToCandidate cleans Amazon-style title noise", () => {
   assert.deepEqual(mapped.candidateImages, []);
 });
 
+test("mapAmazonProductToCandidate normalizes Hasbro Risk marketplace title", () => {
+  const mapped = mapAmazonProductToCandidate({
+    product: {
+      asin: "B01GG1BHQC",
+      title:
+        "Hasbro Gaming, Risk: El Juego de la Conquista Estratégica, Ejército de Juguete, Tablero Mundial, 42 Territorios, 6 Continentes, Estrategia, Juegos para Fiestas, Regalo Multijugador, Acción y Aventura",
+      facts: {}
+    },
+    sourceUrl: "https://www.amazon.es/Hasbro-Gaming-B7404105-Games-Risk/dp/B01GG1BHQC"
+  });
+
+  assert.equal(mapped.title, "Risk");
+  assert.equal(mapped.originalTitle, "Hasbro Gaming, Risk: El Juego de la Conquista Estratégica, Ejército de Juguete, Tablero Mundial, 42 Territorios, 6 Continentes, Estrategia, Juegos para Fiestas, Regalo Multijugador, Acción y Aventura");
+  assert.equal(mapped.metadata.sourceUrlClean, "https://www.amazon.es/dp/B01GG1BHQC");
+});
+
 test("mapAmazonProductToCandidate extracts table data and normalizes Amazon age months", () => {
   const mapped = mapAmazonProductToCandidate({
     product: {

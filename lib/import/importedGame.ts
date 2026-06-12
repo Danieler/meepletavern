@@ -149,6 +149,8 @@ export async function persistImportedGameReview(input: {
           {
             label: input.source.name,
             url: candidate.sourceUrl,
+            sourceTitle: candidate.originalTitle || candidate.title,
+            sourceDescription: candidate.extractedDescription,
             price: numberFromMetadata(metadata, "price"),
             currency: firstString(metadata, ["currency"]),
             priceLabel: priceLabelFromMetadata(metadata)

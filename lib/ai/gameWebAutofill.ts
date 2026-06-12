@@ -12,8 +12,14 @@ const tavilyResultSchema = z.object({
   title: z.string().nullish().transform((value) => value || null),
   url: z.string().url(),
   content: z.string().nullish().transform((value) => value || null),
+  rawContent: z.string().nullish().transform((value) => value || null),
   score: z.number().nullish().transform((value) => value ?? null)
-});
+}).transform((value) => ({
+  title: value.title,
+  url: value.url,
+  content: [value.content, value.rawContent].filter(Boolean).join("\n\n") || null,
+  score: value.score
+}));
 
 const nullableStringFromLooseInput = z
   .union([z.string(), z.array(z.string()), z.null(), z.undefined()])
@@ -102,18 +108,37 @@ export type SerializableGameImportProposal = {
 };
 
 export function buildBoardGameSearchQuery(game: Game) {
+  return buildBoardGameSearchQueries(game)[0];
+}
+
+function buildBoardGameSearchQueries(game: Game) {
+  const title = game.title || game.name;
+  const cleanTitle = cleanSearchTitle(title);
   const parts = [
-    exact(game.title || game.name),
+    exact(cleanTitle || title),
+    title !== cleanTitle ? exact(title) : null,
     game.originalTitle ? exact(game.originalTitle) : null,
     game.publisher,
     game.year ? String(game.year) : null,
     game.buyUrl,
     ...readSourceValues(game.sources, "ean"),
     ...readSourceValues(game.sources, "asin"),
-    "board game juego de mesa players age play time designer publisher mechanics cómo se juega reglas reseña descripción"
+    "board game BoardGameGeek players age playtime designer publisher mechanics"
   ].filter(Boolean);
 
-  return parts.join(" ").slice(0, 400);
+  const metadataQuery = parts.join(" ").slice(0, 400);
+  const gameplayQuery = [
+    exact(cleanTitle || title),
+    game.originalTitle ? exact(game.originalTitle) : null,
+    "juego de mesa cómo se juega reglas reseña descripción objetivo turno mecánicas jugadores duración edad"
+  ].filter(Boolean).join(" ").slice(0, 400);
+  const bggQuery = [
+    exact(cleanTitle || title),
+    game.originalTitle ? exact(game.originalTitle) : null,
+    "BoardGameGeek overview gameplay rules mechanisms"
+  ].filter(Boolean).join(" ").slice(0, 400);
+
+  return [...new Set([metadataQuery, gameplayQuery, bggQuery])];
 }
 
 export async function searchBoardGameWithTavily(game: Game) {
@@ -123,20 +148,25 @@ export async function searchBoardGameWithTavily(game: Game) {
   }
 
   const client = tavily({ apiKey });
-  const query = buildBoardGameSearchQuery(game);
+  const queries = buildBoardGameSearchQueries(game);
+  const query = queries.join(" | ");
   console.info("[ai-web-autofill] Tavily request started", { gameId: game.id });
 
-  const result = await client.search(query, {
-    searchDepth: "basic",
-    topic: "general",
-    maxResults: 7,
-    includeAnswer: false,
-    includeRawContent: false,
-    includeImages: false
-  });
+  const [directSourceResults, ...searchResponses] = await Promise.all([
+    extractKnownSourceWithTavily(client, game),
+    ...queries.map((searchQuery) =>
+      client.search(searchQuery, {
+        searchDepth: "basic",
+        topic: "general",
+        maxResults: 6,
+        includeAnswer: false,
+        includeRawContent: "text",
+        includeImages: false
+      })
+    )
+  ]);
 
-  const searchResults = z.array(tavilyResultSchema).parse(result.results || []);
-  const directSourceResults = await extractKnownSourceWithTavily(client, game);
+  const searchResults = searchResponses.flatMap((result) => z.array(tavilyResultSchema).parse(result.results || []));
   const results = dedupeTavilyResults([...directSourceResults, ...searchResults]);
   console.info("[ai-web-autofill] Tavily results", { gameId: game.id, count: results.length });
 
@@ -193,12 +223,14 @@ export async function extractBoardGameFieldsWithNova(input: {
           "Treat the current game record as context, not as proof of editorial quality. Keep existing objective values when sources do not contradict them, but improve weak copy when better sourceContext exists. " +
           "Read players and play time carefully from titles and snippets, including formats like '1-6 jugadores', '1 a 6 players', '60 minutos' and '60-90 min'. " +
           "For description.value, write useful editorial copy in Spanish focused on what the game is about and what players actually do. " +
-          "For shortDescription.value, write a separate concrete hook of 180-260 characters. It must introduce why the game is interesting without repeating the same sentence or structure as description.value. " +
+          "For shortDescription.value, write a separate concrete hook of 180-260 characters. It must introduce why the game is interesting without repeating the same sentence or structure as description.value, and it must not be just players/playtime/age. " +
           "A good description explains the objective, the core turn loop, the main decisions/tension, the player interaction and the table feel. " +
           "The current game record may contain a shortDescription/shortSummary and a long description. Do not repeat the same sentence, opening, player count or age recommendation across short and long copy. " +
           "Do not use description.value to restate alreadyDisplayedFacts such as players, duration, age, publisher or year unless essential; those facts are displayed elsewhere. " +
           "If you improve description.value, make it complement the short copy: start with gameplay/objective, not with the same facts. " +
           "For known board games, explain the actual gameplay instead of describing it generically. For example, mention concrete actions such as placing tiles, playing cards, assigning workers, scoring areas, revealing clues or managing resources when supported. " +
+          "Use web_search sources to enrich direct store sources: shops often have shallow commercial copy, while BoardGameGeek/rules/reviews usually explain gameplay better. " +
+          "Do not introduce exact victory thresholds, component counts or special rules unless they are explicitly present in sourceContext. " +
           "Do not write generic SEO filler such as 'propuesta de mesa', 'foco en la experiencia de juego', 'contexto temático', 'para disfrutar en grupo' or vague restatements of players/playtime/age. " +
           "When the provided source has enough material, description.value should be substantial: 700-1100 characters in 2 readable paragraphs inside the same string. " +
           "If the sources only provide commercial noise and no gameplay detail, return null for description instead of inventing filler. " +
@@ -470,6 +502,57 @@ export async function applyGameImportProposalFields(input: {
   });
 
   return appliedFields;
+}
+
+export async function autoApplyGameWebAutofill(gameId: string) {
+  const game = await prisma.game.findUnique({ where: { id: gameId } });
+
+  if (!game) {
+    throw new Error("No existe ese juego.");
+  }
+
+  const fields = getAutoApplyAiWebFields(game);
+  if (!fields.length) {
+    return { appliedFields: [], skipped: true, warnings: [] };
+  }
+
+  const search = await searchBoardGameWithTavily(game);
+  const extracted = await extractBoardGameFieldsWithNova({
+    game,
+    tavilyResults: search.results
+  });
+  const proposal = await saveGameImportProposal({
+    gameId,
+    query: search.query,
+    rawSearchResults: search.results,
+    extractedFields: extracted
+  });
+  const appliedFields = await applyGameImportProposalFields({
+    gameId,
+    proposalId: proposal.id,
+    fields,
+    emptyOnly: false
+  });
+
+  return {
+    appliedFields,
+    skipped: false,
+    warnings: extracted.notes
+  };
+}
+
+function getAutoApplyAiWebFields(game: Game) {
+  return AI_WEB_PROPOSAL_FIELDS.filter((field) => {
+    if (field === "players") return !game.minPlayers || !game.maxPlayers;
+    if (field === "playTime") return !game.playtime;
+    if (field === "age") return !game.minAge;
+    if (field === "publisher") return !game.publisher;
+    if (field === "categories") return !game.categories.length;
+    if (field === "mechanics") return !game.mechanics.length;
+    if (field === "shortDescription") return !isUsefulShortDescription(game.shortDescription || game.shortSummary);
+    if (field === "description") return !isUsefulDescription(game.description);
+    return false;
+  });
 }
 
 export function serializeProposal(proposal: GameImportProposal): SerializableGameImportProposal {
@@ -843,7 +926,7 @@ function normalizeComparableText(value: string) {
 }
 
 function hasGenericDescriptionLanguage(value: string) {
-  return /(propuesta de mesa|foco en la experiencia de juego|contexto tem[aá]tico|pensad[oa] para disfrutar|ideal para grupos|ofrece una experiencia|se presenta como|din[aá]mica accesible)/i.test(value);
+  return /(propone una propuesta|propuesta de mesa|propuesta de estrategia|foco en la experiencia de juego|contexto tem[aá]tico|pensad[oa] para disfrutar|ideal para grupos|ofrece una experiencia|se presenta como|din[aá]mica accesible|con partidas de \d|recomendad[oa]s? para|a partir de \d)/i.test(value);
 }
 
 function hasGameplayDetail(value: string) {
@@ -1021,6 +1104,14 @@ function normalizeSearchText(value: string) {
 
 function exact(value: string) {
   return `"${value.replaceAll('"', "")}"`;
+}
+
+function cleanSearchTitle(value: string) {
+  return value
+    .replace(/\([^)]*(castellano|espa[nñ]ol|edici[oó]n|juego de mesa)[^)]*\)/gi, " ")
+    .replace(/\b(juego de mesa|castellano|espa[nñ]ol)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function readSourceValues(value: Prisma.JsonValue | null, key: string): string[] {

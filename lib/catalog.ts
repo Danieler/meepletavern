@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import type { GameImageFields } from "@/lib/gameImages";
 import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
-import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
+import { sanitizeImportedList, sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { prisma } from "@/lib/prisma";
 import { getPublishedReviewBySlug, getPublishedReviews } from "@/lib/reviews";
@@ -436,7 +436,7 @@ const getRelatedDbGames = unstable_cache(
 
 function toCatalogGame(game: CatalogDbGame): CatalogGame {
   const duration = parseDuration(game.playtime);
-  const title = game.title || game.name;
+  const title = sanitizeImportedTitle(game.title || game.name) || game.title || game.name;
   const shortDescription = game.shortDescription || game.shortSummary;
   const quickVerdict = game.quickVerdict || game.review;
   const difficulty = game.difficulty || game.complexity;

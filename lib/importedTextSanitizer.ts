@@ -45,7 +45,12 @@ export function sanitizeImportedTitle(title: string) {
     cleaned = cleaned.slice(0, bracketMatch.index).trimEnd();
   }
 
-  cleaned = cleaned.replace(/\s+/g, " ").trim();
+  cleaned = cleaned
+    .replace(/^Hasbro\s+Gaming\s*,\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  cleaned = normalizeRiskTitle(cleaned);
   return cleaned;
 }
 
@@ -88,6 +93,26 @@ export function sanitizeImportedFacts(facts: Record<string, string>) {
 
 function normalizeText(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeRiskTitle(value: string) {
+  if (!/^Risk\b/i.test(value)) {
+    return value;
+  }
+
+  const suffix = value.replace(/^Risk\b\s*/i, "").trim();
+  if (!suffix) {
+    return "Risk";
+  }
+
+  if (
+    /^[:,-]/.test(suffix) &&
+    /(conquista|estrat[eé]gica|ej[eé]rcito|juguete|tablero mundial|territorios|continentes|juegos para fiestas|regalo|multijugador|acci[oó]n|aventura)/i.test(suffix)
+  ) {
+    return "Risk";
+  }
+
+  return value;
 }
 
 function looksLikeImportedCode(value: string) {
