@@ -5,6 +5,7 @@ import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { AdminFinalGameForm } from "@/components/AdminFinalGameForm";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
+import { getPendingGameImportProposal } from "@/lib/ai/gameWebAutofill";
 import { gameRepository } from "@/lib/editorialRepositories";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,10 @@ export default async function GameEditorPage({ params }: GameEditorPageProps) {
   const { id } = await params;
 
   try {
-    const game = await gameRepository.getEditorById(id);
+    const [game, pendingProposal] = await Promise.all([
+      gameRepository.getEditorById(id),
+      getPendingGameImportProposal(id)
+    ]);
 
     if (!game) {
       notFound();
@@ -41,7 +45,7 @@ export default async function GameEditorPage({ params }: GameEditorPageProps) {
             Crear reseña de este juego
           </Link>
         </div>
-        <AdminFinalGameForm game={game} mediaAssets={game.mediaAssets} />
+        <AdminFinalGameForm game={game} mediaAssets={game.mediaAssets} initialAiWebProposal={pendingProposal} />
       </div>
     );
   } catch (error) {

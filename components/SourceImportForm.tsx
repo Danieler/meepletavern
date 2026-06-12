@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
-import { Info, Sparkles, Upload } from "lucide-react";
+import { Info, Loader2, Sparkles, Upload } from "lucide-react";
 import { importSourceAction, type ImportSourceState } from "@/app/admin/import/actions";
 
 type ImportSource = {
@@ -113,10 +113,17 @@ export function SourceImportForm({ sources, initialSourceId = "" }: SourceImport
         ) : null}
 
         <button className="button-primary" type="submit" disabled={pending}>
-          <Upload size={18} aria-hidden="true" />
+          {pending ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <Upload size={18} aria-hidden="true" />}
           {pending ? "Importando..." : "Importar juego"}
         </button>
       </form>
+
+      {pending ? (
+        <p className="mt-4 inline-flex items-center gap-2 rounded-md border border-ember/20 bg-ember/10 px-4 py-3 text-sm font-semibold text-ink">
+          <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+          Importando datos, creando ficha y completando campos con IA...
+        </p>
+      ) : null}
 
       {state.error ? (
         <p className="mt-4 rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">

@@ -65,6 +65,12 @@ enum GameImageStatus {
   needs_review
 }
 
+enum GameImportProposalStatus {
+  pending
+  applied
+  rejected
+}
+
 model Game {
   id                    String          @id @default(cuid())
   name                  String
@@ -121,8 +127,25 @@ model Game {
   candidates            GameCandidate[]
   libraryEntries        UserLibraryGame[]
   reviews               Review[]
+  importProposals       GameImportProposal[]
 
   @@index([status])
+  @@index([createdAt])
+}
+
+model GameImportProposal {
+  id               String                 @id @default(cuid())
+  gameId           String
+  game             Game                   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  provider         String
+  status           GameImportProposalStatus @default(pending)
+  query            String
+  rawSearchResults Json
+  extractedFields  Json
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@index([gameId, status])
   @@index([createdAt])
 }
 

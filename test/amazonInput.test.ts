@@ -18,6 +18,10 @@ test("parseAmazonInput extracts ASINs from Amazon URLs", () => {
     asin: "B0ABC123DE",
     inputType: "url"
   });
+  assert.deepEqual(parseAmazonInput("https://www.amazon.es/gp/aw/d/B07KV2215N/?_encoding=UTF8&ref_=sbx__sbtcd2_asin_0_title"), {
+    asin: "B07KV2215N",
+    inputType: "url"
+  });
 });
 
 test("parseAmazonInput rejects invalid input", () => {

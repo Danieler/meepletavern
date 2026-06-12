@@ -64,6 +64,13 @@ function pathCandidates(pathname: string) {
     if ((part === "dp" || part === "product" || part === "gp") && parts[index + 1]) {
       if (part === "gp" && parts[index + 1].toLowerCase() === "product" && parts[index + 2]) {
         result.push(parts[index + 2]);
+      } else if (
+        part === "gp" &&
+        parts[index + 1].toLowerCase() === "aw" &&
+        parts[index + 2]?.toLowerCase() === "d" &&
+        parts[index + 3]
+      ) {
+        result.push(parts[index + 3]);
       } else {
         result.push(parts[index + 1]);
       }

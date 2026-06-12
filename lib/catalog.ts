@@ -18,6 +18,13 @@ export type BuyLink = {
   label?: string;
 };
 
+export type GalleryImage = {
+  url: string;
+  alt: string;
+  sourceName: string | null;
+  attribution: string | null;
+};
+
 export type CatalogGame = GameImageFields & {
   id: string;
   slug: string;
@@ -43,6 +50,7 @@ export type CatalogGame = GameImageFields & {
   notRecommendedFor: string;
   similarGames: string[];
   buyLinks: BuyLink[];
+  galleryImages: GalleryImage[];
   addedAt: string;
   updatedAt: string;
   publishedAt: string | null;
@@ -451,6 +459,7 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
   });
   const safeMedia = pickSafeMedia(game);
   const publicCoverImage = safeMedia?.url || resolveLegacyPublicImage(game);
+  const galleryImages = buildPublicGalleryImages(game, publicCoverImage, title);
   const placeholderKind = inferPlaceholderKind({
     categories,
     mechanics,
@@ -490,6 +499,7 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     notRecommendedFor: game.notFor || "",
     similarGames: game.similarGames,
     buyLinks: game.buyUrl ? [{ store: "Comprar", url: game.buyUrl }] : [],
+    galleryImages,
     addedAt: toIsoString(game.createdAt) || new Date().toISOString(),
     updatedAt: toIsoString(game.updatedAt) || new Date().toISOString(),
     publishedAt: toIsoString(game.publishedAt)
@@ -540,7 +550,41 @@ function toIsoString(value: Date | string | null | undefined) {
 }
 
 function pickSafeMedia(game: CatalogDbGame) {
-  const orderedMedia = [...game.mediaAssets].sort((left, right) => {
+  return getOrderedMedia(game).find((asset) => canShowMedia(asset, asset.source)) || null;
+}
+
+function buildPublicGalleryImages(game: CatalogDbGame, publicCoverImage: string | null, title: string) {
+  const seen = new Set<string>();
+  const images: GalleryImage[] = [];
+
+  function addImage(url: string | null | undefined, sourceName: string | null = null, attribution: string | null = null) {
+    const normalizedUrl = url?.trim();
+    if (!normalizedUrl || seen.has(normalizedUrl)) {
+      return;
+    }
+
+    seen.add(normalizedUrl);
+    images.push({
+      url: normalizedUrl,
+      alt: `Imagen de ${title}`,
+      sourceName,
+      attribution
+    });
+  }
+
+  for (const asset of getOrderedMedia(game)) {
+    if (canShowMedia(asset, asset.source)) {
+      addImage(asset.url, asset.source?.name || null, asset.attribution || null);
+    }
+  }
+
+  addImage(publicCoverImage, publicCoverImage ? "Portada del juego" : null);
+
+  return images;
+}
+
+function getOrderedMedia(game: CatalogDbGame) {
+  return [...game.mediaAssets].sort((left, right) => {
     if (left.id === game.primaryImageId) {
       return -1;
     }
@@ -551,8 +595,6 @@ function pickSafeMedia(game: CatalogDbGame) {
 
     return 0;
   });
-
-  return orderedMedia.find((asset) => canShowMedia(asset, asset.source)) || null;
 }
 
 function resolveLegacyPublicImage(game: CatalogDbGame) {

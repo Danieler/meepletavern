@@ -3,13 +3,14 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
-import { ExternalLink, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
+import { ExternalLink, Loader2, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
 import {
   deleteGameEditorAction,
   publishGameEditorAction,
   saveGameEditorAction,
   type GameEditorActionState
 } from "@/app/admin/games/[id]/actions";
+import type { SerializableGameImportProposal } from "@/lib/ai/gameWebAutofill";
 import { AdminStatusBadge } from "@/components/AdminStatusBadge";
 import { RatingBadge } from "@/components/RatingBadge";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
@@ -19,6 +20,7 @@ import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 type AdminFinalGameFormProps = {
   game: Game;
   mediaAssets: MediaAsset[];
+  initialAiWebProposal?: SerializableGameImportProposal | null;
 };
 
 const initialState: GameEditorActionState = {};
@@ -57,12 +59,29 @@ type EditorDraftValues = {
   imageFallbackAccepted: boolean;
 };
 
-export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProps) {
+const AI_WEB_FIELDS = [
+  "players",
+  "playTime",
+  "age",
+  "publisher",
+  "year",
+  "categories",
+  "mechanics",
+  "description"
+] as const;
+
+export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = null }: AdminFinalGameFormProps) {
   const router = useRouter();
   const [saveState, saveAction, isSaving] = useActionState(saveGameEditorAction, initialState);
   const [publishState, publishAction, isPublishing] = useActionState(publishGameEditorAction, initialState);
   const [aiCompletionState, setAiCompletionState] = useState<AiCompletionState>({});
   const [isCompletingWithAi, setIsCompletingWithAi] = useState(false);
+  const [aiWebProposal, setAiWebProposal] = useState<SerializableGameImportProposal | null>(initialAiWebProposal);
+  const [aiWebError, setAiWebError] = useState<string | null>(null);
+  const [aiWebStatus, setAiWebStatus] = useState<string | null>(null);
+  const [isCompletingWithAiWeb, setIsCompletingWithAiWeb] = useState(false);
+  const [isApplyingAiWeb, setIsApplyingAiWeb] = useState(false);
+  const [selectedAiWebFields, setSelectedAiWebFields] = useState<string[]>([]);
   const ratings = useMemo(() => normalizeGameRatings(game.ratings), [game.ratings]);
   const externalRating = ratings.external;
   const players = normalizeGamePlayers(game.players);
@@ -87,11 +106,26 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
     () => resolvePrimaryImagePreviewUrl(draftValues.primaryImageId, game, mediaAssets),
     [draftValues.primaryImageId, game, mediaAssets]
   );
-  const isBusy = isSaving || isPublishing || isCompletingWithAi;
+  const isBusy = isSaving || isPublishing || isCompletingWithAi || isCompletingWithAiWeb || isApplyingAiWeb;
 
   useEffect(() => {
     setDraftValues(initialDraftValues);
   }, [initialDraftValues]);
+
+  useEffect(() => {
+    setAiWebProposal(initialAiWebProposal);
+  }, [initialAiWebProposal]);
+
+  useEffect(() => {
+    if (!aiWebProposal) {
+      setSelectedAiWebFields([]);
+      return;
+    }
+
+    setSelectedAiWebFields(
+      AI_WEB_FIELDS.filter((field) => hasProposalValue(aiWebProposal, field))
+    );
+  }, [aiWebProposal]);
 
   useEffect(() => {
     if (saveState.message && !saveState.errors?.length) {
@@ -148,6 +182,126 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
     }
   }
 
+  async function handleAiWebCompletion(regenerate = false) {
+    setIsCompletingWithAiWeb(true);
+    setAiWebError(null);
+    setAiWebStatus("Buscando fuentes con Tavily y preparando una propuesta...");
+
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}/ai-web-autofill`, {
+        method: "POST",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({ regenerate })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setAiWebError(payload.error || "No se pudo completar con IA web.");
+        return;
+      }
+
+      const proposal = payload.proposal || null;
+      setAiWebProposal(proposal);
+      if (!proposal) {
+        setAiWebError("La IA no devolvió una propuesta usable.");
+        return;
+      }
+
+      const fields = AI_WEB_FIELDS.filter((field) => hasProposalValue(proposal, field));
+      if (!fields.length) {
+        setAiWebError("La IA no encontró campos nuevos suficientemente claros para aplicar.");
+        return;
+      }
+      setAiWebStatus("Propuesta lista. Revisa los campos y aplica solo lo que quieras.");
+    } catch (error) {
+      setAiWebError(error instanceof Error ? error.message : "No se pudo completar con IA web.");
+    } finally {
+      setIsCompletingWithAiWeb(false);
+    }
+  }
+
+  async function handleApplyAiWeb(emptyOnly = false) {
+    if (!aiWebProposal) {
+      return;
+    }
+
+    setIsApplyingAiWeb(true);
+    setAiWebError(null);
+    setAiWebStatus(emptyOnly ? "Aplicando solo campos vacíos..." : "Aplicando campos seleccionados...");
+
+    try {
+      const fields = emptyOnly
+        ? AI_WEB_FIELDS.filter((field) => hasProposalValue(aiWebProposal, field))
+        : selectedAiWebFields;
+      const response = await fetch(`/api/admin/games/${game.id}/ai-web-autofill`, {
+        method: "PATCH",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({
+          proposalId: aiWebProposal.id,
+          action: "apply",
+          emptyOnly,
+          fields
+        })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setAiWebError(payload.error || "No se pudo aplicar la propuesta.");
+        return;
+      }
+
+      if (!payload.appliedFields?.length) {
+        setAiWebError("No se aplicó ningún campo. Revisa si esos campos ya tenían contenido.");
+        return;
+      }
+
+      setDraftValues((current) =>
+        applyAiWebProposalToDraft(current, aiWebProposal, payload.appliedFields)
+      );
+      setAiWebProposal(null);
+      setAiWebStatus("Campos aplicados. Actualizando ficha...");
+      router.refresh();
+    } catch (error) {
+      setAiWebError(error instanceof Error ? error.message : "No se pudo aplicar la propuesta.");
+    } finally {
+      setIsApplyingAiWeb(false);
+    }
+  }
+
+  async function handleRejectAiWeb() {
+    if (!aiWebProposal) {
+      return;
+    }
+
+    setIsApplyingAiWeb(true);
+    setAiWebError(null);
+    setAiWebStatus("Rechazando propuesta...");
+
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}/ai-web-autofill`, {
+        method: "PATCH",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({
+          proposalId: aiWebProposal.id,
+          action: "reject"
+        })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setAiWebError(payload.error || "No se pudo rechazar la propuesta.");
+        return;
+      }
+
+      setAiWebProposal(null);
+      setAiWebStatus("Propuesta rechazada.");
+    } catch (error) {
+      setAiWebError(error instanceof Error ? error.message : "No se pudo rechazar la propuesta.");
+    } finally {
+      setIsApplyingAiWeb(false);
+    }
+  }
+
   function updateDraftField<K extends keyof EditorDraftValues>(key: K, value: EditorDraftValues[K]) {
     setDraftValues((current) => ({ ...current, [key]: value }));
   }
@@ -169,17 +323,21 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button className="button-secondary" type="button" onClick={handleAiCompletion} disabled={isBusy}>
-              <WandSparkles size={18} aria-hidden="true" />
+              {isCompletingWithAi ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <WandSparkles size={18} aria-hidden="true" />}
               {isCompletingWithAi ? "Generando..." : "Generar descripción en español"}
             </button>
+            <button className="button-secondary" type="button" onClick={() => handleAiWebCompletion(true)} disabled={isBusy}>
+              {isCompletingWithAiWeb ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <WandSparkles size={18} aria-hidden="true" />}
+              {isCompletingWithAiWeb ? "Buscando fuentes..." : "Completar con IA web"}
+            </button>
             <button className="button-secondary" form="final-game-form" formAction={saveAction} disabled={isBusy}>
-              <Save size={18} aria-hidden="true" />
-              Guardar cambios
+              {isSaving ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
+              {isSaving ? "Guardando..." : "Guardar cambios"}
             </button>
             {showPublishButton ? (
               <button className="button-primary" form="final-game-form" formAction={publishAction} disabled={isBusy}>
-                <Rocket size={18} aria-hidden="true" />
-                Publicar
+                {isPublishing ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <Rocket size={18} aria-hidden="true" />}
+                {isPublishing ? "Publicando..." : "Publicar"}
               </button>
             ) : null}
             {publicUrl ? (
@@ -253,9 +411,94 @@ export function AdminFinalGameForm({ game, mediaAssets }: AdminFinalGameFormProp
       </section>
 
       <Feedback state={aiCompletionState} errorTitle="No se pudo completar con IA:" />
+      {aiWebStatus ? (
+        <p className="inline-flex items-center gap-2 rounded-md border border-ember/20 bg-ember/10 px-4 py-3 text-sm font-semibold text-ink">
+          {(isCompletingWithAiWeb || isApplyingAiWeb) ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : null}
+          {aiWebStatus}
+        </p>
+      ) : null}
+      {aiWebError ? (
+        <p className="rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">
+          {aiWebError}
+        </p>
+      ) : null}
       {aiCompletionState.suggestedTitle ? <SuggestedTitleNotice title={aiCompletionState.suggestedTitle} /> : null}
       <Feedback state={saveState} errorTitle="No se pudo guardar:" />
       <Feedback state={publishState} errorTitle="No se pudo publicar:" />
+
+      {aiWebProposal ? (
+        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-ember">Propuesta pendiente de revisión</p>
+              <h2 className="mt-1 text-xl font-bold text-ink">Buscar datos con Tavily + Nova Micro</h2>
+              <p className="mt-2 text-sm leading-6 text-ink/60">
+                Revisa la fuente y la confianza antes de aplicar nada.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="button-secondary" type="button" onClick={() => handleAiWebCompletion(true)} disabled={isBusy}>
+                {isCompletingWithAiWeb ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : null}
+                Regenerar
+              </button>
+              <button className="button-secondary" type="button" onClick={() => handleApplyAiWeb(true)} disabled={isBusy}>
+                {isApplyingAiWeb ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : null}
+                Aplicar campos vacíos
+              </button>
+              <button className="button-primary" type="button" onClick={() => handleApplyAiWeb(false)} disabled={isBusy || !selectedAiWebFields.length}>
+                {isApplyingAiWeb ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : null}
+                Aplicar seleccionados
+              </button>
+              <button className="button-danger" type="button" onClick={handleRejectAiWeb} disabled={isBusy}>
+                Rechazar propuesta
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {AI_WEB_FIELDS.map((field) => {
+              const proposalField = aiWebProposal.extractedFields[field];
+              if (!proposalField || !hasProposalValue(aiWebProposal, field)) {
+                return null;
+              }
+
+              return (
+                <label key={field} className="grid gap-3 rounded-md border border-ink/10 bg-parchment/40 p-4 lg:grid-cols-[20px_180px_1fr_1fr_auto] lg:items-start">
+                  <input
+                    type="checkbox"
+                    checked={selectedAiWebFields.includes(field)}
+                    onChange={(event) =>
+                      setSelectedAiWebFields((current) =>
+                        event.target.checked ? [...current, field] : current.filter((item) => item !== field)
+                      )
+                    }
+                  />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-ink/45">{fieldLabel(field)}</p>
+                    <p className="mt-1 text-sm font-semibold text-ink/60">Actual: {currentValueLabel(game, field)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-ink/45">Propuesta</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{proposalValueLabel(proposalField.value)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-ink/45">Confianza</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{Math.round((proposalField.confidence || 0) * 100)}%</p>
+                    {proposalField.sourceUrl ? (
+                      <a className="mt-2 inline-flex text-xs font-semibold text-moss" href={proposalField.sourceUrl} target="_blank" rel="noreferrer">
+                        Fuente
+                      </a>
+                    ) : null}
+                  </div>
+                  <div className="text-xs font-semibold text-ink/55">
+                    {proposalField.confidence < 0.75 || aiWebProposal.extractedFields.needsHumanReview ? "Requiere revisión" : "OK"}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <form id="final-game-form" className="space-y-6">
         <input type="hidden" name="id" value={game.id} />
@@ -744,6 +987,233 @@ function resolvePrimaryImagePreviewUrl(
   }
 
   return game.coverImageUrl || game.imageUrl || null;
+}
+
+function fieldLabel(field: (typeof AI_WEB_FIELDS)[number]) {
+  return {
+    players: "Jugadores",
+    playTime: "Duración",
+    age: "Edad",
+    publisher: "Editorial",
+    year: "Año",
+    categories: "Categorías",
+    mechanics: "Mecánicas",
+    description: "Descripción"
+  }[field];
+}
+
+function currentValueLabel(game: Game, field: (typeof AI_WEB_FIELDS)[number]) {
+  if (field === "players") {
+    return [game.minPlayers, game.maxPlayers].filter(Boolean).join("-") || "Vacío";
+  }
+
+  if (field === "playTime") {
+    return game.playtime || "Vacío";
+  }
+
+  if (field === "age") {
+    return game.age || (game.minAge ? `${game.minAge}+` : "Vacío");
+  }
+
+  if (field === "publisher") {
+    return game.publisher || "Vacío";
+  }
+
+  if (field === "year") {
+    return game.year ? String(game.year) : "Vacío";
+  }
+
+  if (field === "categories") {
+    return game.categories.join(", ") || "Vacío";
+  }
+
+  if (field === "mechanics") {
+    return game.mechanics.join(", ") || "Vacío";
+  }
+
+  return game.description || "Vacío";
+}
+
+function proposalValueLabel(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.join(", ") || "Sin propuesta";
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const min = typeof record.min === "number" ? record.min : null;
+    const max = typeof record.max === "number" ? record.max : null;
+    if (min || max) {
+      return min && max ? `${min}-${max}` : String(min || max);
+    }
+  }
+
+  return typeof value === "string"
+    ? value
+    : typeof value === "number"
+      ? String(value)
+      : "Sin propuesta";
+}
+
+function hasProposalValue(proposal: SerializableGameImportProposal, field: (typeof AI_WEB_FIELDS)[number]) {
+  const value = proposal.extractedFields[field]?.value;
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return Object.values(record).some(Boolean);
+  }
+
+  return Boolean(value);
+}
+
+function applyAiWebProposalToDraft(
+  current: EditorDraftValues,
+  proposal: SerializableGameImportProposal,
+  appliedFields: string[]
+): EditorDraftValues {
+  const next = { ...current };
+  const applied = new Set(appliedFields);
+
+  if (applied.has("players")) {
+    const players = proposalRangeValue(proposal.extractedFields.players?.value);
+    if (players) {
+      next.minPlayers = String(players.min);
+      next.maxPlayers = String(players.max);
+    }
+  }
+
+  if (applied.has("playTime")) {
+    const playTime = proposalRangeValue(proposal.extractedFields.playTime?.value);
+    if (playTime) {
+      next.minPlayTime = String(playTime.min);
+      next.maxPlayTime = String(playTime.max);
+    }
+  }
+
+  if (applied.has("age")) {
+    const age = proposalNumberValue(proposal.extractedFields.age?.value);
+    if (age) {
+      next.minAge = String(age);
+    }
+  }
+
+  if (applied.has("publisher")) {
+    const publisher = proposalStringListValue(proposal.extractedFields.publisher?.value)[0];
+    if (publisher) {
+      next.publisher = publisher;
+    }
+  }
+
+  if (applied.has("year")) {
+    const year = proposalNumberValue(proposal.extractedFields.year?.value);
+    if (year) {
+      next.year = String(year);
+    }
+  }
+
+  if (applied.has("categories")) {
+    const categories = proposalStringListValue(proposal.extractedFields.categories?.value);
+    if (categories.length) {
+      next.categories = categories.join("\n");
+    }
+  }
+
+  if (applied.has("mechanics")) {
+    const mechanics = proposalStringListValue(proposal.extractedFields.mechanics?.value);
+    if (mechanics.length) {
+      next.mechanics = mechanics.join("\n");
+    }
+  }
+
+  if (applied.has("description") && typeof proposal.extractedFields.description?.value === "string") {
+    const description = proposal.extractedFields.description.value.trim();
+    if (description) {
+      next.description = description;
+      next.shortDescription = description.slice(0, 300);
+    }
+  }
+
+  return next;
+}
+
+function proposalRangeValue(value: unknown): { min: number; max: number } | null {
+  if (Array.isArray(value)) {
+    const numbers = value.map(proposalNumberValue).filter((item): item is number => typeof item === "number");
+    if (numbers.length >= 2) {
+      return {
+        min: Math.min(numbers[0], numbers[1]),
+        max: Math.max(numbers[0], numbers[1])
+      };
+    }
+    if (numbers.length === 1) {
+      return { min: numbers[0], max: numbers[0] };
+    }
+  }
+
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return { min: value, max: value };
+  }
+
+  if (typeof value === "string") {
+    const numbers = [...value.matchAll(/\d+/g)].map((match) => Number(match[0]));
+    if (numbers.length >= 2) {
+      return {
+        min: Math.min(numbers[0], numbers[1]),
+        max: Math.max(numbers[0], numbers[1])
+      };
+    }
+    if (numbers.length === 1) {
+      return { min: numbers[0], max: numbers[0] };
+    }
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const min = proposalNumberValue(record.min ?? record.minimum ?? record.from);
+    const max = proposalNumberValue(record.max ?? record.maximum ?? record.to);
+    if (min || max) {
+      return {
+        min: min || max!,
+        max: max || min!
+      };
+    }
+  }
+
+  return null;
+}
+
+function proposalNumberValue(value: unknown): number | null {
+  if (Array.isArray(value)) {
+    return value.map(proposalNumberValue).find((item): item is number => typeof item === "number") || null;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const match = value.match(/\d+/);
+    return match ? Number(match[0]) : null;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return proposalNumberValue(record.value ?? record.age ?? record.minAge ?? record.year);
+  }
+
+  return null;
+}
+
+function proposalStringListValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim());
+  }
+
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
 }
 
 function buildDraftValues(

@@ -97,9 +97,6 @@ export default async function GamePage({ params }: GamePageProps) {
                 <p className="mt-3 text-sm font-semibold text-parchment/70">
                   {[game.playersLabel, game.playtime, game.complexity].filter(Boolean).join(" · ")}
                 </p>
-                {game.reviewSummary ? (
-                  <p className="mt-5 max-w-3xl text-lg leading-8 text-parchment/80">{game.reviewSummary}</p>
-                ) : null}
               </div>
             </div>
           </div>
@@ -118,23 +115,29 @@ export default async function GamePage({ params }: GamePageProps) {
             </aside>
 
             <article className="space-y-7">
-              <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
-                <div>
-                  <p className="text-sm font-bold text-walnut">
-                    {[game.publishedAt ? new Date(game.publishedAt).getFullYear() : null, game.categories[0]].filter(Boolean).join(" · ")}
-                  </p>
-                  <h2 className="font-display mt-2 text-5xl font-black text-wood">{game.title}</h2>
-                  {game.description ? (
-                    <p className="mt-5 max-w-3xl text-base leading-8 text-ink">{game.description}</p>
+              <div className="space-y-5">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_12rem]">
+                  <div>
+                    <p className="text-sm font-bold text-walnut">
+                      {[game.publishedAt ? new Date(game.publishedAt).getFullYear() : null, game.categories[0]].filter(Boolean).join(" · ")}
+                    </p>
+                    <h2 className="font-display mt-2 text-5xl font-black text-wood">{game.title}</h2>
+                  </div>
+                  {game.ratings.external?.score ? (
+                    <div className="flex self-start rounded-[18px] border-2 border-ember bg-walnut px-5 py-4 text-white shadow-soft lg:flex-col lg:items-center lg:text-center">
+                      <div className="flex flex-1 items-center gap-4 lg:flex-col lg:gap-1">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-parchment lg:max-w-28">Valoración general</p>
+                        <p className="font-display text-5xl font-black leading-none">{game.ratings.external.score.toFixed(1)}</p>
+                      </div>
+                      <div className="ml-4 flex items-center gap-2 border-l border-parchment/20 pl-4 lg:ml-0 lg:mt-2 lg:border-l-0 lg:border-t lg:pl-0 lg:pt-2">
+                        <BrandIcon name="star" size={18} />
+                        <p className="font-display text-base font-black text-ember">{game.ratings.external.label}</p>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
-                {game.ratings.external?.score ? (
-                  <div className="flex min-w-40 flex-col items-center justify-center rounded-[18px] border-4 border-ember bg-walnut p-5 text-center text-white shadow-tavern">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-parchment">Valoración general</p>
-                    <p className="font-display text-6xl font-black">{game.ratings.external.score.toFixed(1)}</p>
-                    <p className="font-display text-lg font-black text-ember">{game.ratings.external.label}</p>
-                    <BrandIcon name="star" size={26} className="mt-2" />
-                  </div>
+                {game.description ? (
+                  <p className="text-base leading-8 text-ink lg:text-lg lg:leading-9">{game.description}</p>
                 ) : null}
               </div>
 
@@ -171,21 +174,6 @@ export default async function GamePage({ params }: GamePageProps) {
                   ) : null}
                 </div>
               ) : null}
-
-              <div className="wood-surface grid overflow-hidden rounded-md border border-ember/30 text-sm font-black uppercase tracking-wide text-parchment sm:grid-cols-4">
-                {["Resumen", "Reseña", "Detalles", "Juegos relacionados"].map((label, index) => (
-                  <span key={label} className={`border-ember/20 px-4 py-4 text-center ${index ? "sm:border-l" : "text-ember"}`}>
-                    {label}
-                  </span>
-                ))}
-              </div>
-
-            {game.description ? (
-              <section className="tavern-card p-6">
-                <h2 className="font-display text-2xl font-black text-wood">Resumen de la reseña</h2>
-                <p className="mt-4 text-base leading-8 text-walnut/80">{game.description}</p>
-              </section>
-            ) : null}
 
             {game.pros.length || game.cons.length ? <ProsCons pros={game.pros} cons={game.cons} /> : null}
 
@@ -317,22 +305,52 @@ function CommunityScore({ game }: { game: CatalogGame }) {
 }
 
 function GalleryPreview({ game }: { game: CatalogGame }) {
+  const previewImages = game.galleryImages.slice(0, 4);
+  const extraImages = game.galleryImages.slice(4);
+
+  if (!previewImages.length) {
+    return null;
+  }
+
   return (
     <Panel title="Galería">
-      <div className="grid grid-cols-4 gap-2">
-        {[0, 1, 2].map((item) => (
-          <div key={item} className="relative aspect-square overflow-hidden rounded-md border border-walnut/20">
-            <GameCoverImage {...game} gameTitle={game.title} variant="ranking" showPlaceholderLabel={false} />
-          </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(86px,1fr))] gap-3">
+        {previewImages.map((image) => (
+          <GalleryImageTile key={image.url} image={image} />
         ))}
-        <div className="flex aspect-square items-center justify-center rounded-md bg-wood text-center text-sm font-black uppercase text-white">
-          +12<br />más
-        </div>
       </div>
-      <Link href={`/juegos/${game.slug}`} className="button-secondary mt-4 w-full text-xs uppercase tracking-wide">
-        Ver todas las imágenes
-      </Link>
+      {extraImages.length ? (
+        <details className="group mt-4">
+          <summary className="button-secondary w-full cursor-pointer list-none justify-center px-4 py-3 text-xs uppercase tracking-wide">
+            Ver {extraImages.length} imágenes más
+          </summary>
+          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(86px,1fr))] gap-3">
+            {extraImages.map((image) => (
+              <GalleryImageTile key={image.url} image={image} />
+            ))}
+          </div>
+        </details>
+      ) : null}
     </Panel>
+  );
+}
+
+function GalleryImageTile({ image }: { image: CatalogGame["galleryImages"][number] }) {
+  return (
+    <figure className="overflow-hidden rounded-md border border-walnut/20 bg-parchment">
+      <img
+        src={image.url}
+        alt={image.alt}
+        loading="lazy"
+        decoding="async"
+        className="aspect-square w-full object-cover"
+      />
+      {image.sourceName ? (
+        <figcaption className="truncate px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide text-walnut/55">
+          {image.sourceName}
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }
 
