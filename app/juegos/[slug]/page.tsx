@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
+import { BuyButton } from "@/components/BuyButton";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
 import { GameCard } from "@/components/GameCard";
@@ -13,10 +14,8 @@ import { GameLibraryPanel } from "@/components/GameLibraryPanel";
 import { GameRatingSummary } from "@/components/GameRatingSummary";
 import { GameStats } from "@/components/GameStats";
 import { MechanicTag } from "@/components/MechanicTag";
-import { ProsCons } from "@/components/ProsCons";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
-import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { UserRatingVote } from "@/components/UserRatingVote";
 import { getGameBySlug, getRelatedGames, termHref, type CatalogGame } from "@/lib/catalog";
 import { getGameComments } from "@/lib/gameComments";
@@ -77,6 +76,7 @@ export default async function GamePage({ params }: GamePageProps) {
   const bodyDescription = isWeakBodyDescription(game.description, introDescription, game) ? "" : game.description;
   const leadDescription = introDescription || bodyDescription;
   const detailDescription = introDescription ? bodyDescription : "";
+  const primaryBuyUrl = game.buyLinks[0]?.url || null;
 
   return (
     <PublicShell>
@@ -101,7 +101,7 @@ export default async function GamePage({ params }: GamePageProps) {
           </div>
         </section>
 
-        <section className="container-page -mt-2 pb-14">
+        <section className="container-page -mt-2 pb-10">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
             <div className="grid gap-6">
               <div className="tavern-panel p-4 sm:p-6">
@@ -109,7 +109,7 @@ export default async function GamePage({ params }: GamePageProps) {
                   <aside className="space-y-5">
                     <GameCoverImage {...game} gameTitle={game.title} variant="detail" priority className="border border-walnut/20 shadow-tavern" />
                     {shouldShowCategories || game.mechanics.length || game.themes.length ? (
-                      <section className="rounded-2xl border border-walnut/15 bg-white/70 p-4 shadow-soft">
+                      <section className="rounded-md border border-walnut/15 bg-white/70 p-4 shadow-soft">
                         <div className="grid gap-3">
                           {shouldShowCategories ? (
                             <TagSection title="Categorías">
@@ -168,40 +168,22 @@ export default async function GamePage({ params }: GamePageProps) {
                         Comentar
                       </Link>
                     </div>
+
+                    <QuickDecision game={game} />
                   </article>
-
-                  <div className="grid gap-6 lg:col-span-2 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:items-start">
-                    {detailDescription ? (
-                      <section className="rounded-2xl border border-walnut/15 bg-white/55 p-5 sm:p-6">
-                        <SectionHeader
-                          eyebrow="En mesa"
-                          title="Cómo se juega y qué ritmo tiene"
-                          description="Contexto para entender la experiencia sin repetir los datos rápidos de arriba."
-                        />
-                        <p className="text-base leading-8 text-ink/85">{detailDescription}</p>
-                      </section>
-                    ) : null}
-
-                    <section className="rounded-2xl border border-walnut/15 bg-white/55 p-5 sm:p-6">
-                      <SectionHeader
-                        eyebrow="Veredicto rápido"
-                        title="Lo mejor, lo peor y para quién"
-                        description="Una lectura editorial pensada para decidir rápido si este juego merece hueco en tu mesa."
-                      />
-                      <div className="space-y-4">
-                        {game.pros.length || game.cons.length ? <ProsCons pros={game.pros} cons={game.cons} /> : null}
-
-                        {game.recommendedFor || game.notRecommendedFor ? (
-                          <div className="grid gap-4 md:grid-cols-2">
-                            {game.recommendedFor ? <TextPanel title="Para quién es este juego" body={game.recommendedFor} /> : null}
-                            {game.notRecommendedFor ? <TextPanel title="Para quién no es" body={game.notRecommendedFor} /> : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    </section>
-                  </div>
                 </div>
               </div>
+
+              {detailDescription ? (
+                <section className="tavern-panel p-5 sm:p-6">
+                  <SectionHeader
+                    eyebrow="En mesa"
+                    title="Cómo se juega y qué ritmo tiene"
+                    description="Contexto para entender la experiencia sin repetir los datos rápidos de arriba."
+                  />
+                  <p className="max-w-4xl text-base leading-8 text-ink/85">{detailDescription}</p>
+                </section>
+              ) : null}
 
               <GameComments gameId={game.id} gameSlug={game.slug} initialComments={comments} />
             </div>
@@ -213,7 +195,12 @@ export default async function GamePage({ params }: GamePageProps) {
                 </div>
                 <UserRatingVote gameId={game.id} initialVotesCount={game.ratings.users.votesCount} />
               </Panel>
-              {game.buyLinks.length ? (
+              {primaryBuyUrl ? (
+                <Panel title="Compra rápida">
+                  <BuyButton url={primaryBuyUrl} />
+                </Panel>
+              ) : null}
+              {game.buyLinks.length > 1 ? (
                 <Panel title="Enlaces de compra">
                   <BuyLinks links={game.buyLinks} />
                 </Panel>
@@ -226,15 +213,6 @@ export default async function GamePage({ params }: GamePageProps) {
           </div>
         </section>
 
-        <section className="container-page pb-14">
-          <SEOTextBlock title={`${game.title}: opinión, duración y juegos parecidos`}>
-            <p>
-              Esta ficha está preparada para responder búsquedas habituales sobre {game.title}:
-              número de jugadores, duración aproximada, dificultad, si merece la pena, categorías,
-              mecánicas y alternativas con sensaciones parecidas.
-            </p>
-          </SEOTextBlock>
-        </section>
       </main>
     </PublicShell>
   );
@@ -267,29 +245,89 @@ function Panel({ title, children, wood = false }: { title: string; children: Rea
   );
 }
 
-function TextPanel({ title, body }: { title: string; body: string }) {
-  return (
-    <section className="tavern-card p-5">
-      <h2 className="font-display text-xl font-black text-wood">{title}</h2>
-      <p className="mt-3 text-sm leading-6 text-walnut/80">{body}</p>
-    </section>
-  );
-}
-
 function TagSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-walnut/15 bg-white/75 p-4">
+    <div className="rounded-md border border-walnut/15 bg-white/75 p-3">
       <h3 className="text-sm font-black uppercase tracking-[0.16em] text-walnut/60">{title}</h3>
       <div className="mt-3 flex flex-wrap gap-2">{children}</div>
     </div>
   );
 }
 
+function QuickDecision({ game }: { game: CatalogGame }) {
+  const bestItems = game.pros.slice(0, 3);
+  const cautionItems = game.cons.slice(0, 3);
+  const idealItems = splitDecisionText(game.recommendedFor).slice(0, 3);
+
+  if (!bestItems.length && !cautionItems.length && !idealItems.length && !game.notRecommendedFor) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-md border border-walnut/15 bg-white/65 p-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-ember">Decisión rápida</p>
+          <h2 className="font-display mt-1 text-2xl font-black text-wood">¿Es para ti?</h2>
+        </div>
+        <p className="max-w-xs text-xs font-semibold leading-5 text-walnut/65">
+          Lo esencial para decidir sin bajar por toda la ficha.
+        </p>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <DecisionColumn title="Lo mejor" items={bestItems} icon="star" />
+        <DecisionColumn title="Ten en cuenta" items={cautionItems} icon="bookmark" />
+        <DecisionColumn title="Ideal para" items={idealItems} icon="users" fallback={game.recommendedFor} />
+      </div>
+      {game.notRecommendedFor ? (
+        <p className="mt-4 rounded-md border border-ruby/10 bg-ruby/5 px-4 py-3 text-sm font-semibold leading-6 text-walnut/75">
+          No es para: {game.notRecommendedFor}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function DecisionColumn({
+  title,
+  items,
+  icon,
+  fallback
+}: {
+  title: string;
+  items: string[];
+  icon: "bookmark" | "star" | "users";
+  fallback?: string;
+}) {
+  const visibleItems = items.length ? items : fallback ? [fallback] : ["Pendiente de completar"];
+
+  return (
+    <article className="rounded-md border border-walnut/15 bg-white/75 p-4">
+      <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.16em] text-walnut/60">
+        <BrandIcon name={icon} size={18} />
+        {title}
+      </h3>
+      <ul className="mt-3 space-y-2 text-sm font-semibold leading-6 text-walnut/80">
+        {visibleItems.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+function splitDecisionText(value: string) {
+  return value
+    .split(/[,.;]\s+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 2);
+}
+
 function GalleryPreview({ game }: { game: CatalogGame }) {
   const previewImages = game.galleryImages.slice(0, 4);
   const extraImages = game.galleryImages.slice(4);
 
-  if (!previewImages.length) {
+  if (previewImages.length <= 1) {
     return null;
   }
 
