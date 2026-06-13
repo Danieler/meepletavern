@@ -127,6 +127,7 @@ model Game {
   candidates            GameCandidate[]
   libraryEntries        UserLibraryGame[]
   reviews               Review[]
+  comments              GameComment[]
   importProposals       GameImportProposal[]
 
   @@index([status])
@@ -158,6 +159,7 @@ model User {
   updatedAt   DateTime @updatedAt
   library     UserLibraryGame[]
   reviews     Review[]
+  comments    GameComment[]
 }
 
 model Review {
@@ -179,6 +181,21 @@ model Review {
   @@index([gameId, publishedAt])
   @@index([userId, createdAt])
   @@index([publishedAt])
+}
+
+model GameComment {
+  id        String   @id @default(cuid())
+  gameId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@index([gameId, updatedAt])
+  @@index([userId, updatedAt])
 }
 
 model UserLibraryGame {

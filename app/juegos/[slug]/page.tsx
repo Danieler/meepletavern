@@ -3,22 +3,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
-import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
+import { BrandIcon } from "@/components/BrandIcon";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
-import { CommunityScorePanel } from "@/components/CommunityScorePanel";
 import { GameCard } from "@/components/GameCard";
+import { GameComments } from "@/components/GameComments";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameLibraryPanel } from "@/components/GameLibraryPanel";
 import { GameRatingSummary } from "@/components/GameRatingSummary";
 import { GameStats } from "@/components/GameStats";
-import { GameRatings } from "@/components/GameRatings";
 import { MechanicTag } from "@/components/MechanicTag";
 import { ProsCons } from "@/components/ProsCons";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
+import { UserRatingVote } from "@/components/UserRatingVote";
 import { getGameBySlug, getRelatedGames, termHref, type CatalogGame } from "@/lib/catalog";
+import { getGameComments } from "@/lib/gameComments";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
 
@@ -69,10 +70,13 @@ export default async function GamePage({ params }: GamePageProps) {
   }
 
   const jsonLd = buildJsonLd(game);
+  const comments = await getGameComments(game.id);
   const hasRichEditorialTags = game.mechanics.length > 0 || game.themes.length > 0;
   const shouldShowCategories = game.categories.length > 0 && !hasRichEditorialTags;
   const introDescription = isRedundantText(game.reviewSummary, game.description) ? "" : game.reviewSummary;
   const bodyDescription = isWeakBodyDescription(game.description, introDescription, game) ? "" : game.description;
+  const leadDescription = introDescription || bodyDescription;
+  const detailDescription = introDescription ? bodyDescription : "";
 
   return (
     <PublicShell>
@@ -82,7 +86,7 @@ export default async function GamePage({ params }: GamePageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <section className="wood-surface border-b border-ember/30 text-white">
-          <div className="container-page py-6">
+          <div className="container-page py-4">
             <nav className="flex flex-wrap items-center gap-2 text-sm text-white/70" aria-label="Breadcrumb">
               <Link href="/" className="hover:text-white">
                 Inicio
@@ -94,100 +98,121 @@ export default async function GamePage({ params }: GamePageProps) {
               <ChevronRight size={15} aria-hidden="true" />
               <span>{game.title}</span>
             </nav>
-            <div className="grid gap-8 py-8 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.18em] text-ember">Ficha de juego</p>
-                <h1 className="font-display mt-3 text-5xl font-black text-white sm:text-7xl">{game.title}</h1>
-                <p className="mt-3 text-sm font-semibold text-parchment/70">
-                  {[game.playersLabel, game.playtime, game.complexity].filter(Boolean).join(" · ")}
-                </p>
-              </div>
-            </div>
           </div>
         </section>
 
-        <section className="container-page -mt-6 pb-14">
-          <div className="tavern-panel grid gap-6 p-4 sm:p-6 lg:grid-cols-[380px_minmax(0,1fr)_360px]">
-            <aside className="space-y-5">
-              <GameCoverImage {...game} gameTitle={game.title} variant="detail" priority className="border border-walnut/20 shadow-tavern" />
-              <GameLibraryPanel gameId={game.id} />
-              <Link className="button-secondary w-full justify-start" href={`/juegos/${game.slug}/resena`}>
-                <BrandIcon name="document" size={20} />
-                Escribir una reseña
-              </Link>
-              <CommunityScore game={game} />
-            </aside>
+        <section className="container-page -mt-2 pb-14">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <div className="grid gap-6">
+              <div className="tavern-panel p-4 sm:p-6">
+                <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
+                  <aside className="space-y-5">
+                    <GameCoverImage {...game} gameTitle={game.title} variant="detail" priority className="border border-walnut/20 shadow-tavern" />
+                    {shouldShowCategories || game.mechanics.length || game.themes.length ? (
+                      <section className="rounded-2xl border border-walnut/15 bg-white/70 p-4 shadow-soft">
+                        <div className="grid gap-3">
+                          {shouldShowCategories ? (
+                            <TagSection title="Categorías">
+                              {game.categories.map((category) => (
+                                <CategoryTag key={category} value={category} />
+                              ))}
+                            </TagSection>
+                          ) : null}
+                          {game.mechanics.length ? (
+                            <TagSection title="Mecánicas">
+                              {game.mechanics.map((mechanic) => (
+                                <MechanicTag key={mechanic} value={mechanic} />
+                              ))}
+                            </TagSection>
+                          ) : null}
+                          {game.themes.length ? (
+                            <TagSection title="Temáticas">
+                              {game.themes.map((theme) => (
+                                <Link
+                                  key={theme}
+                                  href={termHref("theme", theme)}
+                                  className="tavern-pill transition hover:border-ember"
+                                >
+                                  {theme}
+                                </Link>
+                              ))}
+                            </TagSection>
+                          ) : null}
+                        </div>
+                      </section>
+                    ) : null}
+                    <GameLibraryPanel gameId={game.id} />
+                  </aside>
 
-            <article className="space-y-7">
-              <div className="space-y-5">
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_12rem]">
-                  <div>
-                    <p className="text-sm font-bold text-walnut">
-                      {[game.publishedAt ? new Date(game.publishedAt).getFullYear() : null, game.categories[0]].filter(Boolean).join(" · ")}
-                    </p>
-                    <h2 className="font-display mt-2 text-5xl font-black text-wood">{game.title}</h2>
+                  <article className="space-y-5 xl:pr-2">
+                    <div>
+                      <p className="text-sm font-bold text-walnut">
+                        {[game.publishedAt ? new Date(game.publishedAt).getFullYear() : null, game.categories[0]].filter(Boolean).join(" · ")}
+                      </p>
+                      <h1 className="font-display mt-2 text-5xl font-black text-wood sm:text-6xl">{game.title}</h1>
+                    </div>
+
+                    {leadDescription ? (
+                      <p className="text-lg font-semibold leading-8 text-ink lg:text-xl lg:leading-9">{leadDescription}</p>
+                    ) : null}
+
+                    <GameStats game={game} />
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Link className="button-secondary justify-start" href={`/juegos/${game.slug}/resena`}>
+                        <BrandIcon name="document" size={20} />
+                        Escribir reseña
+                      </Link>
+                      <Link className="button-secondary justify-start" href="#comentarios">
+                        <BrandIcon name="chat" size={20} />
+                        Comentar
+                      </Link>
+                    </div>
+                  </article>
+
+                  <div className="grid gap-6 lg:col-span-2 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:items-start">
+                    {detailDescription ? (
+                      <section className="rounded-2xl border border-walnut/15 bg-white/55 p-5 sm:p-6">
+                        <SectionHeader
+                          eyebrow="En mesa"
+                          title="Cómo se juega y qué ritmo tiene"
+                          description="Contexto para entender la experiencia sin repetir los datos rápidos de arriba."
+                        />
+                        <p className="text-base leading-8 text-ink/85">{detailDescription}</p>
+                      </section>
+                    ) : null}
+
+                    <section className="rounded-2xl border border-walnut/15 bg-white/55 p-5 sm:p-6">
+                      <SectionHeader
+                        eyebrow="Veredicto rápido"
+                        title="Lo mejor, lo peor y para quién"
+                        description="Una lectura editorial pensada para decidir rápido si este juego merece hueco en tu mesa."
+                      />
+                      <div className="space-y-4">
+                        {game.pros.length || game.cons.length ? <ProsCons pros={game.pros} cons={game.cons} /> : null}
+
+                        {game.recommendedFor || game.notRecommendedFor ? (
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {game.recommendedFor ? <TextPanel title="Para quién es este juego" body={game.recommendedFor} /> : null}
+                            {game.notRecommendedFor ? <TextPanel title="Para quién no es" body={game.notRecommendedFor} /> : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    </section>
                   </div>
+                </div>
+              </div>
+
+              <GameComments gameId={game.id} gameSlug={game.slug} initialComments={comments} />
+            </div>
+
+            <aside className="space-y-5">
+              <Panel title="Nota y tu voto">
+                <div className="flex justify-center">
                   <GameRatingSummary initialRatings={game.ratings} />
                 </div>
-                {introDescription || bodyDescription ? (
-                  <div className="space-y-4">
-                    {introDescription ? (
-                      <p className="text-lg font-semibold leading-8 text-ink lg:text-xl lg:leading-9">{introDescription}</p>
-                    ) : null}
-                    {bodyDescription ? (
-                      <p className="text-base leading-8 text-ink/85 lg:text-lg lg:leading-9">{bodyDescription}</p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-
-              <GameStats game={game} />
-
-              {shouldShowCategories || game.mechanics.length || game.themes.length ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {shouldShowCategories ? (
-                    <TagSection title="Categorías">
-                      {game.categories.map((category) => (
-                        <CategoryTag key={category} value={category} />
-                      ))}
-                    </TagSection>
-                  ) : null}
-                  {game.mechanics.length ? (
-                    <TagSection title="Mecánicas">
-                      {game.mechanics.map((mechanic) => (
-                        <MechanicTag key={mechanic} value={mechanic} />
-                      ))}
-                    </TagSection>
-                  ) : null}
-                  {game.themes.length ? (
-                    <TagSection title="Temáticas">
-                      {game.themes.map((theme) => (
-                        <Link
-                          key={theme}
-                          href={termHref("theme", theme)}
-                          className="tavern-pill transition hover:border-ember"
-                        >
-                          {theme}
-                        </Link>
-                      ))}
-                    </TagSection>
-                  ) : null}
-                </div>
-              ) : null}
-
-            {game.pros.length || game.cons.length ? <ProsCons pros={game.pros} cons={game.cons} /> : null}
-
-            {game.recommendedFor || game.notRecommendedFor ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {game.recommendedFor ? <TextPanel title="Para quién es este juego" body={game.recommendedFor} /> : null}
-                {game.notRecommendedFor ? <TextPanel title="Para quién no es" body={game.notRecommendedFor} /> : null}
-              </div>
-            ) : null}
-
-            </article>
-
-            <aside className="space-y-5">
-              <GameRatings game={game} compact />
+                <UserRatingVote gameId={game.id} initialVotesCount={game.ratings.users.votesCount} />
+              </Panel>
               {game.buyLinks.length ? (
                 <Panel title="Enlaces de compra">
                   <BuyLinks links={game.buyLinks} />
@@ -253,36 +278,10 @@ function TextPanel({ title, body }: { title: string; body: string }) {
 
 function TagSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-r border-walnut/15 pr-4 last:border-r-0">
-      <h3 className="text-sm font-black uppercase tracking-wide text-walnut/60">{title}</h3>
+    <div className="rounded-2xl border border-walnut/15 bg-white/75 p-4">
+      <h3 className="text-sm font-black uppercase tracking-[0.16em] text-walnut/60">{title}</h3>
       <div className="mt-3 flex flex-wrap gap-2">{children}</div>
     </div>
-  );
-}
-
-function MiniMetric({
-  icon,
-  label,
-  value
-}: {
-  icon: BrandIconName;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-md bg-ink/5 p-3">
-      <BrandIcon name={icon} size={24} />
-      <p className="mt-2 text-xs font-bold uppercase text-ink/45">{label}</p>
-      <p className="text-lg font-black text-ink">{value}</p>
-    </div>
-  );
-}
-
-function CommunityScore({ game }: { game: CatalogGame }) {
-  return (
-    <Panel title="Opinión de jugadores">
-      <CommunityScorePanel initialRatings={game.ratings} />
-    </Panel>
   );
 }
 
