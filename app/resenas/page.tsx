@@ -19,11 +19,11 @@ export default async function ReviewsPage() {
   return (
     <PublicShell>
       <main>
-        <section className="bg-ink py-12 text-white">
+        <section className="page-hero">
           <div className="container-page">
-            <p className="text-sm font-bold uppercase text-ember">Crónicas</p>
-            <h1 className="mt-3 text-4xl font-black sm:text-5xl">Reseñas de juegos de mesa</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">
+            <p className="tavern-eyebrow">Crónicas</p>
+            <h1 className="page-hero-title">Reseñas de juegos de mesa</h1>
+            <p className="page-hero-copy">
               Opinión útil, contexto de mesa y señales prácticas antes de comprar, enseñar o sacar
               un juego.
             </p>
@@ -38,7 +38,7 @@ export default async function ReviewsPage() {
               ))}
             </div>
           ) : (
-            <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
+            <section className="surface-muted p-6 shadow-soft">
               <p className="text-sm font-semibold text-ink/65">
                 De momento las reseñas se publicarán manualmente. Esta sección todavía no tiene
                 contenido.

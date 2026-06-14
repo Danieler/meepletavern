@@ -18,11 +18,11 @@ export default async function ThemesPage() {
   return (
     <PublicShell>
       <main>
-        <section className="bg-ink py-12 text-white">
+        <section className="page-hero">
           <div className="container-page">
-            <p className="text-sm font-bold uppercase text-ember">Historias y mundos</p>
-            <h1 className="mt-3 text-4xl font-black sm:text-5xl">Temáticas de juegos de mesa</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">
+            <p className="tavern-eyebrow">Historias y mundos</p>
+            <h1 className="page-hero-title">Temáticas de juegos de mesa</h1>
+            <p className="page-hero-copy">
               Fantasía, ciencia ficción, terror, espacio, mazmorras y otros mundos para elegir la
               mesa por lo que apetece vivir.
             </p>
@@ -35,10 +35,10 @@ export default async function ThemesPage() {
               <Link
                 key={term}
                 href={`/juegos?theme=${encodeURIComponent(term)}`}
-                className="rounded-md border border-ink/10 bg-white p-5 shadow-soft transition hover:border-moss/40"
+                className="term-card"
               >
-                <h2 className="text-xl font-black text-ink">{term}</h2>
-                <p className="mt-2 text-sm font-semibold text-ink/55">
+                <h2 className="font-display text-xl font-extrabold leading-tight text-ink">{term}</h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-ink/55">
                   {count ? `${count} juegos en el archivo` : "Preparado para nuevas fichas"}
                 </p>
               </Link>

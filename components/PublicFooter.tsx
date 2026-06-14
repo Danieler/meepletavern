@@ -55,11 +55,11 @@ export async function PublicFooter() {
 function FooterColumn({ title, links }: { title: string; links: Array<{ href: string; label: string }> }) {
   return (
     <div>
-      <h3 className="text-sm font-black uppercase tracking-wide text-ember">{title}</h3>
+      <h3 className="tavern-eyebrow">{title}</h3>
       <ul className="mt-4 space-y-2 text-sm text-parchment/70">
         {links.map((link) => (
           <li key={`${link.href}-${link.label}`}>
-            <Link className="hover:text-ember" href={link.href}>
+            <Link className="font-semibold transition hover:text-ember" href={link.href}>
               {link.label}
             </Link>
           </li>

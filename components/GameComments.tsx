@@ -123,13 +123,13 @@ export function GameComments({
     <section id="comentarios" className="tavern-panel p-4 sm:p-6">
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-ember">Comunidad</p>
-          <h2 className="font-display mt-2 break-words text-2xl font-black text-wood sm:text-3xl">Comentarios sobre la partida</h2>
+          <p className="tavern-eyebrow">Comunidad</p>
+          <h2 className="font-display mt-2 break-words text-2xl font-extrabold text-wood sm:text-3xl">Comentarios sobre la partida</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-walnut/70">
             Impresiones cortas de jugadores con cuenta en MeepleTavern. Cada usuario mantiene un comentario editable por juego.
           </p>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-ember/20 bg-ember/10 px-4 py-2 text-sm font-black text-wood">
+        <div className="rating-chip">
           <BrandIcon name="chat" size={18} />
           {comments.length} {comments.length === 1 ? "comentario" : "comentarios"}
         </div>
@@ -149,7 +149,7 @@ export function GameComments({
         <aside className="min-w-0 rounded-md border border-ember/20 bg-white/75 p-4 shadow-soft sm:p-5">
           <div className="flex items-center gap-2 text-wood">
             <BrandIcon name="user" size={18} />
-            <h3 className="text-lg font-black">Tu comentario</h3>
+            <h3 className="text-lg font-extrabold">Tu comentario</h3>
           </div>
 
           {!isConfigured ? (
@@ -207,8 +207,8 @@ function CommentCard({ comment }: { comment: PublicGameComment }) {
     <article className="min-w-0 rounded-md border border-ink/10 bg-white px-4 py-4 shadow-soft sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-wood">{comment.authorName}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-walnut/55">
+          <p className="text-sm font-extrabold text-wood">{comment.authorName}</p>
+          <p className="tavern-meta mt-1">
             {formatDate(comment.createdAt)}
             {edited ? ` · editado ${formatDate(comment.updatedAt)}` : ""}
           </p>

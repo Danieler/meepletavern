@@ -1,6 +1,21 @@
 import type { Metadata } from "next";
+import { Fraunces, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/lib/site";
+
+const bodyFont = Source_Sans_3({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700", "800", "900"]
+});
+
+const displayFont = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-display",
+  weight: ["600", "700", "800", "900"]
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -26,7 +41,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className={`${bodyFont.variable} ${displayFont.variable}`}>{children}</body>
     </html>
   );
 }

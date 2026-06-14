@@ -64,10 +64,13 @@ export function GameFilters({
   themeTerms: string[];
 }) {
   return (
-    <aside className="space-y-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-      <div>
-        <h2 className="text-lg font-black text-ink">Filtros</h2>
-        <Link className="mt-2 inline-flex text-sm font-semibold text-moss hover:underline" href="/juegos">
+    <aside className="tavern-card space-y-5 p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="tavern-eyebrow">Explorar</p>
+          <h2 className="font-display mt-1 text-xl font-extrabold text-ink">Filtros</h2>
+        </div>
+        <Link className="mt-1 inline-flex text-sm font-bold text-moss transition hover:text-wood hover:underline" href="/juegos">
           Limpiar filtros
         </Link>
       </div>
@@ -105,7 +108,7 @@ export function GameFilters({
 function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="text-xs font-bold uppercase text-ink/45">{title}</h3>
+      <h3 className="tavern-meta">{title}</h3>
       <div className="mt-3 flex flex-wrap gap-2">{children}</div>
     </section>
   );
@@ -125,8 +128,8 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
   return (
     <Link
       href={`/juegos?${params.toString()}`}
-      className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
-        isActive ? "bg-ink text-white" : "bg-ink/5 text-ink/70 hover:bg-moss/10 hover:text-moss"
+      className={`inline-flex min-h-9 items-center rounded-md px-3 py-1.5 text-sm font-extrabold leading-none transition ${
+        isActive ? "bg-ink text-white shadow-sm" : "border border-ink/5 bg-ink/5 text-ink/70 hover:border-moss/20 hover:bg-moss/10 hover:text-moss"
       }`}
     >
       {item.label}

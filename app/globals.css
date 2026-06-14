@@ -4,14 +4,21 @@
 
 :root {
   color-scheme: light;
-  --background: #f7f1e6;
+  --background: #f5efe2;
   --foreground: #1f1f1f;
-  --wood: #3b2116;
-  --walnut: #5a3a24;
-  --amber: #d89b2b;
+  --ink: #1f1f1f;
+  --wood: #362016;
+  --walnut: #604026;
+  --amber: #c9821f;
+  --amber-strong: #a96813;
+  --moss: #2f6f62;
   --parchment: #f7f1e6;
   --paper: #fffaf0;
-  --line: rgba(90, 58, 36, 0.22);
+  --paper-strong: #fff7e7;
+  --muted: #765b45;
+  --line: rgba(96, 64, 38, 0.18);
+  --shadow-card: 0 14px 34px rgba(54, 32, 22, 0.1);
+  --shadow-panel: 0 18px 46px rgba(54, 32, 22, 0.14);
 }
 
 * {
@@ -29,9 +36,11 @@ body {
     linear-gradient(180deg, rgba(255, 250, 240, 0.94), rgba(247, 241, 230, 0.98) 34rem),
     var(--background);
   color: var(--foreground);
-  font-family:
-    "Source Sans 3", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
   overflow-x: clip;
+  text-rendering: optimizeLegibility;
 }
 
 body::before {
@@ -51,7 +60,14 @@ h1,
 h2,
 h3,
 .font-display {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.05;
 }
 
 a {
@@ -69,41 +85,42 @@ img {
   }
 
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-ember focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-2 focus:ring-offset-parchment;
   }
 
   .button-primary {
-    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-amber-950/20 bg-ember px-4 py-2.5 text-sm font-black text-white shadow-soft transition hover:bg-[#c47f18] disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-amber-950/20 bg-ember px-4 py-2.5 text-sm font-extrabold leading-none text-white shadow-soft transition hover:-translate-y-px hover:bg-[#b9781d] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-secondary {
-    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-walnut/35 bg-parchment px-4 py-2.5 text-sm font-black text-walnut shadow-sm transition hover:border-ember hover:text-wood disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-walnut/25 bg-paper px-4 py-2.5 text-sm font-extrabold leading-none text-walnut shadow-sm transition hover:-translate-y-px hover:border-ember hover:bg-white hover:text-wood disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-danger {
-    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-ruby/25 bg-parchment px-4 py-2.5 text-sm font-black text-ruby transition hover:bg-ruby hover:text-white disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-ruby/25 bg-paper px-4 py-2.5 text-sm font-extrabold leading-none text-ruby transition hover:-translate-y-px hover:bg-ruby hover:text-white disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .field-label {
-    @apply text-sm font-bold text-wood;
+    @apply text-sm font-extrabold leading-5 text-wood;
   }
 
   .field-input {
-    @apply focus-ring w-full rounded-md border border-walnut/25 bg-[#fffaf0] px-3 py-2.5 text-sm text-ink shadow-sm placeholder:text-walnut/45;
+    @apply focus-ring w-full rounded-md border border-walnut/20 bg-paper px-3 py-2.5 text-sm font-semibold leading-6 text-ink shadow-sm transition placeholder:text-walnut/45 hover:border-walnut/35;
   }
 
   .field-textarea {
-    @apply focus-ring min-h-32 w-full rounded-md border border-walnut/25 bg-[#fffaf0] px-3 py-2.5 text-sm leading-6 text-ink shadow-sm placeholder:text-walnut/45;
+    @apply focus-ring min-h-32 w-full rounded-md border border-walnut/20 bg-paper px-3 py-2.5 text-sm font-medium leading-6 text-ink shadow-sm transition placeholder:text-walnut/45 hover:border-walnut/35;
   }
 
   .tavern-card {
-    @apply min-w-0 rounded-md border border-walnut/20 bg-[#fffaf0] shadow-soft;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 24px rgba(59, 33, 22, 0.08);
+    @apply min-w-0 rounded-md border border-walnut/15 bg-paper shadow-soft;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), var(--shadow-card);
   }
 
   .tavern-panel {
-    @apply min-w-0 rounded-md border border-walnut/25 bg-parchment/90 shadow-tavern;
-    background-image: linear-gradient(180deg, rgba(255, 250, 240, 0.88), rgba(247, 241, 230, 0.94));
+    @apply min-w-0 rounded-md border border-walnut/20 bg-parchment/95 shadow-tavern;
+    background-image: linear-gradient(180deg, rgba(255, 250, 240, 0.94), rgba(247, 241, 230, 0.98));
+    box-shadow: var(--shadow-panel);
   }
 
   .wood-surface {
@@ -114,16 +131,53 @@ img {
   }
 
   .tavern-title {
-    @apply font-display font-black text-wood;
+    @apply font-display font-extrabold leading-tight text-wood;
     letter-spacing: 0;
   }
 
   .tavern-eyebrow {
-    @apply text-xs font-black uppercase tracking-[0.16em] text-ember;
+    @apply text-[11px] font-black uppercase tracking-[0.14em] text-ember;
+  }
+
+  .tavern-copy {
+    @apply text-base leading-7 text-walnut/80;
+  }
+
+  .tavern-meta {
+    @apply text-xs font-extrabold uppercase tracking-[0.12em] text-walnut/60;
   }
 
   .tavern-pill {
-    @apply inline-flex items-center gap-1.5 rounded-md border border-walnut/20 bg-[#efe4d2] px-2.5 py-1 text-xs font-bold text-walnut;
+    @apply inline-flex min-h-7 items-center gap-1.5 rounded-md border border-walnut/15 bg-[#f0e2cc] px-2.5 py-1 text-xs font-extrabold leading-none text-walnut;
+  }
+
+  .rating-chip {
+    @apply inline-flex items-center gap-1 rounded-md border border-ember/25 bg-ember/10 px-2 py-1 text-sm font-black leading-none text-wood;
+  }
+
+  .surface-muted {
+    @apply rounded-md border border-walnut/10 bg-white/65;
+  }
+
+  .page-hero {
+    @apply border-b border-ember/20 bg-ink py-10 text-white sm:py-12;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 35%),
+      radial-gradient(circle at 12% 0%, rgba(201, 130, 31, 0.28), transparent 26rem),
+      linear-gradient(135deg, #1f1f1f, #272018 62%, #161616);
+  }
+
+  .page-hero-title {
+    @apply font-display mt-3 max-w-4xl text-4xl font-extrabold leading-tight text-white sm:text-5xl;
+  }
+
+  .page-hero-copy {
+    @apply mt-4 max-w-3xl text-base font-medium leading-7 text-parchment/75;
+  }
+
+  .term-card {
+    @apply block min-w-0 rounded-md border border-walnut/15 bg-paper p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-moss/35;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), var(--shadow-card);
   }
 
   .scrollbar-hide {

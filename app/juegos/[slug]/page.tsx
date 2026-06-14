@@ -149,11 +149,11 @@ export default async function GamePage({ params }: GamePageProps) {
                       <p className="text-sm font-bold text-walnut">
                         {[game.publishedAt ? new Date(game.publishedAt).getFullYear() : null, game.categories[0]].filter(Boolean).join(" · ")}
                       </p>
-                      <h1 className="font-display mt-2 break-words text-4xl font-black leading-tight text-wood sm:text-5xl lg:text-6xl">{game.title}</h1>
+                      <h1 className="font-display mt-2 break-words text-4xl font-extrabold leading-tight text-wood sm:text-5xl lg:text-6xl">{game.title}</h1>
                     </div>
 
                     {leadDescription ? (
-                      <p className="text-lg font-semibold leading-8 text-ink lg:text-xl lg:leading-9">{leadDescription}</p>
+                      <p className="text-lg font-semibold leading-8 text-ink/80 lg:text-xl lg:leading-9">{leadDescription}</p>
                     ) : null}
 
                     <GameStats game={game} />
@@ -239,7 +239,7 @@ async function RelatedGamesPanel({ game }: { game: CatalogGame }) {
 function Panel({ title, children, wood = false }: { title: string; children: React.ReactNode; wood?: boolean }) {
   return (
     <section className={`${wood ? "wood-surface text-white" : "tavern-card"} rounded-md p-5`}>
-      <h2 className={`font-display text-lg font-black ${wood ? "text-white" : "text-wood"}`}>{title}</h2>
+      <h2 className={`font-display text-lg font-extrabold leading-tight ${wood ? "text-white" : "text-wood"}`}>{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -248,7 +248,7 @@ function Panel({ title, children, wood = false }: { title: string; children: Rea
 function TagSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-md border border-walnut/15 bg-white/75 p-3">
-      <h3 className="text-sm font-black uppercase tracking-[0.16em] text-walnut/60">{title}</h3>
+      <h3 className="tavern-meta">{title}</h3>
       <div className="mt-3 flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -267,8 +267,8 @@ function QuickDecision({ game }: { game: CatalogGame }) {
     <section className="rounded-md border border-walnut/15 bg-white/65 p-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-ember">Decisión rápida</p>
-          <h2 className="font-display mt-1 text-2xl font-black text-wood">¿Es para ti?</h2>
+          <p className="tavern-eyebrow">Decisión rápida</p>
+          <h2 className="font-display mt-1 text-2xl font-extrabold text-wood">¿Es para ti?</h2>
         </div>
         <p className="max-w-xs text-xs font-semibold leading-5 text-walnut/65">
           Lo esencial para decidir sin bajar por toda la ficha.
@@ -303,7 +303,7 @@ function DecisionColumn({
 
   return (
     <article className="rounded-md border border-walnut/15 bg-white/75 p-4">
-      <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.16em] text-walnut/60">
+      <h3 className="tavern-meta flex items-center gap-2">
         <BrandIcon name={icon} size={18} />
         {title}
       </h3>

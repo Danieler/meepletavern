@@ -47,11 +47,11 @@ export default async function RankingPage({ params }: RankingPageProps) {
   return (
     <PublicShell>
       <main>
-        <section className="bg-ink py-12 text-white">
+        <section className="page-hero">
           <div className="container-page">
-            <p className="text-sm font-bold uppercase text-ember">Ranking MeepleTavern</p>
-            <h1 className="mt-3 text-4xl font-black sm:text-5xl">{ranking.title}</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">{ranking.description}</p>
+            <p className="tavern-eyebrow">Ranking MeepleTavern</p>
+            <h1 className="page-hero-title">{ranking.title}</h1>
+            <p className="page-hero-copy">{ranking.description}</p>
           </div>
         </section>
         <section className="container-page py-12">

@@ -53,20 +53,20 @@ export default async function Home() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,251,243,0.5),transparent_42%)]" />
             <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
               <div className="flex flex-col justify-center py-4 lg:py-8">
-                <h1 className="font-display max-w-3xl text-5xl font-black leading-[0.95] text-wood sm:text-6xl">
+                <h1 className="font-display max-w-3xl text-5xl font-extrabold leading-[0.98] text-wood sm:text-6xl">
                   Descubre. Juega. Repite.
                 </h1>
-                <p className="font-display mt-2 text-3xl font-black leading-tight text-wood sm:text-4xl">
+                <p className="font-display mt-2 text-3xl font-bold leading-tight text-wood sm:text-4xl">
                   Encuentra tu próxima partida favorita.
                 </p>
-                <p className="mt-5 max-w-xl text-lg leading-7 text-walnut">
+                <p className="mt-5 max-w-xl text-lg font-medium leading-8 text-walnut/80">
                   Reseñas en profundidad, valoraciones honestas y recomendaciones claras para
                   elegir mejor qué sale a mesa.
                 </p>
                 <div className="mt-6 max-w-2xl">
                   <GameSearch variant="hero" />
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-black text-walnut">
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-extrabold leading-5 text-walnut">
                   <span>Búsquedas populares:</span>
                   {[
                     { label: "Cooperativos", value: "cooperativo" },
@@ -85,7 +85,7 @@ export default async function Home() {
               <aside className="relative z-10 self-center lg:justify-self-end">
                 {editorsPick ? (
                   <Link href={`/juegos/${editorsPick.slug}`} className="tavern-card block overflow-hidden transition hover:-translate-y-0.5">
-                    <div className="relative h-11 bg-ember text-center font-display text-lg font-black uppercase leading-11 text-white">
+                    <div className="relative h-11 bg-ember text-center font-display text-lg font-extrabold uppercase leading-11 text-white">
                       Recomendación de la casa
                     </div>
                     <div className="relative h-28">
@@ -98,7 +98,7 @@ export default async function Home() {
                       />
                     </div>
                     <div className="p-5">
-                      <h2 className="font-display text-2xl font-black text-wood">{editorsPick.title}</h2>
+                      <h2 className="font-display text-2xl font-extrabold leading-tight text-wood">{editorsPick.title}</h2>
                       <p className="mt-2 flex items-center gap-2 text-lg font-black text-ember">
                         <BrandIcon name="star" size={20} />
                         {editorsPick.ratings.external?.score?.toFixed(1) || "MT"}
@@ -118,7 +118,7 @@ export default async function Home() {
                         <BrandIcon name="meeple" size={34} />
                       </span>
                       <div>
-                        <p className="font-display text-xl font-black text-wood">Nuestra misión</p>
+                        <p className="font-display text-xl font-extrabold text-wood">Nuestra misión</p>
                         <p className="mt-2 text-sm leading-6 text-walnut/80">
                           Ayudar a descubrir grandes juegos de mesa con reseñas honestas,
                           valoraciones útiles y recomendaciones bien filtradas.
@@ -154,7 +154,7 @@ export default async function Home() {
               {topRanking.map((game, index) => (
                 <li key={game.slug}>
                   <Link href={`/juegos/${game.slug}`} className="grid grid-cols-[34px_54px_1fr_auto] items-center gap-3 py-3 text-sm transition hover:text-ember">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-walnut font-black text-white">{index + 1}</span>
+                    <span className="font-display flex h-7 w-7 items-center justify-center rounded-md bg-walnut font-black text-white">{index + 1}</span>
                     <span className="relative h-9 overflow-hidden rounded-md border border-walnut/20">
                       <img src={game.coverImageUrl || siteConfig.markImage} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                     </span>
@@ -326,12 +326,12 @@ function HomePanel({
   return (
     <section className="tavern-card p-4">
       <div className="mb-4 flex items-center justify-between gap-4 border-b border-walnut/15 pb-3">
-        <h2 className="font-display flex items-center gap-2 text-lg font-black uppercase text-wood">
+        <h2 className="font-display flex min-w-0 items-center gap-2 text-lg font-extrabold uppercase leading-tight text-wood">
           <BrandIcon name={icon} size={20} />
           {title}
         </h2>
         {href ? (
-          <Link href={href} className="text-xs font-black text-ember transition hover:text-wood">
+          <Link href={href} className="shrink-0 whitespace-nowrap text-xs font-black text-ember transition hover:text-wood">
             Ver todo
           </Link>
         ) : null}

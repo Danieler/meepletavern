@@ -18,11 +18,11 @@ export default async function MechanicsPage() {
   return (
     <PublicShell>
       <main>
-        <section className="bg-ink py-12 text-white">
+        <section className="page-hero">
           <div className="container-page">
-            <p className="text-sm font-bold uppercase text-ember">Herramientas de juego</p>
-            <h1 className="mt-3 text-4xl font-black sm:text-5xl">Mecánicas de juegos de mesa</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/75">
+            <p className="tavern-eyebrow">Herramientas de juego</p>
+            <h1 className="page-hero-title">Mecánicas de juegos de mesa</h1>
+            <p className="page-hero-copy">
               Rutas para encontrar juegos por cómo se juegan: cartas, dados, mayorías, campaña,
               control de áreas o construcción de motores.
             </p>
@@ -35,10 +35,10 @@ export default async function MechanicsPage() {
               <Link
                 key={term}
                 href={`/juegos?mechanic=${encodeURIComponent(term)}`}
-                className="rounded-md border border-ink/10 bg-white p-5 shadow-soft transition hover:border-moss/40"
+                className="term-card"
               >
-                <h2 className="text-xl font-black text-ink">{term}</h2>
-                <p className="mt-2 text-sm font-semibold text-ink/55">
+                <h2 className="font-display text-xl font-extrabold leading-tight text-ink">{term}</h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-ink/55">
                   {count ? `${count} juegos en el archivo` : "Preparado para nuevas fichas"}
                 </p>
               </Link>

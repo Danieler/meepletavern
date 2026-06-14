@@ -54,13 +54,13 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
     <PublicShell>
       <main>
         <article>
-          <section className="bg-ink text-white">
+          <section className="page-hero">
             <div className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_360px] lg:items-center">
               <div>
-                <p className="text-sm font-bold uppercase text-ember">{review.gameTitle}</p>
-                <h1 className="mt-3 text-4xl font-black sm:text-5xl">{review.title}</h1>
-                <p className="mt-5 max-w-3xl text-lg leading-8 text-white/80">{review.summary}</p>
-                <p className="mt-4 text-sm font-semibold uppercase tracking-wide text-white/60">
+                <p className="tavern-eyebrow">{review.gameTitle}</p>
+                <h1 className="page-hero-title">{review.title}</h1>
+                <p className="mt-5 max-w-3xl text-lg font-medium leading-8 text-parchment/80">{review.summary}</p>
+                <p className="mt-4 text-sm font-extrabold uppercase tracking-[0.12em] text-white/60">
                   Por {review.authorName}
                 </p>
                 <Link className="button-secondary mt-7 border-white/20 bg-white/10 text-white hover:text-parchment" href={`/juegos/${review.gameSlug}`}>
@@ -77,7 +77,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
             </div>
           </section>
           <section className="container-page grid gap-8 py-12 lg:grid-cols-[minmax(0,760px)_240px]">
-            <div className="space-y-6 text-lg leading-9 text-ink/75">
+            <div className="space-y-6 text-lg leading-9 text-ink/80">
               {review.body.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
