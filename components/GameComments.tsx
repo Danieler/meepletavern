@@ -120,11 +120,11 @@ export function GameComments({
   }
 
   return (
-    <section id="comentarios" className="tavern-panel p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+    <section id="comentarios" className="tavern-panel p-4 sm:p-6">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <p className="text-sm font-black uppercase tracking-[0.18em] text-ember">Comunidad</p>
-          <h2 className="font-display mt-2 text-3xl font-black text-wood">Comentarios sobre la partida</h2>
+          <h2 className="font-display mt-2 break-words text-2xl font-black text-wood sm:text-3xl">Comentarios sobre la partida</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-walnut/70">
             Impresiones cortas de jugadores con cuenta en MeepleTavern. Cada usuario mantiene un comentario editable por juego.
           </p>
@@ -135,8 +135,8 @@ export function GameComments({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-4">
+      <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-4">
           {comments.length ? (
             comments.map((comment) => <CommentCard key={comment.id} comment={comment} />)
           ) : (
@@ -146,7 +146,7 @@ export function GameComments({
           )}
         </div>
 
-        <aside className="rounded-2xl border border-ember/20 bg-white/75 p-5 shadow-soft">
+        <aside className="min-w-0 rounded-md border border-ember/20 bg-white/75 p-4 shadow-soft sm:p-5">
           <div className="flex items-center gap-2 text-wood">
             <BrandIcon name="user" size={18} />
             <h3 className="text-lg font-black">Tu comentario</h3>
@@ -204,7 +204,7 @@ function CommentCard({ comment }: { comment: PublicGameComment }) {
   const edited = comment.updatedAt !== comment.createdAt;
 
   return (
-    <article className="rounded-2xl border border-ink/10 bg-white px-5 py-4 shadow-soft">
+    <article className="min-w-0 rounded-md border border-ink/10 bg-white px-4 py-4 shadow-soft sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-black text-wood">{comment.authorName}</p>

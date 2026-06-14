@@ -31,6 +31,7 @@ body {
   color: var(--foreground);
   font-family:
     "Source Sans 3", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: clip;
 }
 
 body::before {
@@ -72,15 +73,15 @@ img {
   }
 
   .button-primary {
-    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-amber-950/20 bg-ember px-4 py-2.5 text-sm font-black text-white shadow-soft transition hover:bg-[#c47f18] disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-amber-950/20 bg-ember px-4 py-2.5 text-sm font-black text-white shadow-soft transition hover:bg-[#c47f18] disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-secondary {
-    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-walnut/35 bg-parchment px-4 py-2.5 text-sm font-black text-walnut shadow-sm transition hover:border-ember hover:text-wood disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-walnut/35 bg-parchment px-4 py-2.5 text-sm font-black text-walnut shadow-sm transition hover:border-ember hover:text-wood disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-danger {
-    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ruby/25 bg-parchment px-4 py-2.5 text-sm font-black text-ruby transition hover:bg-ruby hover:text-white disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-ruby/25 bg-parchment px-4 py-2.5 text-sm font-black text-ruby transition hover:bg-ruby hover:text-white disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .field-label {
@@ -96,12 +97,12 @@ img {
   }
 
   .tavern-card {
-    @apply rounded-md border border-walnut/20 bg-[#fffaf0] shadow-soft;
+    @apply min-w-0 rounded-md border border-walnut/20 bg-[#fffaf0] shadow-soft;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 24px rgba(59, 33, 22, 0.08);
   }
 
   .tavern-panel {
-    @apply rounded-md border border-walnut/25 bg-parchment/90 shadow-tavern;
+    @apply min-w-0 rounded-md border border-walnut/25 bg-parchment/90 shadow-tavern;
     background-image: linear-gradient(180deg, rgba(255, 250, 240, 0.88), rgba(247, 241, 230, 0.94));
   }
 

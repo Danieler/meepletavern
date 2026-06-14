@@ -9,7 +9,7 @@ export function GameSearch({ query, variant = "compact" }: GameSearchProps) {
   const isHero = variant === "hero";
 
   return (
-    <form action="/juegos" className={isHero ? "flex w-full flex-col gap-3 sm:flex-row" : "flex w-full gap-2"}>
+    <form action="/juegos" className={isHero ? "flex w-full flex-col gap-3 sm:flex-row" : "flex w-full flex-col gap-2 sm:flex-row"}>
       <label className="sr-only" htmlFor={isHero ? "hero-search" : "global-search"}>
         Buscar juegos
       </label>
@@ -19,7 +19,7 @@ export function GameSearch({ query, variant = "compact" }: GameSearchProps) {
           id={isHero ? "hero-search" : "global-search"}
           name="q"
           defaultValue={query}
-          placeholder="Buscar juegos, mecánicas, categorías..."
+          placeholder={isHero ? "Buscar juegos..." : "Buscar..."}
           className={`${isHero ? "min-h-14 text-base" : "min-h-11 text-sm"} focus-ring w-full rounded-md border border-walnut/25 bg-[#fffaf0] pl-11 pr-3 font-semibold text-ink shadow-sm placeholder:text-walnut/45`}
         />
       </div>

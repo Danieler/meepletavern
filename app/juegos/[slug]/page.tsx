@@ -102,11 +102,11 @@ export default async function GamePage({ params }: GamePageProps) {
         </section>
 
         <section className="container-page -mt-2 pb-10">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-            <div className="grid gap-6">
+          <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <div className="grid min-w-0 gap-6">
               <div className="tavern-panel p-4 sm:p-6">
-                <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
-                  <aside className="space-y-5">
+                <div className="grid min-w-0 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
+                  <aside className="min-w-0 space-y-5">
                     <GameCoverImage {...game} gameTitle={game.title} variant="detail" priority className="border border-walnut/20 shadow-tavern" />
                     {shouldShowCategories || game.mechanics.length || game.themes.length ? (
                       <section className="rounded-md border border-walnut/15 bg-white/70 p-4 shadow-soft">
@@ -144,12 +144,12 @@ export default async function GamePage({ params }: GamePageProps) {
                     <GameLibraryPanel gameId={game.id} />
                   </aside>
 
-                  <article className="space-y-5 xl:pr-2">
+                  <article className="min-w-0 space-y-5 xl:pr-2">
                     <div>
                       <p className="text-sm font-bold text-walnut">
                         {[game.publishedAt ? new Date(game.publishedAt).getFullYear() : null, game.categories[0]].filter(Boolean).join(" · ")}
                       </p>
-                      <h1 className="font-display mt-2 text-5xl font-black text-wood sm:text-6xl">{game.title}</h1>
+                      <h1 className="font-display mt-2 break-words text-4xl font-black leading-tight text-wood sm:text-5xl lg:text-6xl">{game.title}</h1>
                     </div>
 
                     {leadDescription ? (
@@ -188,7 +188,7 @@ export default async function GamePage({ params }: GamePageProps) {
               <GameComments gameId={game.id} gameSlug={game.slug} initialComments={comments} />
             </div>
 
-            <aside className="space-y-5">
+            <aside className="min-w-0 space-y-5">
               <Panel title="Nota y tu voto">
                 <div className="flex justify-center">
                   <GameRatingSummary initialRatings={game.ratings} />
