@@ -20,7 +20,7 @@ function ListPanel({ title, items, tone }: { title: string; items: string[]; ton
 
   return (
     <section className="tavern-card p-5">
-      <h2 className="font-display text-xl font-black text-wood">{title}</h2>
+      <h2 className="font-display text-xl font-bold text-wood">{title}</h2>
       <ul className="mt-4 space-y-3">
         {items.map((item) => (
           <li key={item} className="flex gap-3 text-sm leading-6 text-walnut/80">

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 
@@ -61,18 +62,34 @@ export type AdminReviewRecord = NonNullable<
 >;
 
 export async function getPublishedReviews() {
-  return prisma.review.findMany({
-    select: publicReviewSelect,
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
-  });
+  return getCachedPublishedReviews();
 }
 
 export async function getPublishedReviewBySlug(slug: string) {
-  return prisma.review.findUnique({
-    where: { slug },
-    select: publicReviewSelect
-  });
+  return getCachedPublishedReviewBySlug(slug);
 }
+
+const getCachedPublishedReviews = unstable_cache(
+  async function getCachedPublishedReviews() {
+    return prisma.review.findMany({
+      select: publicReviewSelect,
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
+    });
+  },
+  ["published-reviews"],
+  { revalidate: 300, tags: ["public-games"] }
+);
+
+const getCachedPublishedReviewBySlug = unstable_cache(
+  async function getCachedPublishedReviewBySlug(slug: string) {
+    return prisma.review.findUnique({
+      where: { slug },
+      select: publicReviewSelect
+    });
+  },
+  ["published-review-by-slug"],
+  { revalidate: 300, tags: ["public-games"] }
+);
 
 export async function getAdminReviews() {
   return prisma.review.findMany({

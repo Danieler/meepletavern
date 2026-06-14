@@ -162,18 +162,7 @@ export async function getGamesBySlugs(slugs: string[]) {
   }
 
   const identifiers = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
-  const games = await prisma.game.findMany({
-    where: {
-      status: GameStatus.published,
-      OR: [
-        { slug: { in: identifiers } },
-        { title: { in: identifiers } },
-        { name: { in: identifiers } }
-      ]
-    },
-    select: catalogGameSelect,
-    take: Math.max(identifiers.length, 4)
-  });
+  const games = await getDbGamesByIdentifiers(identifiers);
   const catalogGames = games.map(toCatalogGame);
 
   return identifiers
@@ -186,6 +175,25 @@ export async function getGamesBySlugs(slugs: string[]) {
     )
     .filter(Boolean) as CatalogGame[];
 }
+
+const getDbGamesByIdentifiers = unstable_cache(
+  async function getDbGamesByIdentifiers(identifiers: string[]) {
+    return prisma.game.findMany({
+      where: {
+        status: GameStatus.published,
+        OR: [
+          { slug: { in: identifiers } },
+          { title: { in: identifiers } },
+          { name: { in: identifiers } }
+        ]
+      },
+      select: catalogGameSelect,
+      take: Math.max(identifiers.length, 4)
+    });
+  },
+  ["db-games-by-identifiers"],
+  { revalidate: 300, tags: ["public-games"] }
+);
 
 export async function getReviews(): Promise<Review[]> {
   const reviews = await getPublishedReviews();

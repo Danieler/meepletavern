@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Explora categorías de juegos de mesa como familiar, estrategia, party, cooperativo, narrativo, dungeon crawler, eurogame, ameritrash o abstracto."
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function CategoriesPage() {
   const [terms, games] = await Promise.all([getCategoryTerms(), getCatalogGames()]);
@@ -62,7 +62,7 @@ function TermPage({
               href={`/juegos?${param}=${encodeURIComponent(term)}`}
               className="term-card"
             >
-              <h2 className="font-display text-xl font-extrabold leading-tight text-ink">{term}</h2>
+              <h2 className="font-display text-xl font-bold leading-tight text-ink">{term}</h2>
               <p className="mt-2 text-sm font-semibold leading-6 text-ink/55">
                 {count ? `${count} juegos en el archivo` : "Preparado para nuevas fichas"}
               </p>

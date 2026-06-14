@@ -124,7 +124,7 @@ export function GameComments({
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="tavern-eyebrow">Comunidad</p>
-          <h2 className="font-display mt-2 break-words text-2xl font-extrabold text-wood sm:text-3xl">Comentarios sobre la partida</h2>
+          <h2 className="font-display mt-2 break-words text-2xl font-bold text-wood sm:text-3xl">Comentarios sobre la partida</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-walnut/70">
             Impresiones cortas de jugadores con cuenta en MeepleTavern. Cada usuario mantiene un comentario editable por juego.
           </p>

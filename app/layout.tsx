@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Source_Sans_3 } from "next/font/google";
+import { Lora, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/lib/site";
 
@@ -10,11 +10,11 @@ const bodyFont = Source_Sans_3({
   weight: ["400", "500", "600", "700", "800", "900"]
 });
 
-const displayFont = Fraunces({
+const displayFont = Lora({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
-  weight: ["600", "700", "800", "900"]
+  weight: ["600", "700"]
 });
 
 export const metadata: Metadata = {

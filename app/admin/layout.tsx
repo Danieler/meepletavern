@@ -21,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
             <span>
               <span className="tavern-meta block">MeepleTavern</span>
-              <span className="font-display block text-xl font-extrabold leading-tight text-ink">Panel de administración</span>
+              <span className="font-display block text-xl font-bold leading-tight text-ink">Panel de administración</span>
             </span>
           </Link>
           <nav className="flex flex-wrap gap-2 text-sm font-semibold" aria-label="Navegación admin">

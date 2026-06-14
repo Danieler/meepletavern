@@ -69,7 +69,6 @@ export default async function GamePage({ params }: GamePageProps) {
   }
 
   const jsonLd = buildJsonLd(game);
-  const comments = await getGameComments(game.id);
   const hasRichEditorialTags = game.mechanics.length > 0 || game.themes.length > 0;
   const shouldShowCategories = game.categories.length > 0 && !hasRichEditorialTags;
   const introDescription = isRedundantText(game.reviewSummary, game.description) ? "" : game.reviewSummary;
@@ -85,7 +84,7 @@ export default async function GamePage({ params }: GamePageProps) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <section className="wood-surface border-b border-ember/30 text-white">
+        <section className="tavern-breadcrumb-bar text-white">
           <div className="container-page py-4">
             <nav className="flex flex-wrap items-center gap-2 text-sm text-white/70" aria-label="Breadcrumb">
               <Link href="/" className="hover:text-white">
@@ -149,7 +148,7 @@ export default async function GamePage({ params }: GamePageProps) {
                       <p className="text-sm font-bold text-walnut">
                         {[game.publishedAt ? new Date(game.publishedAt).getFullYear() : null, game.categories[0]].filter(Boolean).join(" · ")}
                       </p>
-                      <h1 className="font-display mt-2 break-words text-4xl font-extrabold leading-tight text-wood sm:text-5xl lg:text-6xl">{game.title}</h1>
+                      <h1 className="font-display mt-2 break-words text-4xl font-bold leading-tight text-wood sm:text-5xl lg:text-6xl">{game.title}</h1>
                     </div>
 
                     {leadDescription ? (
@@ -185,7 +184,9 @@ export default async function GamePage({ params }: GamePageProps) {
                 </section>
               ) : null}
 
-              <GameComments gameId={game.id} gameSlug={game.slug} initialComments={comments} />
+              <Suspense fallback={<CommentsFallback />}>
+                <GameCommentsPanel gameId={game.id} gameSlug={game.slug} />
+              </Suspense>
             </div>
 
             <aside className="min-w-0 space-y-5">
@@ -236,10 +237,25 @@ async function RelatedGamesPanel({ game }: { game: CatalogGame }) {
   );
 }
 
+async function GameCommentsPanel({ gameId, gameSlug }: { gameId: string; gameSlug: string }) {
+  const comments = await getGameComments(gameId);
+
+  return <GameComments gameId={gameId} gameSlug={gameSlug} initialComments={comments} />;
+}
+
+function CommentsFallback() {
+  return (
+    <section id="comentarios" className="tavern-panel p-5 sm:p-6">
+      <p className="tavern-eyebrow">Comentarios</p>
+      <div className="mt-4 h-24 animate-pulse rounded-md bg-white/60" />
+    </section>
+  );
+}
+
 function Panel({ title, children, wood = false }: { title: string; children: React.ReactNode; wood?: boolean }) {
   return (
     <section className={`${wood ? "wood-surface text-white" : "tavern-card"} rounded-md p-5`}>
-      <h2 className={`font-display text-lg font-extrabold leading-tight ${wood ? "text-white" : "text-wood"}`}>{title}</h2>
+      <h2 className={`font-display text-lg font-bold leading-tight ${wood ? "text-white" : "text-wood"}`}>{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -268,7 +284,7 @@ function QuickDecision({ game }: { game: CatalogGame }) {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="tavern-eyebrow">Decisión rápida</p>
-          <h2 className="font-display mt-1 text-2xl font-extrabold text-wood">¿Es para ti?</h2>
+          <h2 className="font-display mt-1 text-2xl font-bold text-wood">¿Es para ti?</h2>
         </div>
         <p className="max-w-xs text-xs font-semibold leading-5 text-walnut/65">
           Lo esencial para decidir sin bajar por toda la ficha.

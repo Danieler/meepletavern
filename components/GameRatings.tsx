@@ -27,7 +27,7 @@ export function GameRatings({ game, compact = false }: { game: CatalogGame; comp
           {showScore ? <RatingBadge rating={visibleRating.score as number} size="md" label="MT" /> : null}
           <div className="min-w-0">
             <p className="tavern-eyebrow">Nota de la taberna</p>
-            <h2 className="font-display mt-1 text-2xl font-extrabold leading-tight text-wood">
+            <h2 className="font-display mt-1 text-2xl font-bold leading-tight text-wood">
               {showScore ? visibleRating.label : "Por descubrir"}
             </h2>
             <p className="mt-2 text-sm leading-5 text-walnut/75">

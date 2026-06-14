@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 export type PublicGameComment = {
@@ -42,29 +43,37 @@ export function validateGameCommentBody(value: string) {
 }
 
 export async function getGameComments(gameId: string, limit = 12): Promise<PublicGameComment[]> {
-  const comments = await prisma.gameComment.findMany({
-    where: { gameId },
-    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-    take: limit,
-    select: {
-      id: true,
-      body: true,
-      createdAt: true,
-      updatedAt: true,
-      user: {
-        select: {
-          email: true,
-          displayName: true
+  return getCachedGameComments(gameId, limit);
+}
+
+const getCachedGameComments = unstable_cache(
+  async function getCachedGameComments(gameId: string, limit = 12): Promise<PublicGameComment[]> {
+    const comments = await prisma.gameComment.findMany({
+      where: { gameId },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      take: limit,
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          select: {
+            email: true,
+            displayName: true
+          }
         }
       }
-    }
-  });
+    });
 
-  return comments.map((comment) => ({
-    id: comment.id,
-    body: comment.body,
-    authorName: comment.user.displayName?.trim() || comment.user.email.split("@")[0] || "Usuario",
-    createdAt: comment.createdAt.toISOString(),
-    updatedAt: comment.updatedAt.toISOString()
-  }));
-}
+    return comments.map((comment) => ({
+      id: comment.id,
+      body: comment.body,
+      authorName: comment.user.displayName?.trim() || comment.user.email.split("@")[0] || "Usuario",
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString()
+    }));
+  },
+  ["game-comments"],
+  { revalidate: 300, tags: ["public-comments"] }
+);

@@ -64,7 +64,7 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
                 </span>
               ))}
             </div>
-            <h3 className="font-display mt-3 text-lg font-extrabold leading-tight text-wood">{game.title}</h3>
+            <h3 className="font-display mt-3 text-lg font-bold leading-tight text-wood">{game.title}</h3>
             {game.publishedAt ? (
               <p className="tavern-meta mt-1">{formatDate(game.publishedAt)}</p>
             ) : null}
@@ -106,7 +106,7 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
               ))}
             </div>
           </div>
-          <h3 className="font-display text-xl font-extrabold leading-tight text-wood">{game.title}</h3>
+          <h3 className="font-display text-xl font-bold leading-tight text-wood">{game.title}</h3>
           {game.publishedAt ? (
             <p className="tavern-meta mt-1">{formatDate(game.publishedAt)}</p>
           ) : null}

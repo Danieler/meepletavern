@@ -24,7 +24,7 @@ export function CommunityScorePanel({ initialRatings }: { initialRatings: GameRa
 
   return (
     <div className="flex items-center gap-5">
-      <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-4 border-ember bg-walnut font-display font-black text-white">
+      <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-4 border-ember bg-walnut font-display font-bold text-white">
         <span className="text-4xl">{typeof score === "number" ? score.toFixed(1) : "MT"}</span>
         <span className="text-xs text-ember">{votesCount ? "Jugadores" : "Sin votos"}</span>
       </div>

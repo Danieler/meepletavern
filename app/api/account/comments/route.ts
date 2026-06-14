@@ -1,5 +1,5 @@
 import { GameStatus } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { getGameComments, validateGameCommentBody } from "@/lib/gameComments";
@@ -87,6 +87,7 @@ export async function POST(request: Request) {
       }
     });
 
+    revalidateTag("public-comments");
     revalidatePath(`/juegos/${game.slug}`);
 
     const comments = await getGameComments(game.id);

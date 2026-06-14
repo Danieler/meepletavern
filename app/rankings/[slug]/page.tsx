@@ -12,7 +12,7 @@ type RankingPageProps = {
   }>;
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: RankingPageProps): Promise<Metadata> {
   const { slug } = await params;

@@ -68,7 +68,7 @@ export function GameFilters({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="tavern-eyebrow">Explorar</p>
-          <h2 className="font-display mt-1 text-xl font-extrabold text-ink">Filtros</h2>
+          <h2 className="font-display mt-1 text-xl font-bold text-ink">Filtros</h2>
         </div>
         <Link className="mt-1 inline-flex text-sm font-bold text-moss transition hover:text-wood hover:underline" href="/juegos">
           Limpiar filtros

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Explora juegos de mesa por temáticas: fantasía, ciencia ficción, terror, Cthulhu, medieval, pulp, piratas, espacio, Marvel, Disney y zombies."
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function ThemesPage() {
   const [themeTerms, games] = await Promise.all([getThemeTerms(), getCatalogGames()]);
@@ -37,7 +37,7 @@ export default async function ThemesPage() {
                 href={`/juegos?theme=${encodeURIComponent(term)}`}
                 className="term-card"
               >
-                <h2 className="font-display text-xl font-extrabold leading-tight text-ink">{term}</h2>
+                <h2 className="font-display text-xl font-bold leading-tight text-ink">{term}</h2>
                 <p className="mt-2 text-sm font-semibold leading-6 text-ink/55">
                   {count ? `${count} juegos en el archivo` : "Preparado para nuevas fichas"}
                 </p>

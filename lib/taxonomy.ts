@@ -1,4 +1,5 @@
 import { Prisma, TaxonomyType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 
@@ -29,14 +30,22 @@ export async function getAdminTaxonomyTerms(type: TaxonomyTypeKey) {
 }
 
 export async function getTaxonomyTermNames(type: TaxonomyTypeKey) {
-  const terms = await prisma.taxonomyTerm.findMany({
-    where: { type },
-    orderBy: [{ name: "asc" }],
-    select: { name: true }
-  });
-
-  return terms.map((term) => term.name);
+  return getCachedTaxonomyTermNames(type);
 }
+
+const getCachedTaxonomyTermNames = unstable_cache(
+  async function getCachedTaxonomyTermNames(type: TaxonomyTypeKey) {
+    const terms = await prisma.taxonomyTerm.findMany({
+      where: { type },
+      orderBy: [{ name: "asc" }],
+      select: { name: true }
+    });
+
+    return terms.map((term) => term.name);
+  },
+  ["taxonomy-term-names"],
+  { revalidate: 300, tags: ["public-taxonomy"] }
+);
 
 export async function createTaxonomyTerm(type: TaxonomyTypeKey, rawName: unknown) {
   const name = normalizeTermName(rawName);

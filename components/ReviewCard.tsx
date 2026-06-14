@@ -42,7 +42,7 @@ export function ReviewCard({ review, compact = false, list = false }: { review: 
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="tavern-eyebrow">{review.gameTitle}</p>
-              <h2 className="font-display mt-2 text-2xl font-extrabold leading-tight text-wood">{review.title}</h2>
+              <h2 className="font-display mt-2 text-2xl font-bold leading-tight text-wood">{review.title}</h2>
               <p className="tavern-meta mt-2">Por {review.authorName}</p>
             </div>
           </div>

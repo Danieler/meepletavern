@@ -130,8 +130,142 @@ img {
       linear-gradient(90deg, #2a160f, #4a2819 34%, #32180f 70%, #1c0e09);
   }
 
+  .tavern-header {
+    position: sticky;
+    overflow: hidden;
+    background:
+      radial-gradient(780px 150px at 14% -55%, rgba(201, 130, 31, 0.24), transparent 62%),
+      radial-gradient(680px 180px at 86% -70%, rgba(96, 64, 38, 0.32), transparent 62%),
+      linear-gradient(180deg, #3a2418 0%, #2b1a12 48%, #1c100b 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 250, 240, 0.07),
+      inset 0 -1px 0 rgba(240, 184, 90, 0.42),
+      0 3px 14px rgba(36, 21, 14, 0.22);
+  }
+
+  .tavern-header::before {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    content: "";
+    opacity: 0.18;
+    background:
+      linear-gradient(90deg, transparent 8%, rgba(255, 250, 240, 0.07) 38%, transparent 72%),
+      repeating-linear-gradient(90deg, rgba(255, 250, 240, 0.012) 0 1px, transparent 1px 28px);
+  }
+
+  .tavern-header::after {
+    pointer-events: none;
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    content: "";
+    background: linear-gradient(90deg, transparent, rgba(240, 184, 90, 0.74) 20%, rgba(201, 130, 31, 0.42) 78%, transparent);
+  }
+
+  .tavern-header > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .tavern-footer {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(820px 210px at 14% 0%, rgba(201, 130, 31, 0.2), transparent 62%),
+      radial-gradient(720px 190px at 86% 8%, rgba(93, 61, 38, 0.28), transparent 66%),
+      linear-gradient(180deg, #26160f 0%, #2f1d14 48%, #1a0f0a 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(240, 184, 90, 0.34),
+      inset 0 -1px 0 rgba(255, 250, 240, 0.04),
+      0 -8px 24px rgba(36, 21, 14, 0.12);
+  }
+
+  .tavern-footer::before {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    content: "";
+    opacity: 0.2;
+    background:
+      linear-gradient(90deg, transparent 6%, rgba(255, 250, 240, 0.06) 34%, transparent 70%),
+      repeating-linear-gradient(0deg, rgba(255, 250, 240, 0.025) 0 1px, transparent 1px 16px),
+      repeating-linear-gradient(90deg, rgba(255, 250, 240, 0.012) 0 1px, transparent 1px 30px);
+  }
+
+  .tavern-footer::after {
+    pointer-events: none;
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    content: "";
+    background: linear-gradient(90deg, transparent, rgba(240, 184, 90, 0.78) 18%, rgba(201, 130, 31, 0.36) 82%, transparent);
+  }
+
+  .tavern-footer > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-brand-panel {
+    @apply rounded-md border border-white/10 bg-[#fff8e808] p-4 shadow-sm;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 250, 240, 0.07),
+      0 12px 28px rgba(0, 0, 0, 0.12);
+  }
+
+  .footer-logo-plaque {
+    @apply inline-flex rounded-md border border-ember/25 px-3 py-2;
+    background:
+      linear-gradient(180deg, rgba(255, 248, 232, 0.9), rgba(239, 221, 187, 0.72)),
+      radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.7), transparent 44%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 8px 20px rgba(0, 0, 0, 0.16);
+  }
+
+  .footer-link {
+    @apply focus-ring inline-flex rounded-[4px] px-1 py-1 font-semibold text-parchment/75 transition hover:bg-[#fff8e80c] hover:text-[#ffd27a];
+  }
+
+  .tavern-breadcrumb-bar {
+    background:
+      linear-gradient(180deg, rgba(255, 250, 240, 0.03), rgba(255, 250, 240, 0.01)),
+      linear-gradient(90deg, rgba(39, 25, 18, 0.95), rgba(50, 32, 23, 0.92) 50%, rgba(34, 20, 14, 0.95));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 250, 240, 0.05),
+      inset 0 -1px 0 rgba(201, 130, 31, 0.18);
+  }
+
+  .header-nav-shell {
+    @apply rounded-md border border-white/10 bg-[#fff8e80a] p-1 shadow-sm;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 250, 240, 0.05),
+      0 8px 18px rgba(0, 0, 0, 0.08);
+  }
+
+  .header-nav-link {
+    @apply inline-flex min-w-0 items-center justify-center rounded-[4px] px-2 py-2 text-parchment/75 transition sm:whitespace-nowrap sm:px-3;
+  }
+
+  .header-nav-link:hover {
+    color: #ffd27a;
+    background: linear-gradient(180deg, rgba(255, 248, 232, 0.12), rgba(201, 130, 31, 0.11));
+    box-shadow:
+      inset 0 0 0 1px rgba(240, 184, 90, 0.16),
+      inset 0 -1px 0 rgba(240, 184, 90, 0.28);
+  }
+
+  .header-action {
+    @apply focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-ember/25 bg-[#fff8e80c] px-3 text-sm font-extrabold leading-none text-parchment shadow-sm transition hover:border-ember/55 hover:bg-[#c9821f24] hover:text-white;
+  }
+
+  .header-profile-link {
+    @apply focus-ring rounded-md px-3 py-2 text-sm font-extrabold text-parchment/75 transition hover:bg-[#fff8e80c] hover:text-[#ffd27a];
+  }
+
   .tavern-title {
-    @apply font-display font-extrabold leading-tight text-wood;
+    @apply font-display font-bold leading-tight text-wood;
     letter-spacing: 0;
   }
 
@@ -168,7 +302,7 @@ img {
   }
 
   .page-hero-title {
-    @apply font-display mt-3 max-w-4xl text-4xl font-extrabold leading-tight text-white sm:text-5xl;
+    @apply font-display mt-3 max-w-4xl text-4xl font-bold leading-tight text-white sm:text-5xl;
   }
 
   .page-hero-copy {

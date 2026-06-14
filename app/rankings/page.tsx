@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "Rankings de MeepleTavern con top juegos de mesa, familiares, cooperativos, party, narrativos, estratégicos, para dos y para principiantes."
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function RankingsPage() {
   const rankings = await getRankings();
