@@ -3,6 +3,7 @@ import { tavily } from "@tavily/core";
 import { Prisma, GameImportProposalStatus, type Game, type GameImportProposal } from "@prisma/client";
 import { z } from "zod";
 import { getBedrockRuntimeClient } from "@/lib/ai/bedrockClient";
+import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
 import { calculateExternalRating } from "@/lib/ratings/calculateExternalRating";
 import { buildExternalSignalFromSearchResult } from "@/lib/ratings/externalSignals";
@@ -237,6 +238,7 @@ export async function extractBoardGameFieldsWithNova(input: {
           "Do not use description.value to restate alreadyDisplayedFacts such as players, duration, age, publisher or year unless essential; those facts are displayed elsewhere. " +
           "If you improve description.value, make it complement the short copy: start with gameplay/objective, not with the same facts. " +
           "For known board games, explain the actual gameplay instead of describing it generically. For example, mention concrete actions such as placing tiles, playing cards, assigning workers, scoring areas, revealing clues or managing resources when supported. " +
+          "For mechanics.value, return gameplay systems, not components: prefer Colocación de piezas, Movimiento, Bloqueo, Gestión de mano, Dados, Draft, Mayorías, Cooperativo or Control de áreas; avoid Tablero, Fichas, Piezas or generic Cartas. " +
           "Use web_search sources to enrich direct store sources: shops often have shallow commercial copy, while BoardGameGeek/rules/reviews usually explain gameplay better. " +
           "Do not introduce exact victory thresholds, component counts or special rules unless they are explicitly present in sourceContext. " +
           "Do not write generic SEO filler such as 'propuesta de mesa', 'foco en la experiencia de juego', 'contexto temático', 'para disfrutar en grupo' or vague restatements of players/playtime/age. " +
@@ -442,12 +444,12 @@ export async function applyGameImportProposalFields(input: {
     }
 
     if (field === "categories" && Array.isArray(extracted.categories.value) && extracted.categories.value.length && canApply(input.emptyOnly, game.categories)) {
-      update.categories = sanitizeStringList(extracted.categories.value);
+      update.categories = sanitizeImportedList(sanitizeStringList(extracted.categories.value), "categories");
       appliedFields.push(field);
     }
 
     if (field === "mechanics" && Array.isArray(extracted.mechanics.value) && extracted.mechanics.value.length && canApply(input.emptyOnly, game.mechanics)) {
-      update.mechanics = sanitizeStringList(extracted.mechanics.value);
+      update.mechanics = sanitizeImportedList(sanitizeStringList(extracted.mechanics.value), "mechanics");
       appliedFields.push(field);
     }
 

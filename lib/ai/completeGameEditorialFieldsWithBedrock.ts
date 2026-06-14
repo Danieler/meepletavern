@@ -63,6 +63,8 @@ export async function completeGameEditorialFieldsWithBedrock(
               "Si el juego es conocido y el título coincide claramente con una edición real, también puedes completar jugadores, duración, edad y editorial usando conocimiento general fiable de catálogo. " +
               "Si no tienes suficiente seguridad en un dato objetivo, devuelve null en ese campo. " +
               "Las categorías, mecánicas y temáticas deben ser etiquetas cortas. " +
+              "Las mecánicas deben describir decisiones o sistemas de juego, no componentes: usa Colocación de piezas, Movimiento, Bloqueo, Gestión de mano o Control de áreas antes que Tablero, Fichas o Cartas. " +
+              "Las temáticas deben ser mundos o géneros amplios, no elementos concretos del juego: usa Insectos o Naturaleza antes que Reina, Abeja o Colmena. " +
               "Si faltan datos, omítelos con naturalidad en vez de escribir texto de relleno. " +
               "Si el título parece una editorial o marca, devuelve cleanTitle null y añade warning. " +
               "Devuelve confidence y warnings."
@@ -115,8 +117,8 @@ export async function completeGameEditorialFieldsWithBedrock(
                   "- shortDescription máximo 300 caracteres.\n" +
                   "- longDescription máximo 1200 caracteres.\n" +
                   "- categories máximo 5.\n" +
-                  "- mechanics máximo 6.\n" +
-                  "- themes máximo 5.\n" +
+                  "- mechanics máximo 6 y solo con sistemas reales de juego. Evita componentes o palabras genéricas como Tablero, Fichas, Piezas, Cartas o Movimientos si puedes usar Colocación de piezas, Movimiento, Bloqueo, Gestión de mano, Dados, Draft, Mayorías, Cooperativo, Deducción o Control de áreas.\n" +
+                  "- themes máximo 5 y solo con temas genéricos como Fantasía, Ciencia ficción, Terror, Naturaleza, Animales, Insectos, Espacio, Histórico, Economía, Guerra o Aventura. No uses personajes, piezas, roles, componentes ni objetivos concretos como Reina, Abeja Reina, Colmena o similares.\n" +
                   "- pros entre 3 y 6.\n" +
                   "- cons entre 2 y 5.\n" +
                   "- faq entre 3 y 6 elementos.\n" +

@@ -24,9 +24,6 @@ type AdminFinalGameFormProps = {
 };
 
 const initialState: GameEditorActionState = {};
-type AiCompletionState = GameEditorActionState & {
-  suggestedTitle?: string | null;
-};
 
 type EditorDraftValues = {
   title: string;
@@ -75,8 +72,6 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
   const router = useRouter();
   const [saveState, saveAction, isSaving] = useActionState(saveGameEditorAction, initialState);
   const [publishState, publishAction, isPublishing] = useActionState(publishGameEditorAction, initialState);
-  const [aiCompletionState, setAiCompletionState] = useState<AiCompletionState>({});
-  const [isCompletingWithAi, setIsCompletingWithAi] = useState(false);
   const [aiWebProposal, setAiWebProposal] = useState<SerializableGameImportProposal | null>(initialAiWebProposal);
   const [aiWebError, setAiWebError] = useState<string | null>(null);
   const [aiWebStatus, setAiWebStatus] = useState<string | null>(null);
@@ -107,7 +102,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
     () => resolvePrimaryImagePreviewUrl(draftValues.primaryImageId, game, mediaAssets),
     [draftValues.primaryImageId, game, mediaAssets]
   );
-  const isBusy = isSaving || isPublishing || isCompletingWithAi || isCompletingWithAiWeb || isApplyingAiWeb;
+  const isBusy = isSaving || isPublishing || isCompletingWithAiWeb || isApplyingAiWeb;
 
   useEffect(() => {
     setDraftValues(initialDraftValues);
@@ -139,49 +134,6 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
       router.refresh();
     }
   }, [router, publishState]);
-
-  async function handleAiCompletion() {
-    setIsCompletingWithAi(true);
-    setAiCompletionState({});
-
-    try {
-      const response = await fetch(`/api/admin/games/${game.id}/complete-editorial`, {
-        method: "POST",
-        headers: getAdminApiFetchHeaders()
-      });
-      const payload = (await response.json()) as {
-        error?: string;
-        appliedFields?: string[];
-        warnings?: string[];
-        suggestedTitle?: string | null;
-      };
-
-      if (!response.ok) {
-        setAiCompletionState({
-          errors: [payload.error || "No se pudieron completar los campos editoriales con IA."]
-        });
-        return;
-      }
-
-      setAiCompletionState({
-        message: payload.appliedFields?.length
-          ? "Campos editoriales completados con IA. Revisa la ficha antes de publicar."
-          : "La IA respondió, pero no se aplicaron cambios porque la ficha ya tenía contenido válido o mejor que la propuesta.",
-        warnings: payload.warnings || [],
-        suggestedTitle: payload.suggestedTitle || null
-      });
-
-      if (payload.appliedFields?.length) {
-        router.refresh();
-      }
-    } catch (error) {
-      setAiCompletionState({
-        errors: [error instanceof Error ? error.message : "No se pudieron completar los campos editoriales con IA."]
-      });
-    } finally {
-      setIsCompletingWithAi(false);
-    }
-  }
 
   async function handleAiWebCompletion(regenerate = false) {
     setIsCompletingWithAiWeb(true);
@@ -323,10 +275,6 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <button className="button-secondary" type="button" onClick={handleAiCompletion} disabled={isBusy}>
-              {isCompletingWithAi ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <WandSparkles size={18} aria-hidden="true" />}
-              {isCompletingWithAi ? "Generando..." : "Generar descripción en español"}
-            </button>
             <button className="button-secondary" type="button" onClick={() => handleAiWebCompletion(true)} disabled={isBusy}>
               {isCompletingWithAiWeb ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <WandSparkles size={18} aria-hidden="true" />}
               {isCompletingWithAiWeb ? "Buscando fuentes..." : "Completar con IA web"}
@@ -411,7 +359,6 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
         ) : null}
       </section>
 
-      <Feedback state={aiCompletionState} errorTitle="No se pudo completar con IA:" />
       {aiWebStatus ? (
         <p className="inline-flex items-center gap-2 rounded-md border border-ember/20 bg-ember/10 px-4 py-3 text-sm font-semibold text-ink">
           {(isCompletingWithAiWeb || isApplyingAiWeb) ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : null}
@@ -423,7 +370,6 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           {aiWebError}
         </p>
       ) : null}
-      {aiCompletionState.suggestedTitle ? <SuggestedTitleNotice title={aiCompletionState.suggestedTitle} /> : null}
       <Feedback state={saveState} errorTitle="No se pudo guardar:" />
       <Feedback state={publishState} errorTitle="No se pudo publicar:" />
 
@@ -891,14 +837,6 @@ function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTi
   }
 
   return null;
-}
-
-function SuggestedTitleNotice({ title }: { title: string }) {
-  return (
-    <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink">
-      Revisa el título actual. La IA sugiere usar: <span className="font-black">{title}</span>
-    </p>
-  );
 }
 
 function confidenceLabel(value: "low" | "medium" | "high") {

@@ -393,11 +393,11 @@ export async function getCategoryTerms() {
 }
 
 export async function getMechanicTerms() {
-  return getTaxonomyTermNames("mechanic");
+  return sanitizeImportedList(await getTaxonomyTermNames("mechanic"), "mechanics");
 }
 
 export async function getThemeTerms() {
-  return getTaxonomyTermNames("theme");
+  return sanitizeImportedList(await getTaxonomyTermNames("theme"), "themes");
 }
 
 export function termHref(type: "category" | "mechanic" | "theme", term: string) {

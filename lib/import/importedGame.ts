@@ -14,6 +14,7 @@ import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/edit
 import { gameCandidateRepository, gameRepository } from "@/lib/editorialRepositories";
 import { buildSafeEditorialPatch } from "@/lib/games/buildSafeEditorialPatch";
 import { sanitizeEditorialFields } from "@/lib/import/sanitizeEditorialFields";
+import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { slugify } from "@/lib/slug";
@@ -368,8 +369,14 @@ async function resolveImportedTaxonomy(metadata: Record<string, unknown>) {
 
   return {
     categories: filterExistingTerms(stringListFromMetadata(metadata, "categoryHints"), existingCategories),
-    mechanics: filterExistingTerms(stringListFromMetadata(metadata, "mechanicHints"), existingMechanics),
-    themes: filterExistingTerms(stringListFromMetadata(metadata, "themeHints"), existingThemes)
+    mechanics: sanitizeImportedList(
+      filterExistingTerms(stringListFromMetadata(metadata, "mechanicHints"), existingMechanics),
+      "mechanics"
+    ),
+    themes: sanitizeImportedList(
+      filterExistingTerms(stringListFromMetadata(metadata, "themeHints"), existingThemes),
+      "themes"
+    )
   };
 }
 
