@@ -261,35 +261,47 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
           continue;
         }
 
-        const topMatch = searchOutcome.results[0] || null;
-        if (!topMatch || topMatch.confidence < 0.35) {
+        const candidateMatches = searchOutcome.results
+          .filter((result) => isLikelySameGameResult(seedTitle, result))
+          .slice(0, 3);
+        const topMatch = candidateMatches[0] || searchOutcome.results[0] || null;
+        if (!candidateMatches.length) {
           diagnostics.push({
             sourceName: source.name,
             stage: "search",
             outcome: "no_match",
-            reason: topMatch ? "La coincidencia fue demasiado débil" : "Sin resultados"
+            reason: topMatch ? "No se encontró una coincidencia suficientemente fiable con el juego base" : "Sin resultados"
           });
           continue;
         }
 
-        try {
-          const imported = await deps.importSourceUrl(source, topMatch.purchaseUrl || topMatch.sourceUrl);
-          const confidence = Math.max(imported.candidate.confidence || 0, topMatch.confidence);
-          pushImportedResult(results, seenResultKeys, {
-            source,
-            candidate: imported.candidate,
-            publicImageUrls: imported.publicImageUrls,
-            matchedBy: "search",
-            confidence
-          });
-          diagnostics.push({
-            sourceName: source.name,
-            stage: "search",
-            outcome: "matched",
-            confidence: topMatch.confidence,
-            sourceUrl: topMatch.purchaseUrl || topMatch.sourceUrl
-          });
-        } catch {
+        let matched = false;
+        for (const match of candidateMatches) {
+          try {
+            const imported = await deps.importSourceUrl(source, match.purchaseUrl || match.sourceUrl);
+            const confidence = Math.max(imported.candidate.confidence || 0, match.confidence);
+            pushImportedResult(results, seenResultKeys, {
+              source,
+              candidate: imported.candidate,
+              publicImageUrls: imported.publicImageUrls,
+              matchedBy: "search",
+              confidence
+            });
+            diagnostics.push({
+              sourceName: source.name,
+              stage: "search",
+              outcome: "matched",
+              confidence: match.confidence,
+              sourceUrl: match.purchaseUrl || match.sourceUrl
+            });
+            matched = true;
+            break;
+          } catch {
+            continue;
+          }
+        }
+
+        if (!matched) {
           const fallbackCandidate = mapStoreSourceResultToImportCandidate(topMatch);
           pushImportedResult(results, seenResultKeys, {
             source,
@@ -1482,6 +1494,44 @@ function groupImportedCandidates(results: ImportedSourceCandidate[], requestedTi
   return groups.sort((left, right) => right.score - left.score || right.results.length - left.results.length);
 }
 
+function isLikelySameGameResult(requestedTitle: string, result: StoreSourceSearchResult) {
+  if (result.confidence < 0.35) {
+    return false;
+  }
+
+  const requestedKey = canonicalGameTitleKey(requestedTitle);
+  const resultKey = canonicalGameTitleKey(result.title);
+  if (!requestedKey || !resultKey) {
+    return false;
+  }
+
+  if (requestedKey === resultKey) {
+    return true;
+  }
+
+  const resultTokens = resultKey.split("-").filter(Boolean);
+  const requestedTokens = requestedKey.split("-").filter(Boolean);
+  const hasAllRequestedTokens = requestedTokens.every((token) => resultTokens.includes(token));
+  const extraTokens = resultTokens.filter((token) => !requestedTokens.includes(token));
+  const expansionTokens = new Set([
+    "expansion",
+    "pack",
+    "map",
+    "maps",
+    "promo",
+    "deluxe",
+    "upgrade",
+    "mundos",
+    "marinos",
+    "marine",
+    "worlds",
+    "agua",
+    "zoo"
+  ]);
+
+  return hasAllRequestedTokens && extraTokens.length <= 2 && !extraTokens.some((token) => expansionTokens.has(token));
+}
+
 function rankSourceCandidate(result: ImportedSourceCandidate, requestedTitle: string | null) {
   const similarity = requestedTitle ? titleSimilarity(slugify(result.candidate.title), slugify(requestedTitle)) : 1;
   return sourceReliabilityScore(result.source.name) * 2 + result.confidence * 100 + completenessScore(result.candidate) * 10 + similarity * 25;
@@ -1741,7 +1791,17 @@ function canonicalGameTitleKey(value: string) {
     "2a",
     "castellano",
     "espanol",
-    "spanish"
+    "spanish",
+    "juego",
+    "mesa",
+    "base",
+    "board",
+    "game",
+    "maldito",
+    "games",
+    "devir",
+    "asmodee",
+    "tranjis"
   ]);
   const tokens = slugify(value)
     .split("-")

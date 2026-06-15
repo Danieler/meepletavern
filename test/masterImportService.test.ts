@@ -148,6 +148,77 @@ test("importAndEnrichGame conserva ofertas de todas las fuentes coincidentes", a
   assert.equal(result.bestOffer?.price, 59.95);
 });
 
+test("importAndEnrichGame no deja que una expansión tape el precio del juego base", async () => {
+  const service = createMasterImportService(
+    createDeps({
+      searchResults: {
+        [SOURCE_A.id]: [
+          searchResult({
+            sourceName: "juegos_de_la_mesa_redonda",
+            sourceDisplayName: SOURCE_A.name,
+            sourceUrl: "https://juegosdelamesaredonda.com/ark-nova-mundos-marinos.html",
+            purchaseUrl: "https://juegosdelamesaredonda.com/ark-nova-mundos-marinos.html",
+            title: "Ark Nova Mundos Marinos",
+            normalizedTitle: "ark-nova-mundos-marinos",
+            price: 24.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: false,
+            imageUrl: null,
+            confidence: 0.95
+          }),
+          searchResult({
+            sourceName: "juegos_de_la_mesa_redonda",
+            sourceDisplayName: SOURCE_A.name,
+            sourceUrl: "https://juegosdelamesaredonda.com/ark-nova.html",
+            purchaseUrl: "https://juegosdelamesaredonda.com/ark-nova.html",
+            title: "Ark Nova",
+            normalizedTitle: "ark-nova",
+            price: 62.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: false,
+            imageUrl: null,
+            confidence: 0.9
+          })
+        ],
+        [SOURCE_B.id]: [
+          searchResult({
+            sourceName: "dungeon_marvels",
+            sourceDisplayName: SOURCE_B.name,
+            sourceUrl: "https://dungeonmarvels.com/ark-nova.html",
+            purchaseUrl: "https://dungeonmarvels.com/ark-nova.html",
+            title: "Ark Nova",
+            normalizedTitle: "ark-nova",
+            price: 59.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: false,
+            imageUrl: null,
+            confidence: 0.9
+          })
+        ]
+      },
+      importedByUrl: {
+        "https://juegosdelamesaredonda.com/ark-nova.html": importedCandidate("Ark Nova", SOURCE_A, {
+          price: 62.95,
+          availability: "En stock"
+        }),
+        "https://dungeonmarvels.com/ark-nova.html": importedCandidate("Ark Nova", SOURCE_B, {
+          price: 59.95,
+          availability: "En stock"
+        })
+      }
+    })
+  );
+
+  const result = await service({ title: "Ark Nova" });
+
+  assert.equal(result.offersCreated, 2);
+  assert.deepEqual(result.sourcesWithOffers.sort(), [SOURCE_A.name, SOURCE_B.name].sort());
+  assert.equal(result.bestOffer?.price, 59.95);
+});
+
 test("importAndEnrichGame continúa si una fuente falla", async () => {
   const service = createMasterImportService(
     createDeps({
