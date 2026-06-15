@@ -39,6 +39,7 @@ type SourceConnector = {
   sourceDisplayName: string;
   baseUrl: string;
   imageAllowed: boolean;
+  buildSearchUrl(title: string): string;
   matches(source: Pick<Source, "name" | "baseUrl">): boolean;
   searchGameInSource(title: string): Promise<StoreSourceSearchResult[]>;
   importGameFromSourceUrl(sourceUrl: string): Promise<StoreSourceResult>;
@@ -73,7 +74,10 @@ const connectors: SourceConnector[] = [
     sourceName: "zacatrus",
     sourceDisplayName: "Zacatrus",
     baseUrl: "https://zacatrus.es",
-    imageAllowed: false
+    imageAllowed: false,
+    buildSearchUrl(title) {
+      return `https://zacatrus.es/catalogsearch/result/?q=${encodeURIComponent(title)}`;
+    }
   })
 ];
 
@@ -256,6 +260,73 @@ export function extractSearchResultsFromHtml(
   return results.sort((left, right) => right.confidence - left.confidence || left.title.localeCompare(right.title, "es"));
 }
 
+export function extractSearchResultsFromMarkdown(
+  markdown: string,
+  input: {
+    sourceName: StoreSourceName;
+    sourceDisplayName: string;
+    baseUrl: string;
+    searchTitle: string;
+    imageAllowed: boolean;
+  }
+): StoreSourceSearchResult[] {
+  const queryNormalized = normalizeGameTitle(input.searchTitle);
+  const fetchedAt = new Date();
+  const results: StoreSourceSearchResult[] = [];
+  const seen = new Set<string>();
+  const pattern =
+    /^\d+\.\s+\[!\[[^\]]*\]\((https:\/\/zacatrus\.es\/media\/catalog\/product\/[^)]+)\)\]\((https:\/\/zacatrus\.es\/[^)\s]+)\)\*\*\[([^\]]+)\]\([^)\s]+\)\*\*([\s\S]*?)(\d+(?:,\d+)?)€([^\n]*)$/gm;
+
+  for (const match of markdown.matchAll(pattern)) {
+    const imageUrl = absoluteUrl(match[1] || "", input.baseUrl);
+    const href = absoluteUrl(match[2] || "", input.baseUrl);
+    const rawTitle = cleanText(match[3] || "");
+    const trailingText = cleanText(`${match[0] || ""} ${match[4] || ""} ${match[6] || ""}`);
+
+    if (!href || !rawTitle || seen.has(href)) {
+      continue;
+    }
+
+    const title = sanitizeImportedTitle(rawTitle).trim() || rawTitle;
+    const normalizedTitle = normalizeGameTitle(title);
+    const confidence = scoreTitleMatch(normalizedTitle, queryNormalized);
+
+    if (confidence < 0.2) {
+      continue;
+    }
+
+    seen.add(href);
+    results.push({
+      sourceName: input.sourceName,
+      sourceDisplayName: input.sourceDisplayName,
+      sourceUrl: href,
+      title,
+      normalizedTitle,
+      price: numberLike(match[5] || ""),
+      currency: "EUR",
+      availability: /a(?:n|ñ)adir al carrito/i.test(trailingText) ? "En stock" : null,
+      purchaseUrl: href,
+      publisher: null,
+      imageUrl: imageUrl || null,
+      imageAllowed: input.imageAllowed,
+      description: null,
+      minPlayers: null,
+      maxPlayers: null,
+      minPlayTime: null,
+      maxPlayTime: null,
+      recommendedAge: null,
+      language: null,
+      rawData: {
+        markdown: match[0]
+      },
+      fetchedAt,
+      confidence
+    });
+  }
+
+  return results.sort((left, right) => right.confidence - left.confidence || left.title.localeCompare(right.title, "es"));
+}
+
 function extractItemListSearchResults(
   html: string,
   input: {
@@ -333,19 +404,68 @@ function createPrestashopSearchConnector(input: {
   sourceDisplayName: string;
   baseUrl: string;
   imageAllowed: boolean;
+  buildSearchUrl?: (title: string) => string;
 }): SourceConnector {
   return {
     ...input,
+    buildSearchUrl(title) {
+      return input.buildSearchUrl
+        ? input.buildSearchUrl(title)
+        : `${input.baseUrl}/buscar?controller=search&s=${encodeURIComponent(title)}`;
+    },
     matches(source) {
       return normalizeHost(source.baseUrl) === normalizeHost(input.baseUrl);
     },
     async searchGameInSource(title) {
-      const searchUrl = `${input.baseUrl}/buscar?controller=search&s=${encodeURIComponent(title)}`;
-      const html = await fetchStoreHtml(searchUrl, input.sourceDisplayName);
-      return extractSearchResultsFromHtml(html, {
-        ...input,
-        searchTitle: title
-      });
+      const searchUrl = input.buildSearchUrl
+        ? input.buildSearchUrl(title)
+        : `${input.baseUrl}/buscar?controller=search&s=${encodeURIComponent(title)}`;
+      try {
+        const html = await fetchStoreHtml(searchUrl, input.sourceDisplayName);
+        const htmlResults = extractSearchResultsFromHtml(html, {
+          ...input,
+          searchTitle: title
+        });
+        if (htmlResults.length) {
+          return htmlResults;
+        }
+
+        if (shouldUseMirrorSearchFallback(input, null)) {
+          const markdown = await fetchStoreSearchMarkdown(searchUrl, input.sourceDisplayName);
+          const mirrorResults = extractSearchResultsFromMarkdown(markdown, {
+            ...input,
+            searchTitle: title
+          });
+          if (mirrorResults.length) {
+            return mirrorResults;
+          }
+        }
+
+        const tavilyResults = await searchStoreWithTavily(input, title);
+        if (tavilyResults.length) {
+          return tavilyResults;
+        }
+
+        return htmlResults;
+      } catch (error) {
+        if (shouldUseMirrorSearchFallback(input, error)) {
+          const markdown = await fetchStoreSearchMarkdown(searchUrl, input.sourceDisplayName);
+          const mirrorResults = extractSearchResultsFromMarkdown(markdown, {
+            ...input,
+            searchTitle: title
+          });
+          if (mirrorResults.length) {
+            return mirrorResults;
+          }
+        }
+
+        const tavilyResults = await searchStoreWithTavily(input, title);
+        if (tavilyResults.length) {
+          return tavilyResults;
+        }
+
+        throw error;
+      }
     },
     async importGameFromSourceUrl(sourceUrl) {
       try {
@@ -431,6 +551,182 @@ async function fetchStoreHtml(url: string, sourceDisplayName: string) {
   }
 
   return response.text();
+}
+
+async function fetchStoreSearchMarkdown(url: string, sourceDisplayName: string) {
+  let response: Response;
+
+  try {
+    response = await fetch(`https://r.jina.ai/http://${url.replace(/^https?:\/\//i, "")}`, {
+      headers: {
+        Accept: "text/plain, text/markdown;q=0.9, */*;q=0.8"
+      },
+      cache: "no-store"
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "error desconocido";
+    throw new Error(`[${sourceDisplayName}] No se pudo ejecutar la búsqueda mirror (${reason}).`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`[${sourceDisplayName}] La búsqueda mirror devolvió ${response.status}.`);
+  }
+
+  return response.text();
+}
+
+async function searchStoreWithTavily(
+  input: Pick<SourceConnector, "sourceName" | "sourceDisplayName" | "baseUrl" | "imageAllowed">,
+  title: string
+) {
+  if (input.sourceName !== "zacatrus") {
+    return [];
+  }
+
+  const apiKey = process.env.TAVILY_API_KEY?.trim();
+  if (!apiKey) {
+    return [];
+  }
+
+  try {
+    const { tavily } = await import("@tavily/core");
+    const client = tavily({ apiKey });
+    const searchQuery = `site:${normalizeHost(input.baseUrl)} \"${title.trim()}\"`;
+    const response = await client.search(searchQuery, {
+      searchDepth: "basic",
+      topic: "general",
+      maxResults: 6,
+      includeAnswer: false,
+      includeRawContent: "text",
+      includeImages: false
+    });
+
+    return mapTavilyResultsToStoreSourceResults(response.results || [], {
+      ...input,
+      searchTitle: title
+    });
+  } catch (error) {
+    console.warn(`[${input.sourceDisplayName}] Tavily fallback falló`, error);
+    return [];
+  }
+}
+
+function mapTavilyResultsToStoreSourceResults(
+  results: Array<{ title?: string | null; url?: string | null; content?: string | null; score?: number | null }>,
+  input: {
+    sourceName: StoreSourceName;
+    sourceDisplayName: string;
+    baseUrl: string;
+    searchTitle: string;
+    imageAllowed: boolean;
+  }
+): StoreSourceSearchResult[] {
+  const queryNormalized = normalizeGameTitle(input.searchTitle);
+  const fetchedAt = new Date();
+  const seen = new Set<string>();
+  const mapped: StoreSourceSearchResult[] = [];
+
+  for (const result of results) {
+    const href = absoluteUrl(result.url || "", input.baseUrl);
+    if (!href || seen.has(href) || !isLikelyStoreProductUrl(href, input.baseUrl)) {
+      continue;
+    }
+
+    const rawTitle = cleanTavilyStoreTitle(result.title || "", href);
+    if (!rawTitle) {
+      continue;
+    }
+
+    const normalizedTitle = normalizeGameTitle(rawTitle);
+    const confidence = Math.max(
+      scoreTitleMatch(normalizedTitle, queryNormalized),
+      typeof result.score === "number" && Number.isFinite(result.score) ? Math.max(0, Math.min(1, result.score)) : 0
+    );
+
+    if (confidence < 0.2) {
+      continue;
+    }
+
+    seen.add(href);
+    mapped.push({
+      sourceName: input.sourceName,
+      sourceDisplayName: input.sourceDisplayName,
+      sourceUrl: href,
+      title: sanitizeImportedTitle(rawTitle).trim() || rawTitle,
+      normalizedTitle,
+      price: null,
+      currency: null,
+      availability: null,
+      purchaseUrl: href,
+      publisher: null,
+      imageUrl: null,
+      imageAllowed: input.imageAllowed,
+      description: cleanText(result.content || "") || null,
+      minPlayers: null,
+      maxPlayers: null,
+      minPlayTime: null,
+      maxPlayTime: null,
+      recommendedAge: null,
+      language: null,
+      rawData: {
+        tavily: result
+      },
+      fetchedAt,
+      confidence
+    });
+  }
+
+  return mapped.sort((left, right) => right.confidence - left.confidence || left.title.localeCompare(right.title, "es"));
+}
+
+function cleanTavilyStoreTitle(value: string, url: string) {
+  const cleanValue = cleanText(value)
+    .replace(/\s*[-|:]\s*Zacatrus\s*$/i, "")
+    .replace(/\s*\|\s*Zacatrus\s*$/i, "")
+    .trim();
+
+  if (cleanValue) {
+    return cleanValue;
+  }
+
+  const slug = url.split("/").pop()?.replace(/\.html.*$/i, "") || "";
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+}
+
+function isLikelyStoreProductUrl(url: string, baseUrl: string) {
+  const normalizedBase = normalizeHost(baseUrl);
+  const normalizedUrl = normalizeHost(url);
+
+  if (normalizedBase !== normalizedUrl) {
+    return false;
+  }
+
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    return /\.html(?:$|[?#])/.test(pathname) && !/\/(?:checkout|customer|catalogsearch|search|media|static)\//.test(pathname);
+  } catch {
+    return /\.html(?:$|[?#])/.test(url);
+  }
+}
+
+function shouldUseMirrorSearchFallback(
+  input: Pick<SourceConnector, "sourceName" | "baseUrl">,
+  error: unknown
+) {
+  if (input.sourceName !== "zacatrus") {
+    return false;
+  }
+
+  if (!error) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  return /\b403\b|just a moment|cloudflare/i.test(message);
 }
 
 function normalizeGameTitle(value: string) {

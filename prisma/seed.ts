@@ -5,6 +5,18 @@ const prisma = new PrismaClient();
 
 const defaultSources = [
   {
+    name: "Amazon",
+    baseUrl: "https://www.amazon.es"
+  },
+  {
+    name: "Asmodee",
+    baseUrl: "https://www.asmodee.es"
+  },
+  {
+    name: "BoardGameGeek",
+    baseUrl: "https://boardgamegeek.com"
+  },
+  {
     name: "Juegos de la Mesa Redonda",
     baseUrl: "https://juegosdelamesaredonda.com"
   },
@@ -15,6 +27,10 @@ const defaultSources = [
   {
     name: "Mathom",
     baseUrl: "https://mathom.es"
+  },
+  {
+    name: "Dracotienda",
+    baseUrl: "https://dracotienda.com"
   },
   {
     name: "Zacatrus",
@@ -238,17 +254,20 @@ async function main() {
 }
 
 async function seedSources() {
+  const existingSources = await prisma.source.findMany({
+    orderBy: [{ createdAt: "asc" }]
+  });
+
   for (const source of defaultSources) {
-    const existing = await prisma.source.findFirst({
-      where: {
-        baseUrl: source.baseUrl
-      }
-    });
+    const existing = existingSources.find((entry) => normalizeSourceHost(entry.baseUrl) === normalizeSourceHost(source.baseUrl));
 
     if (existing) {
       await prisma.source.update({
         where: { id: existing.id },
-        data: { name: source.name }
+        data: {
+          name: source.name,
+          baseUrl: source.baseUrl
+        }
       });
       continue;
     }
@@ -256,6 +275,14 @@ async function seedSources() {
     await prisma.source.create({
       data: source
     });
+  }
+}
+
+function normalizeSourceHost(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return value.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "").toLowerCase();
   }
 }
 

@@ -105,6 +105,11 @@ type ImportedSourceCandidate = {
   confidence: number;
 };
 
+type OfferEligibleResultCollection = {
+  results: ImportedSourceCandidate[];
+  warnings: string[];
+};
+
 type SearchSourceOutcome = {
   supported: boolean;
   results: StoreSourceSearchResult[];
@@ -332,13 +337,22 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
       results: selectedGroup,
       requestedTitle: seedTitle || null
     });
+    const offerEligibleResults = collectOfferEligibleResults({
+      allResults: results,
+      selectedGroup,
+      requestedTitle: seedTitle || null,
+      resolvedTitle: resolved.candidate.title
+    });
+    warnings.push(...offerEligibleResults.warnings);
+    resolved = mergeOfferEvidenceIntoResolved(resolved, offerEligibleResults.results);
 
     if (deps.resolveFinalData) {
       resolved = await deps.resolveFinalData({
         resolved,
-        evidence: selectedGroup,
+        evidence: offerEligibleResults.results,
         requestedTitle: seedTitle || null
       });
+      resolved = mergeOfferEvidenceIntoResolved(resolved, offerEligibleResults.results);
     }
 
     warnings.push(...resolved.warnings);
@@ -352,17 +366,9 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
     const possibleDuplicates = describeDuplicates(duplicates, resolved.candidate.title);
     const qualityScore = calculateCandidateQualityScore({
       candidate: resolved.candidate,
-      sourceCount: selectedGroup.length,
+      sourceCount: offerEligibleResults.results.length,
       sourceNames: resolved.matchedSources,
-      hasOffer: selectedGroup.some((result) => buildStoreOfferInputFromCandidate({
-        source: result.source,
-        candidate: {
-          sourceUrl: result.candidate.sourceUrl,
-          title: result.candidate.title,
-          originalTitle: result.candidate.originalTitle,
-          metadata: result.candidate.metadata
-        }
-      })),
+      hasOffer: offerEligibleResults.results.some((result) => hasOfferData(result)),
       hasAllowedImage: resolved.candidate.candidateImages.length > 0,
       duplicateCount: possibleDuplicates.length
     });
@@ -378,7 +384,7 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
         dryRun: false
       });
 
-      for (const result of selectedGroup) {
+      for (const result of offerEligibleResults.results) {
         const offerResult = await deps.upsertOffer({
           source: result.source,
           candidateId: persisted?.candidateId || duplicates.exactCandidate?.id || null,
@@ -398,18 +404,8 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
 
     const normalizedOffers = persistedOffers.length
       ? persistedOffers.map((entry) => entry.offer)
-      : selectedGroup
-          .map((result) =>
-            buildStoreOfferInputFromCandidate({
-              source: result.source,
-              candidate: {
-                sourceUrl: result.candidate.sourceUrl,
-                title: result.candidate.title,
-                originalTitle: result.candidate.originalTitle,
-                metadata: result.candidate.metadata
-              }
-            })
-          )
+      : offerEligibleResults.results
+          .map((result) => buildOfferFromImportedCandidate(result))
           .filter((offer): offer is NormalizedStoreOffer => Boolean(offer));
 
     const bestOffer = getBestOffer(normalizedOffers as Array<GameOffer | NormalizedStoreOffer>);
@@ -444,34 +440,13 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
       suggestedAction: (persisted?.status || prePersistStatus) === "update_existing" || (persisted?.status || prePersistStatus) === "duplicate" ? "update_existing" : possibleDuplicates.length ? "inspect_duplicates" : "review_candidate",
       sourceDiagnostics: diagnostics,
       sourcesWithOffers: dedupeStrings(
-        selectedGroup
-          .filter((result) =>
-            buildStoreOfferInputFromCandidate({
-              source: result.source,
-              candidate: {
-                sourceUrl: result.candidate.sourceUrl,
-                title: result.candidate.title,
-                originalTitle: result.candidate.originalTitle,
-                metadata: result.candidate.metadata
-              }
-            })
-          )
+        offerEligibleResults.results
+          .filter((result) => hasOfferData(result))
           .map((result) => result.source.name)
       ),
       sourcesWithoutOffers: dedupeStrings(
-        selectedGroup
-          .filter(
-            (result) =>
-              !buildStoreOfferInputFromCandidate({
-                source: result.source,
-                candidate: {
-                  sourceUrl: result.candidate.sourceUrl,
-                  title: result.candidate.title,
-                  originalTitle: result.candidate.originalTitle,
-                  metadata: result.candidate.metadata
-                }
-              })
-          )
+        offerEligibleResults.results
+          .filter((result) => !hasOfferData(result))
           .map((result) => result.source.name)
       )
     };
@@ -491,19 +466,11 @@ export function resolveBestCandidateData(input: {
   const normalizedTitle = slugify(mergedTitle);
   const mergedMetadata = mergeMetadata(
     sorted.map((result) => normalizeCandidateMetadata(result.candidate.metadata)),
-    {
+    buildSourceMetadataExtras(sorted, {
       cleanTitle: mergedTitle,
-      normalizedTitle,
-        sourceMatches: sorted.map((result) => ({
-          sourceName: result.source.name,
-          sourceUrl: result.candidate.sourceUrl,
-          matchedBy: result.matchedBy,
-          confidence: result.confidence
-        })),
-        sourceEvidence: buildSourceEvidence(sorted),
-        sourceOffers: buildSourceOfferEvidence(sorted)
-      }
-    );
+      normalizedTitle
+    })
+  );
   const candidateImages = buildAllowedCandidateImages(sorted);
   const warnings = candidateImages.length ? [] : ["No se encontró ninguna imagen reutilizable permitida."];
   const missingFields = collectMissingFields({
@@ -723,6 +690,25 @@ function applyAiProposalToResolved(
   };
 }
 
+function mergeOfferEvidenceIntoResolved(
+  resolved: ResolvedCandidateData,
+  results: ImportedSourceCandidate[]
+): ResolvedCandidateData {
+  const metadata = mergeMetadata(
+    [normalizeCandidateMetadata(resolved.candidate.metadata)],
+    buildSourceMetadataExtras(results)
+  );
+
+  return {
+    ...resolved,
+    candidate: {
+      ...resolved.candidate,
+      metadata
+    },
+    matchedSources: dedupeStrings(results.map((result) => result.source.name))
+  };
+}
+
 function buildDraftGameForAi(resolved: ResolvedCandidateData): Game {
   const metadata = normalizeCandidateMetadata(resolved.candidate.metadata);
   const now = new Date();
@@ -930,6 +916,20 @@ function buildEvidenceText(result: ImportedSourceCandidate) {
   ].filter(Boolean).join("\n");
 }
 
+function buildSourceMetadataExtras(results: ImportedSourceCandidate[], extra?: Record<string, unknown>) {
+  return {
+    ...(extra || {}),
+    sourceMatches: results.map((result) => ({
+      sourceName: result.source.name,
+      sourceUrl: result.candidate.sourceUrl,
+      matchedBy: result.matchedBy,
+      confidence: result.confidence
+    })),
+    sourceEvidence: buildSourceEvidence(results),
+    sourceOffers: buildSourceOfferEvidence(results)
+  };
+}
+
 function buildSourceEvidence(results: ImportedSourceCandidate[]) {
   return results.map((result) => ({
     sourceId: result.source.id,
@@ -945,16 +945,24 @@ function buildSourceEvidence(results: ImportedSourceCandidate[]) {
 
 function buildSourceOfferEvidence(results: ImportedSourceCandidate[]) {
   return results
-    .map((result) => buildStoreOfferInputFromCandidate({
-      source: result.source,
-      candidate: {
-        sourceUrl: result.candidate.sourceUrl,
-        title: result.candidate.title,
-        originalTitle: result.candidate.originalTitle,
-        metadata: result.candidate.metadata
-      }
-    }))
+    .map((result) => buildOfferFromImportedCandidate(result))
     .filter((offer): offer is NormalizedStoreOffer => Boolean(offer));
+}
+
+function buildOfferFromImportedCandidate(result: ImportedSourceCandidate) {
+  return buildStoreOfferInputFromCandidate({
+    source: result.source,
+    candidate: {
+      sourceUrl: result.candidate.sourceUrl,
+      title: result.candidate.title,
+      originalTitle: result.candidate.originalTitle,
+      metadata: result.candidate.metadata
+    }
+  });
+}
+
+function hasOfferData(result: ImportedSourceCandidate) {
+  return Boolean(buildOfferFromImportedCandidate(result));
 }
 
 function buildGameSources(metadata: Record<string, unknown>) {
@@ -1289,15 +1297,13 @@ function createDefaultDeps(): MasterImporterDeps {
       };
     },
     async upsertOffer(input) {
-      if (input.dryRun || !input.candidateId) {
-        const normalized = buildStoreOfferInputFromCandidate({
+      if (input.dryRun || (!input.candidateId && !input.gameId)) {
+        const normalized = buildOfferFromImportedCandidate({
           source: input.source,
-          candidate: {
-            sourceUrl: input.candidate.sourceUrl,
-            title: input.candidate.title,
-            originalTitle: input.candidate.originalTitle,
-            metadata: input.candidate.metadata
-          }
+          candidate: input.candidate,
+          publicImageUrls: [],
+          matchedBy: "search",
+          confidence: input.candidate.confidence || 0
         });
 
         return {
@@ -1310,14 +1316,12 @@ function createDefaultDeps(): MasterImporterDeps {
         source: input.source,
         candidateId: input.candidateId,
         gameId: input.gameId,
-        offer: buildStoreOfferInputFromCandidate({
+        offer: buildOfferFromImportedCandidate({
           source: input.source,
-          candidate: {
-            sourceUrl: input.candidate.sourceUrl,
-            title: input.candidate.title,
-            originalTitle: input.candidate.originalTitle,
-            metadata: input.candidate.metadata
-          }
+          candidate: input.candidate,
+          publicImageUrls: [],
+          matchedBy: "search",
+          confidence: input.candidate.confidence || 0
         })
       });
 
@@ -1499,37 +1503,7 @@ function isLikelySameGameResult(requestedTitle: string, result: StoreSourceSearc
     return false;
   }
 
-  const requestedKey = canonicalGameTitleKey(requestedTitle);
-  const resultKey = canonicalGameTitleKey(result.title);
-  if (!requestedKey || !resultKey) {
-    return false;
-  }
-
-  if (requestedKey === resultKey) {
-    return true;
-  }
-
-  const resultTokens = resultKey.split("-").filter(Boolean);
-  const requestedTokens = requestedKey.split("-").filter(Boolean);
-  const hasAllRequestedTokens = requestedTokens.every((token) => resultTokens.includes(token));
-  const extraTokens = resultTokens.filter((token) => !requestedTokens.includes(token));
-  const expansionTokens = new Set([
-    "expansion",
-    "pack",
-    "map",
-    "maps",
-    "promo",
-    "deluxe",
-    "upgrade",
-    "mundos",
-    "marinos",
-    "marine",
-    "worlds",
-    "agua",
-    "zoo"
-  ]);
-
-  return hasAllRequestedTokens && extraTokens.length <= 2 && !extraTokens.some((token) => expansionTokens.has(token));
+  return assessBaseGameTitleMatch(requestedTitle, result.title).matched;
 }
 
 function rankSourceCandidate(result: ImportedSourceCandidate, requestedTitle: string | null) {
@@ -1750,13 +1724,53 @@ function mergeCandidateImages(existing: unknown, next: CandidateImage[]) {
 }
 
 function pushImportedResult(results: ImportedSourceCandidate[], seen: Set<string>, result: ImportedSourceCandidate) {
-  const key = `${result.source.id}:${result.candidate.sourceUrl}:${slugify(result.candidate.title)}`;
+  const key = importedResultKey(result);
   if (seen.has(key)) {
     return;
   }
 
   seen.add(key);
   results.push(result);
+}
+
+function importedResultKey(result: ImportedSourceCandidate) {
+  return `${result.source.id}:${result.candidate.sourceUrl}:${slugify(result.candidate.title)}`;
+}
+
+function collectOfferEligibleResults(input: {
+  allResults: ImportedSourceCandidate[];
+  selectedGroup: ImportedSourceCandidate[];
+  requestedTitle: string | null;
+  resolvedTitle: string | null;
+}): OfferEligibleResultCollection {
+  const selectedKeys = new Set(input.selectedGroup.map((result) => importedResultKey(result)));
+  const requestedTitles = dedupeStrings([input.requestedTitle || "", input.resolvedTitle || ""]);
+  const eligible = [...input.selectedGroup];
+  const warnings: string[] = [];
+
+  for (const result of input.allResults) {
+    if (selectedKeys.has(importedResultKey(result))) {
+      continue;
+    }
+
+    const match = requestedTitles
+      .map((title) => assessBaseGameTitleMatch(title, result.candidate.title))
+      .sort((left, right) => right.score - left.score)[0];
+
+    if (match?.matched) {
+      eligible.push(result);
+      continue;
+    }
+
+    if (match?.warn) {
+      warnings.push(`[${result.source.name}] Oferta descartada automáticamente: ${result.candidate.title}. ${match.warn}`);
+    }
+  }
+
+  return {
+    results: dedupeBy(eligible, (result) => importedResultKey(result)),
+    warnings: dedupeStrings(warnings)
+  };
 }
 
 function titleSimilarity(left: string, right: string) {
@@ -1781,33 +1795,181 @@ function titleSimilarity(left: string, right: string) {
 }
 
 function canonicalGameTitleKey(value: string) {
-  const removableTokens = new Set([
-    "edicion",
-    "edition",
-    "nueva",
-    "nuevo",
-    "segunda",
-    "2",
-    "2a",
-    "castellano",
-    "espanol",
-    "spanish",
-    "juego",
-    "mesa",
-    "base",
-    "board",
-    "game",
-    "maldito",
-    "games",
-    "devir",
-    "asmodee",
-    "tranjis"
-  ]);
   const tokens = slugify(value)
     .split("-")
-    .filter((token) => token && !removableTokens.has(token));
+    .filter((token) => token && !BASE_TITLE_VARIANT_TOKENS.has(token) && !looksLikeCatalogToken(token));
 
   return tokens.join("-");
+}
+
+const BASE_TITLE_VARIANT_TOKENS = new Set([
+  "a",
+  "al",
+  "adultos",
+  "akarure",
+  "ano",
+  "anos",
+  "base",
+  "board",
+  "cartas",
+  "castellana",
+  "castellano",
+  "de",
+  "del",
+  "disponible",
+  "edicion",
+  "edad",
+  "edition",
+  "el",
+  "en",
+  "espanol",
+  "espanola",
+  "feuerland",
+  "game",
+  "games",
+  "hasbro",
+  "juego",
+  "jugador",
+  "jugadores",
+  "la",
+  "las",
+  "los",
+  "maldito",
+  "mesa",
+  "minuto",
+  "minutos",
+  "oficial",
+  "partir",
+  "preventa",
+  "promedio",
+  "spanish",
+  "spiele",
+  "septiembre",
+  "the",
+  "tiempo",
+  "tranjis",
+  "devir",
+  "asmodee"
+]);
+
+const BASE_TITLE_REJECTION_TOKENS = new Set([
+  "accesorio",
+  "accesorios",
+  "architects",
+  "booster",
+  "bundle",
+  "campaign",
+  "campana",
+  "duel",
+  "evolution",
+  "expansion",
+  "extra",
+  "familia",
+  "family",
+  "funda",
+  "fundas",
+  "insert",
+  "junior",
+  "kids",
+  "legacy",
+  "marine",
+  "marinos",
+  "mini",
+  "mundos",
+  "organizer",
+  "organizador",
+  "pack",
+  "playmat",
+  "preorder",
+  "promo",
+  "refill",
+  "season",
+  "secuela",
+  "sleeve",
+  "sleeves",
+  "spare",
+  "storage",
+  "upgrade",
+  "worlds"
+]);
+
+function assessBaseGameTitleMatch(referenceTitle: string, candidateTitle: string) {
+  const referenceKey = canonicalGameTitleKey(referenceTitle);
+  const candidateKey = canonicalGameTitleKey(candidateTitle);
+  const score = titleSimilarity(candidateKey, referenceKey);
+
+  if (!referenceKey || !candidateKey) {
+    return {
+      matched: false,
+      score,
+      warn: null
+    };
+  }
+
+  if (looksLikeNumberedSequel(referenceTitle, candidateTitle)) {
+    return {
+      matched: false,
+      score,
+      warn: "Parece una secuela numerada y no se mezcló con el juego base."
+    };
+  }
+
+  if (referenceKey === candidateKey) {
+    return {
+      matched: true,
+      score: Math.max(score, 0.98),
+      warn: null
+    };
+  }
+
+  const referenceTokens = new Set(referenceKey.split("-").filter(Boolean));
+  const candidateTokens = candidateKey.split("-").filter(Boolean);
+  const extraTokens = candidateTokens.filter((token) => !referenceTokens.has(token));
+  const rejectedToken = extraTokens.find((token) => BASE_TITLE_REJECTION_TOKENS.has(token) || /^\d+$/.test(token));
+
+  if (rejectedToken) {
+    return {
+      matched: false,
+      score,
+      warn: "Parece una expansión, secuela o accesorio y no se mezcló con el juego base."
+    };
+  }
+
+  if (
+    candidateTokens.length > referenceTokens.size &&
+    candidateTokens.filter((token) => referenceTokens.has(token)).length === referenceTokens.size
+  ) {
+    return {
+      matched: false,
+      score,
+      warn: "El título añade términos extra que no parecen una variante segura del juego base."
+    };
+  }
+
+  return {
+    matched: false,
+    score,
+    warn: score >= 0.55 ? "La coincidencia no fue lo bastante fiable para guardarla como oferta automática." : null
+  };
+}
+
+function looksLikeCatalogToken(token: string) {
+  return /^\d+$/.test(token) || (/\d/.test(token) && /[a-z]/i.test(token)) || /^(?:b0|trg|sku|ref|isbn)\w*/i.test(token);
+}
+
+function looksLikeNumberedSequel(referenceTitle: string, candidateTitle: string) {
+  const referenceSlug = slugify(referenceTitle);
+  const candidateSlug = slugify(candidateTitle);
+
+  if (!referenceSlug || referenceSlug === candidateSlug) {
+    return false;
+  }
+
+  return new RegExp(`(?:^|-)${escapeRegExp(referenceSlug)}-(?:2|3|4|ii|iii|iv)(?:-|$)`, "i").test(candidateSlug);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function hostOf(value: string) {

@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractSearchResultsFromHtml, getStoreSourceConnector, mapStoreSourceResultToImportCandidate } from "@/lib/import/sourceConnectors";
+import {
+  extractSearchResultsFromHtml,
+  extractSearchResultsFromMarkdown,
+  getStoreSourceConnector,
+  mapStoreSourceResultToImportCandidate
+} from "@/lib/import/sourceConnectors";
 
 test("extractSearchResultsFromHtml parses Juegos de la Mesa Redonda search results", () => {
   const html = `
@@ -128,6 +133,31 @@ test("extractSearchResultsFromHtml falls back to JSON-LD ItemList", () => {
   assert.equal(result.purchaseUrl, "https://mathom.es/es/7-wonders/44492-7-wonders-2-edicion.html");
   assert.equal(result.price, null);
   assert.equal(result.confidence, 0.9);
+});
+
+test("extractSearchResultsFromMarkdown parses Zacatrus search results", () => {
+  const markdown = `
+# Resultados de busqueda para: 'Virus'
+
+Articulos 1-24 de 28
+
+1.   [![Image 5: Virus juego de cartas divertido para toda la familia](https://zacatrus.es/media/catalog/product/cache/2765542505660baab28ecd555e27366e/j/u/juego-virus.jpg)](https://zacatrus.es/virus.html)**[Virus](https://zacatrus.es/virus.html)**Valoracion:93%  [333 comentarios](https://zacatrus.es/virus.html#reviews)  13,46€ Anadir al carrito
+2.   [![Image 7: Virus Deck Box la caja para guardar el juego Virus](https://zacatrus.es/media/catalog/product/cache/2765542505660baab28ecd555e27366e/v/i/virusdeckbox_caja.png)](https://zacatrus.es/virus-deck-box.html)**[Virus Deck Box](https://zacatrus.es/virus-deck-box.html)**Valoracion:96%  [10 comentarios](https://zacatrus.es/virus-deck-box.html#reviews)  7,16€ Anadir al carrito
+3.   [![Image 9: Virus 2 Evolution es una expansion para el conocido juego de cartas Virus!](https://zacatrus.es/media/catalog/product/cache/2765542505660baab28ecd555e27366e/v/i/virus_2_evolution.jpg)](https://zacatrus.es/virus-2-evolution.html)**[Virus 2 Evolution](https://zacatrus.es/virus-2-evolution.html)**Valoracion:91%  [35 comentarios](https://zacatrus.es/virus-2-evolution.html#reviews)  11,95€ Anadir al carrito
+  `;
+
+  const results = extractSearchResultsFromMarkdown(markdown, {
+    sourceName: "zacatrus",
+    sourceDisplayName: "Zacatrus",
+    baseUrl: "https://zacatrus.es",
+    searchTitle: "Virus",
+    imageAllowed: false
+  });
+
+  assert.equal(results[0]?.title, "Virus");
+  assert.equal(results[0]?.price, 13.46);
+  assert.equal(results[0]?.purchaseUrl, "https://zacatrus.es/virus.html");
+  assert.equal(results[0]?.availability, null);
 });
 
 test("getStoreSourceConnector supports active configured store sources", () => {

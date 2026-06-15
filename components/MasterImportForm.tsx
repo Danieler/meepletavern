@@ -107,6 +107,50 @@ export function MasterImportForm({ disabled }: { disabled?: boolean }) {
                 <p className="mt-3 text-sm text-ink/70">Fuentes: {result.matchedSources.join(", ")}</p>
               ) : null}
 
+              <p className="mt-2 text-sm text-ink/70">
+                Ofertas creadas: {result.offersCreated} · Ofertas actualizadas: {result.offersUpdated}
+              </p>
+
+              {result.sourcesWithOffers.length ? (
+                <p className="mt-2 text-sm text-moss">Fuentes con oferta: {result.sourcesWithOffers.join(", ")}</p>
+              ) : null}
+
+              {result.sourcesWithoutOffers.length ? (
+                <p className="mt-2 text-sm text-amber-700">Fuentes sin oferta útil: {result.sourcesWithoutOffers.join(", ")}</p>
+              ) : null}
+
+              {result.failedSources.length ? (
+                <p className="mt-2 text-sm text-ruby">
+                  Fallos: {result.failedSources.map((source) => `${source.sourceName}: ${source.reason}`).join(" · ")}
+                </p>
+              ) : null}
+
+              {result.bestOffer ? (
+                <p className="mt-2 text-sm font-semibold text-ink">
+                  Mejor oferta:{" "}
+                  <a
+                    className="text-emerald-700 underline decoration-emerald-300 underline-offset-2"
+                    href={result.bestOffer.affiliateUrl || result.bestOffer.purchaseUrl || result.bestOffer.sourceUrl || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {result.bestOffer.sourceDisplayName}
+                    {result.bestOffer.price !== null ? ` ${formatMoney(result.bestOffer.price, result.bestOffer.currency)}` : ""}
+                  </a>
+                </p>
+              ) : null}
+
+              {result.sourceDiagnostics.length ? (
+                <div className="mt-3 space-y-1 text-sm text-ink/65">
+                  {result.sourceDiagnostics.map((diagnostic) => (
+                    <p key={`${result.inputTitle}-${diagnostic.sourceName}-${diagnostic.stage}-${diagnostic.outcome}`}>
+                      {diagnostic.sourceName}: {diagnostic.outcome}
+                      {diagnostic.reason ? ` · ${diagnostic.reason}` : ""}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+
               {result.warnings.length ? (
                 <p className="mt-2 text-sm text-amber-700">Avisos: {result.warnings.join(" ")}</p>
               ) : null}
@@ -175,4 +219,11 @@ function formatStatus(status: MasterImportBatchState["results"][number]["status"
     default:
       return status;
   }
+}
+
+function formatMoney(value: number, currency: string | null) {
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: currency || "EUR"
+  }).format(value);
 }

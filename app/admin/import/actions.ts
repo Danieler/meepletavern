@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gameCandidateRepository } from "@/lib/editorialRepositories";
-import { importAndEnrichGame } from "@/lib/import/masterImportService";
+import { importAndEnrichGame, type MasterImportSummary } from "@/lib/import/masterImportService";
 import { parseMasterImportTitles } from "@/lib/import/parseMasterImportTitles";
 import { autoCompleteImportedGameWithAi, cleanupImportedCandidate, type ImportedGameResult } from "@/lib/import/importedGame";
 import { importSourceProductReview } from "@/lib/import/importSourceProduct";
@@ -20,6 +20,13 @@ export type MasterImportBatchItem = {
   candidateId: string | null;
   gameId: string | null;
   matchedSources: string[];
+  offersCreated: number;
+  offersUpdated: number;
+  sourcesWithOffers: string[];
+  sourcesWithoutOffers: string[];
+  failedSources: MasterImportSummary["failedSources"];
+  sourceDiagnostics: MasterImportSummary["sourceDiagnostics"];
+  bestOffer: MasterImportSummary["bestOffer"];
   warnings: string[];
   error: string | null;
 };
@@ -131,6 +138,13 @@ export async function importMasterGamesAction(
         candidateId: summary.candidateId,
         gameId: summary.gameId,
         matchedSources: summary.matchedSources,
+        offersCreated: summary.offersCreated,
+        offersUpdated: summary.offersUpdated,
+        sourcesWithOffers: summary.sourcesWithOffers,
+        sourcesWithoutOffers: summary.sourcesWithoutOffers,
+        failedSources: summary.failedSources,
+        sourceDiagnostics: summary.sourceDiagnostics,
+        bestOffer: summary.bestOffer,
         warnings: summary.warnings,
         error: null
       });
@@ -142,6 +156,13 @@ export async function importMasterGamesAction(
         candidateId: null,
         gameId: null,
         matchedSources: [],
+        offersCreated: 0,
+        offersUpdated: 0,
+        sourcesWithOffers: [],
+        sourcesWithoutOffers: [],
+        failedSources: [],
+        sourceDiagnostics: [],
+        bestOffer: null,
         warnings: [],
         error: error instanceof Error ? error.message : "No se pudo importar este juego."
       });
