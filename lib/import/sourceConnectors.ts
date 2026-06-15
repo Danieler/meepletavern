@@ -4,7 +4,7 @@ import { sanitizeImportedText, sanitizeImportedTitle } from "@/lib/importedTextS
 import { slugify } from "@/lib/slug";
 import { fetchSourcePageProduct, type SourcePageProduct } from "@/lib/import/sourceProductPage";
 
-export type StoreSourceName = "juegos_de_la_mesa_redonda" | "dungeon_marvels" | "mathom" | "dracotienda" | "zacatrus";
+export type StoreSourceName = "juegos_de_la_mesa_redonda" | "dungeon_marvels" | "mathom" | "dracotienda" | "zacatrus" | "amazon";
 
 export type StoreSourceResult = {
   sourceName: StoreSourceName;

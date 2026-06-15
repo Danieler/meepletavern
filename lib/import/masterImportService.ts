@@ -1,4 +1,11 @@
 import {
+  buildAmazonCanonicalUrl,
+  parseAmazonInput
+} from "@/lib/amazon/parseAmazonInput";
+import {
+  searchAmazonProducts
+} from "@/lib/amazon/amazonPaapiProvider";
+import {
   GameImageStatus,
   GameCandidateStatus,
   GameStatus,
@@ -1057,6 +1064,36 @@ function createDefaultDeps(): MasterImporterDeps {
       return sourceRepository.list();
     },
     async searchSource(source, title) {
+      if (isAmazonSource(source)) {
+        return {
+          supported: true,
+          results: (await searchAmazonProducts(title)).map((product) => ({
+            sourceName: "amazon",
+            sourceDisplayName: source.name,
+            sourceUrl: product.detailPageUrl || buildAmazonCanonicalUrl(product.asin),
+            title: product.title,
+            normalizedTitle: slugify(product.title),
+            price: product.price ?? null,
+            currency: product.currency === "EUR" ? "EUR" : product.price ? "EUR" : null,
+            availability: product.availability ?? null,
+            purchaseUrl: product.detailPageUrl || buildAmazonCanonicalUrl(product.asin),
+            publisher: product.manufacturer || product.brand || null,
+            imageUrl: product.imageUrl || null,
+            imageAllowed: Boolean(product.imageUrl),
+            description: product.features?.join(" ") || null,
+            minPlayers: null,
+            maxPlayers: null,
+            minPlayTime: null,
+            maxPlayTime: null,
+            recommendedAge: null,
+            language: null,
+            rawData: product,
+            fetchedAt: new Date(),
+            confidence: titleSimilarity(canonicalGameTitleKey(product.title), canonicalGameTitleKey(title))
+          }))
+        };
+      }
+
       if (!getStoreSourceConnector(source)) {
         return {
           supported: false,
@@ -1070,6 +1107,21 @@ function createDefaultDeps(): MasterImporterDeps {
       };
     },
     async importSourceUrl(source, sourceUrl) {
+      if (isAmazonSource(source)) {
+        const parsed = parseAmazonInput(sourceUrl);
+        if (parsed.asin) {
+          const { getAmazonProduct } = await import("@/lib/amazon/amazonPaapiProvider");
+          const { mapAmazonProductToCandidate } = await import("@/lib/amazon/mapAmazonProductToCandidate");
+          const canonicalUrl = buildAmazonCanonicalUrl(parsed.asin);
+          const product = await getAmazonProduct({ asin: parsed.asin, sourceUrl: canonicalUrl });
+          const candidate = mapAmazonProductToCandidate({ product, sourceUrl: canonicalUrl });
+          return {
+            candidate,
+            publicImageUrls: product.imageUrl ? [product.imageUrl] : []
+          };
+        }
+      }
+
       return importSourceProductCandidate({
         source,
         sourceUrl
@@ -1355,7 +1407,7 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
   }
 
   const validation = validateBeforePublish(game);
-  const canPublish = validation.complete && warnings.length === 0;
+  const canPublish = validation.complete;
   await prisma.game.update({
     where: { id: gameId },
     data: {
@@ -1369,6 +1421,10 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
     missingFields: validation.errors,
     warnings: dedupeStrings([...warnings, ...validation.warnings])
   };
+}
+
+function isAmazonSource(source: Pick<Source, "baseUrl" | "name">) {
+  return `${source.name} ${source.baseUrl}`.toLowerCase().includes("amazon.");
 }
 
 function mediaAssetTypeFromCandidateImage(type: CandidateImage["type"] | undefined) {

@@ -43,6 +43,20 @@ export async function getAmazonProduct(input: { asin: string; sourceUrl?: string
   });
 }
 
+export async function searchAmazonProducts(title: string): Promise<AmazonProduct[]> {
+  const query = title.trim();
+  if (!query) {
+    return [];
+  }
+
+  const config = readConfig();
+  if (config) {
+    return searchAmazonProductsFromPaapi(query, config);
+  }
+
+  return searchAmazonProductsFromPage(query);
+}
+
 async function fetchAmazonProductFromPaapi(asin: string, config: AmazonPaapiConfig): Promise<AmazonProduct> {
   const body = JSON.stringify({
     ItemIds: [asin],
@@ -60,69 +74,12 @@ async function fetchAmazonProductFromPaapi(asin: string, config: AmazonPaapiConf
     ]
   });
 
-  const timestamp = new Date();
-  const amzDate = toAmzDate(timestamp);
-  const dateStamp = amzDate.slice(0, 8);
-  const endpoint = `https://${config.host}/paapi5/getitems`;
-  const signedHeadersParts = ["content-type", "host", "x-amz-date", "x-amz-target"];
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json; charset=utf-8",
-    Host: config.host,
-    "X-Amz-Date": amzDate,
-    "X-Amz-Target": "com.amazon.paapi5.v1.ProductAdvertisingAPIv1.GetItems"
-  };
-
-  if (config.accessToken) {
-    headers["X-Amz-Access-Token"] = config.accessToken;
-    signedHeadersParts.push("x-amz-access-token");
-  }
-  const signedHeaders = signedHeadersParts.join(";");
-
-  const canonicalRequest = [
-    "POST",
-    "/paapi5/getitems",
-    "",
-    `content-type:${headers["Content-Type"]}`,
-    `host:${headers.Host}`,
-    `x-amz-date:${headers["X-Amz-Date"]}`,
-    `x-amz-target:${headers["X-Amz-Target"]}`,
-    ...(config.accessToken ? [`x-amz-access-token:${headers["X-Amz-Access-Token"]}`] : []),
-    "",
-    signedHeaders,
-    sha256(body)
-  ].join("\n");
-
-  const stringToSign = [
-    "AWS4-HMAC-SHA256",
-    amzDate,
-    `${dateStamp}/${config.region}/ProductAdvertisingAPI/aws4_request`,
-    sha256(canonicalRequest)
-  ].join("\n");
-
-  const signingKey = getSignatureKey(config.secretKey, dateStamp, config.region, "ProductAdvertisingAPI");
-  const signature = hmac(signingKey, stringToSign);
-  const authorization = [
-    "AWS4-HMAC-SHA256",
-    `Credential=${config.accessKey}/${dateStamp}/${config.region}/ProductAdvertisingAPI/aws4_request`,
-    `SignedHeaders=${signedHeaders}`,
-    `Signature=${signature}`
-  ].join(", ");
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      ...headers,
-      Authorization: authorization
-    },
-    body
+  const payload = await sendPaapiRequest({
+    body,
+    config,
+    target: "com.amazon.paapi5.v1.ProductAdvertisingAPIv1.GetItems",
+    path: "/paapi5/getitems"
   });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Amazon PA API respondió con ${response.status}: ${text.slice(0, 180)}`);
-  }
-
-  const payload = (await response.json()) as AmazonPaapiResponse;
   const item = payload?.ItemsResult?.Items?.[0];
 
   if (!item) {
@@ -130,6 +87,58 @@ async function fetchAmazonProductFromPaapi(asin: string, config: AmazonPaapiConf
   }
 
   return mapItemToProduct(item, asin);
+}
+
+async function searchAmazonProductsFromPaapi(title: string, config: AmazonPaapiConfig): Promise<AmazonProduct[]> {
+  const body = JSON.stringify({
+    Keywords: title,
+    SearchIndex: "ToysAndGames",
+    PartnerTag: config.partnerTag,
+    PartnerType: "Associates",
+    Marketplace: config.marketplace,
+    ItemCount: 3,
+    Resources: [
+      "ItemInfo.Title",
+      "ItemInfo.ByLineInfo",
+      "ItemInfo.Features",
+      "Images.Primary.Large",
+      "Offers.Listings.Price",
+      "OffersV2.Listings.Price"
+    ]
+  });
+  const payload = await sendPaapiRequest({
+    body,
+    config,
+    target: "com.amazon.paapi5.v1.ProductAdvertisingAPIv1.SearchItems",
+    path: "/paapi5/searchitems"
+  });
+  const items = payload?.SearchResult?.Items || [];
+  return items.map((item) => mapItemToProduct(item, item.ASIN || "UNKNOWN")).filter((product) => product.asin !== "UNKNOWN");
+}
+
+async function searchAmazonProductsFromPage(title: string): Promise<AmazonProduct[]> {
+  const searchUrl = `https://www.amazon.es/s?k=${encodeURIComponent(title)}`;
+  const response = await fetch(searchUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+      "Cache-Control": "no-cache"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`No se pudo buscar en Amazon (${response.status}).`);
+  }
+
+  const html = await response.text();
+  if (looksLikeAmazonCaptcha(html)) {
+    throw new Error("Amazon bloqueó la búsqueda directa. Añade credenciales de PA API para seguir importando.");
+  }
+
+  return extractAmazonSearchProducts(html).slice(0, 3);
 }
 
 async function fetchAmazonProductFromPage(input: { asin: string; sourceUrl?: string }): Promise<AmazonProduct> {
@@ -162,6 +171,109 @@ async function fetchAmazonProductFromPage(input: { asin: string; sourceUrl?: str
   }
 
   return mapPageToProduct(html, input.asin, detailPageUrl);
+}
+
+async function sendPaapiRequest(input: {
+  body: string;
+  config: AmazonPaapiConfig;
+  target: string;
+  path: string;
+}): Promise<AmazonPaapiResponse> {
+  const timestamp = new Date();
+  const amzDate = toAmzDate(timestamp);
+  const dateStamp = amzDate.slice(0, 8);
+  const endpoint = `https://${input.config.host}${input.path}`;
+  const signedHeadersParts = ["content-type", "host", "x-amz-date", "x-amz-target"];
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json; charset=utf-8",
+    Host: input.config.host,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Target": input.target
+  };
+
+  if (input.config.accessToken) {
+    headers["X-Amz-Access-Token"] = input.config.accessToken;
+    signedHeadersParts.push("x-amz-access-token");
+  }
+  const signedHeaders = signedHeadersParts.join(";");
+
+  const canonicalRequest = [
+    "POST",
+    input.path,
+    "",
+    `content-type:${headers["Content-Type"]}`,
+    `host:${headers.Host}`,
+    `x-amz-date:${headers["X-Amz-Date"]}`,
+    `x-amz-target:${headers["X-Amz-Target"]}`,
+    ...(input.config.accessToken ? [`x-amz-access-token:${headers["X-Amz-Access-Token"]}`] : []),
+    "",
+    signedHeaders,
+    sha256(input.body)
+  ].join("\n");
+
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    `${dateStamp}/${input.config.region}/ProductAdvertisingAPI/aws4_request`,
+    sha256(canonicalRequest)
+  ].join("\n");
+
+  const signingKey = getSignatureKey(input.config.secretKey, dateStamp, input.config.region, "ProductAdvertisingAPI");
+  const signature = hmac(signingKey, stringToSign);
+  const authorization = [
+    "AWS4-HMAC-SHA256",
+    `Credential=${input.config.accessKey}/${dateStamp}/${input.config.region}/ProductAdvertisingAPI/aws4_request`,
+    `SignedHeaders=${signedHeaders}`,
+    `Signature=${signature}`
+  ].join(", ");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      ...headers,
+      Authorization: authorization
+    },
+    body: input.body
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Amazon PA API respondió con ${response.status}: ${text.slice(0, 180)}`);
+  }
+
+  return response.json() as Promise<AmazonPaapiResponse>;
+}
+
+function extractAmazonSearchProducts(html: string): AmazonProduct[] {
+  const products: AmazonProduct[] = [];
+  const blocks = html.match(/<div[^>]+data-asin=["'][A-Z0-9]{10}["'][\s\S]*?(?=<div[^>]+data-asin=["'][A-Z0-9]{10}["']|$)/gi) || [];
+
+  for (const block of blocks) {
+    const asin = attrValue(block, "data-asin").toUpperCase();
+    if (!asin) {
+      continue;
+    }
+
+    const title = clean(stripTags(/<h2[\s\S]*?<\/h2>/i.exec(block)?.[0] || ""));
+    if (!title) {
+      continue;
+    }
+
+    const href = decode(/<a[^>]+href=["']([^"']+)["'][^>]*>/i.exec(block)?.[1] || "");
+    const price = firstNumberLike(extractPriceText(block));
+    const imageUrl = decode(/<img[^>]+src=["']([^"']+)["'][^>]*>/i.exec(block)?.[1] || "");
+
+    products.push({
+      asin,
+      title,
+      detailPageUrl: href ? absoluteUrl(href, "https://www.amazon.es") : buildAmazonCanonicalUrl(asin),
+      imageUrl: imageUrl || undefined,
+      price,
+      currency: price ? "EUR" : undefined
+    });
+  }
+
+  return products;
 }
 
 function readConfig(): AmazonPaapiConfig | null {
@@ -252,6 +364,43 @@ type AmazonPaapiResponse = {
           Availability?: { Message?: string };
         }>;
       };
+    }>;
+  };
+  SearchResult?: {
+    Items?: Array<AmazonPaapiItemShape>;
+  };
+};
+
+type AmazonPaapiItemShape = {
+  ASIN?: string;
+  DetailPageURL?: string;
+  ItemInfo?: {
+    Title?: { DisplayValue?: string };
+    ByLineInfo?: {
+      Brand?: { DisplayValue?: string };
+      Manufacturer?: { DisplayValue?: string };
+    };
+    Features?: {
+      DisplayValues?: string[];
+    };
+  };
+  Images?: {
+    Primary?: {
+      Large?: {
+        URL?: string;
+      };
+    };
+  };
+  OffersV2?: {
+    Listings?: Array<{
+      Price?: { Amount?: number; Currency?: string };
+      Availability?: { Message?: string };
+    }>;
+  };
+  Offers?: {
+    Listings?: Array<{
+      Price?: { Amount?: number; Currency?: string };
+      Availability?: { Message?: string };
     }>;
   };
 };

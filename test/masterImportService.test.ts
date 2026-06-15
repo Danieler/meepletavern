@@ -69,6 +69,85 @@ test("importAndEnrichGame agrega múltiples fuentes y usa la mejor oferta", asyn
   assert.equal(result.bestOffer?.sourceDisplayName, SOURCE_B.name);
 });
 
+test("importAndEnrichGame conserva ofertas de todas las fuentes coincidentes", async () => {
+  const service = createMasterImportService(
+    createDeps({
+      searchResults: {
+        [SOURCE_A.id]: [
+          searchResult({
+            sourceName: "juegos_de_la_mesa_redonda",
+            sourceDisplayName: SOURCE_A.name,
+            sourceUrl: "https://juegosdelamesaredonda.com/ark-nova.html",
+            purchaseUrl: "https://juegosdelamesaredonda.com/ark-nova.html",
+            title: "Ark Nova",
+            normalizedTitle: "ark-nova",
+            price: 62.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: false,
+            imageUrl: null,
+            confidence: 0.95
+          })
+        ],
+        [SOURCE_B.id]: [
+          searchResult({
+            sourceName: "dungeon_marvels",
+            sourceDisplayName: SOURCE_B.name,
+            sourceUrl: "https://dungeonmarvels.com/ark-nova-castellano.html",
+            purchaseUrl: "https://dungeonmarvels.com/ark-nova-castellano.html",
+            title: "Ark Nova Castellano",
+            normalizedTitle: "ark-nova-castellano",
+            price: 59.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: false,
+            imageUrl: null,
+            confidence: 0.9
+          })
+        ],
+        [SOURCE_C.id]: [
+          searchResult({
+            sourceName: "amazon",
+            sourceDisplayName: SOURCE_C.name,
+            sourceUrl: "https://www.amazon.es/dp/B09ARKNOVA",
+            purchaseUrl: "https://www.amazon.es/dp/B09ARKNOVA",
+            title: "Ark Nova",
+            normalizedTitle: "ark-nova",
+            price: 64.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: true,
+            imageUrl: "https://m.media-amazon.com/images/I/ark-nova.jpg",
+            confidence: 0.88
+          })
+        ]
+      },
+      importedByUrl: {
+        "https://juegosdelamesaredonda.com/ark-nova.html": importedCandidate("Ark Nova", SOURCE_A, {
+          price: 62.95,
+          availability: "En stock"
+        }),
+        "https://dungeonmarvels.com/ark-nova-castellano.html": importedCandidate("Ark Nova Castellano", SOURCE_B, {
+          price: 59.95,
+          availability: "En stock"
+        }),
+        "https://www.amazon.es/dp/B09ARKNOVA": importedCandidate("Ark Nova", SOURCE_C, {
+          price: 64.95,
+          availability: "En stock",
+          imageUrl: "https://m.media-amazon.com/images/I/ark-nova.jpg"
+        })
+      }
+    })
+  );
+
+  const result = await service({ title: "Ark Nova" });
+
+  assert.equal(result.matchedSources.length, 3);
+  assert.equal(result.offersCreated, 3);
+  assert.deepEqual(result.sourcesWithOffers.sort(), [SOURCE_A.name, SOURCE_B.name, SOURCE_C.name].sort());
+  assert.equal(result.bestOffer?.price, 59.95);
+});
+
 test("importAndEnrichGame continúa si una fuente falla", async () => {
   const service = createMasterImportService(
     createDeps({
@@ -370,7 +449,9 @@ function importedCandidate(
   const sourceName = source.id === SOURCE_A.id ? "juegos_de_la_mesa_redonda" : source.id === SOURCE_B.id ? "dungeon_marvels" : "amazon";
   const sourceUrl = source.id === SOURCE_A.id
     ? `https://juegosdelamesaredonda.com/${slugifyTitle(title)}.html`
-    : `https://dungeonmarvels.com/${slugifyTitle(title)}.html`;
+    : source.id === SOURCE_B.id
+      ? `https://dungeonmarvels.com/${slugifyTitle(title)}.html`
+      : `https://www.amazon.es/dp/${slugifyTitle(title).replace(/-/g, "").slice(0, 10).toUpperCase().padEnd(10, "X")}`;
 
   return {
     candidate: {
@@ -405,7 +486,7 @@ function importedCandidate(
 }
 
 function searchResult(input: {
-  sourceName: "juegos_de_la_mesa_redonda" | "dungeon_marvels";
+  sourceName: "juegos_de_la_mesa_redonda" | "dungeon_marvels" | "amazon";
   sourceDisplayName: string;
   sourceUrl: string;
   title: string;
