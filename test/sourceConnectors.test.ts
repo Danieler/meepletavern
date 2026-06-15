@@ -136,6 +136,29 @@ test("getStoreSourceConnector supports active configured store sources", () => {
   assert.equal(getStoreSourceConnector({ name: "Zacatrus", baseUrl: "https://zacatrus.es" })?.sourceName, "zacatrus");
 });
 
+test("Mathom and Dracotienda connector images are allowed for master import", async () => {
+  const mathom = getStoreSourceConnector({ name: "Mathom", baseUrl: "https://mathom.es" });
+  const dracotienda = getStoreSourceConnector({ name: "Dracotienda", baseUrl: "https://dracotienda.com" });
+
+  const [mathomResult] = extractSearchResultsFromHtml(searchResultHtml("https://mathom.es/virus.html"), {
+    sourceName: "mathom",
+    sourceDisplayName: "Mathom",
+    baseUrl: "https://mathom.es",
+    searchTitle: "Virus",
+    imageAllowed: Boolean(mathom?.imageAllowed)
+  });
+  const [dracotiendaResult] = extractSearchResultsFromHtml(searchResultHtml("https://dracotienda.com/virus.html"), {
+    sourceName: "dracotienda",
+    sourceDisplayName: "Dracotienda",
+    baseUrl: "https://dracotienda.com",
+    searchTitle: "Virus",
+    imageAllowed: Boolean(dracotienda?.imageAllowed)
+  });
+
+  assert.equal(mathomResult.imageAllowed, true);
+  assert.equal(dracotiendaResult.imageAllowed, true);
+});
+
 test("mapStoreSourceResultToImportCandidate preserves image metadata but marks it as not allowed", () => {
   const candidate = mapStoreSourceResultToImportCandidate({
     sourceName: "juegos_de_la_mesa_redonda",
@@ -169,3 +192,54 @@ test("mapStoreSourceResultToImportCandidate preserves image metadata but marks i
   assert.equal(candidate.candidateImages[0]?.url, "https://juegosdelamesaredonda.com/catan.jpg");
   assert.equal(candidate.metadata.imageAllowed, false);
 });
+
+test("mapStoreSourceResultToImportCandidate preserves multiple source page images", () => {
+  const candidate = mapStoreSourceResultToImportCandidate({
+    sourceName: "mathom",
+    sourceDisplayName: "Mathom",
+    sourceUrl: "https://mathom.es/es/virus/35978-virus-9788460659662.html",
+    title: "Virus",
+    normalizedTitle: "virus",
+    price: 14.95,
+    currency: "EUR",
+    availability: "En stock",
+    purchaseUrl: "https://mathom.es/es/virus/35978-virus-9788460659662.html",
+    publisher: "Tranjis Games",
+    imageUrl: "https://mathom.es/47508-large_default/virus.jpg",
+    imageAllowed: true,
+    description: "Compite por ser el primero en aislar un cuerpo sano.",
+    minPlayers: 2,
+    maxPlayers: 6,
+    minPlayTime: 20,
+    maxPlayTime: 20,
+    recommendedAge: 8,
+    language: "Castellano",
+    rawData: {
+      additionalImageUrls: [
+        "https://mathom.es/47508-large_default/virus.jpg",
+        "https://mathom.es/47509-large_default/virus.jpg"
+      ],
+      facts: {},
+      features: []
+    },
+    fetchedAt: new Date("2026-06-15T10:00:00.000Z")
+  });
+
+  assert.deepEqual(candidate.candidateImages.map((image) => image.url), [
+    "https://mathom.es/47508-large_default/virus.jpg",
+    "https://mathom.es/47509-large_default/virus.jpg"
+  ]);
+  assert.equal(candidate.metadata.imageAllowed, true);
+});
+
+function searchResultHtml(url: string) {
+  return `
+    <article class="product-miniature js-product-miniature">
+      <h2 class="productName" itemprop="name">
+        <a href="${url}">Virus</a>
+      </h2>
+      <img src="${new URL("/virus.jpg", url).toString()}">
+      <span class="price">14,95 €</span>
+    </article>
+  `;
+}

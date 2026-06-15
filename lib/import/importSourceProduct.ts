@@ -94,7 +94,7 @@ export async function importSourceProductCandidate(input: {
 
     return {
       candidate,
-      publicImageUrls: result.imageAllowed && result.imageUrl ? [result.imageUrl] : []
+      publicImageUrls: result.imageAllowed ? candidate.candidateImages.map((image) => image.url) : []
     };
   }
 

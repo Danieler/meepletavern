@@ -61,13 +61,13 @@ const connectors: SourceConnector[] = [
     sourceName: "mathom",
     sourceDisplayName: "Mathom",
     baseUrl: "https://mathom.es",
-    imageAllowed: false
+    imageAllowed: true
   }),
   createPrestashopSearchConnector({
     sourceName: "dracotienda",
     sourceDisplayName: "Dracotienda",
     baseUrl: "https://dracotienda.com",
-    imageAllowed: false
+    imageAllowed: true
   }),
   createPrestashopSearchConnector({
     sourceName: "zacatrus",
@@ -97,6 +97,7 @@ export function mapStoreSourceResultToImportCandidate(result: StoreSourceResult)
   const facts = isRecord(result.rawData) && isRecord(result.rawData.facts)
     ? result.rawData.facts
     : {};
+  const imageUrls = getStoreResultImageUrls(result);
 
   return {
     sourceUrl: result.purchaseUrl || result.sourceUrl,
@@ -137,15 +138,11 @@ export function mapStoreSourceResultToImportCandidate(result: StoreSourceResult)
           : null
     },
     extractedDescription: result.description,
-    candidateImages: result.imageUrl
-      ? [
-          {
-            url: result.imageUrl,
-            type: "cover" as const,
-            sourceUrl: result.purchaseUrl || result.sourceUrl
-          }
-        ]
-      : [],
+    candidateImages: imageUrls.map((url, index) => ({
+      url,
+      type: index === 0 ? ("cover" as const) : ("component" as const),
+      sourceUrl: result.purchaseUrl || result.sourceUrl
+    })),
     confidence: 0.82,
     flags: []
   };
@@ -401,6 +398,14 @@ function mapSourcePageProductToStoreSourceResult(
     rawData: product,
     fetchedAt: new Date()
   };
+}
+
+function getStoreResultImageUrls(result: StoreSourceResult) {
+  const rawImages = isRecord(result.rawData) && Array.isArray(result.rawData.additionalImageUrls)
+    ? result.rawData.additionalImageUrls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : [];
+
+  return [...new Set([result.imageUrl, ...rawImages].filter((value): value is string => Boolean(value)))].slice(0, 3);
 }
 
 async function fetchStoreHtml(url: string, sourceDisplayName: string) {
