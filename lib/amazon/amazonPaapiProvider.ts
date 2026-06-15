@@ -138,7 +138,7 @@ async function searchAmazonProductsFromPage(title: string): Promise<AmazonProduc
     throw new Error("Amazon bloqueó la búsqueda directa. Añade credenciales de PA API para seguir importando.");
   }
 
-  return extractAmazonSearchProducts(html).slice(0, 3);
+  return extractAmazonSearchProducts(html).slice(0, 10);
 }
 
 async function fetchAmazonProductFromPage(input: { asin: string; sourceUrl?: string }): Promise<AmazonProduct> {

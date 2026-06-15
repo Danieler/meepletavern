@@ -189,6 +189,44 @@ test("importAndEnrichGame conserva ofertas de todas las fuentes coincidentes", a
   assert.equal(result.bestOffer?.price, 58.95);
 });
 
+test("importAndEnrichGame acepta una oferta de Amazon con prefijo de catálogo", async () => {
+  const service = createMasterImportService(
+    createDeps({
+      sources: [SOURCE_C],
+      searchResults: {
+        [SOURCE_C.id]: [
+          searchResult({
+            sourceName: "amazon",
+            sourceDisplayName: SOURCE_C.name,
+            sourceUrl: "https://www.amazon.es/dp/B0DSFY4TH5",
+            purchaseUrl: "https://www.amazon.es/dp/B0DSFY4TH5",
+            title: "Feuerland Spiele Ark Nova | Juego de Mesa | A Partir de 14 años | 1-4 Jugadores | 90-150 Minutos de Tiempo de Juego",
+            normalizedTitle: "feuerland-spiele-ark-nova-juego-de-mesa-a-partir-de-14-anos-1-4-jugadores-90-150-minutos-de-tiempo-de-juego",
+            price: 64.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: true,
+            imageUrl: "https://m.media-amazon.com/images/I/ark-nova.jpg",
+            confidence: 0.82
+          })
+        ]
+      },
+      importedByUrl: {
+        "https://www.amazon.es/dp/B0DSFY4TH5": importedCandidate("Ark Nova", SOURCE_C, {
+          price: 64.95,
+          availability: "En stock",
+          imageUrl: "https://m.media-amazon.com/images/I/ark-nova.jpg"
+        })
+      }
+    })
+  );
+
+  const result = await service({ title: "Ark Nova" });
+
+  assert.equal(result.offersCreated, 1);
+  assert.deepEqual(result.sourcesWithOffers, [SOURCE_C.name]);
+});
+
 test("importAndEnrichGame no deja que una expansión tape el precio del juego base", async () => {
   const service = createMasterImportService(
     createDeps({

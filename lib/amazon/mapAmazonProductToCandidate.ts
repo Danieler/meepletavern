@@ -389,7 +389,7 @@ function inferThemeHints(product: AmazonProduct) {
     hints.add("Cómics");
   }
 
-  return sanitizeImportedList([...hints], "themes");
+  return sanitizeImportedList([...hints], "tags");
 }
 
 function searchableCleanText(product: AmazonProduct) {

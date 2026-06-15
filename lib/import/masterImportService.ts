@@ -1939,6 +1939,14 @@ function assessBaseGameTitleMatch(referenceTitle: string, candidateTitle: string
     candidateTokens.length > referenceTokens.size &&
     candidateTokens.filter((token) => referenceTokens.has(token)).length === referenceTokens.size
   ) {
+    if (hasReferenceWithOnlyNoiseSuffix(candidateTokens, [...referenceTokens])) {
+      return {
+        matched: true,
+        score: Math.max(score, 0.9),
+        warn: null
+      };
+    }
+
     return {
       matched: false,
       score,
@@ -1956,6 +1964,61 @@ function assessBaseGameTitleMatch(referenceTitle: string, candidateTitle: string
 function looksLikeCatalogToken(token: string) {
   return /^\d+$/.test(token) || (/\d/.test(token) && /[a-z]/i.test(token)) || /^(?:b0|trg|sku|ref|isbn)\w*/i.test(token);
 }
+
+function hasReferenceWithOnlyNoiseSuffix(candidateTokens: string[], referenceTokens: string[]) {
+  if (!referenceTokens.length || candidateTokens.length < referenceTokens.length) {
+    return false;
+  }
+
+  for (let index = 0; index <= candidateTokens.length - referenceTokens.length; index += 1) {
+    const slice = candidateTokens.slice(index, index + referenceTokens.length);
+    if (slice.join("-") !== referenceTokens.join("-")) {
+      continue;
+    }
+
+    const suffix = candidateTokens.slice(index + referenceTokens.length);
+    if (suffix.every((token) => looksLikeTitleNoiseToken(token))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function looksLikeTitleNoiseToken(token: string) {
+  return TITLE_NOISE_TOKENS.has(token) || looksLikeCatalogToken(token);
+}
+
+const TITLE_NOISE_TOKENS = new Set([
+  "a",
+  "adultos",
+  "board",
+  "cartas",
+  "cooperativo",
+  "de",
+  "del",
+  "edicion",
+  "edition",
+  "el",
+  "en",
+  "espanol",
+  "espanola",
+  "game",
+  "games",
+  "juego",
+  "juegos",
+  "jugador",
+  "jugadores",
+  "la",
+  "las",
+  "los",
+  "mesa",
+  "minutos",
+  "para",
+  "partir",
+  "tiempo",
+  "y"
+]);
 
 function looksLikeNumberedSequel(referenceTitle: string, candidateTitle: string) {
   const referenceSlug = slugify(referenceTitle);

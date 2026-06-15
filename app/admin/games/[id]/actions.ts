@@ -37,6 +37,9 @@ export async function saveGameEditorAction(
     const savedWithExternalRating = await persistExternalRating(savedGame);
     const validation = validateBeforePublish(savedWithExternalRating);
     revalidateGameAdmin(id);
+    if (savedWithExternalRating.status === GameStatus.published) {
+      revalidatePublicGame(savedWithExternalRating.slug);
+    }
     const statusMessage = {
       [GameStatus.draft]: "Guardado como borrador.",
       [GameStatus.review]: "Guardado en revisión.",
