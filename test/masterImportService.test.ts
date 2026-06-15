@@ -227,6 +227,44 @@ test("importAndEnrichGame acepta una oferta de Amazon con prefijo de catálogo",
   assert.deepEqual(result.sourcesWithOffers, [SOURCE_C.name]);
 });
 
+test("importAndEnrichGame acepta una oferta de Amazon para Cascadia con sufijo editorial en inglés", async () => {
+  const service = createMasterImportService(
+    createDeps({
+      sources: [SOURCE_C],
+      searchResults: {
+        [SOURCE_C.id]: [
+          searchResult({
+            sourceName: "amazon",
+            sourceDisplayName: SOURCE_C.name,
+            sourceUrl: "https://www.amazon.es/dp/B093H8RGXX",
+            purchaseUrl: "https://www.amazon.es/dp/B093H8RGXX",
+            title: "Alderac Entertainment - Cascadia - Board Game - Base Game - For 1-4 Players - from Ages 10+ - English",
+            normalizedTitle: "alderac-entertainment-cascadia-board-game-base-game-for-1-4-players-from-ages-10-english",
+            price: 39.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: true,
+            imageUrl: "https://m.media-amazon.com/images/I/cascadia.jpg",
+            confidence: 0.82
+          })
+        ]
+      },
+      importedByUrl: {
+        "https://www.amazon.es/dp/B093H8RGXX": importedCandidate("Cascadia", SOURCE_C, {
+          price: 39.95,
+          availability: "En stock",
+          imageUrl: "https://m.media-amazon.com/images/I/cascadia.jpg"
+        })
+      }
+    })
+  );
+
+  const result = await service({ title: "Cascadia" });
+
+  assert.equal(result.offersCreated, 1);
+  assert.deepEqual(result.sourcesWithOffers, [SOURCE_C.name]);
+});
+
 test("importAndEnrichGame no deja que una expansión tape el precio del juego base", async () => {
   const service = createMasterImportService(
     createDeps({

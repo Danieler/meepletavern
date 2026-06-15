@@ -35,6 +35,20 @@ test("mapAmazonProductToCandidate normalizes Hasbro Risk marketplace title", () 
   assert.equal(mapped.metadata.sourceUrlClean, "https://www.amazon.es/dp/B01GG1BHQC");
 });
 
+test("mapAmazonProductToCandidate recorta la marca en títulos tipo Cascadia", () => {
+  const mapped = mapAmazonProductToCandidate({
+    product: {
+      asin: "B093H8RGXX",
+      title: "Alderac Entertainment - Cascadia - Board Game - Base Game - For 1-4 Players - from Ages 10+ - English",
+      facts: {}
+    },
+    sourceUrl: "https://www.amazon.es/dp/B093H8RGXX"
+  });
+
+  assert.equal(mapped.title, "Cascadia");
+  assert.equal(mapped.originalTitle, "Alderac Entertainment - Cascadia - Board Game - Base Game - For 1-4 Players - from Ages 10+ - English");
+});
+
 test("mapAmazonProductToCandidate extracts table data and normalizes Amazon age months", () => {
   const mapped = mapAmazonProductToCandidate({
     product: {

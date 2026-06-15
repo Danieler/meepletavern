@@ -127,7 +127,7 @@ function cleanAmazonTitle(title: string, asin: string, brand?: string | null, ma
   if (separatorParts.length > 1) {
     const tail = separatorParts.slice(1).join(" ");
     if (looksLikeCommercialTail(tail)) {
-      cleaned = separatorParts[0];
+      cleaned = separatorParts.find((part, index) => index > 0 && !looksLikeCommercialTail(part)) || separatorParts[0];
     }
   }
 

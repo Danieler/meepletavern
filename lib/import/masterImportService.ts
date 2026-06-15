@@ -1109,7 +1109,7 @@ function createDefaultDeps(): MasterImporterDeps {
             language: null,
             rawData: product,
             fetchedAt: new Date(),
-            confidence: titleSimilarity(canonicalGameTitleKey(product.title), canonicalGameTitleKey(title))
+            confidence: scoreAmazonSearchConfidence(title, product.title)
           }))
         };
       }
@@ -1794,6 +1794,22 @@ function titleSimilarity(left: string, right: string) {
   return total ? shared / total : 0;
 }
 
+function scoreAmazonSearchConfidence(requestedTitle: string, candidateTitle: string) {
+  const requestedKey = canonicalGameTitleKey(requestedTitle);
+  const candidateKey = canonicalGameTitleKey(candidateTitle);
+  const baseScore = titleSimilarity(candidateKey, requestedKey);
+
+  if (!requestedKey || !candidateKey) {
+    return baseScore;
+  }
+
+  if (candidateKey.includes(requestedKey) || requestedKey.includes(candidateKey)) {
+    return Math.max(baseScore, 0.85);
+  }
+
+  return baseScore;
+}
+
 function canonicalGameTitleKey(value: string) {
   const tokens = slugify(value)
     .split("-")
@@ -1822,15 +1838,21 @@ const BASE_TITLE_VARIANT_TOKENS = new Set([
   "edition",
   "el",
   "en",
+  "english",
   "espanol",
   "espanola",
   "feuerland",
+  "for",
+  "from",
   "game",
   "games",
   "hasbro",
+  "ages",
   "juego",
   "jugador",
   "jugadores",
+  "player",
+  "players",
   "la",
   "las",
   "los",
