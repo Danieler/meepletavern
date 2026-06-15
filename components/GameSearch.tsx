@@ -3,10 +3,19 @@ import { BrandIcon } from "@/components/BrandIcon";
 type GameSearchProps = {
   query?: string;
   variant?: "hero" | "compact";
+  submitLabel?: string;
+  placeholder?: string;
 };
 
-export function GameSearch({ query, variant = "compact" }: GameSearchProps) {
+export function GameSearch({
+  query,
+  variant = "compact",
+  submitLabel,
+  placeholder
+}: GameSearchProps) {
   const isHero = variant === "hero";
+  const resolvedSubmitLabel = submitLabel || (isHero ? "Buscar juegos" : "Buscar");
+  const resolvedPlaceholder = placeholder || (isHero ? "Busca por título, categoría o mecánica" : "Buscar...");
 
   return (
     <form action="/juegos" className={isHero ? "flex w-full flex-col gap-3 sm:flex-row" : "flex w-full flex-col gap-2 sm:flex-row"}>
@@ -19,13 +28,13 @@ export function GameSearch({ query, variant = "compact" }: GameSearchProps) {
           id={isHero ? "hero-search" : "global-search"}
           name="q"
           defaultValue={query}
-          placeholder={isHero ? "Buscar juegos..." : "Buscar..."}
+          placeholder={resolvedPlaceholder}
           className={`${isHero ? "min-h-14 text-base" : "min-h-11 text-sm"} focus-ring w-full rounded-md border border-walnut/25 bg-[#fffaf0] pl-11 pr-3 font-semibold text-ink shadow-sm placeholder:text-walnut/45`}
         />
       </div>
       <button className={`button-primary ${isHero ? "min-h-14 px-6" : ""}`} type="submit">
         <BrandIcon name="search" size={20} />
-        Buscar
+        {resolvedSubmitLabel}
       </button>
     </form>
   );

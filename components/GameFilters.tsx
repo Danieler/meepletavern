@@ -21,6 +21,7 @@ const filters: Array<{ title: string; items: FilterLink[] }> = [
     title: "Duración",
     items: [
       { label: "<30 min", param: "duration", value: "30" },
+      { label: "<45 min", param: "duration", value: "45" },
       { label: "<60 min", param: "duration", value: "60" },
       { label: "<120 min", param: "duration", value: "120" },
       { label: "Largos", param: "duration", value: "long" }

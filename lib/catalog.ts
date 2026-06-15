@@ -751,16 +751,9 @@ function matchesDurationFilter(game: CatalogGame, duration: string) {
     return true;
   }
 
-  if (duration === "30") {
-    return game.durationMax <= 30;
-  }
-
-  if (duration === "60") {
-    return game.durationMax <= 60;
-  }
-
-  if (duration === "120") {
-    return game.durationMax <= 120;
+  const numericDuration = Number(duration);
+  if (Number.isFinite(numericDuration) && numericDuration > 0) {
+    return game.durationMax <= numericDuration;
   }
 
   return game.durationMax > 120;

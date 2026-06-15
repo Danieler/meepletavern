@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { getPrimaryGameTags } from "@/lib/gameDisplayTags";
@@ -105,14 +106,15 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
                 </span>
               ))}
             </div>
+            {typeof ratingScore === "number" ? (
+              <span className="rating-chip shrink-0">
+                <BrandIcon name="star" size={14} />
+                {ratingScore.toFixed(1)}
+              </span>
+            ) : null}
           </div>
           <h3 className="font-display text-xl font-bold leading-tight text-wood">{game.title}</h3>
-          {game.publishedAt ? (
-            <p className="tavern-meta mt-1">{formatDate(game.publishedAt)}</p>
-          ) : null}
-          {!compact ? (
-            <p className="mt-3 line-clamp-3 text-sm leading-6 text-walnut/80">{game.reviewSummary}</p>
-          ) : null}
+          <p className="mt-3 line-clamp-3 text-sm leading-6 text-walnut/80">{game.reviewSummary}</p>
           <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs font-semibold leading-5 text-walnut/70">
             <span className="inline-flex items-center gap-1.5">
               <BrandIcon name="users" size={16} />
@@ -125,6 +127,15 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
             <span className="inline-flex items-center gap-1.5">
               <BrandIcon name="gauge" size={16} />
               {game.complexity || "Complejidad pendiente"}
+            </span>
+          </div>
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-walnut/10 pt-4">
+            <span className="text-xs font-bold uppercase tracking-[0.12em] text-walnut/55">
+              {game.categories[0] || game.themes[0] || "Juego de mesa"}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ember">
+              Ver ficha
+              <ChevronRight size={16} strokeWidth={2.2} />
             </span>
           </div>
         </div>
