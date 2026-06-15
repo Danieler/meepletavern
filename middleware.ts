@@ -8,6 +8,8 @@ export function middleware(request: NextRequest) {
 
 const ADMIN_SESSION_COOKIE = "meepletavern_admin_session";
 const ADMIN_SESSION_MAX_AGE = 60 * 60 * 8;
+const DEFAULT_ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "meepletavern";
 
 async function handleRequest(request: NextRequest) {
   const isAdminPath =
@@ -57,8 +59,13 @@ async function handleRequest(request: NextRequest) {
 }
 
 async function resolveAdminAuth(request: NextRequest) {
+  const config = readAdminAuthConfig();
+  if (!config) {
+    return { authorized: false, sessionToken: null };
+  }
+
   const cookieToken = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
-  if (cookieToken && (await verifyAdminSessionToken(cookieToken))) {
+  if (cookieToken && (await verifyAdminSessionToken(cookieToken, config))) {
     return { authorized: true, sessionToken: null };
   }
 
@@ -73,14 +80,11 @@ async function resolveAdminAuth(request: NextRequest) {
     return { authorized: false, sessionToken: null };
   }
 
-  const username = process.env.ADMIN_USERNAME || "admin";
-  const password = process.env.ADMIN_PASSWORD || "meepletavern";
-
-  const authorized = credentials.username === username && credentials.password === password;
+  const authorized = credentials.username === config.username && credentials.password === config.password;
 
   return {
     authorized,
-    sessionToken: authorized ? await createAdminSessionToken(username) : null
+    sessionToken: authorized ? await createAdminSessionToken(config.username, config.sessionSecret) : null
   };
 }
 
@@ -102,36 +106,41 @@ function decodeBasicAuth(header: string) {
   }
 }
 
-async function createAdminSessionToken(username: string) {
+async function createAdminSessionToken(username: string, sessionSecret: string) {
   const expiresAt = Date.now() + ADMIN_SESSION_MAX_AGE * 1000;
   const payload = base64UrlEncode(JSON.stringify({ username, expiresAt }));
-  const signature = await signAdminSessionPayload(payload);
+  const signature = await signAdminSessionPayload(payload, sessionSecret);
   return `${payload}.${signature}`;
 }
 
-async function verifyAdminSessionToken(token: string) {
+async function verifyAdminSessionToken(
+  token: string,
+  config: {
+    username: string;
+    password: string;
+    sessionSecret: string;
+  }
+) {
   const [payload, signature] = token.split(".");
 
   if (!payload || !signature) {
     return false;
   }
 
-  const expectedSignature = await signAdminSessionPayload(payload);
+  const expectedSignature = await signAdminSessionPayload(payload, config.sessionSecret);
   if (signature !== expectedSignature) {
     return false;
   }
 
   try {
     const data = JSON.parse(base64UrlDecode(payload)) as { username?: unknown; expiresAt?: unknown };
-    const username = process.env.ADMIN_USERNAME || "admin";
-    return data.username === username && typeof data.expiresAt === "number" && data.expiresAt > Date.now();
+    return data.username === config.username && typeof data.expiresAt === "number" && data.expiresAt > Date.now();
   } catch {
     return false;
   }
 }
 
-async function signAdminSessionPayload(payload: string) {
-  const secret = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "meepletavern";
+async function signAdminSessionPayload(payload: string, secret: string) {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -150,6 +159,34 @@ function base64UrlEncode(value: string) {
 function base64UrlDecode(value: string) {
   const padded = value.padEnd(Math.ceil(value.length / 4) * 4, "=").replaceAll("-", "+").replaceAll("_", "/");
   return atob(padded);
+}
+
+export function readAdminAuthConfig(
+  environment = process.env.NODE_ENV,
+  env: Record<string, string | undefined> = process.env
+) {
+  const isProduction = environment === "production";
+  const username = env.ADMIN_USERNAME?.trim();
+  const password = env.ADMIN_PASSWORD?.trim();
+  const sessionSecret = env.ADMIN_SESSION_SECRET?.trim();
+
+  if (isProduction) {
+    if (!username || !password || !sessionSecret) {
+      return null;
+    }
+
+    return {
+      username,
+      password,
+      sessionSecret
+    };
+  }
+
+  return {
+    username: username || DEFAULT_ADMIN_USERNAME,
+    password: password || DEFAULT_ADMIN_PASSWORD,
+    sessionSecret: sessionSecret || password || DEFAULT_ADMIN_PASSWORD
+  };
 }
 
 export const config = {

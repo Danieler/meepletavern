@@ -10,7 +10,6 @@ import {
   updateSourceAction,
   type SourceActionState
 } from "@/app/admin/sources/actions";
-import { isAmazonImportSource } from "@/lib/importSourceFilters";
 
 const initialState: SourceActionState = {};
 
@@ -57,7 +56,6 @@ export function SourceList({ sources }: { sources: Source[] }) {
 
 function EditableSourceRow({ source }: { source: Source }) {
   const [state, action, isPending] = useActionState(updateSourceAction, initialState);
-  const canImport = isAmazonImportSource(source);
   const formId = `source-${source.id}`;
 
   return (
@@ -73,11 +71,9 @@ function EditableSourceRow({ source }: { source: Source }) {
           </Field>
         </form>
         <div className="flex flex-wrap gap-2 lg:justify-end">
-          {canImport ? (
-            <Link className="button-secondary min-h-10 px-3 py-2" href={`/admin/import?sourceId=${source.id}`}>
-              Importar juegos
-            </Link>
-          ) : null}
+          <Link className="button-secondary min-h-10 px-3 py-2" href={`/admin/import?sourceId=${source.id}`}>
+            Importar juegos
+          </Link>
           <button className="button-secondary min-h-10 px-3 py-2" type="submit" form={formId} disabled={isPending}>
             <Save size={16} aria-hidden="true" />
             Guardar

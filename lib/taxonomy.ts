@@ -30,7 +30,15 @@ export async function getAdminTaxonomyTerms(type: TaxonomyTypeKey) {
 }
 
 export async function getTaxonomyTermNames(type: TaxonomyTypeKey) {
-  return getCachedTaxonomyTermNames(type);
+  try {
+    return await getCachedTaxonomyTermNames(type);
+  } catch (error) {
+    if (!isMissingIncrementalCacheError(error)) {
+      throw error;
+    }
+
+    return getDirectTaxonomyTermNames(type);
+  }
 }
 
 const getCachedTaxonomyTermNames = unstable_cache(
@@ -46,6 +54,16 @@ const getCachedTaxonomyTermNames = unstable_cache(
   ["taxonomy-term-names"],
   { revalidate: 300, tags: ["public-taxonomy"] }
 );
+
+async function getDirectTaxonomyTermNames(type: TaxonomyTypeKey) {
+  const terms = await prisma.taxonomyTerm.findMany({
+    where: { type },
+    orderBy: [{ name: "asc" }],
+    select: { name: true }
+  });
+
+  return terms.map((term) => term.name);
+}
 
 export async function createTaxonomyTerm(type: TaxonomyTypeKey, rawName: unknown) {
   const name = normalizeTermName(rawName);
@@ -143,4 +161,8 @@ function normalizeTermSlug(name: string) {
   }
 
   return slug;
+}
+
+function isMissingIncrementalCacheError(error: unknown) {
+  return error instanceof Error && /incrementalCache missing/i.test(error.message);
 }

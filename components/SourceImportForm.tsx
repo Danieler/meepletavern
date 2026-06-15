@@ -83,7 +83,7 @@ export function SourceImportForm({ sources, initialSourceId = "", initialError =
               placeholder={
                 expectsAmazonInput
                   ? "B0XXXXXXXX o https://www.amazon.es/dp/B0XXXXXXXX"
-                  : "https://dracotienda.com/..."
+                  : buildSourcePlaceholder(selectedSource?.baseUrl || "")
               }
             />
           </Field>
@@ -148,4 +148,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function isAmazonSource(source: ImportSource) {
   return `${source.name} ${source.baseUrl}`.toLowerCase().includes("amazon.");
+}
+
+function buildSourcePlaceholder(baseUrl: string) {
+  const normalized = baseUrl.trim().replace(/\/+$/, "");
+  return normalized ? `${normalized}/...` : "https://ejemplo.com/...";
 }

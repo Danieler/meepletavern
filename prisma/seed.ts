@@ -3,6 +3,21 @@ import { slugify } from "../lib/slug";
 
 const prisma = new PrismaClient();
 
+const defaultSources = [
+  {
+    name: "Dungeon Marvels",
+    baseUrl: "https://dungeonmarvels.com"
+  },
+  {
+    name: "Mathom",
+    baseUrl: "https://mathom.es"
+  },
+  {
+    name: "Zacatrus",
+    baseUrl: "https://zacatrus.es"
+  }
+];
+
 const games = [
   {
     name: "Catan",
@@ -181,6 +196,8 @@ const games = [
 ];
 
 async function main() {
+  await seedSources();
+
   for (const game of games) {
     await prisma.game.upsert({
       where: { slug: game.slug },
@@ -214,6 +231,28 @@ async function main() {
   }
 
   await seedTaxonomyTerms();
+}
+
+async function seedSources() {
+  for (const source of defaultSources) {
+    const existing = await prisma.source.findFirst({
+      where: {
+        baseUrl: source.baseUrl
+      }
+    });
+
+    if (existing) {
+      await prisma.source.update({
+        where: { id: existing.id },
+        data: { name: source.name }
+      });
+      continue;
+    }
+
+    await prisma.source.create({
+      data: source
+    });
+  }
 }
 
 async function seedTaxonomyTerms() {
