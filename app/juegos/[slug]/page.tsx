@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
-import { BuyButton } from "@/components/BuyButton";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
 import { GameCard } from "@/components/GameCard";
@@ -76,7 +75,6 @@ export default async function GamePage({ params }: GamePageProps) {
   const bodyDescription = isWeakBodyDescription(game.description, introDescription, game) ? "" : game.description;
   const leadDescription = introDescription || bodyDescription;
   const detailDescription = introDescription ? bodyDescription : "";
-  const primaryBuyUrl = game.buyLinks[0]?.url || null;
 
   return (
     <PublicShell>
@@ -199,13 +197,8 @@ export default async function GamePage({ params }: GamePageProps) {
                 </div>
                 <UserRatingVote gameId={game.id} initialVotesCount={game.ratings.users.votesCount} />
               </Panel>
-              {primaryBuyUrl ? (
+              {game.buyLinks.length ? (
                 <Panel title="Compra rápida">
-                  <BuyButton url={primaryBuyUrl} />
-                </Panel>
-              ) : null}
-              {game.buyLinks.length > 1 ? (
-                <Panel title="Enlaces de compra">
                   <BuyLinks links={game.buyLinks} />
                 </Panel>
               ) : null}

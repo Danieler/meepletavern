@@ -1,0 +1,171 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { extractSearchResultsFromHtml, getStoreSourceConnector, mapStoreSourceResultToImportCandidate } from "@/lib/import/sourceConnectors";
+
+test("extractSearchResultsFromHtml parses Juegos de la Mesa Redonda search results", () => {
+  const html = `
+    <article class="product-miniature js-product-miniature">
+      <div class="thumbnail-container">
+        <a href="https://juegosdelamesaredonda.com/551-catan-el-juego-8436017220100.html">
+          <img src="https://juegosdelamesaredonda.com/1126-home_default/catan-el-juego.jpg" data-full-size-image-url="https://juegosdelamesaredonda.com/1126-large_default/catan-el-juego.jpg">
+        </a>
+        <h3 class="h3 product-title">
+          <a href="https://juegosdelamesaredonda.com/551-catan-el-juego-8436017220100.html">Catan</a>
+        </h3>
+        <div class="product-description-short">Juego de negociación y expansión.</div>
+        <span class="price">42,95 €</span>
+        <meta itemprop="name" content="Devir">
+        <meta itemprop="availability" href="https://schema.org/InStock">
+      </div>
+    </article>
+  `;
+
+  const [result] = extractSearchResultsFromHtml(html, {
+    sourceName: "juegos_de_la_mesa_redonda",
+    sourceDisplayName: "Juegos de la Mesa Redonda",
+    baseUrl: "https://juegosdelamesaredonda.com",
+    searchTitle: "Catan",
+    imageAllowed: false
+  });
+
+  assert.equal(result.title, "Catan");
+  assert.equal(result.price, 42.95);
+  assert.equal(result.currency, "EUR");
+  assert.equal(result.publisher, "Devir");
+  assert.equal(result.availability, "En stock");
+  assert.equal(result.purchaseUrl, "https://juegosdelamesaredonda.com/551-catan-el-juego-8436017220100.html");
+  assert.equal(result.imageAllowed, false);
+  assert.equal(result.confidence, 1);
+});
+
+test("extractSearchResultsFromHtml parses Dungeon Marvels search results", () => {
+  const html = `
+    <article class="product-miniature js-product-miniature">
+      <div class="thumbnail-container">
+        <a href="https://dungeonmarvels.com/catan-123.html">
+          <img src="https://dungeonmarvels.com/201971-home_default/catan.jpg" data-full-size-image-url="https://dungeonmarvels.com/201971-large_default/catan.jpg">
+        </a>
+        <h2 class="h3 product-title">
+          <a href="https://dungeonmarvels.com/catan-123.html">Catan</a>
+        </h2>
+        <p class="product-description-short">Clásico de comercio y carreteras.</p>
+        <span class="price">41,95 €</span>
+        <meta itemprop="name" content="Devir">
+        <span class="stock-msg reserva">Disponible en 3-10 días laborables</span>
+      </div>
+    </article>
+  `;
+
+  const [result] = extractSearchResultsFromHtml(html, {
+    sourceName: "dungeon_marvels",
+    sourceDisplayName: "Dungeon Marvels",
+    baseUrl: "https://dungeonmarvels.com",
+    searchTitle: "Catan",
+    imageAllowed: false
+  });
+
+  assert.equal(result.title, "Catan");
+  assert.equal(result.price, 41.95);
+  assert.equal(result.publisher, "Devir");
+  assert.equal(result.availability, "Disponible en 3-10 días laborables");
+  assert.equal(result.imageAllowed, false);
+  assert.equal(result.confidence, 1);
+});
+
+test("extractSearchResultsFromHtml parses Dracotienda search results with productName headings", () => {
+  const html = `
+    <article class="product-miniature js-product-miniature">
+      <h2 class="productName" itemprop="name">
+        <a href="https://dracotienda.com/juegos-de-tablero/25659-7-wonders-nueva-edicion.html">7 Wonders (Nueva edición)</a>
+      </h2>
+      <div class="laber-product-price-and-shipping">
+        <span itemprop="price" class="price">43,19 €</span>
+      </div>
+    </article>
+  `;
+
+  const [result] = extractSearchResultsFromHtml(html, {
+    sourceName: "dracotienda",
+    sourceDisplayName: "Dracotienda",
+    baseUrl: "https://dracotienda.com",
+    searchTitle: "7 wonders",
+    imageAllowed: false
+  });
+
+  assert.equal(result.title, "7 Wonders (Nueva edición)");
+  assert.equal(result.price, 43.19);
+  assert.equal(result.purchaseUrl, "https://dracotienda.com/juegos-de-tablero/25659-7-wonders-nueva-edicion.html");
+  assert.equal(result.confidence, 0.9);
+});
+
+test("extractSearchResultsFromHtml falls back to JSON-LD ItemList", () => {
+  const html = `
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "7 Wonders (2ª Edición)",
+            "url": "https://mathom.es/es/7-wonders/44492-7-wonders-2-edicion.html"
+          }
+        ]
+      }
+    </script>
+  `;
+
+  const [result] = extractSearchResultsFromHtml(html, {
+    sourceName: "mathom",
+    sourceDisplayName: "Mathom",
+    baseUrl: "https://mathom.es",
+    searchTitle: "7 wonders",
+    imageAllowed: false
+  });
+
+  assert.equal(result.title, "7 Wonders (2ª Edición)");
+  assert.equal(result.purchaseUrl, "https://mathom.es/es/7-wonders/44492-7-wonders-2-edicion.html");
+  assert.equal(result.price, null);
+  assert.equal(result.confidence, 0.9);
+});
+
+test("getStoreSourceConnector supports active configured store sources", () => {
+  assert.equal(getStoreSourceConnector({ name: "Mathom", baseUrl: "https://mathom.es" })?.sourceName, "mathom");
+  assert.equal(getStoreSourceConnector({ name: "Dracotienda", baseUrl: "https://dracotienda.com" })?.sourceName, "dracotienda");
+  assert.equal(getStoreSourceConnector({ name: "Zacatrus", baseUrl: "https://zacatrus.es" })?.sourceName, "zacatrus");
+});
+
+test("mapStoreSourceResultToImportCandidate preserves image metadata but marks it as not allowed", () => {
+  const candidate = mapStoreSourceResultToImportCandidate({
+    sourceName: "juegos_de_la_mesa_redonda",
+    sourceDisplayName: "Juegos de la Mesa Redonda",
+    sourceUrl: "https://juegosdelamesaredonda.com/catan.html",
+    title: "Catan",
+    normalizedTitle: "catan",
+    price: 42.95,
+    currency: "EUR",
+    availability: "En stock",
+    purchaseUrl: "https://juegosdelamesaredonda.com/catan.html",
+    publisher: "Devir",
+    imageUrl: "https://juegosdelamesaredonda.com/catan.jpg",
+    imageAllowed: false,
+    description: "Juego de comercio.",
+    minPlayers: 3,
+    maxPlayers: 4,
+    minPlayTime: 60,
+    maxPlayTime: 90,
+    recommendedAge: 10,
+    language: "Castellano",
+    rawData: {
+      facts: {
+        Idioma: "Castellano"
+      },
+      features: []
+    },
+    fetchedAt: new Date("2026-06-15T10:00:00.000Z")
+  });
+
+  assert.equal(candidate.candidateImages[0]?.url, "https://juegosdelamesaredonda.com/catan.jpg");
+  assert.equal(candidate.metadata.imageAllowed, false);
+});

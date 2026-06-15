@@ -39,6 +39,29 @@ type PrestashopProductData = {
   }>;
 };
 
+type JsonLdProduct = {
+  "@type"?: string | string[];
+  name?: string;
+  description?: string;
+  image?: string | string[];
+  url?: string;
+  brand?: string | { name?: string };
+  manufacturer?: string | { name?: string };
+  offers?:
+    | {
+        price?: string | number;
+        priceCurrency?: string;
+        availability?: string;
+        url?: string;
+      }
+    | Array<{
+        price?: string | number;
+        priceCurrency?: string;
+        availability?: string;
+        url?: string;
+      }>;
+};
+
 export async function fetchSourcePageProduct(sourceUrl: string): Promise<SourcePageProduct> {
   const normalizedUrl = normalizeSourceUrl(sourceUrl);
   let response: Response;
@@ -210,37 +233,48 @@ function extractPrestashopFeatureFacts(
 function extractGenericProduct(html: string, sourceUrl: string): SourcePageProduct {
   const siteName = clean(metaByProperty(html, "og:site_name") || "");
   const plainText = normalizedPlainText(html);
+  const jsonLdProduct = extractJsonLdProduct(html);
   const facts = extractGenericFacts(plainText);
+  const jsonLdTitle = clean(jsonLdProduct?.name || "");
   const title =
     clean(
       cleanGenericProductTitle(
-        metaByProperty(html, "og:title") || meta(html, "twitter:title") || textBetween(html, "<title", "</title"),
+        jsonLdTitle || metaByProperty(html, "og:title") || meta(html, "twitter:title") || textBetween(html, "<title", "</title"),
         siteName,
         sourceUrl
       )
     ) || "Producto";
   const description = clean(
+    jsonLdProduct?.description ||
     extractGenericDescription(html, plainText) ||
     meta(html, "description") ||
     metaByProperty(html, "og:description") ||
     itempropMeta(html, "description")
   );
-  const imageUrl = absoluteUrl(metaByProperty(html, "og:image") || meta(html, "twitter:image") || itempropMeta(html, "image"), sourceUrl) || null;
+  const jsonLdImageUrls = extractJsonLdImageUrls(jsonLdProduct, sourceUrl);
+  const imageUrl =
+    jsonLdImageUrls[0] ||
+    absoluteUrl(metaByProperty(html, "og:image") || meta(html, "twitter:image") || itempropMeta(html, "image"), sourceUrl) ||
+    null;
   const brand = clean(
+    extractJsonLdBrand(jsonLdProduct) ||
     metaByProperty(html, "brand") ||
     itempropMeta(html, "brand") ||
+    facts.Editorial ||
     facts.Marca ||
     facts.Fabricante ||
     facts["Marca comercial"] ||
     ""
   );
+  const offer = extractJsonLdOffer(jsonLdProduct);
   const price =
+    numberLike(String(offer?.price || "")) ??
     numberLike(metaByProperty(html, "product:price:amount")) ??
     numberLike(metaByProperty(html, "product:sale_price:amount")) ??
     null;
-  const currency = clean(metaByProperty(html, "product:price:currency") || metaByProperty(html, "product:sale_price:currency"));
-  const availability = clean(metaByProperty(html, "product:availability") || facts.Disponibilidad || "");
-  const sourceUrlClean = clean(canonicalUrl(html, sourceUrl) || sourceUrl) || sourceUrl;
+  const currency = clean(offer?.priceCurrency || metaByProperty(html, "product:price:currency") || metaByProperty(html, "product:sale_price:currency"));
+  const availability = clean(normalizeAvailabilityValue(offer?.availability || "") || metaByProperty(html, "product:availability") || facts.Disponibilidad || "");
+  const sourceUrlClean = clean(canonicalUrl(html, sourceUrl) || offer?.url || jsonLdProduct?.url || sourceUrl) || sourceUrl;
 
   return {
     sourceUrl,
@@ -249,7 +283,7 @@ function extractGenericProduct(html: string, sourceUrl: string): SourcePageProdu
     title,
     description: description || null,
     imageUrl,
-    additionalImageUrls: imageUrl ? [imageUrl] : [],
+    additionalImageUrls: [...new Set([...(imageUrl ? [imageUrl] : []), ...jsonLdImageUrls])],
     brand: brand || null,
     publisher: brand || null,
     price,
@@ -312,10 +346,11 @@ function extractGenericDescription(html: string, plainText: string) {
 function extractGenericFacts(plainText: string) {
   const facts: Record<string, string> = {};
   const factDefinitions: Array<[string, string[], string[]]> = [
-    ["Tiempo de juego", ["Tiempo de juego", "Duración"], ["Edad mínima", "Número de jugadores", "Idiomas", "Marca", "Referencia"]],
-    ["Edad mínima", ["Edad mínima"], ["Número de jugadores", "Idiomas", "Marca", "Referencia", "Ficha técnica"]],
-    ["Número de jugadores", ["Número de jugadores", "Nº de jugadores"], ["Idiomas", "Marca", "Referencia", "Ficha técnica"]],
+    ["Tiempo de juego", ["Tiempo de juego", "Duración aproximada", "Duración"], ["Edad mínima", "Número de jugadores", "Idioma", "Idiomas", "Marca", "Referencia"]],
+    ["Edad mínima", ["Edad mínima", "Edad mínima recomendada"], ["Número de jugadores", "Idioma", "Idiomas", "Marca", "Referencia", "Ficha técnica"]],
+    ["Número de jugadores", ["Número de jugadores", "Nº de jugadores"], ["Tiempo de juego", "Duración", "Duración aproximada", "Edad mínima", "Idioma", "Idiomas", "Marca", "Referencia", "Ficha técnica"]],
     ["Idiomas", ["Idiomas", "Idioma"], ["Marca", "Referencia", "Ficha técnica"]],
+    ["Editorial", ["Editorial"], ["Idioma", "Idiomas", "Marca", "Referencia", "Ficha técnica"]],
     ["Marca", ["Marca"], ["Referencia", "EAN", "Ficha técnica"]],
     ["Fabricante", ["Fabricante"], ["Fecha de lanzamiento", "Marca", "Referencia", "EAN", "Ficha técnica"]],
     ["Disponibilidad", ["Disponibilidad"], ["Información sobre el distribuidor", "Marca comercial", "Dirección", "Contacto", "También podría interesarle"]]
@@ -359,7 +394,127 @@ function cleanGenericProductTitle(value: string, siteName: string, sourceUrl: st
     title = title.replace(new RegExp(`\\s*[|·-]\\s*${escapedSuffix}\\s*$`, "i"), "").trim();
   }
 
-  return title.replace(/\s+juego de mesa\s*$/i, "").trim();
+  return title
+    .replace(/^compra\s+/i, "")
+    .replace(/\s+-\s+juego(?:s)? de (?:mesa|cartas).*$/i, "")
+    .replace(/\s+juego(?:s)? de (?:mesa|cartas)\s*$/i, "")
+    .trim();
+}
+
+function extractJsonLdProduct(html: string): JsonLdProduct | null {
+  const scripts = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+
+  for (const script of scripts) {
+    const parsed = parseJsonLd(script[1] || "");
+    const product = findJsonLdProduct(parsed);
+    if (product) {
+      return product;
+    }
+  }
+
+  return null;
+}
+
+function parseJsonLd(value: string): unknown {
+  const normalized = cleanJsonLikeValue(value);
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(normalized) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function findJsonLdProduct(value: unknown): JsonLdProduct | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const match = findJsonLdProduct(item);
+      if (match) {
+        return match;
+      }
+    }
+    return null;
+  }
+
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const nodeType = value["@type"];
+  const matchesProduct =
+    typeof nodeType === "string"
+      ? nodeType.toLowerCase() === "product"
+      : Array.isArray(nodeType) && nodeType.some((entry) => typeof entry === "string" && entry.toLowerCase() === "product");
+  if (matchesProduct) {
+    return value as JsonLdProduct;
+  }
+
+  for (const nestedKey of ["@graph", "mainEntity", "itemListElement"]) {
+    const match = findJsonLdProduct(value[nestedKey]);
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+function extractJsonLdImageUrls(product: JsonLdProduct | null, sourceUrl: string) {
+  if (!product) {
+    return [];
+  }
+
+  const rawImages = Array.isArray(product.image) ? product.image : product.image ? [product.image] : [];
+  return [...new Set(rawImages.map((image) => absoluteUrl(String(image), sourceUrl)).filter(Boolean))];
+}
+
+function extractJsonLdBrand(product: JsonLdProduct | null) {
+  if (!product) {
+    return "";
+  }
+
+  const brand = recordName(product.brand);
+  if (brand) {
+    return brand;
+  }
+
+  return recordName(product.manufacturer);
+}
+
+function extractJsonLdOffer(product: JsonLdProduct | null) {
+  if (!product?.offers) {
+    return null;
+  }
+
+  return Array.isArray(product.offers) ? product.offers[0] || null : product.offers;
+}
+
+function normalizeAvailabilityValue(value: string) {
+  const cleanValue = clean(value);
+  if (!cleanValue) {
+    return "";
+  }
+
+  return cleanValue.replace(/^https?:\/\/schema\.org\//i, "");
+}
+
+function cleanJsonLikeValue(value: string) {
+  return value.trim().replace(/^\uFEFF/, "");
+}
+
+function recordName(value: unknown) {
+  if (typeof value === "string") {
+    return clean(value);
+  }
+
+  if (isRecord(value) && typeof value.name === "string") {
+    return clean(value.name);
+  }
+
+  return "";
 }
 
 function canonicalUrl(html: string, sourceUrl: string) {
@@ -679,4 +834,8 @@ function numberLike(value: string) {
         : raw;
   const normalized = Number.parseFloat(normalizedValue);
   return Number.isFinite(normalized) ? normalized : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

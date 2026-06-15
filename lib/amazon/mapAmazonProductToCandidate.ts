@@ -51,7 +51,11 @@ export function mapAmazonProductToCandidate(input: {
   const metadata = normalizeCandidateMetadata({
     asin: input.product.asin,
     importedFrom: "amazon",
+    sourceName: "amazon",
+    sourceDisplayName: "Amazon",
+    storeName: "Amazon",
     sourceUrlClean,
+    purchaseUrl: sourceUrlClean,
     amazonTitleOriginal: input.product.title,
     cleanTitle,
     amazonRating: input.product.rating ?? null,

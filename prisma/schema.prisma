@@ -130,6 +130,7 @@ model Game {
   reviews               Review[]
   comments              GameComment[]
   importProposals       GameImportProposal[]
+  offers                GameOffer[]
 
   @@index([status])
   @@index([createdAt])
@@ -220,6 +221,7 @@ model Source {
   updatedAt  DateTime        @updatedAt
   candidates GameCandidate[]
   mediaAssets MediaAsset[]
+  offers      GameOffer[]
 
   @@index([createdAt])
 }
@@ -245,11 +247,43 @@ model GameCandidate {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   mediaAssets          MediaAsset[]
+  offers               GameOffer[]
 
   @@index([sourceId])
   @@index([gameId])
   @@index([status])
   @@index([createdAt])
+}
+
+model GameOffer {
+  id                String         @id @default(cuid())
+  gameId            String?
+  game              Game?          @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  candidateId       String?
+  candidate         GameCandidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  sourceId          String?
+  source            Source?        @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  sourceName        String
+  sourceDisplayName String?
+  storeName         String?
+  titleAtSource     String?
+  price             Float?
+  currency          String?
+  availability      String?
+  purchaseUrl       String?
+  affiliateUrl      String?
+  sourceUrl         String?
+  externalId        String?
+  rawData           Json?
+  fetchedAt         DateTime
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([gameId])
+  @@index([candidateId])
+  @@index([sourceId])
+  @@index([sourceName])
+  @@index([fetchedAt])
 }
 
 model MediaAsset {

@@ -1,7 +1,11 @@
 import { EditorialFlag, type Source } from "@prisma/client";
+import { getAmazonProduct } from "@/lib/amazon/amazonPaapiProvider";
 import { importAmazonProductReview } from "@/lib/amazon/importAmazonProduct";
+import { mapAmazonProductToCandidate } from "@/lib/amazon/mapAmazonProductToCandidate";
+import { buildAmazonCanonicalUrl, parseAmazonInput } from "@/lib/amazon/parseAmazonInput";
 import { sourceRepository } from "@/lib/editorialRepositories";
 import { persistImportedGameReview, type ImportedGameResult, type NormalizedImportedCandidate } from "@/lib/import/importedGame";
+import { getStoreSourceConnector, mapStoreSourceResultToImportCandidate } from "@/lib/import/sourceConnectors";
 import { fetchSourcePageProduct, type SourcePageProduct } from "@/lib/import/sourceProductPage";
 import {
   sanitizeImportedFacts,
@@ -42,18 +46,68 @@ export async function importSourceProductReview(input: {
 
   const sourceUrl = normalizeUrl(sourceInput);
   assertSourceMatchesUrl(source, sourceUrl);
-
-  const product = await fetchSourcePageProduct(sourceUrl);
-  const candidate = mapSourcePageToCandidate(product);
+  const imported = await importSourceProductCandidate({
+    source,
+    sourceUrl
+  });
 
   return persistImportedGameReview({
     source,
-    candidate,
-    publicImageUrls: candidate.candidateImages.map((image) => image.url)
+    candidate: imported.candidate,
+    publicImageUrls: imported.publicImageUrls
   });
 }
 
-function mapSourcePageToCandidate(product: SourcePageProduct): NormalizedImportedCandidate {
+export async function importSourceProductCandidate(input: {
+  source: Pick<Source, "id" | "name" | "baseUrl">;
+  sourceUrl: string;
+}): Promise<{
+  candidate: NormalizedImportedCandidate;
+  publicImageUrls: string[];
+}> {
+  if (isAmazonSource(input.source)) {
+    const parsed = parseAmazonInput(input.sourceUrl);
+    if (parsed.inputType === "invalid" || !parsed.asin) {
+      throw new Error("Introduce un ASIN válido o una URL de Amazon válida.");
+    }
+
+    const canonicalUrl = buildAmazonCanonicalUrl(parsed.asin);
+    const product = await getAmazonProduct({
+      asin: parsed.asin,
+      sourceUrl: canonicalUrl
+    });
+    const candidate = mapAmazonProductToCandidate({
+      product,
+      sourceUrl: canonicalUrl
+    });
+
+    return {
+      candidate,
+      publicImageUrls: product.imageUrl ? [product.imageUrl] : []
+    };
+  }
+
+  const connector = getStoreSourceConnector(input.source);
+  if (connector) {
+    const result = await connector.importGameFromSourceUrl(input.sourceUrl);
+    const candidate = mapStoreSourceResultToImportCandidate(result);
+
+    return {
+      candidate,
+      publicImageUrls: result.imageAllowed && result.imageUrl ? [result.imageUrl] : []
+    };
+  }
+
+  const product = await fetchSourcePageProduct(input.sourceUrl);
+  const candidate = mapSourcePageToCandidate(product);
+
+  return {
+    candidate,
+    publicImageUrls: candidate.candidateImages.map((image) => image.url)
+  };
+}
+
+export function mapSourcePageToCandidate(product: SourcePageProduct): NormalizedImportedCandidate {
   const cleanTitle = sanitizeImportedTitle(product.title).trim() || "Juego importado";
   const description = cleanDescription(product.description);
   const factsResult = sanitizeImportedFacts(product.facts || {});
@@ -72,6 +126,7 @@ function mapSourcePageToCandidate(product: SourcePageProduct): NormalizedImporte
   const metadata = {
     importedFrom: product.platform,
     sourceUrlClean: product.sourceUrlClean,
+    purchaseUrl: product.sourceUrlClean,
     sourceTitleOriginal: product.title,
     cleanTitle,
     brand: cleanNoisyMetadataValue(product.brand),

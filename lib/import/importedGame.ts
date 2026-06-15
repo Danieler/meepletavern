@@ -13,6 +13,7 @@ import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { gameCandidateRepository, gameRepository } from "@/lib/editorialRepositories";
 import { buildSafeEditorialPatch } from "@/lib/games/buildSafeEditorialPatch";
+import { buildStoreOfferInputFromCandidate, upsertStoreOfferRecord } from "@/lib/gameOffers";
 import { sanitizeEditorialFields } from "@/lib/import/sanitizeEditorialFields";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
@@ -94,6 +95,16 @@ export async function persistImportedGameReview(input: {
     features: stringListFromMetadata(metadata, "features")
   });
   const candidateStatus = GameCandidateStatus.converted;
+  const initialOffer = buildStoreOfferInputFromCandidate({
+    source: input.source,
+    candidate: {
+      sourceUrl: candidate.sourceUrl,
+      title: candidate.title,
+      originalTitle: candidate.originalTitle,
+      metadata
+    }
+  });
+  const initialBuyUrl = initialOffer?.affiliateUrl || initialOffer?.purchaseUrl || initialOffer?.sourceUrl || candidate.sourceUrl;
 
   const result = await prisma.$transaction(async (transaction) => {
     const createdCandidate = await transaction.gameCandidate.create({
@@ -147,16 +158,16 @@ export async function persistImportedGameReview(input: {
         faqs: [] as Prisma.InputJsonValue,
         seoTitle: `${candidate.title} | MeepleTavern`,
         seoDescription: `${candidate.title} en MeepleTavern con datos básicos importados para su revisión editorial.`,
-        buyUrl: candidate.sourceUrl,
+        buyUrl: initialBuyUrl,
         sources: [
           {
             label: input.source.name,
-            url: candidate.sourceUrl,
+            url: initialOffer?.sourceUrl || candidate.sourceUrl,
             sourceTitle: candidate.originalTitle || candidate.title,
             sourceDescription: candidate.extractedDescription,
-            price: numberFromMetadata(metadata, "price"),
-            currency: firstString(metadata, ["currency"]),
-            priceLabel: priceLabelFromMetadata(metadata)
+            price: initialOffer?.price ?? numberFromMetadata(metadata, "price"),
+            currency: initialOffer?.currency || firstString(metadata, ["currency"]),
+            priceLabel: initialOffer ? priceLabelFromOffer(initialOffer) : priceLabelFromMetadata(metadata)
           }
         ] as Prisma.InputJsonValue,
         sourceIds: [input.source.id],
@@ -181,6 +192,15 @@ export async function persistImportedGameReview(input: {
         gameId: createdGame.id
       }
     });
+
+    if (initialOffer) {
+      await upsertStoreOfferRecord(transaction, {
+        source: input.source,
+        gameId: createdGame.id,
+        candidateId: createdCandidate.id,
+        offer: initialOffer
+      });
+    }
 
     const publicMediaAssets = publicImageUrls.length
       ? await Promise.all(
@@ -455,6 +475,17 @@ function priceLabelFromMetadata(metadata: Record<string, unknown>) {
   } catch {
     return `${price.toFixed(2)} ${currency}`;
   }
+}
+
+function priceLabelFromOffer(offer: { price: number | null; currency: string | null }) {
+  if (offer.price === null) {
+    return null;
+  }
+
+  return priceLabelFromMetadata({
+    price: offer.price,
+    currency: offer.currency || "EUR"
+  });
 }
 
 function playerLabelFromPatch(patch: Prisma.GameUpdateInput) {

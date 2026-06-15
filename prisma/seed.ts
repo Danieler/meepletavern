@@ -5,6 +5,10 @@ const prisma = new PrismaClient();
 
 const defaultSources = [
   {
+    name: "Juegos de la Mesa Redonda",
+    baseUrl: "https://juegosdelamesaredonda.com"
+  },
+  {
     name: "Dungeon Marvels",
     baseUrl: "https://dungeonmarvels.com"
   },

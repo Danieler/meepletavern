@@ -100,6 +100,73 @@ test("extractSourcePageProductFromHtml parses Dungeon Marvels product pages", ()
   assert.equal(product.facts.Idiomas, "Castellano");
 });
 
+test("extractSourcePageProductFromHtml parses Juegos de la Mesa Redonda product pages with JSON-LD", () => {
+  const html = `
+    <html>
+      <head>
+        <link rel="canonical" href="https://juegosdelamesaredonda.com/18451-codigo-secreto-regreso-a-hogwarts-8436625610409.html">
+        <title>Compra Código Secreto: Regreso a Hogwarts - Juego de Cartas - Juegos de la Mesa Redonda</title>
+        <meta property="og:site_name" content="Juegos de la Mesa Redonda">
+        <script type="application/ld+json">
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Código Secreto: Regreso a Hogwarts",
+            "description": "Un juego cooperativo de palabras ambientado en Hogwarts.",
+            "image": [
+              "https://juegosdelamesaredonda.com/55029-large_default/codigo-secreto-regreso-a-hogwarts.jpg"
+            ],
+            "brand": { "@type": "Brand", "name": "Asmodee" },
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "EUR",
+              "price": "22.95",
+              "availability": "https://schema.org/InStock",
+              "url": "https://juegosdelamesaredonda.com/18451-codigo-secreto-regreso-a-hogwarts-8436625610409.html"
+            }
+          }
+        </script>
+      </head>
+      <body>
+        <div>
+          Descripción
+          Un juego cooperativo de palabras ambientado en Hogwarts.
+          Número de jugadores:
+          2 - 8 jugadores
+          Duración aproximada:
+          30 minutos
+          Edad mínima:
+          11 años
+          Idioma:
+          Castellano
+          Marca
+          Asmodee
+        </div>
+      </body>
+    </html>
+  `;
+
+  const product = extractSourcePageProductFromHtml(
+    html,
+    "https://juegosdelamesaredonda.com/18451-codigo-secreto-regreso-a-hogwarts-8436625610409.html"
+  );
+
+  assert.equal(product.platform, "generic");
+  assert.equal(product.title, "Código Secreto: Regreso a Hogwarts");
+  assert.equal(product.description, "Un juego cooperativo de palabras ambientado en Hogwarts.");
+  assert.equal(product.imageUrl, "https://juegosdelamesaredonda.com/55029-large_default/codigo-secreto-regreso-a-hogwarts.jpg");
+  assert.equal(product.price, 22.95);
+  assert.equal(product.currency, "EUR");
+  assert.equal(product.brand, "Asmodee");
+  assert.equal(product.publisher, "Asmodee");
+  assert.equal(product.availability, "InStock");
+  assert.equal(product.sourceUrlClean, "https://juegosdelamesaredonda.com/18451-codigo-secreto-regreso-a-hogwarts-8436625610409.html");
+  assert.equal(product.facts["Número de jugadores"], "2 - 8 jugadores");
+  assert.equal(product.facts["Tiempo de juego"], "30 minutos");
+  assert.equal(product.facts["Edad mínima"], "11 años");
+  assert.equal(product.facts.Idiomas, "Castellano");
+});
+
 test("extractSourcePageProductFromHtml parses Mathom product pages", () => {
   const html = `
     <html>

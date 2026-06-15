@@ -3,12 +3,36 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gameCandidateRepository } from "@/lib/editorialRepositories";
+import { importAndEnrichGame } from "@/lib/import/masterImportService";
+import { parseMasterImportTitles } from "@/lib/import/parseMasterImportTitles";
 import { autoCompleteImportedGameWithAi, cleanupImportedCandidate, type ImportedGameResult } from "@/lib/import/importedGame";
 import { importSourceProductReview } from "@/lib/import/importSourceProduct";
 
 export type ImportSourceState = {
   error: string | null;
   result: ImportedGameResult | null;
+};
+
+export type MasterImportBatchItem = {
+  inputTitle: string;
+  importedTitle: string | null;
+  status: "ready_to_publish" | "needs_review" | "draft" | "update_existing" | "duplicate" | "failed";
+  candidateId: string | null;
+  gameId: string | null;
+  matchedSources: string[];
+  warnings: string[];
+  error: string | null;
+};
+
+export type MasterImportBatchState = {
+  error: string | null;
+  message: string | null;
+  results: MasterImportBatchItem[];
+  totals: {
+    requested: number;
+    imported: number;
+    failed: number;
+  } | null;
 };
 
 export async function importSourceAction(_state: ImportSourceState, formData: FormData): Promise<ImportSourceState> {
@@ -64,6 +88,84 @@ export async function importSourceAndOpenGameAction(formData: FormData) {
   revalidatePath("/admin/games");
   revalidatePath("/admin/candidates");
   redirect(`/admin/games/${result.gameId}?imported=1`);
+}
+
+const initialMasterImportState: MasterImportBatchState = {
+  error: null,
+  message: null,
+  results: [],
+  totals: null
+};
+
+export async function importMasterGamesAction(
+  _state: MasterImportBatchState = initialMasterImportState,
+  formData: FormData
+): Promise<MasterImportBatchState> {
+  const titlesEntry = formData.get("titles");
+  const rawInput = typeof titlesEntry === "string" ? titlesEntry : "";
+  const titles = parseMasterImportTitles(rawInput);
+
+  if (!titles.length) {
+    return {
+      error: "Escribe al menos un juego. Puedes pegar una lista con una línea por juego o un array JSON.",
+      message: null,
+      results: [],
+      totals: null
+    };
+  }
+
+  const results: MasterImportBatchItem[] = [];
+
+  for (const title of titles) {
+    try {
+      const summary = await importAndEnrichGame({
+        title,
+        mode: "search",
+        allowCrossSourceSearch: true
+      });
+
+      results.push({
+        inputTitle: title,
+        importedTitle: summary.title,
+        status: summary.status,
+        candidateId: summary.candidateId,
+        gameId: summary.gameId,
+        matchedSources: summary.matchedSources,
+        warnings: summary.warnings,
+        error: null
+      });
+    } catch (error) {
+      results.push({
+        inputTitle: title,
+        importedTitle: null,
+        status: "failed",
+        candidateId: null,
+        gameId: null,
+        matchedSources: [],
+        warnings: [],
+        error: error instanceof Error ? error.message : "No se pudo importar este juego."
+      });
+    }
+  }
+
+  revalidatePath("/admin/import");
+  revalidatePath("/admin/candidates");
+
+  const imported = results.filter((result) => result.status !== "failed").length;
+  const failed = results.length - imported;
+
+  return {
+    error: imported ? null : "No se pudo importar ningún juego del lote.",
+    message: imported
+      ? `Importación maestra completada: ${imported} juego(s) procesado(s) y ${failed} fallo(s).`
+      : null,
+    results,
+    totals: {
+      requested: titles.length,
+      imported,
+      failed
+    }
+  };
 }
 
 export async function createManualCandidateAction(formData: FormData) {

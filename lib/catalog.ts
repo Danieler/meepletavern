@@ -17,6 +17,8 @@ export type BuyLink = {
   store: string;
   url: string;
   label?: string;
+  priceLabel?: string | null;
+  availability?: string | null;
 };
 
 export type GalleryImage = {
@@ -124,6 +126,20 @@ const catalogGameSelect = {
   themes: true,
   similarGames: true,
   buyUrl: true,
+  offers: {
+    select: {
+      sourceDisplayName: true,
+      storeName: true,
+      price: true,
+      currency: true,
+      availability: true,
+      purchaseUrl: true,
+      affiliateUrl: true,
+      sourceUrl: true,
+      fetchedAt: true
+    },
+    orderBy: [{ fetchedAt: "desc" }]
+  },
   ratings: true,
   howToPlayVideos: true,
   mediaAssets: {
@@ -529,13 +545,60 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     recommendedFor: game.bestFor || "",
     notRecommendedFor: game.notFor || "",
     similarGames: game.similarGames,
-    buyLinks: game.buyUrl ? [{ store: "Comprar", url: game.buyUrl }] : [],
+    buyLinks: buildBuyLinks(game),
     galleryImages,
     howToPlayVideos: normalizeHowToPlayVideos(game.howToPlayVideos),
     addedAt: toIsoString(game.createdAt) || new Date().toISOString(),
     updatedAt: toIsoString(game.updatedAt) || new Date().toISOString(),
     publishedAt: toIsoString(game.publishedAt)
   };
+}
+
+function buildBuyLinks(game: CatalogDbGame): BuyLink[] {
+  const offers = Array.isArray(game.offers) ? game.offers : [];
+  const links = offers
+    .flatMap((offer) => {
+      const url = offer.affiliateUrl || offer.purchaseUrl || offer.sourceUrl;
+      if (!url) return [];
+
+      return [{
+        store: offer.storeName || offer.sourceDisplayName || "Tienda",
+        url,
+        priceLabel: formatOfferPrice(offer.price, offer.currency),
+        availability: offer.availability
+      }];
+    });
+
+  if (!links.length && game.buyUrl) {
+    return [{ store: "Comprar", url: game.buyUrl, priceLabel: null, availability: null }];
+  }
+
+  return dedupeBuyLinks(links);
+}
+
+function formatOfferPrice(price: number | null, currency: string | null) {
+  if (typeof price !== "number" || !Number.isFinite(price)) {
+    return null;
+  }
+
+  try {
+    return new Intl.NumberFormat("es-ES", {
+      style: "currency",
+      currency: currency || "EUR"
+    }).format(price);
+  } catch {
+    return `${price.toFixed(2)} ${currency || "EUR"}`;
+  }
+}
+
+function dedupeBuyLinks(links: BuyLink[]) {
+  const seen = new Set<string>();
+  return links.filter((link) => {
+    const key = `${link.store}:${link.url}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function toPublishedReview(review: Awaited<ReturnType<typeof getPublishedReviewBySlug>>): Review | null {

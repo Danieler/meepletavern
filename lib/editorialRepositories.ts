@@ -16,6 +16,7 @@ import {
   normalizeGamePlayers
 } from "@/lib/editorialMappers";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
+import { buildStoreOfferInputFromCandidate, upsertStoreOfferRecord } from "@/lib/gameOffers";
 import { canShowMedia } from "@/lib/mediaSafety";
 import { prisma } from "@/lib/prisma";
 import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
@@ -146,6 +147,21 @@ export const gameCandidateRepository = {
     }
 
     await prisma.$transaction(async (transaction) => {
+      await transaction.gameOffer.updateMany({
+        where: {
+          candidateId: candidate.id,
+          gameId: { not: null }
+        },
+        data: { candidateId: null }
+      });
+
+      await transaction.gameOffer.deleteMany({
+        where: {
+          candidateId: candidate.id,
+          gameId: null
+        }
+      });
+
       await transaction.mediaAsset.updateMany({
         where: {
           candidateId: candidate.id,
@@ -212,6 +228,21 @@ export const gameRepository = {
     const linkedCandidateIds = [...new Set(game.mediaAssets.map((asset) => asset.candidateId).filter((value): value is string => Boolean(value)))];
 
     await prisma.$transaction(async (transaction) => {
+      await transaction.gameOffer.updateMany({
+        where: {
+          gameId: game.id,
+          candidateId: { not: null }
+        },
+        data: { gameId: null }
+      });
+
+      await transaction.gameOffer.deleteMany({
+        where: {
+          gameId: game.id,
+          candidateId: null
+        }
+      });
+
       if (linkedCandidateIds.length) {
         await transaction.mediaAsset.updateMany({
           where: {
@@ -354,6 +385,36 @@ export async function convertCandidateToGame(candidateId: string, status: Conver
       data: gameData
     });
 
+    const candidateMetadata = normalizeCandidateMetadata(candidate.metadata);
+    const offer = buildStoreOfferInputFromCandidate({
+      source: candidate.source,
+      candidate: {
+        sourceUrl: candidate.sourceUrl,
+        title: candidate.title,
+        originalTitle: candidate.originalTitle,
+        metadata: candidateMetadata
+      }
+    });
+
+    if (offer) {
+      await upsertStoreOfferRecord(transaction, {
+        source: candidate.source,
+        gameId: createdGame.id,
+        candidateId: candidate.id,
+        offer
+      });
+    }
+
+    await transaction.gameOffer.updateMany({
+      where: {
+        candidateId: candidate.id,
+        gameId: null
+      },
+      data: {
+        gameId: createdGame.id
+      }
+    });
+
     await transaction.mediaAsset.updateMany({
       where: { candidateId: candidate.id, gameId: null },
       data: {
@@ -393,16 +454,26 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
   const publisher = extractCandidatePublisher(metadata);
   const draftContent = buildCandidateDraftContent(candidate, metadata);
   const image = selectCandidateGameImage(candidate, title);
+  const initialOffer = buildStoreOfferInputFromCandidate({
+    source: candidate.source,
+    candidate: {
+      sourceUrl: candidate.sourceUrl,
+      title: candidate.title,
+      originalTitle: candidate.originalTitle,
+      metadata
+    }
+  });
+  const initialBuyUrl = initialOffer?.affiliateUrl || initialOffer?.purchaseUrl || initialOffer?.sourceUrl || candidate.sourceUrl;
   const ratingUpdate = await buildExternalRatingUpdate(
     {
       ratings: { users: { votesCount: 0, enabled: false } },
       sources: [
         {
           label: candidate.source.name,
-          url: candidate.sourceUrl
+          url: initialOffer?.sourceUrl || candidate.sourceUrl
         }
       ],
-      buyUrl: candidate.sourceUrl,
+      buyUrl: initialBuyUrl,
       title,
       name: title
     },
@@ -454,11 +525,11 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
     ratings: ratingUpdate.ratings as Prisma.InputJsonValue,
     seoTitle: draftContent.seoTitle,
     seoDescription: draftContent.seoDescription,
-    buyUrl: candidate.sourceUrl,
+    buyUrl: initialBuyUrl,
     sources: [
       {
         label: candidate.source.name,
-        url: candidate.sourceUrl
+        url: initialOffer?.sourceUrl || candidate.sourceUrl
       }
     ] as unknown as Prisma.InputJsonValue,
     sourceIds: [candidate.sourceId],

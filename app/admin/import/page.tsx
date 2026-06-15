@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { MasterImportForm } from "@/components/MasterImportForm";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SourceImportForm } from "@/components/SourceImportForm";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
@@ -23,8 +24,8 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
     return (
       <div className="space-y-6">
         <SectionHeader
-          title="Importación manual"
-          description="Importa juegos desde cualquier fuente registrada y revisa después la ficha en el admin."
+          title="Importación de juegos"
+          description="Lanza importaciones por nombre o por URL y revisa después los candidatos en el admin."
         />
         {!sources.length ? (
           <div className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
@@ -34,6 +35,7 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
             </Link>
           </div>
         ) : null}
+        <MasterImportForm disabled={!sources.length} />
         <SourceImportForm
           sources={sources.map((source) => ({
             id: source.id,

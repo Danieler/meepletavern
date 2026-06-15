@@ -11,13 +11,19 @@ export function BuyLinks({ links }: { links: BuyLink[] }) {
       {links.map((link) => (
         <a
           key={`${link.store}-${link.url}`}
-          className="button-secondary justify-between"
+          className="button-secondary min-h-12 justify-between gap-4"
           href={link.url}
           rel="nofollow sponsored noopener noreferrer"
           target="_blank"
         >
-          <span>{link.store}</span>
-          <BrandIcon name="tag" size={18} />
+          <span className="min-w-0">
+            <span className="block truncate">{link.store}</span>
+            {link.availability ? <span className="block text-xs font-semibold opacity-70">{link.availability}</span> : null}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-2">
+            {link.priceLabel ? <span>{link.priceLabel}</span> : null}
+            <BrandIcon name="tag" size={18} />
+          </span>
         </a>
       ))}
     </div>

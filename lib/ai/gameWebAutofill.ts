@@ -9,7 +9,6 @@ import { calculateExternalRating } from "@/lib/ratings/calculateExternalRating";
 import { buildExternalSignalFromSearchResult } from "@/lib/ratings/externalSignals";
 import { buildGameRatingsPatch } from "@/lib/ratings/gameRatings";
 import { mergeHowToPlayVideoSuggestions } from "@/lib/videos/howToPlayVideos";
-import { searchHowToPlayVideosWithTavily } from "@/lib/videos/howToPlayVideoSearch";
 
 const DEFAULT_BEDROCK_MODEL = process.env.BEDROCK_MODEL_ID?.trim() || "amazon.nova-micro-v1:0";
 const PROPOSAL_PROVIDER = "tavily_nova_micro";
@@ -72,7 +71,7 @@ const aiProposalSchema = z.object({
 export type AiWebProposal = z.infer<typeof aiProposalSchema>;
 type TavilyResult = z.infer<typeof tavilyResultSchema>;
 type AiWebProposalField = Exclude<keyof AiWebProposal, "externalSources" | "needsHumanReview" | "notes">;
-type PromptSource = {
+export type AiPromptSource = {
   kind: "imported_source" | "direct_source" | "web_search";
   title: string | null;
   url: string | null;
@@ -80,6 +79,7 @@ type PromptSource = {
   priority: number;
   score: number | null;
 };
+type PromptSource = AiPromptSource;
 type ImportedCandidateContext = {
   title: string;
   sourceUrl: string;
@@ -187,8 +187,9 @@ export async function searchBoardGameWithTavily(game: Game) {
 export async function extractBoardGameFieldsWithNova(input: {
   game: Game;
   tavilyResults: TavilyResult[];
+  extraSources?: AiPromptSource[];
 }) {
-  const sourceContext = await buildPromptSourceContext(input.game, input.tavilyResults);
+  const sourceContext = await buildPromptSourceContext(input.game, input.tavilyResults, input.extraSources || []);
   const fallbackProposal = buildFallbackProposal(input.game, input.tavilyResults);
   const region = process.env.AWS_REGION?.trim();
   if (!region) {
@@ -570,6 +571,7 @@ export async function autoApplyGameWebAutofill(gameId: string) {
 
 async function safeSearchHowToPlayVideosForAutoApply(game: Game) {
   try {
+    const { searchHowToPlayVideosWithTavily } = await import("@/lib/videos/howToPlayVideoSearch");
     return await searchHowToPlayVideosWithTavily(game);
   } catch {
     return {
@@ -650,9 +652,9 @@ export function getMissingAiWebFields(game: Game) {
   ].filter(Boolean) as string[];
 }
 
-async function buildPromptSourceContext(game: Game, tavilyResults: TavilyResult[]) {
+async function buildPromptSourceContext(game: Game, tavilyResults: TavilyResult[], extraSources: AiPromptSource[] = []) {
   const importedCandidate = await findImportedCandidateContext(game);
-  const sources = buildPromptSources(game, tavilyResults, importedCandidate);
+  const sources = buildPromptSources(game, tavilyResults, importedCandidate, extraSources);
   const preferredCopySource =
     sources.find((source) => source.kind === "imported_source" && source.content) ||
     sources.find((source) => source.kind === "direct_source" && source.content) ||
@@ -717,9 +719,10 @@ async function findImportedCandidateContext(game: Game): Promise<ImportedCandida
 function buildPromptSources(
   game: Game,
   tavilyResults: TavilyResult[],
-  importedCandidate: ImportedCandidateContext | null
+  importedCandidate: ImportedCandidateContext | null,
+  extraSources: AiPromptSource[] = []
 ): PromptSource[] {
-  const sources: PromptSource[] = [];
+  const sources: PromptSource[] = [...extraSources];
 
   if (importedCandidate) {
     const metadata = readJsonObject(importedCandidate.metadata);
