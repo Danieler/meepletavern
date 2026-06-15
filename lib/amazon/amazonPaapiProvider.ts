@@ -49,12 +49,15 @@ export async function searchAmazonProducts(title: string): Promise<AmazonProduct
     return [];
   }
 
+  const queries = buildAmazonSearchQueries(query);
   const config = readConfig();
   if (config) {
-    return searchAmazonProductsFromPaapi(query, config);
+    const paapiResults = await searchAmazonProductsFromPaapiQueries(queries, config);
+    const pageResults = await searchAmazonProductsFromPageQueries(queries);
+    return mergeAmazonSearchResults(paapiResults, pageResults);
   }
 
-  return searchAmazonProductsFromPage(query);
+  return searchAmazonProductsFromPageQueries(queries);
 }
 
 async function fetchAmazonProductFromPaapi(asin: string, config: AmazonPaapiConfig): Promise<AmazonProduct> {
@@ -89,6 +92,25 @@ async function fetchAmazonProductFromPaapi(asin: string, config: AmazonPaapiConf
   return mapItemToProduct(item, asin);
 }
 
+async function searchAmazonProductsFromPaapiQueries(queries: string[], config: AmazonPaapiConfig): Promise<AmazonProduct[]> {
+  const results: AmazonProduct[] = [];
+  const seen = new Set<string>();
+
+  for (const query of queries) {
+    const items = await searchAmazonProductsFromPaapi(query, config);
+    for (const product of items) {
+      if (seen.has(product.asin)) {
+        continue;
+      }
+
+      seen.add(product.asin);
+      results.push(product);
+    }
+  }
+
+  return results;
+}
+
 async function searchAmazonProductsFromPaapi(title: string, config: AmazonPaapiConfig): Promise<AmazonProduct[]> {
   const body = JSON.stringify({
     Keywords: title,
@@ -96,7 +118,7 @@ async function searchAmazonProductsFromPaapi(title: string, config: AmazonPaapiC
     PartnerTag: config.partnerTag,
     PartnerType: "Associates",
     Marketplace: config.marketplace,
-    ItemCount: 3,
+    ItemCount: 10,
     Resources: [
       "ItemInfo.Title",
       "ItemInfo.ByLineInfo",
@@ -114,6 +136,25 @@ async function searchAmazonProductsFromPaapi(title: string, config: AmazonPaapiC
   });
   const items = payload?.SearchResult?.Items || [];
   return items.map((item) => mapItemToProduct(item, item.ASIN || "UNKNOWN")).filter((product) => product.asin !== "UNKNOWN");
+}
+
+async function searchAmazonProductsFromPageQueries(queries: string[]): Promise<AmazonProduct[]> {
+  const results: AmazonProduct[] = [];
+  const seen = new Set<string>();
+
+  for (const query of queries) {
+    const items = await searchAmazonProductsFromPage(query);
+    for (const product of items) {
+      if (seen.has(product.asin)) {
+        continue;
+      }
+
+      seen.add(product.asin);
+      results.push(product);
+    }
+  }
+
+  return results;
 }
 
 async function searchAmazonProductsFromPage(title: string): Promise<AmazonProduct[]> {
@@ -139,6 +180,27 @@ async function searchAmazonProductsFromPage(title: string): Promise<AmazonProduc
   }
 
   return extractAmazonSearchProducts(html).slice(0, 10);
+}
+
+function buildAmazonSearchQueries(title: string) {
+  const cleaned = title.trim();
+  return [...new Set([`${cleaned} juego de mesa`, `${cleaned} board game`, cleaned].map((value) => value.trim()).filter(Boolean))];
+}
+
+function mergeAmazonSearchResults(primary: AmazonProduct[], secondary: AmazonProduct[]) {
+  const seen = new Set<string>();
+  const merged: AmazonProduct[] = [];
+
+  for (const product of [...primary, ...secondary]) {
+    if (seen.has(product.asin)) {
+      continue;
+    }
+
+    seen.add(product.asin);
+    merged.push(product);
+  }
+
+  return merged;
 }
 
 async function fetchAmazonProductFromPage(input: { asin: string; sourceUrl?: string }): Promise<AmazonProduct> {
