@@ -21,6 +21,7 @@ import { getGameBySlug, getRelatedGames, termHref, type CatalogGame } from "@/li
 import { getGameComments } from "@/lib/gameComments";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
+import { toYouTubeEmbedUrl } from "@/lib/videos/youtube";
 
 type GamePageProps = {
   params: Promise<{
@@ -184,6 +185,8 @@ export default async function GamePage({ params }: GamePageProps) {
                 </section>
               ) : null}
 
+              <HowToPlayVideos game={game} />
+
               <Suspense fallback={<CommentsFallback />}>
                 <GameCommentsPanel gameId={game.id} gameSlug={game.slug} />
               </Suspense>
@@ -248,6 +251,62 @@ function CommentsFallback() {
     <section id="comentarios" className="tavern-panel p-5 sm:p-6">
       <p className="tavern-eyebrow">Comentarios</p>
       <div className="mt-4 h-24 animate-pulse rounded-md bg-white/60" />
+    </section>
+  );
+}
+
+function HowToPlayVideos({ game }: { game: CatalogGame }) {
+  const publicVideos = game.howToPlayVideos.filter((video) => video.url && video.title);
+  if (!publicVideos.length) {
+    return null;
+  }
+
+  const primaryVideo = publicVideos.find((video) => video.isPrimary) || publicVideos[0];
+  const secondaryVideos = publicVideos
+    .filter((video) => video.url !== primaryVideo.url)
+    .slice(0, 2);
+  const embedUrl = toYouTubeEmbedUrl(primaryVideo.url);
+
+  return (
+    <section className="tavern-panel p-5 sm:p-6">
+      <SectionHeader
+        eyebrow="Tutorial"
+        title="Cómo se juega"
+        description="Vídeos seleccionados para aprender la partida sin salir de la ficha."
+      />
+      {embedUrl ? (
+        <div className="overflow-hidden rounded-md border border-walnut/15 bg-ink shadow-soft">
+          <iframe
+            className="aspect-video w-full"
+            src={embedUrl}
+            title={primaryVideo.title}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+        </div>
+      ) : (
+        <a className="button-secondary w-fit" href={primaryVideo.url} target="_blank" rel="noreferrer">
+          Ver vídeo: {primaryVideo.title}
+        </a>
+      )}
+      <h3 className="mt-4 font-display text-xl font-bold text-wood">{primaryVideo.title}</h3>
+      {secondaryVideos.length ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {secondaryVideos.map((video) => (
+            <a
+              key={video.url}
+              className="rounded-md border border-walnut/15 bg-white/70 p-4 text-sm font-semibold leading-6 text-walnut transition hover:border-ember hover:text-wood"
+              href={video.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {video.title}
+            </a>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

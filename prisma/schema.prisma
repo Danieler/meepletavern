@@ -115,6 +115,7 @@ model Game {
   seoDescription        String?
   buyUrl                String?
   ratings               Json            @default("{}")
+  howToPlayVideos       Json            @default("[]")
   sources               Json?
   sourceIds             String[]        @default([])
   primaryImageId        String?

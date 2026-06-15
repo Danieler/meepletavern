@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { calculateExternalRating } from "@/lib/ratings/calculateExternalRating";
 import { buildExternalSignalFromSearchResult } from "@/lib/ratings/externalSignals";
 import { buildGameRatingsPatch } from "@/lib/ratings/gameRatings";
+import { mergeHowToPlayVideoSuggestions } from "@/lib/videos/howToPlayVideos";
+import { searchHowToPlayVideosWithTavily } from "@/lib/videos/howToPlayVideoSearch";
 
 const DEFAULT_BEDROCK_MODEL = process.env.BEDROCK_MODEL_ID?.trim() || "amazon.nova-micro-v1:0";
 const PROPOSAL_PROVIDER = "tavily_nova_micro";
@@ -521,9 +523,23 @@ export async function autoApplyGameWebAutofill(gameId: string) {
     throw new Error("No existe ese juego.");
   }
 
+  const videoSearch = await safeSearchHowToPlayVideosForAutoApply(game);
+  if (videoSearch.videos.length) {
+    await prisma.game.update({
+      where: { id: gameId },
+      data: {
+        howToPlayVideos: mergeHowToPlayVideoSuggestions(game.howToPlayVideos, videoSearch.videos) as unknown as Prisma.InputJsonValue
+      }
+    });
+  }
+
   const fields = getAutoApplyAiWebFields(game);
   if (!fields.length) {
-    return { appliedFields: [], skipped: true, warnings: [] };
+    return {
+      appliedFields: [],
+      skipped: true,
+      warnings: videoSearch.warning ? [videoSearch.warning] : []
+    };
   }
 
   const search = await searchBoardGameWithTavily(game);
@@ -548,8 +564,19 @@ export async function autoApplyGameWebAutofill(gameId: string) {
   return {
     appliedFields,
     skipped: false,
-    warnings: extracted.notes
+    warnings: videoSearch.warning ? [...extracted.notes, videoSearch.warning] : extracted.notes
   };
+}
+
+async function safeSearchHowToPlayVideosForAutoApply(game: Game) {
+  try {
+    return await searchHowToPlayVideosWithTavily(game);
+  } catch {
+    return {
+      videos: [],
+      warning: "No se pudieron buscar vídeos de cómo se juega"
+    };
+  }
 }
 
 export async function updateGameExternalRatingFromWebSearch(game: Game, tavilyResults: TavilyResult[]) {

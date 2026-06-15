@@ -11,6 +11,7 @@ import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { slugify } from "@/lib/slug";
 import { getTaxonomyTermNames } from "@/lib/taxonomy";
+import { normalizeHowToPlayVideos, type HowToPlayVideo } from "@/lib/videos/howToPlayVideos";
 
 export type BuyLink = {
   store: string;
@@ -51,6 +52,7 @@ export type CatalogGame = GameImageFields & {
   similarGames: string[];
   buyLinks: BuyLink[];
   galleryImages: GalleryImage[];
+  howToPlayVideos: HowToPlayVideo[];
   addedAt: string;
   updatedAt: string;
   publishedAt: string | null;
@@ -123,6 +125,7 @@ const catalogGameSelect = {
   similarGames: true,
   buyUrl: true,
   ratings: true,
+  howToPlayVideos: true,
   mediaAssets: {
     select: {
       id: true,
@@ -528,6 +531,7 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     similarGames: game.similarGames,
     buyLinks: game.buyUrl ? [{ store: "Comprar", url: game.buyUrl }] : [],
     galleryImages,
+    howToPlayVideos: normalizeHowToPlayVideos(game.howToPlayVideos),
     addedAt: toIsoString(game.createdAt) || new Date().toISOString(),
     updatedAt: toIsoString(game.updatedAt) || new Date().toISOString(),
     publishedAt: toIsoString(game.publishedAt)

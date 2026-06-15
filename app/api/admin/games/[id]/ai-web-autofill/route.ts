@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import {
   applyGameImportProposalFields,
@@ -9,6 +11,11 @@ import {
   rejectGameImportProposal
 } from "@/lib/ai/gameWebAutofill";
 import { prisma } from "@/lib/prisma";
+import {
+  mergeHowToPlayVideoSuggestions,
+  sanitizeAdminHowToPlayVideos
+} from "@/lib/videos/howToPlayVideos";
+import { searchHowToPlayVideosWithTavily } from "@/lib/videos/howToPlayVideoSearch";
 
 type RouteContext = {
   params: Promise<{
@@ -29,13 +36,46 @@ export async function POST(request: Request, context: RouteContext) {
 
     const pending = !body?.regenerate ? await getPendingGameImportProposal(id) : null;
     if (pending) {
-      return jsonNoStore({ proposal: pending, reused: true });
+      const videoSearch = await safeSearchHowToPlayVideos(game);
+      const howToPlayVideos = mergeHowToPlayVideoSuggestions(game.howToPlayVideos, videoSearch.videos);
+      const updatedGame = await prisma.game.update({
+        where: { id },
+        data: {
+          howToPlayVideos: howToPlayVideos as unknown as Prisma.InputJsonValue
+        },
+        select: {
+          slug: true,
+          howToPlayVideos: true
+        }
+      });
+      revalidateGame(updatedGame.slug);
+
+      return jsonNoStore({
+        proposal: pending,
+        reused: true,
+        howToPlayVideos: updatedGame.howToPlayVideos,
+        videoWarning: videoSearch.warning
+      });
     }
 
-    const search = await searchBoardGameWithTavily(game);
+    const [search, videoSearch] = await Promise.all([
+      searchBoardGameWithTavily(game),
+      safeSearchHowToPlayVideos(game)
+    ]);
     const extracted = await extractBoardGameFieldsWithNova({
       game,
       tavilyResults: search.results
+    });
+    const howToPlayVideos = mergeHowToPlayVideoSuggestions(game.howToPlayVideos, videoSearch.videos);
+    const updatedGame = await prisma.game.update({
+      where: { id },
+      data: {
+        howToPlayVideos: howToPlayVideos as unknown as Prisma.InputJsonValue
+      },
+      select: {
+        slug: true,
+        howToPlayVideos: true
+      }
     });
     const proposal = await saveGameImportProposal({
       gameId: id,
@@ -44,7 +84,13 @@ export async function POST(request: Request, context: RouteContext) {
       extractedFields: extracted
     });
 
-    return jsonNoStore({ proposal: serializeProposal(proposal) });
+    revalidateGame(updatedGame.slug);
+
+    return jsonNoStore({
+      proposal: serializeProposal(proposal),
+      howToPlayVideos: updatedGame.howToPlayVideos,
+      videoWarning: videoSearch.warning
+    });
   } catch (error) {
     return jsonNoStore(
       { error: error instanceof Error ? error.message : "No se pudo completar con IA web." },
@@ -64,6 +110,31 @@ export async function PATCH(request: Request, context: RouteContext) {
       return jsonNoStore({ ok: true });
     }
 
+    if (body.action === "update-videos") {
+      const game = await prisma.game.findUnique({
+        where: { id },
+        select: { slug: true }
+      });
+
+      if (!game) {
+        return jsonNoStore({ error: "No existe ese juego." }, { status: 404 });
+      }
+
+      const videos = sanitizeAdminHowToPlayVideos(body.videos);
+      const updatedGame = await prisma.game.update({
+        where: { id },
+        data: {
+          howToPlayVideos: videos as unknown as Prisma.InputJsonValue
+        },
+        select: {
+          howToPlayVideos: true
+        }
+      });
+      revalidateGame(game.slug);
+
+      return jsonNoStore({ ok: true, howToPlayVideos: updatedGame.howToPlayVideos });
+    }
+
     const appliedFields = await applyGameImportProposalFields({
       gameId: id,
       proposalId: body.proposalId,
@@ -77,5 +148,28 @@ export async function PATCH(request: Request, context: RouteContext) {
       { error: error instanceof Error ? error.message : "No se pudo aplicar la propuesta." },
       { status: 400 }
     );
+  }
+}
+
+function revalidateGame(slug: string) {
+  revalidateTag("public-games");
+  revalidatePath("/juegos");
+  revalidatePath(`/juegos/${slug}`);
+}
+
+async function safeSearchHowToPlayVideos(game: Awaited<ReturnType<typeof prisma.game.findUnique>>) {
+  if (!game) {
+    return { videos: [], warning: null };
+  }
+
+  try {
+    return await searchHowToPlayVideosWithTavily(game);
+  } catch (error) {
+    return {
+      videos: [],
+      warning: error instanceof Error && /TAVILY/i.test(error.message)
+        ? "Tavily no configurado para búsqueda de vídeos"
+        : "No se pudieron buscar vídeos de cómo se juega"
+    };
   }
 }

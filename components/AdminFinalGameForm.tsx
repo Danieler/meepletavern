@@ -16,6 +16,8 @@ import { RatingBadge } from "@/components/RatingBadge";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
+import { normalizeHowToPlayVideos, type HowToPlayVideo, type HowToPlayVideoType } from "@/lib/videos/howToPlayVideos";
+import { isYouTubeUrl } from "@/lib/videos/youtube";
 
 type AdminFinalGameFormProps = {
   game: Game;
@@ -77,6 +79,8 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
   const [aiWebStatus, setAiWebStatus] = useState<string | null>(null);
   const [isCompletingWithAiWeb, setIsCompletingWithAiWeb] = useState(false);
   const [isApplyingAiWeb, setIsApplyingAiWeb] = useState(false);
+  const [howToPlayVideos, setHowToPlayVideos] = useState<HowToPlayVideo[]>(() => normalizeHowToPlayVideos(game.howToPlayVideos));
+  const [isSavingVideos, setIsSavingVideos] = useState(false);
   const [selectedAiWebFields, setSelectedAiWebFields] = useState<string[]>([]);
   const ratings = useMemo(() => normalizeGameRatings(game.ratings), [game.ratings]);
   const externalRating = ratings.external;
@@ -102,7 +106,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
     () => resolvePrimaryImagePreviewUrl(draftValues.primaryImageId, game, mediaAssets),
     [draftValues.primaryImageId, game, mediaAssets]
   );
-  const isBusy = isSaving || isPublishing || isCompletingWithAiWeb || isApplyingAiWeb;
+  const isBusy = isSaving || isPublishing || isCompletingWithAiWeb || isApplyingAiWeb || isSavingVideos;
 
   useEffect(() => {
     setDraftValues(initialDraftValues);
@@ -111,6 +115,10 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
   useEffect(() => {
     setAiWebProposal(initialAiWebProposal);
   }, [initialAiWebProposal]);
+
+  useEffect(() => {
+    setHowToPlayVideos(normalizeHowToPlayVideos(game.howToPlayVideos));
+  }, [game.howToPlayVideos]);
 
   useEffect(() => {
     if (!aiWebProposal) {
@@ -154,6 +162,12 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
       }
 
       const proposal = payload.proposal || null;
+      if (Array.isArray(payload.howToPlayVideos)) {
+        setHowToPlayVideos(normalizeHowToPlayVideos(payload.howToPlayVideos));
+      }
+      if (payload.videoWarning) {
+        setAiWebStatus(payload.videoWarning);
+      }
       setAiWebProposal(proposal);
       if (!proposal) {
         setAiWebError("La IA no devolvió una propuesta usable.");
@@ -253,6 +267,87 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
     } finally {
       setIsApplyingAiWeb(false);
     }
+  }
+
+  async function saveHowToPlayVideos(nextVideos: HowToPlayVideo[]) {
+    const sanitized = normalizeHowToPlayVideos(nextVideos);
+    if (sanitized.some((video) => video.reviewed && !isYouTubeUrl(video.url))) {
+      setAiWebError("Solo se pueden revisar vídeos con URL válida de YouTube.");
+      return;
+    }
+
+    setIsSavingVideos(true);
+    setAiWebError(null);
+    setAiWebStatus("Guardando vídeos de cómo se juega...");
+
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}/ai-web-autofill`, {
+        method: "PATCH",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({
+          action: "update-videos",
+          videos: sanitized
+        })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setAiWebError(payload.error || "No se pudieron guardar los vídeos.");
+        return;
+      }
+
+      setHowToPlayVideos(normalizeHowToPlayVideos(payload.howToPlayVideos));
+      setAiWebStatus("Vídeos actualizados.");
+      router.refresh();
+    } catch (error) {
+      setAiWebError(error instanceof Error ? error.message : "No se pudieron guardar los vídeos.");
+    } finally {
+      setIsSavingVideos(false);
+    }
+  }
+
+  function updateVideo(index: number, patch: Partial<HowToPlayVideo>) {
+    const nextVideos = howToPlayVideos.map((video, currentIndex) =>
+      currentIndex === index ? { ...video, ...patch } : video
+    );
+    const normalized = patch.isPrimary
+      ? nextVideos.map((video, currentIndex) => ({ ...video, isPrimary: currentIndex === index }))
+      : nextVideos;
+    setHowToPlayVideos(normalized);
+
+    if (normalized.some((video) => !video.title.trim() || !video.url.trim())) {
+      return;
+    }
+
+    void saveHowToPlayVideos(normalized);
+  }
+
+  function deleteVideo(index: number) {
+    const nextVideos = howToPlayVideos.filter((_, currentIndex) => currentIndex !== index);
+    setHowToPlayVideos(nextVideos);
+    void saveHowToPlayVideos(nextVideos);
+  }
+
+  function addManualVideo() {
+    if (howToPlayVideos.length >= 3) {
+      setAiWebError("Solo puedes guardar hasta 3 vídeos.");
+      return;
+    }
+
+    setHowToPlayVideos((current) => [
+      ...current,
+      {
+        title: "Vídeo de cómo se juega",
+        url: "",
+        source: "YouTube",
+        confidence: "medium",
+        score: 0,
+        reason: "Añadido manualmente",
+        reviewed: false,
+        isPrimary: current.length === 0,
+        type: "tutorial"
+      }
+    ]);
   }
 
   function updateDraftField<K extends keyof EditorDraftValues>(key: K, value: EditorDraftValues[K]) {
@@ -446,6 +541,107 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           </div>
         </section>
       ) : null}
+
+      <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-ember">Sugerencias revisables</p>
+            <h2 className="mt-1 text-xl font-bold text-ink">Vídeos de cómo se juega</h2>
+            <p className="mt-2 text-sm leading-6 text-ink/60">
+              Puedes usar los encontrados por IA web o añadir uno manualmente. Solo los marcados como revisados aparecerán en la ficha pública. Máximo 3 vídeos.
+            </p>
+          </div>
+          <button className="button-secondary shrink-0" type="button" onClick={addManualVideo} disabled={isBusy || howToPlayVideos.length >= 3}>
+            Añadir vídeo manual
+          </button>
+        </div>
+        {howToPlayVideos.length ? (
+          <div className="mt-5 space-y-4">
+            {howToPlayVideos.map((video, index) => (
+              <article key={`${video.url}-${index}`} className="grid gap-3 rounded-md border border-ink/10 bg-parchment/40 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <input
+                      className="field-input"
+                      value={video.title}
+                      onChange={(event) =>
+                        setHowToPlayVideos((current) =>
+                          current.map((item, currentIndex) => currentIndex === index ? { ...item, title: event.target.value } : item)
+                        )
+                      }
+                      onBlur={(event) => updateVideo(index, { title: event.target.value })}
+                      aria-label="Título del vídeo"
+                    />
+                    <input
+                      className="field-input mt-2"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={video.url}
+                      onChange={(event) =>
+                        setHowToPlayVideos((current) =>
+                          current.map((item, currentIndex) => currentIndex === index ? { ...item, url: event.target.value } : item)
+                        )
+                      }
+                      onBlur={(event) => updateVideo(index, { url: event.target.value })}
+                      aria-label="URL del vídeo"
+                    />
+                  </div>
+                  <button className="button-danger shrink-0" type="button" onClick={() => deleteVideo(index)} disabled={isBusy}>
+                    Eliminar vídeo
+                  </button>
+                </div>
+                <div className="grid gap-3 text-sm md:grid-cols-2 lg:grid-cols-4">
+                  <label className="flex items-center gap-2 font-semibold text-ink/70">
+                    <input
+                      type="checkbox"
+                      checked={video.reviewed}
+                      onChange={(event) => updateVideo(index, { reviewed: event.target.checked })}
+                      disabled={isBusy}
+                    />
+                    Revisado
+                  </label>
+                  <label className="flex items-center gap-2 font-semibold text-ink/70">
+                    <input
+                      type="checkbox"
+                      checked={video.isPrimary}
+                      onChange={(event) => updateVideo(index, { isPrimary: event.target.checked })}
+                      disabled={isBusy}
+                    />
+                    Principal
+                  </label>
+                  <label>
+                    <span className="field-label">Tipo</span>
+                    <select
+                      className="field-input mt-1"
+                      value={video.type}
+                      onChange={(event) => updateVideo(index, { type: event.target.value as HowToPlayVideoType })}
+                      disabled={isBusy}
+                    >
+                      <option value="tutorial">Tutorial</option>
+                      <option value="rules">Reglas</option>
+                      <option value="playthrough">Partida explicada</option>
+                      <option value="review_with_rules">Reseña con reglas</option>
+                    </select>
+                  </label>
+                  <div className="rounded-md bg-white/70 p-3 font-semibold text-ink/65">
+                    <p>Score: {video.score}</p>
+                    <p>Confianza: {video.confidence}</p>
+                    <p>Fuente: {video.source || "YouTube"}</p>
+                  </div>
+                </div>
+                {video.reason ? (
+                  <p className="rounded-md bg-white/70 px-3 py-2 text-sm font-semibold leading-6 text-ink/60">
+                    {video.reason}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-md border border-dashed border-ink/15 bg-parchment/40 p-5 text-sm font-semibold leading-6 text-ink/60">
+            Todavía no hay vídeos. Pulsa “Completar con IA web” para buscar sugerencias o añade una URL de YouTube manualmente.
+          </div>
+        )}
+      </section>
 
       <form id="final-game-form" className="space-y-6">
         <input type="hidden" name="id" value={game.id} />

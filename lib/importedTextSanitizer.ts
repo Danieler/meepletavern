@@ -47,6 +47,7 @@ export function sanitizeImportedTitle(title: string) {
 
   cleaned = cleaned
     .replace(/^Hasbro\s+Gaming\s*,\s*/i, "")
+    .replace(/\s*(?:[+·|/-]\s*)?promo(?:ci[oó]n)?\s*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
 
