@@ -565,7 +565,7 @@ function buildBuyLinks(game: CatalogDbGame): BuyLink[] {
         store: offer.storeName || offer.sourceDisplayName || "Tienda",
         url,
         priceLabel: formatOfferPrice(offer.price, offer.currency),
-        availability: offer.availability
+        availability: formatBuyLinkAvailability(offer.availability)
       }];
     });
 
@@ -589,6 +589,27 @@ function formatOfferPrice(price: number | null, currency: string | null) {
   } catch {
     return `${price.toFixed(2)} ${currency || "EUR"}`;
   }
+}
+
+function formatBuyLinkAvailability(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+  if (/(agotado|sin stock|no disponible|unavailable|out of stock)/.test(normalized)) {
+    return "No disponible";
+  }
+
+  if (/(disponible|en stock|stock|anadir al carrito|preventa|reservar)/.test(normalized)) {
+    return "Disponible";
+  }
+
+  return null;
 }
 
 function dedupeBuyLinks(links: BuyLink[]) {
