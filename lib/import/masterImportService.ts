@@ -2,12 +2,17 @@ import {
   GameImageStatus,
   GameCandidateStatus,
   GameStatus,
+  MediaAssetStatus,
+  MediaAssetType,
+  MediaAssetUsage,
   Prisma,
   type Game,
   type GameCandidate,
   type GameOffer,
   type Source
 } from "@prisma/client";
+import { buildEditorialAutofill } from "@/lib/editorialAutofill";
+import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
 import type { CandidateImage } from "@/lib/editorialTypes";
 import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 import { buildStoreOfferInputFromCandidate, getBestOffer, type NormalizedStoreOffer, upsertStoreOfferRecordDetailed } from "@/lib/gameOffers";
@@ -15,6 +20,7 @@ import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/edit
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 import { sourceRepository } from "@/lib/editorialRepositories";
+import { validateBeforePublish } from "@/lib/validateBeforePublish";
 import type { AiPromptSource, AiWebProposal } from "@/lib/ai/gameWebAutofill";
 import { importSourceProductCandidate } from "@/lib/import/importSourceProduct";
 import type { NormalizedImportedCandidate } from "@/lib/import/importedGame";
@@ -101,6 +107,9 @@ type PersistenceResult = {
   candidateId: string;
   gameId: string | null;
   action: "created" | "updated";
+  status?: MasterImportStatus;
+  missingFields?: string[];
+  warnings?: string[];
 };
 
 type DuplicateMatch = {
@@ -338,7 +347,7 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
       hasAllowedImage: resolved.candidate.candidateImages.length > 0,
       duplicateCount: possibleDuplicates.length
     });
-    const status = deriveMasterImportStatus(qualityScore, duplicates);
+    const prePersistStatus = deriveMasterImportStatus(qualityScore, duplicates);
 
     let persisted: PersistenceResult | null = null;
     const persistedOffers: Array<{ action: "created" | "updated"; offer: GameOffer | NormalizedStoreOffer }> = [];
@@ -391,7 +400,7 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
       gameId: persisted?.gameId || duplicates.exactCandidate?.gameId || duplicates.exactGame?.id || null,
       title: resolved.candidate.title,
       normalizedTitle: slugify(resolved.candidate.title),
-      status,
+      status: persisted?.status || prePersistStatus,
       qualityScore,
       matchedSources: resolved.matchedSources,
       failedSources,
@@ -410,10 +419,10 @@ export function createMasterImportService(deps: MasterImporterDeps = createDefau
             sourceUrl: bestOffer.sourceUrl
           }
         : null,
-      missingFields: resolved.missingFields,
-      warnings: dedupeStrings(warnings),
+      missingFields: persisted?.missingFields || resolved.missingFields,
+      warnings: dedupeStrings([...warnings, ...(persisted?.warnings || [])]),
       possibleDuplicates,
-      suggestedAction: status === "update_existing" || status === "duplicate" ? "update_existing" : possibleDuplicates.length ? "inspect_duplicates" : "review_candidate",
+      suggestedAction: (persisted?.status || prePersistStatus) === "update_existing" || (persisted?.status || prePersistStatus) === "duplicate" ? "update_existing" : possibleDuplicates.length ? "inspect_duplicates" : "review_candidate",
       sourceDiagnostics: diagnostics,
       sourcesWithOffers: dedupeStrings(
         selectedGroup
@@ -768,6 +777,37 @@ async function buildGameCreateData(resolved: ResolvedCandidateData): Promise<Pri
   const minAge = readPositiveNumber(metadata.minAge);
   const playtime = formatPlaytimeLabel(readPositiveNumber(metadata.minPlayTime), readPositiveNumber(metadata.maxPlayTime));
   const sourceIds = buildGameSourceIds(metadata, resolved.primarySource.id);
+  const categories = normalizeStringArrayValue(metadata.categories || metadata.categoryHints);
+  const mechanics = normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints);
+  const themes = normalizeStringArrayValue(metadata.themes || metadata.themeHints);
+  const seedCopy = buildEditorialSeedCopy({
+    title,
+    originalTitle: resolved.candidate.originalTitle,
+    publisher: readString(metadata, ["publisher", "brand", "manufacturer"]),
+    playersLabel: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null,
+    playtime,
+    minAge,
+    categories,
+    mechanics,
+    themes,
+    features: normalizeStringArrayValue(metadata.features),
+    descriptionHint: resolved.candidate.extractedDescription
+  });
+  const description = normalizeStringValue(metadata.description) || resolved.candidate.extractedDescription || seedCopy.description;
+  const shortDescription = normalizeStringValue(metadata.shortDescription) || seedCopy.shortDescription;
+  const autofill = buildEditorialAutofill({
+    title,
+    publisher: readString(metadata, ["publisher", "brand", "manufacturer"]),
+    description,
+    shortDescription,
+    quickVerdict: seedCopy.quickVerdict,
+    categories,
+    mechanics,
+    themes,
+    players: { min: minPlayers, max: maxPlayers },
+    playtime,
+    minAge
+  });
 
   return {
     name: title,
@@ -782,13 +822,23 @@ async function buildGameCreateData(resolved: ResolvedCandidateData): Promise<Pri
     playtime,
     minAge,
     age: minAge ? `${minAge}+` : null,
-    categories: normalizeStringArrayValue(metadata.categories || metadata.categoryHints),
-    mechanics: normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints),
-    themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
+    difficulty: autofill.difficulty,
+    complexity: autofill.difficulty,
+    categories: autofill.categories,
+    mechanics: autofill.mechanics,
+    themes: autofill.themes.length ? autofill.themes : ["Juegos de mesa"],
     publisher: readString(metadata, ["publisher", "brand", "manufacturer"]),
-    shortDescription: normalizeStringValue(metadata.shortDescription),
-    shortSummary: normalizeStringValue(metadata.shortDescription),
-    description: normalizeStringValue(metadata.description) || resolved.candidate.extractedDescription,
+    shortDescription,
+    shortSummary: shortDescription,
+    description,
+    quickVerdict: seedCopy.quickVerdict,
+    review: seedCopy.quickVerdict,
+    bestFor: autofill.bestFor,
+    notFor: autofill.notFor,
+    pros: autofill.pros,
+    cons: autofill.cons,
+    faq: autofill.faq as unknown as Prisma.InputJsonValue,
+    faqs: autofill.faq as unknown as Prisma.InputJsonValue,
     seoTitle: `${title} | MeepleTavern`,
     seoDescription: `${title} en MeepleTavern con datos automáticos contrastados desde varias fuentes.`,
     buyUrl: getBestSourceOfferUrl(metadata),
@@ -1140,8 +1190,20 @@ function createDefaultDeps(): MasterImporterDeps {
               }
             });
 
+        await attachMasterImportImages(transaction, {
+          gameId: game.id,
+          candidateId: candidate.id,
+          sourceId: input.resolved.primarySource.id,
+          sourceName: input.resolved.primarySource.name,
+          sourceUrl: input.resolved.primarySource.baseUrl,
+          title: input.resolved.candidate.title,
+          images: candidateImages
+        });
+
         return { candidate, game };
       });
+
+      const finalization = await finalizeMasterImportedGame(persisted.game.id);
 
       if (input.resolved.aiProposal) {
         const aiModule = await import("@/lib/ai/gameWebAutofill");
@@ -1156,7 +1218,10 @@ function createDefaultDeps(): MasterImporterDeps {
       return {
         candidateId: persisted.candidate.id,
         gameId: persisted.game.id,
-        action: input.duplicateMatch.exactCandidate || input.duplicateMatch.exactGame ? "updated" : "created"
+        action: input.duplicateMatch.exactCandidate || input.duplicateMatch.exactGame ? "updated" : "created",
+        status: finalization.status,
+        missingFields: finalization.missingFields,
+        warnings: finalization.warnings
       };
     },
     async upsertOffer(input) {
@@ -1202,6 +1267,115 @@ function createDefaultDeps(): MasterImporterDeps {
       return result;
     }
   };
+}
+
+async function attachMasterImportImages(
+  transaction: Prisma.TransactionClient,
+  input: {
+    gameId: string;
+    candidateId: string;
+    sourceId: string;
+    sourceName: string;
+    sourceUrl: string;
+    title: string;
+    images: CandidateImage[];
+  }
+) {
+  const images = input.images.slice(0, 3);
+  if (!images.length) {
+    return;
+  }
+
+  const assets = [];
+  for (const [index, image] of images.entries()) {
+    const existing = await transaction.mediaAsset.findFirst({
+      where: {
+        gameId: input.gameId,
+        url: image.url
+      }
+    });
+
+    assets.push(existing || await transaction.mediaAsset.create({
+      data: {
+        gameId: input.gameId,
+        candidateId: input.candidateId,
+        sourceId: input.sourceId,
+        url: image.url,
+        type: index === 0 ? MediaAssetType.cover : mediaAssetTypeFromCandidateImage(image.type),
+        status: MediaAssetStatus.approved,
+        usage: MediaAssetUsage.public,
+        attribution: null
+      }
+    }));
+  }
+
+  const primary = assets[0];
+  if (!primary) {
+    return;
+  }
+
+  await transaction.game.update({
+    where: { id: input.gameId },
+    data: {
+      primaryImageId: primary.id,
+      imageFallbackAccepted: false,
+      imageStatus: GameImageStatus.verified,
+      coverImageUrl: primary.url,
+      imageUrl: primary.url,
+      coverImageAlt: `Portada de ${input.title}`,
+      imageSourceName: input.sourceName,
+      imageSourceUrl: input.sourceUrl,
+      imageLicenseNote: primary.attribution
+    }
+  });
+}
+
+async function finalizeMasterImportedGame(gameId: string): Promise<{
+  status: MasterImportStatus;
+  missingFields: string[];
+  warnings: string[];
+}> {
+  const warnings: string[] = [];
+
+  try {
+    const { autoApplyGameWebAutofill } = await import("@/lib/ai/gameWebAutofill");
+    const result = await autoApplyGameWebAutofill(gameId);
+    warnings.push(...result.warnings);
+  } catch (error) {
+    warnings.push(error instanceof Error ? `IA web no aplicada: ${error.message}` : "IA web no aplicada.");
+  }
+
+  const game = await prisma.game.findUnique({ where: { id: gameId } });
+  if (!game) {
+    return {
+      status: "needs_review",
+      missingFields: ["game"],
+      warnings: dedupeStrings([...warnings, "No se pudo recargar la ficha importada."])
+    };
+  }
+
+  const validation = validateBeforePublish(game);
+  const canPublish = validation.complete && warnings.length === 0;
+  await prisma.game.update({
+    where: { id: gameId },
+    data: {
+      status: canPublish ? GameStatus.published : GameStatus.review,
+      publishedAt: canPublish ? game.publishedAt || new Date() : null
+    }
+  });
+
+  return {
+    status: canPublish ? "ready_to_publish" : "needs_review",
+    missingFields: validation.errors,
+    warnings: dedupeStrings([...warnings, ...validation.warnings])
+  };
+}
+
+function mediaAssetTypeFromCandidateImage(type: CandidateImage["type"] | undefined) {
+  if (type === "box") return MediaAssetType.box;
+  if (type === "component") return MediaAssetType.component;
+  if (type === "placeholder") return MediaAssetType.placeholder;
+  return MediaAssetType.cover;
 }
 
 function resolveMode(input: MasterImportInput): MasterImportMode {
