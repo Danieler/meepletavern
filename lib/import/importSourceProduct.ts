@@ -49,7 +49,7 @@ export async function importSourceProductReview(input: {
   return persistImportedGameReview({
     source,
     candidate,
-    publicImageUrl: product.imageUrl
+    publicImageUrls: candidate.candidateImages.map((image) => image.url)
   });
 }
 
@@ -101,15 +101,13 @@ function mapSourcePageToCandidate(product: SourcePageProduct): NormalizedImporte
     mechanicHints,
     themeHints
   };
-  const candidateImages = product.imageUrl
-    ? [
-        {
-          url: product.imageUrl,
-          type: "cover" as const,
-          sourceUrl: product.sourceUrlClean
-        }
-      ]
-    : [];
+  const candidateImages = [...new Set([product.imageUrl, ...product.additionalImageUrls].filter((value): value is string => Boolean(value)))]
+    .slice(0, 3)
+    .map((url, index) => ({
+      url,
+      type: index === 0 ? ("cover" as const) : ("component" as const),
+      sourceUrl: product.sourceUrlClean
+    }));
   const flags = mergeFlags([
     ...(detected.minPlayers && detected.maxPlayers ? [] : [EditorialFlag.missing_players]),
     ...(detected.minPlayTime && detected.maxPlayTime ? [] : [EditorialFlag.missing_playtime]),

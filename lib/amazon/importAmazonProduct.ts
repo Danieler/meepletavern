@@ -41,7 +41,7 @@ export async function importAmazonProductReview(input: {
   return persistImportedGameReview({
     source,
     candidate,
-    publicImageUrl: product.imageUrl || null
+    publicImageUrls: product.imageUrl ? [product.imageUrl] : []
   });
 }
 

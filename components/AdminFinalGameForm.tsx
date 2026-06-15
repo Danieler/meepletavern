@@ -102,6 +102,10 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
   );
   const publicUrl = game.status === GameStatus.published ? `/juegos/${game.slug}` : null;
   const showPublishButton = game.status !== GameStatus.published;
+  const orderedMediaAssets = useMemo(
+    () => orderMediaAssets(mediaAssets, draftValues.primaryImageId || game.primaryImageId || ""),
+    [draftValues.primaryImageId, game.primaryImageId, mediaAssets]
+  );
   const primaryImagePreviewUrl = useMemo(
     () => resolvePrimaryImagePreviewUrl(draftValues.primaryImageId, game, mediaAssets),
     [draftValues.primaryImageId, game, mediaAssets]
@@ -936,6 +940,37 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
               </p>
             </div>
           </div>
+          {orderedMediaAssets.length ? (
+            <div className="mt-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-ink/45">Assets disponibles</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {orderedMediaAssets.map((asset) => {
+                  const isSelected = draftValues.primaryImageId.trim() === asset.id;
+                  return (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={() => updateDraftField("primaryImageId", asset.id)}
+                      className={`overflow-hidden rounded-md border text-left transition ${
+                        isSelected ? "border-moss ring-2 ring-moss/20" : "border-ink/10 hover:border-moss/40"
+                      }`}
+                    >
+                      <img src={asset.url} alt={asset.url} className="aspect-[4/3] w-full object-cover" />
+                      <div className="space-y-1 bg-white p-3">
+                        <p className="truncate text-xs font-bold uppercase tracking-wide text-ink/45">
+                          {asset.type} · {asset.status}
+                        </p>
+                        <p className="line-clamp-2 text-xs text-ink/70">{asset.url}</p>
+                        <p className="text-sm font-semibold text-moss">
+                          {isSelected ? "Imagen principal seleccionada" : "Usar como imagen principal"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-md border border-ruby/20 bg-ruby/5 p-5 shadow-soft">
@@ -1122,6 +1157,22 @@ function resolvePrimaryImagePreviewUrl(
   }
 
   return game.coverImageUrl || game.imageUrl || null;
+}
+
+function orderMediaAssets(mediaAssets: MediaAsset[], primaryImageValue: string) {
+  const selectedId = primaryImageValue.trim();
+
+  return [...mediaAssets].sort((left, right) => {
+    if (left.id === selectedId) {
+      return -1;
+    }
+
+    if (right.id === selectedId) {
+      return 1;
+    }
+
+    return 0;
+  });
 }
 
 function fieldLabel(field: (typeof AI_WEB_FIELDS)[number]) {

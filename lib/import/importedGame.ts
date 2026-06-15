@@ -66,10 +66,12 @@ export type ImportedGameResult = {
 export async function persistImportedGameReview(input: {
   source: Pick<Source, "id" | "name" | "baseUrl">;
   candidate: NormalizedImportedCandidate;
-  publicImageUrl: string | null;
+  publicImageUrls: string[];
 }): Promise<ImportedGameResult> {
   const candidate = normalizeImportedCandidate(input.candidate);
   const metadata = candidate.metadata;
+  const publicImageUrls = [...new Set(input.publicImageUrls.map((value) => value.trim()).filter(Boolean))].slice(0, 3);
+  const primaryPublicImageUrl = publicImageUrls[0] || null;
   const gameSlug = await ensureUniqueSlug(slugify(candidate.title));
   const minPlayers = numberFromMetadata(metadata, "minPlayers");
   const maxPlayers = numberFromMetadata(metadata, "maxPlayers");
@@ -158,13 +160,13 @@ export async function persistImportedGameReview(input: {
           }
         ] as Prisma.InputJsonValue,
         sourceIds: [input.source.id],
-        imageFallbackAccepted: !input.publicImageUrl,
-        imageStatus: input.publicImageUrl ? "verified" : "placeholder",
-        coverImageUrl: input.publicImageUrl,
-        imageUrl: input.publicImageUrl,
+        imageFallbackAccepted: !primaryPublicImageUrl,
+        imageStatus: primaryPublicImageUrl ? "verified" : "placeholder",
+        coverImageUrl: primaryPublicImageUrl,
+        imageUrl: primaryPublicImageUrl,
         coverImageAlt: `Portada de ${candidate.title}`,
-        imageSourceName: input.publicImageUrl ? input.source.name : null,
-        imageSourceUrl: input.publicImageUrl ? input.source.baseUrl : null,
+        imageSourceName: primaryPublicImageUrl ? input.source.name : null,
+        imageSourceUrl: primaryPublicImageUrl ? input.source.baseUrl : null,
         imageLicenseNote: null,
         primaryImageId: null,
         createdByAi: false,
@@ -180,30 +182,34 @@ export async function persistImportedGameReview(input: {
       }
     });
 
-    const publicMediaAsset = input.publicImageUrl
-      ? await transaction.mediaAsset.create({
-          data: {
-            gameId: createdGame.id,
-            candidateId: createdCandidate.id,
-            sourceId: input.source.id,
-            url: input.publicImageUrl,
-            type: MediaAssetType.cover,
-            status: MediaAssetStatus.approved,
-            usage: MediaAssetUsage.public,
-            attribution: null
-          }
-        })
-      : null;
+    const publicMediaAssets = publicImageUrls.length
+      ? await Promise.all(
+          publicImageUrls.map((url, index) =>
+            transaction.mediaAsset.create({
+              data: {
+                gameId: createdGame.id,
+                candidateId: createdCandidate.id,
+                sourceId: input.source.id,
+                url,
+                type: index === 0 ? MediaAssetType.cover : MediaAssetType.component,
+                status: MediaAssetStatus.approved,
+                usage: MediaAssetUsage.public,
+                attribution: null
+              }
+            })
+          )
+        )
+      : [];
 
-    if (publicMediaAsset) {
+    if (publicMediaAssets[0]) {
       await transaction.game.update({
         where: { id: createdGame.id },
         data: {
-          primaryImageId: publicMediaAsset.id,
+          primaryImageId: publicMediaAssets[0].id,
           imageFallbackAccepted: false,
           imageStatus: "verified",
-          coverImageUrl: publicMediaAsset.url,
-          imageUrl: publicMediaAsset.url,
+          coverImageUrl: publicMediaAssets[0].url,
+          imageUrl: publicMediaAssets[0].url,
           imageSourceName: input.source.name,
           imageSourceUrl: input.source.baseUrl,
           imageLicenseNote: null
@@ -211,7 +217,7 @@ export async function persistImportedGameReview(input: {
       });
     }
 
-    return { candidate: createdCandidate, game: createdGame, publicMediaAsset };
+    return { candidate: createdCandidate, game: createdGame, publicMediaAssets };
   });
 
   return {
@@ -230,10 +236,10 @@ export async function persistImportedGameReview(input: {
     detectedPublisher: publisher,
     detectedPrice: priceLabelFromMetadata(metadata),
     candidateStatus,
-    imageStatus: result.publicMediaAsset ? "approved_public" : "placeholder",
+    imageStatus: result.publicMediaAssets.length ? "approved_public" : "placeholder",
     flags: candidate.flags,
     warnings: stringListFromMetadata(metadata, "importWarnings"),
-    publicImageUrl: result.publicMediaAsset ? result.publicMediaAsset.url : null
+    publicImageUrl: result.publicMediaAssets[0] ? result.publicMediaAssets[0].url : null
   };
 }
 
