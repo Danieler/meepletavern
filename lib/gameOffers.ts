@@ -54,6 +54,7 @@ type OfferScope = {
 type GameOfferDbClient = {
   gameOffer: {
     findFirst(args: { where: Prisma.GameOfferWhereInput }): Promise<GameOffer | null>;
+    findMany(args: { where: Prisma.GameOfferWhereInput }): Promise<GameOffer[]>;
     create(args: { data: Prisma.GameOfferCreateInput | Prisma.GameOfferUncheckedCreateInput }): Promise<GameOffer>;
     update(args: { where: { id: string }; data: Prisma.GameOfferUpdateInput | Prisma.GameOfferUncheckedUpdateInput }): Promise<GameOffer>;
   };
@@ -284,8 +285,18 @@ export function getBestOffer<T extends Pick<GameOffer, "price" | "availability" 
 async function findMatchingOffer(db: GameOfferDbClient, scope: OfferScope, offer: NormalizedStoreOffer) {
   const searches = buildOfferSearches(scope, offer);
 
+  if (!searches.length) {
+    return null;
+  }
+
+  const matches = await db.gameOffer.findMany({
+    where: {
+      OR: searches
+    }
+  });
+
   for (const where of searches) {
-    const existing = await db.gameOffer.findFirst({ where });
+    const existing = matches.find((offerRecord) => matchesWhere(offerRecord, where));
     if (existing) {
       return existing;
     }
@@ -300,6 +311,20 @@ function buildOfferSearches(scope: OfferScope, offer: NormalizedStoreOffer) {
   const pushSearch = (identity: Prisma.GameOfferWhereInput) => {
     searches.push(identity);
   };
+
+  if (scope.candidateId && offer.sourceId) {
+    pushSearch({
+      candidateId: scope.candidateId,
+      sourceId: offer.sourceId
+    });
+  }
+
+  if (scope.gameId && offer.sourceId) {
+    pushSearch({
+      gameId: scope.gameId,
+      sourceId: offer.sourceId
+    });
+  }
 
   if (scope.candidateId && offer.sourceUrl) {
     pushSearch({
@@ -388,6 +413,16 @@ function buildOfferUpdateData(existing: GameOffer, scope: OfferScope, offer: Nor
     rawData: (offer.rawData ?? existing.rawData) as Prisma.InputJsonValue | undefined,
     fetchedAt: offer.fetchedAt
   };
+}
+
+function matchesWhere(offerValue: GameOffer, where: Prisma.GameOfferWhereInput) {
+  return Object.entries(where).every(([key, value]) => {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return false;
+    }
+
+    return offerValue[key as keyof GameOffer] === value;
+  });
 }
 
 function buildRawOfferData(metadata: Record<string, unknown>) {

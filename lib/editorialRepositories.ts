@@ -200,7 +200,12 @@ export const gameRepository = {
   getEditorById(id: string) {
     return prisma.game.findUnique({
       where: { id },
-      include: { mediaAssets: true }
+      include: {
+        mediaAssets: true,
+        offers: {
+          orderBy: [{ price: "asc" }, { updatedAt: "desc" }]
+        }
+      }
     });
   },
 

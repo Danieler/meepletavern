@@ -167,7 +167,12 @@ type ResolvedCandidateData = {
   aiAppliedFields?: string[];
 };
 
-export function createMasterImportService(deps: MasterImporterDeps = createDefaultDeps()) {
+export function createMasterImportService(overrides: Partial<MasterImporterDeps> = {}) {
+  const deps: MasterImporterDeps = {
+    ...createDefaultDeps(),
+    ...overrides
+  };
+
   return async function importAndEnrichGame(input: MasterImportInput): Promise<MasterImportSummary> {
     const mode = resolveMode(input);
     const diagnostics: SourceDiagnostic[] = [];
@@ -1354,14 +1359,18 @@ async function attachMasterImportImages(
     return;
   }
 
+  const existingAssets = await transaction.mediaAsset.findMany({
+    where: {
+      gameId: input.gameId,
+      url: {
+        in: images.map((image) => image.url)
+      }
+    }
+  });
+  const existingAssetsByUrl = new Map(existingAssets.map((asset) => [asset.url, asset]));
   const assets = [];
   for (const [index, image] of images.entries()) {
-    const existing = await transaction.mediaAsset.findFirst({
-      where: {
-        gameId: input.gameId,
-        url: image.url
-      }
-    });
+    const existing = existingAssetsByUrl.get(image.url);
 
     assets.push(existing || await transaction.mediaAsset.create({
       data: {

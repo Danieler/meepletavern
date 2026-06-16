@@ -177,6 +177,14 @@ function createMockDb() {
       async findFirst(args: { where: Prisma.GameOfferWhereInput }) {
         return offers.find((item) => matchesWhere(item, args.where)) || null;
       },
+      async findMany(args: { where: Prisma.GameOfferWhereInput }) {
+        const or = Array.isArray(args.where.OR) ? args.where.OR : [];
+        if (!or.length) {
+          return offers.filter((item) => matchesWhere(item, args.where));
+        }
+
+        return offers.filter((item) => or.some((where) => matchesWhere(item, where as Prisma.GameOfferWhereInput)));
+      },
       async create(args: { data: Prisma.GameOfferCreateInput | Prisma.GameOfferUncheckedCreateInput }) {
         const created = offer({
           ...(args.data as Partial<GameOffer>),

@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GameStatus, type Game, type MediaAsset } from "@prisma/client";
-import { ExternalLink, Loader2, Rocket, Save, Trash2, WandSparkles } from "lucide-react";
+import { GameStatus, type Game, type GameOffer, type MediaAsset } from "@prisma/client";
+import { ExternalLink, Loader2, Rocket, Save, Trash2, Upload, WandSparkles } from "lucide-react";
 import {
   deleteGameEditorAction,
   publishGameEditorAction,
@@ -20,7 +20,7 @@ import { normalizeHowToPlayVideos, type HowToPlayVideo, type HowToPlayVideoType 
 import { isYouTubeUrl } from "@/lib/videos/youtube";
 
 type AdminFinalGameFormProps = {
-  game: Game;
+  game: Game & { offers: GameOffer[] };
   mediaAssets: MediaAsset[];
   initialAiWebProposal?: SerializableGameImportProposal | null;
 };
@@ -81,6 +81,14 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
   const [isApplyingAiWeb, setIsApplyingAiWeb] = useState(false);
   const [howToPlayVideos, setHowToPlayVideos] = useState<HowToPlayVideo[]>(() => normalizeHowToPlayVideos(game.howToPlayVideos));
   const [isSavingVideos, setIsSavingVideos] = useState(false);
+  const [manualOfferUrl, setManualOfferUrl] = useState("");
+  const [manualOfferError, setManualOfferError] = useState<string | null>(null);
+  const [manualOfferStatus, setManualOfferStatus] = useState<string | null>(null);
+  const [isImportingManualOffer, setIsImportingManualOffer] = useState(false);
+  const [manualImageUrl, setManualImageUrl] = useState("");
+  const [manualImageError, setManualImageError] = useState<string | null>(null);
+  const [manualImageStatus, setManualImageStatus] = useState<string | null>(null);
+  const [isImportingManualImage, setIsImportingManualImage] = useState(false);
   const [selectedAiWebFields, setSelectedAiWebFields] = useState<string[]>([]);
   const ratings = useMemo(() => normalizeGameRatings(game.ratings), [game.ratings]);
   const externalRating = ratings.external;
@@ -110,7 +118,14 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
     () => resolvePrimaryImagePreviewUrl(draftValues.primaryImageId, game, mediaAssets),
     [draftValues.primaryImageId, game, mediaAssets]
   );
-  const isBusy = isSaving || isPublishing || isCompletingWithAiWeb || isApplyingAiWeb || isSavingVideos;
+  const isBusy =
+    isSaving ||
+    isPublishing ||
+    isCompletingWithAiWeb ||
+    isApplyingAiWeb ||
+    isSavingVideos ||
+    isImportingManualOffer ||
+    isImportingManualImage;
 
   useEffect(() => {
     setDraftValues(initialDraftValues);
@@ -358,6 +373,82 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
     setDraftValues((current) => ({ ...current, [key]: value }));
   }
 
+  async function handleManualOfferImport() {
+    if (!manualOfferUrl.trim()) {
+      setManualOfferError("Pega una URL.");
+      return;
+    }
+
+    setIsImportingManualOffer(true);
+    setManualOfferError(null);
+    setManualOfferStatus("Importando precio desde la URL...");
+
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}/offers/import-from-url`, {
+        method: "POST",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({
+          sourceUrl: manualOfferUrl
+        })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setManualOfferError(payload.error || "No se pudo importar la oferta.");
+        return;
+      }
+
+      setManualOfferUrl("");
+      setManualOfferStatus("Precio actualizado.");
+      router.refresh();
+    } catch (error) {
+      setManualOfferError(error instanceof Error ? error.message : "No se pudo importar la oferta.");
+    } finally {
+      setIsImportingManualOffer(false);
+    }
+  }
+
+  async function handleManualImageImport() {
+    if (!manualImageUrl.trim()) {
+      setManualImageError("Pega una URL.");
+      return;
+    }
+
+    setIsImportingManualImage(true);
+    setManualImageError(null);
+    setManualImageStatus("Buscando imágenes desde la URL...");
+
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}/images/import-from-url`, {
+        method: "POST",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({
+          sourceUrl: manualImageUrl
+        })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setManualImageError(payload.error || "No se pudieron importar las imágenes.");
+        return;
+      }
+
+      setManualImageUrl("");
+      setManualImageStatus(
+        payload.importedCount
+          ? `${payload.importedCount} imagen${payload.importedCount === 1 ? "" : "es"} importada${payload.importedCount === 1 ? "" : "s"}.`
+          : payload.totalCount
+            ? "Las imágenes ya estaban guardadas. Portada actualizada."
+            : "No se encontraron imágenes nuevas."
+      );
+      router.refresh();
+    } catch (error) {
+      setManualImageError(error instanceof Error ? error.message : "No se pudieron importar las imágenes.");
+    } finally {
+      setIsImportingManualImage(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="rounded-md border border-ink/10 bg-white p-4 shadow-soft">
@@ -456,6 +547,115 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
             </div>
           </details>
         ) : null}
+      </section>
+
+      <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-ember">Imágenes</p>
+            <h2 className="mt-1 text-xl font-bold text-ink">Actualizar imágenes desde URL</h2>
+            <p className="mt-2 text-sm leading-6 text-ink/60">
+              Pega la URL de una ficha de una fuente ya configurada y traeremos una o varias imágenes para esta
+              ficha. La primera se marca como principal.
+            </p>
+          </div>
+          <div className="w-full max-w-2xl">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                className="field-input"
+                placeholder="https://tienda.com/juego/..."
+                value={manualImageUrl}
+                onChange={(event) => setManualImageUrl(event.target.value)}
+                disabled={isBusy}
+              />
+              <button
+                className="button-secondary shrink-0"
+                type="button"
+                onClick={handleManualImageImport}
+                disabled={isBusy || !manualImageUrl.trim()}
+              >
+                {isImportingManualImage ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />}
+                {isImportingManualImage ? "Actualizando..." : "Actualizar imágenes"}
+              </button>
+            </div>
+            {manualImageStatus ? (
+              <p className="mt-3 text-sm font-semibold text-ink/70">{manualImageStatus}</p>
+            ) : null}
+            {manualImageError ? (
+              <p className="mt-3 rounded-md border border-ruby/20 bg-ruby/10 px-3 py-2 text-sm font-semibold text-ruby">
+                {manualImageError}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-ember">Precios</p>
+            <h2 className="mt-1 text-xl font-bold text-ink">Añadir oferta desde URL</h2>
+            <p className="mt-2 text-sm leading-6 text-ink/60">
+              Pega la URL del producto en una tienda ya configurada y actualizaremos el precio en esta ficha.
+            </p>
+          </div>
+          <div className="w-full max-w-2xl">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                className="field-input"
+                placeholder="https://tienda.com/juego/..."
+                value={manualOfferUrl}
+                onChange={(event) => setManualOfferUrl(event.target.value)}
+                disabled={isBusy}
+              />
+              <button
+                className="button-secondary shrink-0"
+                type="button"
+                onClick={handleManualOfferImport}
+                disabled={isBusy || !manualOfferUrl.trim()}
+              >
+                {isImportingManualOffer ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : null}
+                {isImportingManualOffer ? "Importando..." : "Actualizar precio"}
+              </button>
+            </div>
+            {manualOfferStatus ? (
+              <p className="mt-3 text-sm font-semibold text-ink/70">{manualOfferStatus}</p>
+            ) : null}
+            {manualOfferError ? (
+              <p className="mt-3 rounded-md border border-ruby/20 bg-ruby/10 px-3 py-2 text-sm font-semibold text-ruby">
+                {manualOfferError}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {game.offers.length ? (
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {game.offers.map((offer) => (
+              <article key={offer.id} className="rounded-md border border-ink/10 bg-parchment/40 p-4 text-sm">
+                <p className="font-bold text-ink">{offer.sourceDisplayName || offer.storeName || offer.sourceName}</p>
+                <p className="mt-1 font-semibold text-ink/70">
+                  {formatOfferPrice(offer.price, offer.currency)}
+                  {offer.availability ? ` · ${offer.availability}` : ""}
+                </p>
+                {offer.purchaseUrl || offer.sourceUrl ? (
+                  <a
+                    className="mt-2 inline-flex text-xs font-semibold text-moss"
+                    href={offer.purchaseUrl || offer.sourceUrl || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Abrir oferta
+                  </a>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-md border border-dashed border-ink/15 bg-parchment/40 p-5 text-sm font-semibold leading-6 text-ink/60">
+            Todavía no hay precios guardados para este juego.
+          </div>
+        )}
       </section>
 
       {aiWebStatus ? (
@@ -1107,6 +1307,17 @@ function formatDate(value: string) {
     month: "2-digit",
     year: "numeric"
   }).format(new Date(value));
+}
+
+function formatOfferPrice(price: number | null, currency: string | null) {
+  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
+    return "Precio sin detectar";
+  }
+
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: currency || "EUR"
+  }).format(price);
 }
 
 function WarningList({ warnings, className }: { warnings: string[]; className?: string }) {

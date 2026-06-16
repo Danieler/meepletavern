@@ -1,19 +1,21 @@
 "use client";
 
-import { useActionState } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { DatabaseZap, Loader2 } from "lucide-react";
-import { importMasterGamesAction, type MasterImportBatchState } from "@/app/admin/import/actions";
-
-const initialState: MasterImportBatchState = {
-  error: null,
-  message: null,
-  results: [],
-  totals: null
-};
+import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
+import {
+  initialMasterImportBatchState,
+  type MasterImportBatchState,
+  type MasterImportBatchEvent
+} from "@/lib/import/masterImportBatchShared";
 
 export function MasterImportForm({ disabled }: { disabled?: boolean }) {
-  const [state, action, isPending] = useActionState(importMasterGamesAction, initialState);
+  const [state, setState] = useState<MasterImportBatchState>(initialMasterImportBatchState);
+  const [rawInput, setRawInput] = useState("");
+  const [progress, setProgress] = useState<ImportProgressState | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   if (disabled) {
     return (
@@ -30,8 +32,133 @@ export function MasterImportForm({ disabled }: { disabled?: boolean }) {
     );
   }
 
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isImporting) {
+      return;
+    }
+
+    const titles = rawInput.trim();
+    if (!titles) {
+      setState({
+        error: "Escribe al menos un juego. Puedes pegar una lista con una línea por juego o un array JSON.",
+        message: null,
+        results: [],
+        totals: null
+      });
+      return;
+    }
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setIsImporting(true);
+    setProgress(null);
+    setState(initialMasterImportBatchState);
+
+    try {
+      const response = await fetch("/api/admin/import/master", {
+        method: "POST",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({ titles: rawInput }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        setState({
+          error: await readApiError(response),
+          message: null,
+          results: [],
+          totals: null
+        });
+        return;
+      }
+
+      await readMasterImportStream(response, {
+        onEvent: (event) => {
+          if (event.type === "start") {
+            setProgress({
+              total: event.total,
+              completed: 0,
+              imported: 0,
+              failed: 0,
+              currentTitle: null
+            });
+            setState(initialMasterImportBatchState);
+            return;
+          }
+
+          if (event.type === "item-start") {
+            setProgress({
+              total: event.total,
+              completed: event.index,
+              imported: event.imported,
+              failed: event.failed,
+              currentTitle: event.title
+            });
+            return;
+          }
+
+          if (event.type === "item-complete") {
+            setProgress({
+              total: event.total,
+              completed: event.index + 1,
+              imported: event.imported,
+              failed: event.failed,
+              currentTitle: event.title
+            });
+            setState((current) => ({
+              ...current,
+              error: null,
+              message: null,
+              results: [...current.results, event.item],
+              totals: {
+                requested: event.total,
+                imported: event.imported,
+                failed: event.failed
+              }
+            }));
+            return;
+          }
+
+          if (event.type === "error") {
+            setState({
+              error: event.message,
+              message: null,
+              results: [],
+              totals: null
+            });
+            setProgress(null);
+            return;
+          }
+
+          if (event.type === "done") {
+            setState(event.state);
+            setProgress(null);
+          }
+        }
+      });
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setState({
+          error: error instanceof Error ? error.message : "No se pudo importar el lote.",
+          message: null,
+          results: [],
+          totals: null
+        });
+      }
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+      setIsImporting(false);
+    }
+  }
+
   return (
-    <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+    <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft" aria-busy={isImporting}>
       <div className="flex flex-col gap-2">
         <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">Importador maestro</p>
         <h2 className="text-xl font-bold text-ink">Importar por nombre o por lote</h2>
@@ -50,28 +177,26 @@ export function MasterImportForm({ disabled }: { disabled?: boolean }) {
         </ul>
       </div>
 
-      <form action={action} className="mt-5 space-y-5">
+      <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
         <Field label="Juego o lista de juegos">
           <textarea
             className="field-input min-h-44"
             name="titles"
             required
+            value={rawInput}
+            onChange={(event) => setRawInput(event.target.value)}
+            disabled={isImporting}
             placeholder={"Ark Nova\nCascadia\nBrass: Birmingham"}
           />
         </Field>
 
         <div className="space-y-4">
-          <button className="button-primary" type="submit" disabled={isPending}>
-            {isPending ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <DatabaseZap size={18} aria-hidden="true" />}
-            {isPending ? "Importando lote..." : "Lanzar importador maestro"}
+          <button className="button-primary" type="submit" disabled={isImporting}>
+            {isImporting ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <DatabaseZap size={18} aria-hidden="true" />}
+            {isImporting ? "Importando lote..." : "Lanzar importador maestro"}
           </button>
 
-          {isPending ? (
-            <p className="inline-flex items-center gap-2 rounded-md border border-ember/20 bg-ember/10 px-4 py-3 text-sm font-semibold text-ink">
-              <Loader2 className="animate-spin" size={16} aria-hidden="true" />
-              Buscando coincidencias en todas las fuentes y guardando candidatos en la bandeja editorial.
-            </p>
-          ) : null}
+          {progress ? <ImportProgressPanel progress={progress} /> : null}
         </div>
       </form>
 
@@ -172,7 +297,95 @@ export function MasterImportForm({ disabled }: { disabled?: boolean }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+type ImportProgressState = {
+  total: number;
+  completed: number;
+  imported: number;
+  failed: number;
+  currentTitle: string | null;
+};
+
+function ImportProgressPanel({ progress }: { progress: ImportProgressState }) {
+  const percent = progress.total ? Math.round((progress.completed / progress.total) * 100) : 0;
+
+  return (
+    <div className="rounded-md border border-ember/20 bg-ember/10 px-4 py-3 text-sm font-semibold text-ink" aria-live="polite">
+      <div className="flex items-center justify-between gap-3">
+        <span>Importando {progress.completed} de {progress.total}</span>
+        <span>{percent}%</span>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70">
+        <div className="h-full rounded-full bg-emerald-700 transition-[width] duration-300" style={{ width: `${percent}%` }} />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold uppercase tracking-wide text-ink/60">
+        <span>Importados: {progress.imported}</span>
+        <span>Fallidos: {progress.failed}</span>
+        {progress.currentTitle ? <span>Actual: {progress.currentTitle}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+async function readApiError(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      const payload = (await response.json()) as { error?: unknown };
+      if (typeof payload.error === "string" && payload.error.trim()) {
+        return payload.error;
+      }
+    } catch {
+      // Fall through to text parsing.
+    }
+  }
+
+  const text = await response.text();
+  return text.trim() || "No se pudo importar el lote.";
+}
+
+async function readMasterImportStream(
+  response: Response,
+  input: {
+    onEvent: (event: MasterImportBatchEvent) => void;
+  }
+) {
+  if (!response.body) {
+    throw new Error("La respuesta no devolvió datos de progreso.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+
+    let newlineIndex = buffer.indexOf("\n");
+    while (newlineIndex >= 0) {
+      const line = buffer.slice(0, newlineIndex).trim();
+      buffer = buffer.slice(newlineIndex + 1);
+
+      if (line) {
+        input.onEvent(JSON.parse(line) as MasterImportBatchEvent);
+      }
+
+      newlineIndex = buffer.indexOf("\n");
+    }
+  }
+
+  const tail = buffer.trim() ? buffer.trim() : decoder.decode();
+  if (tail) {
+    input.onEvent(JSON.parse(tail) as MasterImportBatchEvent);
+  }
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="text-sm font-bold text-ink/60">{label}</span>

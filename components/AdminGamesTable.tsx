@@ -1,9 +1,9 @@
 "use client";
 
 import { GameStatus } from "@prisma/client";
-import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowDown, ArrowUpDown, ArrowUp, ExternalLink, Pencil, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deleteGamesBulkAction } from "@/app/admin/games/[id]/actions";
 import { DeleteGameButton } from "@/components/AdminDeleteButtons";
 import { AdminStatusBadge } from "@/components/AdminStatusBadge";
@@ -17,6 +17,10 @@ type AdminGameRow = {
   updatedAt: Date;
 };
 
+type SortKey = "name" | "status" | "slug" | "createdAt" | "updatedAt";
+type SortDirection = "asc" | "desc";
+const PAGE_SIZE = 10;
+
 export function AdminGamesTable({
   games,
   returnTo
@@ -25,21 +29,111 @@ export function AdminGamesTable({
   returnTo: string;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
+    key: "updatedAt",
+    direction: "desc"
+  });
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => games.some((game) => game.id === id)));
   }, [games]);
 
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredGames = useMemo(
+    () =>
+      games.filter((game) => {
+        if (!normalizedSearch) {
+          return true;
+        }
+
+        return [game.name, game.slug, statusLabel(game.status)]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch);
+      }),
+    [games, normalizedSearch]
+  );
+
+  const sortedGames = useMemo(
+    () =>
+      [...filteredGames].sort((left, right) => {
+        const comparison = compareGameValues(left[sortConfig.key], right[sortConfig.key], sortConfig.key);
+
+        return sortConfig.direction === "asc" ? comparison : -comparison;
+      }),
+    [filteredGames, sortConfig]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sortedGames.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageGames = sortedGames.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageIds = pageGames.map((game) => game.id);
+  const selectedPageCount = pageIds.filter((id) => selectedIds.includes(id)).length;
+
+  useEffect(() => {
+    setPage(1);
+  }, [normalizedSearch, sortConfig]);
+
   const selectedGames = games.filter((game) => selectedIds.includes(game.id));
-  const allSelected = games.length > 0 && selectedIds.length === games.length;
+  const allSelected = pageIds.length > 0 && selectedPageCount === pageIds.length;
   const hasPublishedSelected = selectedGames.some((game) => game.status === GameStatus.published);
+  const hasFilter = Boolean(normalizedSearch);
+
+  function toggleCurrentPageSelection(checked: boolean) {
+    setSelectedIds((current) => {
+      if (checked) {
+        return [...new Set([...current, ...pageIds])];
+      }
+
+      return current.filter((id) => !pageIds.includes(id));
+    });
+  }
+
+  function clearSearch() {
+    setSearch("");
+  }
 
   return (
     <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
-      <div className="flex flex-col gap-3 border-b border-ink/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-ink/60">
-          {selectedIds.length ? `${selectedIds.length} seleccionados` : "Selecciona juegos para borrarlos en bloque."}
-        </p>
+      <div className="flex flex-col gap-3 border-b border-ink/10 px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-4">
+          <label className="block w-full lg:w-[340px]">
+            <span className="text-xs font-bold uppercase text-ink/55">Buscar</span>
+            <span className="mt-1 flex items-center gap-2 rounded-md border border-ink/10 bg-white px-3 py-2 shadow-soft focus-within:border-moss/40">
+              <Search size={16} className="text-ink/35" aria-hidden="true" />
+              <input
+                className="w-full bg-transparent text-sm outline-none placeholder:text-ink/35"
+                type="search"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                }}
+                placeholder="Nombre, slug o estado"
+              />
+              {search ? (
+                <button
+                  className="rounded-full p-1 text-ink/45 transition hover:bg-ink/5 hover:text-ink"
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              ) : null}
+            </span>
+          </label>
+          <p className="text-sm font-semibold text-ink/60">
+            {selectedIds.length
+              ? `${selectedIds.length} seleccionados`
+              : "Selecciona juegos para borrarlos en bloque."}
+            <span className="block text-xs font-medium text-ink/45">
+              {sortedGames.length} resultado{sortedGames.length === 1 ? "" : "s"}
+              {hasFilter ? " filtrado" : ""}
+            </span>
+          </p>
+        </div>
         <form
           action={deleteGamesBulkAction}
           onSubmit={(event) => {
@@ -80,20 +174,25 @@ export function AdminGamesTable({
                   aria-label="Seleccionar todos los juegos"
                   checked={allSelected}
                   onChange={(event) => {
-                    setSelectedIds(event.target.checked ? games.map((game) => game.id) : []);
+                    setSelectedIds(event.target.checked ? sortedGames.map((game) => game.id) : []);
                   }}
                 />
               </ThCheckbox>
-              <Th>Nombre</Th>
-              <Th>Estado</Th>
-              <Th>Slug</Th>
-              <Th>Creado</Th>
-              <Th>Actualizado</Th>
+              <SortableTh label="Nombre" sortKey="name" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh label="Estado" sortKey="status" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh label="Slug" sortKey="slug" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh label="Creado" sortKey="createdAt" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh
+                label="Actualizado"
+                sortKey="updatedAt"
+                sortConfig={sortConfig}
+                setSortConfig={setSortConfig}
+              />
               <Th>Acciones</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink/10">
-            {games.map((game) => {
+            {pageGames.map((game) => {
               const checked = selectedIds.includes(game.id);
 
               return (
@@ -146,22 +245,99 @@ export function AdminGamesTable({
                 </tr>
               );
             })}
-            {!games.length ? (
+            {!sortedGames.length ? (
               <tr>
                 <td className="px-4 py-10 text-center text-ink/60" colSpan={7}>
-                  Todavía no hay juegos.
+                  {hasFilter ? "No hay juegos que coincidan con esa búsqueda." : "Todavía no hay juegos."}
                 </td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
+
+      {sortedGames.length ? (
+        <div className="flex flex-col gap-3 border-t border-ink/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-semibold text-ink/60">
+            Mostrando {Math.min((safePage - 1) * PAGE_SIZE + 1, sortedGames.length)}-
+            {Math.min(safePage * PAGE_SIZE, sortedGames.length)} de {sortedGames.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              className="button-secondary min-h-9 px-3 py-1.5"
+              type="button"
+              disabled={safePage === 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              Anterior
+            </button>
+            <span className="min-w-20 rounded-md border border-ink/10 bg-ink/5 px-3 py-1.5 text-center text-sm font-semibold text-ink/70">
+              {safePage} / {totalPages}
+            </span>
+            <button
+              className="button-secondary min-h-9 px-3 py-1.5"
+              type="button"
+              disabled={safePage === totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              Siguiente
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="whitespace-nowrap px-4 py-3 text-xs font-bold uppercase">{children}</th>;
+}
+
+function SortableTh({
+  label,
+  sortKey,
+  sortConfig,
+  setSortConfig
+}: {
+  label: string;
+  sortKey: SortKey;
+  sortConfig: { key: SortKey; direction: SortDirection };
+  setSortConfig: React.Dispatch<React.SetStateAction<{ key: SortKey; direction: SortDirection }>>;
+}) {
+  const active = sortConfig.key === sortKey;
+
+  return (
+    <th
+      className="whitespace-nowrap px-4 py-3 text-xs font-bold uppercase"
+      aria-sort={
+        active ? (sortConfig.direction === "asc" ? "ascending" : "descending") : "none"
+      }
+    >
+      <button
+        className="inline-flex items-center gap-1 text-left transition hover:text-amber-200"
+        type="button"
+        onClick={() => {
+          setSortConfig((current) => ({
+            key: sortKey,
+            direction: current.key === sortKey && current.direction === "asc" ? "desc" : "asc"
+          }));
+        }}
+      >
+        <span>{label}</span>
+        {active ? (
+          sortConfig.direction === "asc" ? (
+            <ArrowUp size={12} aria-hidden="true" />
+          ) : (
+            <ArrowDown size={12} aria-hidden="true" />
+          )
+        ) : (
+          <ArrowUpDown size={12} aria-hidden="true" className="opacity-70" />
+        )}
+      </button>
+    </th>
+  );
 }
 
 function ThCheckbox({ children }: { children: React.ReactNode }) {
@@ -176,12 +352,33 @@ function TdCheckbox({ children }: { children: React.ReactNode }) {
   return <td className="w-12 px-4 py-4 text-ink/70">{children}</td>;
 }
 
-function formatDate(date: Date) {
+function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat("es-ES", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit"
-  }).format(date);
+  }).format(date instanceof Date ? date : new Date(date));
+}
+
+function compareGameValues(left: AdminGameRow[SortKey], right: AdminGameRow[SortKey], sortKey: SortKey) {
+  if (sortKey === "createdAt" || sortKey === "updatedAt") {
+    return toTimestamp(left) - toTimestamp(right);
+  }
+
+  return String(left).localeCompare(String(right), "es", { sensitivity: "base" });
+}
+
+function toTimestamp(value: Date | string) {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+}
+
+function statusLabel(status: GameStatus) {
+  return {
+    draft: "borrador",
+    review: "revisión",
+    published: "publicado",
+    archived: "archivado"
+  }[status];
 }

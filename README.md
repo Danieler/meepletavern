@@ -51,4 +51,5 @@ Admin local por defecto en desarrollo:
 - Usuario: `admin`
 - Password: `meepletavern`
 
-En producción define siempre `ADMIN_USERNAME` y `ADMIN_PASSWORD`.
+En producción define siempre `ADMIN_USERNAME`, `ADMIN_PASSWORD` y `ADMIN_SESSION_SECRET`.
+`ADMIN_SESSION_SECRET` debe ser una cadena larga y aleatoria usada para firmar la cookie de sesión del admin.
