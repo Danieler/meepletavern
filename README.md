@@ -1,55 +1,17 @@
-# Meeple Tavern
+# MeepleTavern difficulty backfill
 
-MVP SEO-first para descubrir juegos de mesa en español.
+Ficheros incluidos:
+- scripts/backfill-difficulty.ts
+- lib/import/difficulty.ts
+- package.json
 
-## Arranque local
+Uso:
+1. Copia los ficheros encima del proyecto.
+2. Ejecuta primero en modo simulación:
+   npm run backfill:difficulty
+3. Si la tabla de cambios es correcta, aplica:
+   npm run backfill:difficulty -- --write
 
-Este proyecto usa Volta para fijar versiones de runtime:
-
-- Node.js `22.12.0`
-- npm `11.2.0`
-
-Si tienes Volta instalado, al entrar en la carpeta del proyecto se usarán automáticamente.
-
-1. Instala dependencias:
-
-```bash
-npm install
-```
-
-2. Crea tu `.env` desde el ejemplo:
-
-```bash
-cp .env.example .env
-```
-
-3. Configura `DATABASE_URL` con una base PostgreSQL.
-
-Para Supabase en Vercel, usa el transaction pooler como `DATABASE_URL` y el session
-pooler como `DIRECT_URL`:
-
-```env
-DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require"
-DIRECT_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require"
-```
-
-4. Aplica Prisma y carga datos:
-
-```bash
-npm run db:migrate
-npm run db:seed
-```
-
-5. Levanta Next.js:
-
-```bash
-npm run dev
-```
-
-Admin local por defecto en desarrollo:
-
-- Usuario: `admin`
-- Password: `meepletavern`
-
-En producción define siempre `ADMIN_USERNAME`, `ADMIN_PASSWORD` y `ADMIN_SESSION_SECRET`.
-`ADMIN_SESSION_SECRET` debe ser una cadena larga y aleatoria usada para firmar la cookie de sesión del admin.
+El script no llama a IA ni APIs externas. Solo recalcula difficulty/complexity con datos ya existentes.
+Por seguridad no rebaja dificultades manualmente más altas. Para permitir rebajas:
+   npm run backfill:difficulty -- --write --allow-downgrade

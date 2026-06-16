@@ -31,6 +31,7 @@ import { validateBeforePublish } from "@/lib/validateBeforePublish";
 import type { AiPromptSource, AiWebProposal } from "@/lib/ai/gameWebAutofill";
 import { importSourceProductCandidate } from "@/lib/import/importSourceProduct";
 import type { NormalizedImportedCandidate } from "@/lib/import/importedGame";
+import { normalizeDifficultyFromImportedData, normalizeDifficultyFromImportedDataOrNull } from "@/lib/import/difficulty";
 import {
   getStoreSourceConnector,
   mapStoreSourceResultToImportCandidate,
@@ -476,6 +477,12 @@ export function resolveBestCandidateData(input: {
       normalizedTitle
     })
   );
+  applyImportedDifficultyToMetadata(mergedMetadata, {
+    title: mergedTitle,
+    originalTitle: primary.candidate.originalTitle,
+    description: pickDescription(sorted),
+    metadata: mergedMetadata
+  });
   const candidateImages = buildAllowedCandidateImages(sorted);
   const warnings = candidateImages.length ? [] : ["No se encontró ninguna imagen reutilizable permitida."];
   const missingFields = collectMissingFields({
@@ -659,6 +666,19 @@ function applyAiProposalToResolved(
     appliedFields.push("description");
   }
 
+  applyImportedDifficultyToMetadata(metadata, {
+    title: resolved.candidate.title,
+    originalTitle: resolved.candidate.originalTitle,
+    metadata,
+    description: description || resolved.candidate.extractedDescription,
+    categories,
+    mechanics,
+    themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
+    minAge: age,
+    minPlayTime: playTime?.min ?? readPositiveNumber(metadata.minPlayTime),
+    maxPlayTime: playTime?.max ?? readPositiveNumber(metadata.maxPlayTime)
+  });
+
   metadata.aiResolution = {
     provider: "tavily_nova_micro",
     appliedFields,
@@ -703,6 +723,12 @@ function mergeOfferEvidenceIntoResolved(
     [normalizeCandidateMetadata(resolved.candidate.metadata)],
     buildSourceMetadataExtras(results)
   );
+  applyImportedDifficultyToMetadata(metadata, {
+    title: resolved.candidate.title,
+    originalTitle: resolved.candidate.originalTitle,
+    metadata,
+    description: resolved.candidate.extractedDescription
+  });
 
   return {
     ...resolved,
@@ -720,8 +746,20 @@ function buildDraftGameForAi(resolved: ResolvedCandidateData): Game {
   const title = resolved.candidate.title;
   const minPlayers = readPositiveNumber(metadata.minPlayers);
   const maxPlayers = readPositiveNumber(metadata.maxPlayers);
+  const minPlayTime = readPositiveNumber(metadata.minPlayTime);
+  const maxPlayTime = readPositiveNumber(metadata.maxPlayTime);
   const minAge = readPositiveNumber(metadata.minAge);
-  const playtime = formatPlaytimeLabel(readPositiveNumber(metadata.minPlayTime), readPositiveNumber(metadata.maxPlayTime));
+  const playtime = formatPlaytimeLabel(minPlayTime, maxPlayTime);
+  const difficulty = normalizeDifficultyFromImportedData({
+    title,
+    originalTitle: resolved.candidate.originalTitle,
+    metadata,
+    description: resolved.candidate.extractedDescription,
+    minAge,
+    minPlayTime,
+    maxPlayTime,
+    playtime
+  });
 
   return {
     id: "master-import-preview",
@@ -753,8 +791,8 @@ function buildDraftGameForAi(resolved: ResolvedCandidateData): Game {
     playtime,
     age: minAge ? `${minAge}+` : null,
     minAge,
-    complexity: null,
-    difficulty: null,
+    complexity: difficulty,
+    difficulty,
     categories: normalizeStringArrayValue(metadata.categories || metadata.categoryHints),
     mechanics: normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints),
     themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
@@ -785,7 +823,9 @@ async function buildGameCreateData(resolved: ResolvedCandidateData): Promise<Pri
   const minPlayers = readPositiveNumber(metadata.minPlayers);
   const maxPlayers = readPositiveNumber(metadata.maxPlayers);
   const minAge = readPositiveNumber(metadata.minAge);
-  const playtime = formatPlaytimeLabel(readPositiveNumber(metadata.minPlayTime), readPositiveNumber(metadata.maxPlayTime));
+  const minPlayTime = readPositiveNumber(metadata.minPlayTime);
+  const maxPlayTime = readPositiveNumber(metadata.maxPlayTime);
+  const playtime = formatPlaytimeLabel(minPlayTime, maxPlayTime);
   const sourceIds = buildGameSourceIds(metadata, resolved.primarySource.id);
   const categories = normalizeStringArrayValue(metadata.categories || metadata.categoryHints);
   const mechanics = normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints);
@@ -818,6 +858,20 @@ async function buildGameCreateData(resolved: ResolvedCandidateData): Promise<Pri
     playtime,
     minAge
   });
+  const difficulty = normalizeDifficultyFromImportedData({
+    title,
+    originalTitle: resolved.candidate.originalTitle,
+    metadata,
+    description,
+    categories,
+    mechanics,
+    themes,
+    minAge,
+    minPlayTime,
+    maxPlayTime,
+    playtime,
+    fallback: autofill.difficulty
+  });
 
   return {
     name: title,
@@ -832,8 +886,8 @@ async function buildGameCreateData(resolved: ResolvedCandidateData): Promise<Pri
     playtime,
     minAge,
     age: minAge ? `${minAge}+` : null,
-    difficulty: autofill.difficulty,
-    complexity: autofill.difficulty,
+    difficulty,
+    complexity: difficulty,
     categories: autofill.categories,
     mechanics: autofill.mechanics,
     themes: autofill.themes.length ? autofill.themes : ["Juegos de mesa"],
@@ -869,6 +923,22 @@ function buildGameUpdateData(resolved: ResolvedCandidateData): Prisma.GameUpdate
   const minPlayers = readPositiveNumber(metadata.minPlayers);
   const maxPlayers = readPositiveNumber(metadata.maxPlayers);
   const minAge = readPositiveNumber(metadata.minAge);
+  const minPlayTime = readPositiveNumber(metadata.minPlayTime);
+  const maxPlayTime = readPositiveNumber(metadata.maxPlayTime);
+  const playtime = formatPlaytimeLabel(minPlayTime, maxPlayTime);
+  const difficulty = normalizeDifficultyFromImportedDataOrNull({
+    title: resolved.candidate.title,
+    originalTitle: resolved.candidate.originalTitle,
+    metadata,
+    description: normalizeStringValue(metadata.description) || resolved.candidate.extractedDescription,
+    categories: normalizeStringArrayValue(metadata.categories || metadata.categoryHints),
+    mechanics: normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints),
+    themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
+    minAge,
+    minPlayTime,
+    maxPlayTime,
+    playtime
+  });
 
   return {
     name: resolved.candidate.title,
@@ -878,9 +948,10 @@ function buildGameUpdateData(resolved: ResolvedCandidateData): Prisma.GameUpdate
     players: { min: minPlayers, max: maxPlayers, label: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null } as Prisma.InputJsonValue,
     minPlayers,
     maxPlayers,
-    playtime: formatPlaytimeLabel(readPositiveNumber(metadata.minPlayTime), readPositiveNumber(metadata.maxPlayTime)),
+    playtime,
     minAge,
     age: minAge ? `${minAge}+` : null,
+    ...(difficulty ? { difficulty, complexity: difficulty } : {}),
     categories: normalizeStringArrayValue(metadata.categories || metadata.categoryHints),
     mechanics: normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints),
     themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
@@ -893,6 +964,20 @@ function buildGameUpdateData(resolved: ResolvedCandidateData): Prisma.GameUpdate
     sourceIds: buildGameSourceIds(metadata, resolved.primarySource.id),
     createdByAi: Boolean(resolved.aiProposal)
   };
+}
+
+function applyImportedDifficultyToMetadata(
+  metadata: Record<string, unknown>,
+  input: Omit<Parameters<typeof normalizeDifficultyFromImportedData>[0], "fallback">
+) {
+  const difficulty = normalizeDifficultyFromImportedData({
+    ...input,
+    metadata,
+    fallback: normalizeStringValue(metadata.difficulty) || normalizeStringValue(metadata.complexity)
+  });
+  metadata.difficulty = difficulty;
+  metadata.complexity = difficulty;
+  return difficulty;
 }
 
 function buildAiPromptSources(results: ImportedSourceCandidate[]): AiPromptSource[] {

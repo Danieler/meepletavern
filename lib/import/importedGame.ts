@@ -15,6 +15,7 @@ import { gameCandidateRepository, gameRepository } from "@/lib/editorialReposito
 import { buildSafeEditorialPatch } from "@/lib/games/buildSafeEditorialPatch";
 import { buildStoreOfferInputFromCandidate, upsertStoreOfferRecord } from "@/lib/gameOffers";
 import { sanitizeEditorialFields } from "@/lib/import/sanitizeEditorialFields";
+import { normalizeDifficultyFromImportedData } from "@/lib/import/difficulty";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
@@ -94,6 +95,21 @@ export async function persistImportedGameReview(input: {
     themes: taxonomy.themes,
     features: stringListFromMetadata(metadata, "features")
   });
+  const difficulty = normalizeDifficultyFromImportedData({
+    title: candidate.title,
+    originalTitle: candidate.originalTitle,
+    metadata,
+    description: candidate.extractedDescription || seedCopy.description,
+    categories: taxonomy.categories,
+    mechanics: taxonomy.mechanics,
+    themes: taxonomy.themes,
+    minAge,
+    minPlayTime,
+    maxPlayTime,
+    playtime
+  });
+  metadata.difficulty = difficulty;
+  metadata.complexity = difficulty;
   const candidateStatus = GameCandidateStatus.converted;
   const initialOffer = buildStoreOfferInputFromCandidate({
     source: input.source,
@@ -140,8 +156,8 @@ export async function persistImportedGameReview(input: {
         playtime,
         minAge,
         age: minAge ? `${minAge}+` : null,
-        difficulty: null,
-        complexity: null,
+        difficulty,
+        complexity: difficulty,
         categories: taxonomy.categories,
         mechanics: taxonomy.mechanics,
         themes: taxonomy.themes,

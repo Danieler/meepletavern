@@ -4,8 +4,9 @@ import { containsEditorialGarbage } from "@/lib/import/sanitizeEditorialFields";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 import { slugify } from "@/lib/slug";
+import { difficultyRank } from "@/lib/import/difficulty";
 
-const VALID_DIFFICULTIES = new Set(["Muy fácil", "Fácil", "Media", "Alta", "Muy alta"]);
+const VALID_DIFFICULTIES = new Set(["Muy fácil", "Fácil", "Media ligera", "Media", "Alta", "Muy alta"]);
 const SUSPICIOUS_TITLES = new Set(["maldito games", "asmodee", "devir", "zygomatic", "hasbro"]);
 const PLACEHOLDER_PATTERN =
   /(pendiente de revisi[oó]n editorial|ficha importada|borrador importado|fuente original:|revisi[oó]n editorial|por confirmar|se ha importado desde una fuente comercial aprobada|meepletavern|revisa y completa la ficha antes de publicar|no es una ficha lista para p[úu]blico|datos detectados:)/i;
@@ -73,16 +74,7 @@ export function buildSafeEditorialPatch(
     }
   });
 
-  applyTextField({
-    field: "difficulty",
-    currentValue: game.difficulty || game.complexity,
-    nextValue: completion.difficulty,
-    shouldReplaceCurrent: isReplaceableDifficulty,
-    assign(value) {
-      patch.difficulty = value;
-      patch.complexity = value;
-    }
-  });
+  applyDifficultyField(game.difficulty || game.complexity, completion.difficulty);
 
   applyListField("categories", game.categories, completion.categories);
   applyListField("mechanics", game.mechanics, completion.mechanics);
@@ -143,6 +135,27 @@ export function buildSafeEditorialPatch(
     appliedFields,
     suggestedTitle
   };
+
+  function applyDifficultyField(currentValue: string | null, nextValue: string | null | undefined) {
+    const normalizedNext = normalizeText(nextValue);
+
+    if (!isUsefulText(normalizedNext)) {
+      return;
+    }
+
+    const currentRank = difficultyRank(currentValue);
+    const nextRank = difficultyRank(normalizedNext);
+    const canReplace = mode === "prefer_completion" || isReplaceableDifficulty(currentValue);
+    const wouldDowngrade = currentRank > 0 && nextRank > 0 && nextRank < currentRank;
+
+    if (!canReplace || wouldDowngrade) {
+      return;
+    }
+
+    patch.difficulty = normalizedNext;
+    patch.complexity = normalizedNext;
+    appliedFields.push("difficulty");
+  }
 
   function applyTextField(input: {
     field: string;

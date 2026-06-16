@@ -877,12 +877,12 @@ function complexityRank(value: string | null) {
     return 3;
   }
 
-  if (normalized.includes("media")) {
-    return 2;
+  if (normalized.includes("media ligera") || normalized.includes("ligera") || normalized.includes("baja") || normalized.includes("facil") || normalized.includes("fácil")) {
+    return 1;
   }
 
-  if (normalized.includes("ligera") || normalized.includes("baja") || normalized.includes("facil") || normalized.includes("fácil")) {
-    return 1;
+  if (normalized.includes("media")) {
+    return 2;
   }
 
   return 0;
