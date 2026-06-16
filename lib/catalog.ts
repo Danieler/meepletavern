@@ -439,17 +439,13 @@ export function termHref(type: "category" | "mechanic" | "theme", term: string) 
   return `/juegos?${key}=${encodeURIComponent(term)}`;
 }
 
-const getPublishedDbGames = unstable_cache(
-  async function getPublishedDbGames() {
-    return prisma.game.findMany({
-      where: { status: GameStatus.published },
-      select: catalogGameSelect,
-      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
-    });
-  },
-  ["published-db-games"],
-  { revalidate: 300, tags: ["public-games"] }
-);
+async function getPublishedDbGames() {
+  return prisma.game.findMany({
+    where: { status: GameStatus.published },
+    select: catalogGameSelect,
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
+  });
+}
 
 const getPublishedDbGameBySlug = unstable_cache(
   async function getPublishedDbGameBySlug(slug: string) {
