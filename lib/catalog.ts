@@ -83,13 +83,13 @@ export type Ranking = {
 
 export type GameFilterInput = {
   q?: string;
-  players?: string;
-  duration?: string;
-  weight?: string;
-  age?: string;
-  category?: string;
-  mechanic?: string;
-  theme?: string;
+  players?: string | string[];
+  duration?: string | string[];
+  weight?: string | string[];
+  age?: string | string[];
+  category?: string | string[];
+  mechanic?: string | string[];
+  theme?: string | string[];
   sort?: string;
 };
 
@@ -323,9 +323,13 @@ export async function getRelatedGames(game: CatalogGame) {
 
 export async function filterGames(input: GameFilterInput) {
   const query = input.q?.trim().toLowerCase();
-  const category = input.category?.trim();
-  const mechanic = input.mechanic?.trim();
-  const theme = input.theme?.trim();
+  const categories = getFilterValues(input.category);
+  const mechanics = getFilterValues(input.mechanic);
+  const themes = getFilterValues(input.theme);
+  const players = getFilterValues(input.players);
+  const durations = getFilterValues(input.duration);
+  const weights = getFilterValues(input.weight);
+  const ages = getFilterValues(input.age);
   const catalogGames = await getCatalogGames();
 
   const games = catalogGames.filter((game) => {
@@ -340,14 +344,25 @@ export async function filterGames(input: GameFilterInput) {
           ...game.themes
         ]
           .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query)
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
       : true;
-    const matchesPlayers = input.players ? matchesPlayerFilter(game, input.players) : true;
-    const matchesDuration = input.duration ? matchesDurationFilter(game, input.duration) : true;
-    const matchesWeight = input.weight ? matchesWeightFilter(game, input.weight) : true;
-    const matchesAge = input.age && game.ageValue ? game.ageValue <= Number(input.age) : true;
+    const matchesPlayers = players.length ? players.some((value) => matchesPlayerFilter(game, value)) : true;
+    const matchesDuration = durations.length ? durations.some((value) => matchesDurationFilter(game, value)) : true;
+    const matchesWeight = weights.length ? weights.some((value) => matchesWeightFilter(game, value)) : true;
+    const matchesAge = ages.length
+      ? ages.some((value) => (game.ageValue ? game.ageValue <= Number(value) : true))
+      : true;
+    const matchesCategories = categories.length
+      ? categories.some((category) =>
+          category.toLowerCase() === "familiar"
+            ? game.categories.some((value) => normalizeFilterText(value).includes("familiar"))
+            : game.categories.includes(category)
+        )
+      : true;
+    const matchesMechanics = mechanics.length ? mechanics.some((value) => game.mechanics.includes(value)) : true;
+    const matchesThemes = themes.length ? themes.some((value) => game.themes.includes(value)) : true;
 
     return (
       matchesQuery &&
@@ -355,9 +370,9 @@ export async function filterGames(input: GameFilterInput) {
       matchesDuration &&
       matchesWeight &&
       matchesAge &&
-      (!category || game.categories.includes(category)) &&
-      (!mechanic || game.mechanics.includes(mechanic)) &&
-      (!theme || game.themes.includes(theme))
+      matchesCategories &&
+      matchesMechanics &&
+      matchesThemes
     );
   });
 
@@ -727,6 +742,21 @@ function resolveLegacyPublicImage(game: CatalogDbGame) {
 
 function looksLikeUrl(value: string | null | undefined) {
   return typeof value === "string" && /^https?:\/\//i.test(value.trim());
+}
+
+function normalizeFilterText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function getFilterValues(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value.map((item) => item.trim()).filter(Boolean);
+  }
+
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
 }
 
 function buildTermRankings(

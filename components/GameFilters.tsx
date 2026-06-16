@@ -116,15 +116,30 @@ function FilterGroup({ title, children }: { title: string; children: React.React
 }
 
 function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInput }) {
-  const isActive = active[item.param] === item.value;
+  const currentValues = getFilterValues(active[item.param]);
+  const isMultiSelect = item.param !== "sort";
+  const isActive = currentValues.includes(item.value);
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(active)) {
-    if (value && key !== item.param) {
-      params.set(key, value);
+    if (!value || key === item.param) {
+      continue;
     }
+
+    appendFilterValues(params, key, value);
   }
-  params.set(item.param, item.value);
+
+  if (isMultiSelect) {
+    const nextValues = isActive
+      ? currentValues.filter((value) => value !== item.value)
+      : [...currentValues, item.value];
+
+    for (const value of nextValues) {
+      params.append(item.param, value);
+    }
+  } else {
+    params.set(item.param, item.value);
+  }
 
   return (
     <Link
@@ -136,4 +151,27 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
       {item.label}
     </Link>
   );
+}
+
+function getFilterValues(value: GameFilterInput[keyof GameFilterInput]) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+
+  return typeof value === "string" && value ? [value] : [];
+}
+
+function appendFilterValues(params: URLSearchParams, key: string, value: GameFilterInput[keyof GameFilterInput]) {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (entry) {
+        params.append(key, entry);
+      }
+    }
+    return;
+  }
+
+  if (typeof value === "string" && value) {
+    params.set(key, value);
+  }
 }

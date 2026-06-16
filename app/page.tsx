@@ -518,9 +518,7 @@ function buildCatalogHref(filters: Partial<GameFilterInput>) {
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(filters)) {
-    if (value) {
-      params.set(key, value);
-    }
+    appendQueryValues(params, key, value);
   }
 
   const query = params.toString();
@@ -530,10 +528,11 @@ function buildCatalogHref(filters: Partial<GameFilterInput>) {
 function getCategoryMatchHref(
   terms: string[],
   needles: string[],
-  fallbackFilters: Partial<GameFilterInput>
+  fallbackFilters: Partial<GameFilterInput>,
+  extraFilters: Partial<GameFilterInput> = {}
 ) {
   const match = findMatchingTerm(terms, needles);
-  return match ? termHref("category", match) : buildCatalogHref(fallbackFilters);
+  return match ? buildCatalogHref({ category: match, ...extraFilters }) : buildCatalogHref(fallbackFilters);
 }
 
 function findMatchingTerm(terms: string[], needles: string[]) {
@@ -544,6 +543,11 @@ function findMatchingTerm(terms: string[], needles: string[]) {
 
   for (const needle of needles) {
     const normalizedNeedle = needle.toLowerCase();
+    const exactMatch = normalizedTerms.find((term) => term.normalized === normalizedNeedle);
+    if (exactMatch) {
+      return exactMatch.original;
+    }
+
     const match = normalizedTerms.find((term) => term.normalized.includes(normalizedNeedle));
 
     if (match) {
@@ -552,6 +556,21 @@ function findMatchingTerm(terms: string[], needles: string[]) {
   }
 
   return undefined;
+}
+
+function appendQueryValues(params: URLSearchParams, key: string, value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (entry) {
+        params.append(key, entry);
+      }
+    }
+    return;
+  }
+
+  if (value) {
+    params.set(key, value);
+  }
 }
 
 function pickFeaturedCategories(terms: string[]) {
