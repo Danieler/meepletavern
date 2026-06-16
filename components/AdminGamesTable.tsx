@@ -19,6 +19,7 @@ type AdminGameRow = {
 
 type SortKey = "name" | "status" | "slug" | "createdAt" | "updatedAt";
 type SortDirection = "asc" | "desc";
+type StatusFilter = "all" | "review" | "published";
 const PAGE_SIZE = 10;
 
 export function AdminGamesTable({
@@ -30,6 +31,7 @@ export function AdminGamesTable({
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
     key: "updatedAt",
@@ -44,6 +46,14 @@ export function AdminGamesTable({
   const filteredGames = useMemo(
     () =>
       games.filter((game) => {
+        if (statusFilter === "review" && game.status !== GameStatus.review) {
+          return false;
+        }
+
+        if (statusFilter === "published" && game.status !== GameStatus.published) {
+          return false;
+        }
+
         if (!normalizedSearch) {
           return true;
         }
@@ -53,7 +63,7 @@ export function AdminGamesTable({
           .toLowerCase()
           .includes(normalizedSearch);
       }),
-    [games, normalizedSearch]
+    [games, normalizedSearch, statusFilter]
   );
 
   const sortedGames = useMemo(
@@ -74,12 +84,12 @@ export function AdminGamesTable({
 
   useEffect(() => {
     setPage(1);
-  }, [normalizedSearch, sortConfig]);
+  }, [normalizedSearch, sortConfig, statusFilter]);
 
   const selectedGames = games.filter((game) => selectedIds.includes(game.id));
   const allSelected = pageIds.length > 0 && selectedPageCount === pageIds.length;
   const hasPublishedSelected = selectedGames.some((game) => game.status === GameStatus.published);
-  const hasFilter = Boolean(normalizedSearch);
+  const hasFilter = Boolean(normalizedSearch) || statusFilter !== "all";
 
   function toggleCurrentPageSelection(checked: boolean) {
     setSelectedIds((current) => {
@@ -98,41 +108,54 @@ export function AdminGamesTable({
   return (
     <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
       <div className="flex flex-col gap-3 border-b border-ink/10 px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-4">
-          <label className="block w-full lg:w-[340px]">
-            <span className="text-xs font-bold uppercase text-ink/55">Buscar</span>
-            <span className="mt-1 flex items-center gap-2 rounded-md border border-ink/10 bg-white px-3 py-2 shadow-soft focus-within:border-moss/40">
-              <Search size={16} className="text-ink/35" aria-hidden="true" />
-              <input
-                className="w-full bg-transparent text-sm outline-none placeholder:text-ink/35"
-                type="search"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                }}
-                placeholder="Nombre, slug o estado"
-              />
-              {search ? (
-                <button
-                  className="rounded-full p-1 text-ink/45 transition hover:bg-ink/5 hover:text-ink"
-                  type="button"
-                  onClick={clearSearch}
-                  aria-label="Limpiar búsqueda"
-                >
-                  <X size={14} aria-hidden="true" />
-                </button>
-              ) : null}
-            </span>
-          </label>
-          <p className="text-sm font-semibold text-ink/60">
-            {selectedIds.length
-              ? `${selectedIds.length} seleccionados`
-              : "Selecciona juegos para borrarlos en bloque."}
-            <span className="block text-xs font-medium text-ink/45">
-              {sortedGames.length} resultado{sortedGames.length === 1 ? "" : "s"}
-              {hasFilter ? " filtrado" : ""}
-            </span>
-          </p>
+        <div className="flex flex-col gap-3 lg:gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <label className="block w-full lg:w-[340px]">
+              <span className="text-xs font-bold uppercase text-ink/55">Buscar</span>
+              <span className="mt-1 flex items-center gap-2 rounded-md border border-ink/10 bg-white px-3 py-2 shadow-soft focus-within:border-moss/40">
+                <Search size={16} className="text-ink/35" aria-hidden="true" />
+                <input
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-ink/35"
+                  type="search"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                  }}
+                  placeholder="Nombre, slug o estado"
+                />
+                {search ? (
+                  <button
+                    className="rounded-full p-1 text-ink/45 transition hover:bg-ink/5 hover:text-ink"
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                ) : null}
+              </span>
+            </label>
+            <p className="text-sm font-semibold text-ink/60">
+              {selectedIds.length
+                ? `${selectedIds.length} seleccionados`
+                : "Selecciona juegos para borrarlos en bloque."}
+              <span className="block text-xs font-medium text-ink/45">
+                Total: {sortedGames.length} juego{sortedGames.length === 1 ? "" : "s"}
+                {hasFilter ? " filtrado" : ""}
+              </span>
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>
+              Todos
+            </FilterChip>
+            <FilterChip active={statusFilter === "review"} onClick={() => setStatusFilter("review")}>
+              En revisión
+            </FilterChip>
+            <FilterChip active={statusFilter === "published"} onClick={() => setStatusFilter("published")}>
+              Publicados
+            </FilterChip>
+          </div>
         </div>
         <form
           action={deleteGamesBulkAction}
@@ -350,6 +373,30 @@ function Td({ children }: { children: React.ReactNode }) {
 
 function TdCheckbox({ children }: { children: React.ReactNode }) {
   return <td className="w-12 px-4 py-4 text-ink/70">{children}</td>;
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-full bg-moss px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white"
+          : "rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-ink/60 transition hover:border-moss/30 hover:text-ink"
+      }
+    >
+      {children}
+    </button>
+  );
 }
 
 function formatDate(date: Date | string) {
