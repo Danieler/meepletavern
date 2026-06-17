@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
 export function middleware(request: NextRequest) {
   return handleRequest(request);
@@ -12,20 +10,6 @@ const DEFAULT_ADMIN_USERNAME = "admin";
 const DEFAULT_ADMIN_PASSWORD = "meepletavern";
 
 async function handleRequest(request: NextRequest) {
-  const isAdminPath =
-    request.nextUrl.pathname.startsWith("/admin") ||
-    request.nextUrl.pathname.startsWith("/api/admin");
-
-  if (!isAdminPath) {
-    if (!isSupabaseConfigured) {
-      return NextResponse.next();
-    }
-
-    const client = createSupabaseMiddlewareClient(request);
-    await client.supabase.auth.getUser();
-    return client.response;
-  }
-
   const auth = await resolveAdminAuth(request);
 
   if (!auth.authorized) {
@@ -191,6 +175,7 @@ export function readAdminAuthConfig(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+    "/admin/:path*",
+    "/api/admin/:path*"
   ]
 };

@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   }
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function Home() {
   const [popularGames, reviews, beginnerGames, newGames, categoryTerms] = await Promise.all([
@@ -73,7 +73,7 @@ export default async function Home() {
         <section className="container-page pt-5">
           <div className="tavern-panel relative min-h-[500px] overflow-hidden p-5 sm:p-8 lg:p-10">
             <Image
-              src="/design-assets/home-background.png"
+              src="/design-assets/home-background.webp"
               alt="Mesa de juegos de mesa con cartas, dados y meeples"
               fill
               priority
@@ -558,7 +558,7 @@ function findMatchingTerm(terms: string[], needles: string[]) {
   return undefined;
 }
 
-function appendQueryValues(params: URLSearchParams, key: string, value: string | string[] | undefined) {
+function appendQueryValues(params: URLSearchParams, key: string, value: string | number | string[] | undefined) {
   if (Array.isArray(value)) {
     for (const entry of value) {
       if (entry) {
@@ -568,8 +568,8 @@ function appendQueryValues(params: URLSearchParams, key: string, value: string |
     return;
   }
 
-  if (value) {
-    params.set(key, value);
+  if (value !== undefined && value !== null) {
+    params.set(key, String(value));
   }
 }
 

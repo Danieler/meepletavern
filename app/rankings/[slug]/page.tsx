@@ -12,7 +12,7 @@ type RankingPageProps = {
   }>;
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: RankingPageProps): Promise<Metadata> {
   const { slug } = await params;

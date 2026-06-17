@@ -77,7 +77,7 @@ const getCachedPublishedReviews = unstable_cache(
     });
   },
   ["published-reviews"],
-  { revalidate: 300, tags: ["public-games"] }
+  { revalidate: 3600, tags: ["public-games"] }
 );
 
 const getCachedPublishedReviewBySlug = unstable_cache(
@@ -88,7 +88,7 @@ const getCachedPublishedReviewBySlug = unstable_cache(
     });
   },
   ["published-review-by-slug"],
-  { revalidate: 300, tags: ["public-games"] }
+  { revalidate: 3600, tags: ["public-games"] }
 );
 
 export async function getAdminReviews() {

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     "Reseñas de juegos de mesa en español con puntuación, resumen, opinión, pros, contras y recomendaciones para distintas mesas."
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function ReviewsPage() {
   const reviews = await getReviews();

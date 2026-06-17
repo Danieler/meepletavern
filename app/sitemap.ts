@@ -1,23 +1,17 @@
 import type { MetadataRoute } from "next";
 import {
   getCatalogGames,
-  getCategoryTerms,
-  getMechanicTerms,
   getRankings,
   getReviews,
-  getThemeTerms
 } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const [catalogGames, rankings, reviews, categoryTerms, mechanicTerms, themeTerms] = await Promise.all([
+  const [catalogGames, rankings, reviews] = await Promise.all([
     getCatalogGames(),
     getRankings(),
-    getReviews(),
-    getCategoryTerms(),
-    getMechanicTerms(),
-    getThemeTerms()
+    getReviews()
   ]);
   const staticRoutes = [
     "",
@@ -53,24 +47,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(review.publishedAt),
       changeFrequency: "monthly" as const,
       priority: 0.72
-    })),
-    ...categoryTerms.map((term) => ({
-      url: `${siteConfig.url}/juegos?category=${encodeURIComponent(term)}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.62
-    })),
-    ...mechanicTerms.map((term) => ({
-      url: `${siteConfig.url}/juegos?mechanic=${encodeURIComponent(term)}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.62
-    })),
-    ...themeTerms.map((term) => ({
-      url: `${siteConfig.url}/juegos?theme=${encodeURIComponent(term)}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.62
     }))
   ];
 }

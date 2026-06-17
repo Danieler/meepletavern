@@ -171,9 +171,9 @@ export function MasterImportForm({ disabled }: { disabled?: boolean }) {
       <div className="mt-5 rounded-md border border-ink/10 bg-parchment/50 p-4">
         <p className="text-sm font-bold text-ink">Formato admitido</p>
         <ul className="mt-2 space-y-1 text-sm leading-6 text-ink/70">
-          <li>• Un único nombre: `Ark Nova`</li>
-          <li>• Una línea por juego: `Ark Nova` + salto de línea + `Cascadia`</li>
-          <li>• Array JSON: `["Ark Nova", "Cascadia"]`</li>
+          <li>• Un único nombre: <code>Ark Nova</code></li>
+          <li>• Una línea por juego: <code>Ark Nova</code> + salto de línea + <code>Cascadia</code></li>
+          <li>• Array JSON: <code>[&quot;Ark Nova&quot;, &quot;Cascadia&quot;]</code></li>
         </ul>
       </div>
 

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Explora juegos de mesa por temáticas: fantasía, ciencia ficción, terror, Cthulhu, medieval, pulp, piratas, espacio, Marvel, Disney y zombies."
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function ThemesPage() {
   const [themeTerms, games] = await Promise.all([getThemeTerms(), getCatalogGames()]);

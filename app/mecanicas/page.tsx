@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Explora juegos por mecánicas: colocación de trabajadores, construcción de mazos, mayorías, draft, dados, legacy, campaña y más."
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function MechanicsPage() {
   const [mechanicTerms, games] = await Promise.all([getMechanicTerms(), getCatalogGames()]);

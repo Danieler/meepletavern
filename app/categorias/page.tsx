@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Explora categorías de juegos de mesa como familiar, estrategia, party, cooperativo, narrativo, dungeon crawler, eurogame, ameritrash o abstracto."
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function CategoriesPage() {
   const [terms, games] = await Promise.all([getCategoryTerms(), getCatalogGames()]);

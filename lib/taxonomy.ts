@@ -52,7 +52,7 @@ const getCachedTaxonomyTermNames = unstable_cache(
     return terms.map((term) => term.name);
   },
   ["taxonomy-term-names"],
-  { revalidate: 300, tags: ["public-taxonomy"] }
+  { revalidate: 3600, tags: ["public-taxonomy"] }
 );
 
 async function getDirectTaxonomyTermNames(type: TaxonomyTypeKey) {

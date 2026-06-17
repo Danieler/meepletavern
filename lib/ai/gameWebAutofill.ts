@@ -69,7 +69,7 @@ const aiProposalSchema = z.object({
 });
 
 export type AiWebProposal = z.infer<typeof aiProposalSchema>;
-type TavilyResult = z.infer<typeof tavilyResultSchema>;
+export type TavilyResult = z.infer<typeof tavilyResultSchema>;
 type AiWebProposalField = Exclude<keyof AiWebProposal, "externalSources" | "needsHumanReview" | "notes">;
 export type AiPromptSource = {
   kind: "imported_source" | "direct_source" | "web_search";
@@ -1220,11 +1220,31 @@ function truncate(value: string | null, max: number) {
   return trimmed.length <= max ? trimmed : `${trimmed.slice(0, max - 1)}…`;
 }
 
-function extractBedrockResponseText(value: any): string {
+interface BedrockResponseContent {
+  text?: string;
+}
+
+interface BedrockResponse {
+  output?: {
+    message?: {
+      content?: BedrockResponseContent[];
+    };
+  };
+  content?: BedrockResponseContent[];
+  outputText?: string;
+}
+
+function extractBedrockResponseText(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    throw new Error("AI extraction failed: invalid response");
+  }
+
+  const casted = value as BedrockResponse;
+
   const messageText =
-    value?.output?.message?.content?.map((item: any) => item?.text || "").join("").trim() ||
-    value?.content?.map((item: any) => item?.text || "").join("").trim() ||
-    value?.outputText ||
+    casted.output?.message?.content?.map((item) => item.text || "").join("").trim() ||
+    casted.content?.map((item) => item.text || "").join("").trim() ||
+    casted.outputText ||
     "";
 
   if (!messageText) {

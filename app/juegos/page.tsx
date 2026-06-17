@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GameCard } from "@/components/GameCard";
 import { GameFilters } from "@/components/GameFilters";
 import { GameSearch } from "@/components/GameSearch";
+import { Pagination } from "@/components/Pagination";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
@@ -17,16 +18,18 @@ type GamesPageProps = {
   searchParams?: Promise<GameFilterInput>;
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function GamesPage({ searchParams }: GamesPageProps) {
   const filters = (await searchParams) || {};
-  const [games, categoryTerms, mechanicTerms, themeTerms] = await Promise.all([
+  const [filterResult, categoryTerms, mechanicTerms, themeTerms] = await Promise.all([
     filterGames(filters),
     getCategoryTerms(),
     getMechanicTerms(),
     getThemeTerms()
   ]);
+
+  const { games, total, page, totalPages } = filterResult;
 
   return (
     <PublicShell>
@@ -49,7 +52,7 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
           <GameFilters active={filters} categoryTerms={categoryTerms} mechanicTerms={mechanicTerms} themeTerms={themeTerms} />
           <div>
             <SectionHeader
-              title={`${games.length} juegos encontrados`}
+              title={`${total} juegos encontrados`}
               description="Cards con puntuación, ranking, duración, jugadores y peso para comparar de un vistazo."
             />
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -57,6 +60,9 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
                 <GameCard key={game.slug} game={game} />
               ))}
             </div>
+
+            <Pagination active={filters} totalPages={totalPages} currentPage={page} />
+
             {!games.length ? (
               <SEOTextBlock title="Sin resultados">
                 <p>Prueba a relajar filtros o buscar por categoría, mecánica o temática más amplia.</p>

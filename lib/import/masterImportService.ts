@@ -557,7 +557,7 @@ async function resolveWithTavilyAndNova(input: {
   let aiSearchQuery: string | null = null;
   let aiSearchResults: Prisma.InputJsonValue | null = null;
   let proposal: AiWebProposal | null = null;
-  let tavilyResults: any[] = [];
+  let tavilyResults: (import("@/lib/ai/gameWebAutofill").TavilyResult)[] = [];
   let aiModule: Awaited<typeof import("@/lib/ai/gameWebAutofill")> | null = null;
 
   const loadAiModule = async () => {
@@ -567,8 +567,8 @@ async function resolveWithTavilyAndNova(input: {
 
   if (process.env.TAVILY_API_KEY?.trim()) {
     try {
-      const module = await loadAiModule();
-      const search = await module.searchBoardGameWithTavily(game);
+      const autofillModule = await loadAiModule();
+      const search = await autofillModule.searchBoardGameWithTavily(game);
       aiSearchQuery = search.query;
       aiSearchResults = search.results as unknown as Prisma.InputJsonValue;
       tavilyResults = search.results;
@@ -580,8 +580,8 @@ async function resolveWithTavilyAndNova(input: {
   }
 
   try {
-    const module = await loadAiModule();
-    proposal = await module.extractBoardGameFieldsWithNova({
+    const autofillModule = await loadAiModule();
+    proposal = await autofillModule.extractBoardGameFieldsWithNova({
       game,
       tavilyResults,
       extraSources

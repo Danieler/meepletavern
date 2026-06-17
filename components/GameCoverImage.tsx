@@ -112,7 +112,7 @@ function MeepleTavernCoverPlaceholder({
         <span className="rounded-md bg-white/12 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-parchment">
           MeepleTavern
         </span>
-        <span className="h-8 w-8 rounded-md bg-white/10 bg-[url('/brand/meepletavern-mark.png')] bg-contain bg-center bg-no-repeat" aria-hidden="true" />
+        <span className="h-8 w-8 rounded-md bg-white/10 bg-[url('/brand/meepletavern-mark.webp')] bg-contain bg-center bg-no-repeat" aria-hidden="true" />
       </div>
       <div className="absolute bottom-4 left-4 right-4">
         <p className="line-clamp-2 text-lg font-black leading-tight text-white">{gameTitle}</p>

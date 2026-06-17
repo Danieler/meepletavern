@@ -14,7 +14,7 @@ type ReviewPageProps = {
   }>;
 };
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: ReviewPageProps): Promise<Metadata> {
   const { slug } = await params;

@@ -91,6 +91,7 @@ export type GameFilterInput = {
   mechanic?: string | string[];
   theme?: string | string[];
   sort?: string;
+  page?: string | number;
 };
 
 const catalogGameSelect = {
@@ -211,7 +212,7 @@ const getDbGamesByIdentifiers = unstable_cache(
     });
   },
   ["db-games-by-identifiers"],
-  { revalidate: 300, tags: ["public-games"] }
+  { revalidate: 3600, tags: ["public-games"] }
 );
 
 export async function getReviews(): Promise<Review[]> {
@@ -332,7 +333,7 @@ export async function filterGames(input: GameFilterInput) {
   const ages = getFilterValues(input.age);
   const catalogGames = await getCatalogGames();
 
-  const games = catalogGames.filter((game) => {
+  const filtered = catalogGames.filter((game) => {
     const matchesQuery = query
       ? [
           game.title,
@@ -376,7 +377,19 @@ export async function filterGames(input: GameFilterInput) {
     );
   });
 
-  return sortGames(games, input.sort);
+  const sorted = sortGames(filtered, input.sort);
+  const total = sorted.length;
+  const pageSize = 12;
+  const page = Math.max(1, Number(input.page) || 1);
+  const games = sorted.slice((page - 1) * pageSize, page * pageSize);
+
+  return {
+    games,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize)
+  };
 }
 
 export function sortGames(games: CatalogGame[], sort = "nombre") {
@@ -439,6 +452,7 @@ export function termHref(type: "category" | "mechanic" | "theme", term: string) 
   return `/juegos?${key}=${encodeURIComponent(term)}`;
 }
 
+// Do not persistently cache the full catalogue here because the payload can exceed the Next.js Data Cache 2MB item limit.
 async function getPublishedDbGames() {
   return prisma.game.findMany({
     where: { status: GameStatus.published },
@@ -458,7 +472,7 @@ const getPublishedDbGameBySlug = unstable_cache(
     });
   },
   ["published-db-game-by-slug"],
-  { revalidate: 300, tags: ["public-games"] }
+  { revalidate: 3600, tags: ["public-games"] }
 );
 
 const getRelatedDbGames = unstable_cache(
@@ -489,7 +503,7 @@ const getRelatedDbGames = unstable_cache(
     });
   },
   ["related-db-games"],
-  { revalidate: 300, tags: ["public-games"] }
+  { revalidate: 3600, tags: ["public-games"] }
 );
 
 function toCatalogGame(game: CatalogDbGame): CatalogGame {

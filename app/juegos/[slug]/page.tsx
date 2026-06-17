@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
   };
 }
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export default async function GamePage({ params }: GamePageProps) {
   const { slug } = await params;

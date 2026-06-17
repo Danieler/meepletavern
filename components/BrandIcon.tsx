@@ -19,7 +19,9 @@ import {
   Tag,
   Trophy,
   UserRound,
-  Users
+  Users,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 export type BrandIconName =
@@ -43,7 +45,9 @@ export type BrandIconName =
   | "tag"
   | "trophy"
   | "user"
-  | "users";
+  | "users"
+  | "chevron-left"
+  | "chevron-right";
 
 type BrandIconProps = {
   name: BrandIconName;
@@ -73,7 +77,9 @@ const iconMap: Record<BrandIconName, LucideIcon> = {
   tag: Tag,
   trophy: Trophy,
   user: UserRound,
-  users: Users
+  users: Users,
+  "chevron-left": ChevronLeft,
+  "chevron-right": ChevronRight
 };
 
 export function BrandIcon({
