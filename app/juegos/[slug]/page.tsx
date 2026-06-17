@@ -8,6 +8,7 @@ import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
 import { GameCard } from "@/components/GameCard";
 import { GameComments } from "@/components/GameComments";
+import { GameCommunitySection } from "@/components/GameCommunitySection";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameLibraryPanel } from "@/components/GameLibraryPanel";
 import { GameRatingSummary } from "@/components/GameRatingSummary";

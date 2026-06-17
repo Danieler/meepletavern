@@ -24,8 +24,9 @@ export async function upsertAppUserFromAuthUser(user: Pick<SupabaseUser, "id" | 
 
   const displayName = getSupabaseDisplayName(user);
 
-  return prisma.user.upsert({
+  const appUser = await prisma.user.upsert({
     where: { authUserId: user.id },
+    include: { profile: true },
     update: {
       email: user.email,
       displayName
@@ -36,6 +37,36 @@ export async function upsertAppUserFromAuthUser(user: Pick<SupabaseUser, "id" | 
       displayName
     }
   });
+
+  if (!appUser.profile) {
+    const baseUsername = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+    const username = await ensureUniqueUsername(baseUsername);
+
+    await prisma.userProfile.create({
+      data: {
+        userId: appUser.id,
+        username,
+        displayName: appUser.displayName
+      }
+    });
+
+    return (await prisma.user.findUnique({
+      where: { id: appUser.id },
+      include: { profile: true }
+    }))!;
+  }
+
+  return appUser;
+}
+
+async function ensureUniqueUsername(base: string) {
+  let username = base || "usuario";
+  let counter = 1;
+  while (true) {
+    const existing = await prisma.userProfile.findUnique({ where: { username } });
+    if (!existing) return username;
+    username = `${base}${counter++}`;
+  }
 }
 
 export async function getAppUserByAuthUserId(authUserId: string) {

@@ -152,6 +152,11 @@ model GameImportProposal {
   @@index([createdAt])
 }
 
+enum ProfileVisibility {
+  PUBLIC
+  PRIVATE
+}
+
 model User {
   id          String   @id @default(cuid())
   authUserId  String   @unique
@@ -159,9 +164,27 @@ model User {
   displayName String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  profile     UserProfile?
   library     UserLibraryGame[]
   reviews     Review[]
   comments    GameComment[]
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  username    String @unique
+  displayName String?
+  bio         String?
+  avatarUrl   String?
+
+  profileVisibility    ProfileVisibility @default(PUBLIC)
+  collectionVisibility ProfileVisibility @default(PUBLIC)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Review {
@@ -204,7 +227,14 @@ model UserLibraryGame {
   id        String   @id @default(cuid())
   userId    String
   gameId    String
+  
+  owned      Boolean @default(false)
+  wantToPlay Boolean @default(false)
+  wantToBuy  Boolean @default(false)
+  played     Boolean @default(false)
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
 

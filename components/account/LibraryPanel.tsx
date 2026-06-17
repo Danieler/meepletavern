@@ -7,6 +7,10 @@ import { useAuth } from "@/hooks/useAuth";
 type LibraryEntry = {
   id: string;
   gameId: string;
+  owned: boolean;
+  wantToPlay: boolean;
+  wantToBuy: boolean;
+  played: boolean;
   createdAt: string;
   game: {
     id: string;
@@ -46,9 +50,7 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
             }
           | null;
 
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         if (!response.ok) {
           setFeedback(payload?.error || "No hemos podido cargar tu colección.");
@@ -65,9 +67,7 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
         }
       })
       .finally(() => {
-        if (active) {
-          setFetching(false);
-        }
+        if (active) setFetching(false);
       });
 
     return () => {
@@ -109,21 +109,26 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
     );
   }
 
+  const owned = entries.filter(e => e.owned);
+  const wantToPlay = entries.filter(e => e.wantToPlay);
+  const wantToBuy = entries.filter(e => e.wantToBuy);
+  const played = entries.filter(e => e.played);
+
   return (
     <section className="space-y-6">
       {embedded ? (
         <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-          <h2 className="text-2xl font-black text-ink">Mi colección</h2>
+          <h2 className="text-2xl font-black text-ink">Mi ludoteca</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-ink/72">
-            Aquí verás los juegos que has marcado como parte de tu colección.
+            Gestiona aquí los juegos que tienes, los que quieres jugar o comprar y los que ya has disfrutado.
           </p>
         </section>
       ) : (
         <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
           <p className="text-sm font-bold uppercase text-ember">Cuenta</p>
-          <h1 className="mt-3 text-4xl font-black text-ink sm:text-5xl">Mi colección</h1>
+          <h1 className="mt-3 text-4xl font-black text-ink sm:text-5xl">Mi ludoteca</h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-ink/72">
-            Aquí verás los juegos que has marcado como parte de tu colección.
+            Tu archivo personal en MeepleTavern.
           </p>
         </section>
       )}
@@ -145,41 +150,60 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
           <p className="text-sm font-semibold text-ink/65">Cargando tus juegos...</p>
         </section>
       ) : entries.length ? (
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {entries.map((entry) => (
-            <article
-              key={entry.id}
-              className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft"
-            >
-              <Link href={`/juegos/${entry.game.slug}`} className="block">
-                <div className="aspect-[4/3] bg-ink/5">
-                  {entry.game.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={entry.game.coverImageUrl}
-                      alt={entry.game.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : null}
-                </div>
-                <div className="p-4">
-                  <h2 className="text-lg font-black text-ink">{entry.game.title}</h2>
-                  <p className="mt-2 text-sm font-semibold text-ink/55">
-                    Añadido el {new Date(entry.createdAt).toLocaleDateString("es-ES")}
-                  </p>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </section>
+        <div className="space-y-12">
+          <DashboardSection title="Lo tengo" entries={owned} />
+          <DashboardSection title="Quiero jugarlo" entries={wantToPlay} />
+          <DashboardSection title="Quiero comprarlo" entries={wantToBuy} />
+          <DashboardSection title="Lo he jugado" entries={played} />
+        </div>
       ) : (
         <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
           <p className="text-sm font-semibold text-ink/65">
-            Todavía no has añadido juegos a tu colección. Entra en una ficha y pulsa
-            <span className="font-black text-ink"> Lo tengo</span>.
+            Todavía no has añadido juegos a tu ludoteca. Entra en una ficha y marca los juegos que te interesen.
           </p>
         </section>
       )}
+    </section>
+  );
+}
+
+function DashboardSection({ title, entries }: { title: string; entries: LibraryEntry[] }) {
+  if (entries.length === 0) return null;
+
+  return (
+    <section>
+      <div className="flex items-center gap-3 mb-6">
+        <h3 className="text-xl font-black text-ink">{title}</h3>
+        <span className="rounded-full bg-ink/5 px-2 py-0.5 text-xs font-bold text-ink/40">{entries.length}</span>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {entries.map((entry) => (
+          <article
+            key={entry.id}
+            className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:border-ink/20"
+          >
+            <Link href={`/juegos/${entry.game.slug}`} className="block">
+              <div className="aspect-[4/3] bg-ink/5 overflow-hidden">
+                {entry.game.coverImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={entry.game.coverImageUrl}
+                    alt={entry.game.title}
+                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-ink/10">
+                     <LibraryBig size={40} />
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <h2 className="text-lg font-black text-ink line-clamp-1">{entry.game.title}</h2>
+              </div>
+            </Link>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
