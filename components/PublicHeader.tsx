@@ -8,6 +8,7 @@ const navItems = [
   { href: "/resenas", label: "Reseñas" },
   { href: "/rankings", label: "Rankings" },
   { href: "/juegos", label: "Juegos" },
+  { href: "/usuarios", label: "Usuarios" },
   { href: "/categorias", label: "Categorías" },
   { href: "/mecanicas", label: "Mecánicas" },
   { href: "/tematicas", label: "Temáticas" }

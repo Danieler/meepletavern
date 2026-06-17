@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { UserProfile } from "@prisma/client";
 import { getGameCommunityUsers } from "@/lib/publicProfiles";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 
@@ -27,10 +28,10 @@ export async function GameCommunitySection({ gameId }: GameCommunitySectionProps
         <p className="mt-6 text-ink/60 font-bold italic">Todavía nadie de la comunidad ha añadido este juego.</p>
       ) : (
         <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          <CommunityGroup title="Lo tienen" users={community.owned} />
-          <CommunityGroup title="Quieren jugarlo" users={community.wantToPlay} />
-          <CommunityGroup title="Quieren comprarlo" users={community.wantToBuy} />
-          <CommunityGroup title="Lo han jugado" users={community.played} />
+          <CommunityGroup title="Lo tienen" countLabel="usuarios lo tienen" users={community.owned} />
+          <CommunityGroup title="Quieren jugarlo" countLabel="usuarios quieren jugarlo" users={community.wantToPlay} />
+          <CommunityGroup title="Quieren comprarlo" countLabel="usuarios quieren comprarlo" users={community.wantToBuy} />
+          <CommunityGroup title="Lo han jugado" countLabel="usuarios lo han jugado" users={community.played} />
         </div>
       )}
 
@@ -46,7 +47,7 @@ export async function GameCommunitySection({ gameId }: GameCommunitySectionProps
   );
 }
 
-function CommunityGroup({ title, users }: { title: string; users: any[] }) {
+function CommunityGroup({ title, countLabel, users }: { title: string; countLabel: string; users: UserProfile[] }) {
   if (users.length === 0) return null;
 
   const displayUsers = users.slice(0, 8);
@@ -54,14 +55,15 @@ function CommunityGroup({ title, users }: { title: string; users: any[] }) {
 
   return (
     <div>
-      <h3 className="text-sm font-black text-ink/40 uppercase tracking-widest">{title} <span className="text-ink/20">({users.length})</span></h3>
+      <h3 className="text-sm font-black text-ink/40 uppercase tracking-widest">{title}</h3>
+      <p className="mt-1 text-sm font-bold text-ink/55">{users.length} {countLabel}</p>
       <ul className="mt-4 space-y-3">
         {displayUsers.map((user) => (
           <li key={user.username}>
             <Link href={`/u/${user.username}`} className="flex items-center gap-2 group">
               <div className="relative h-8 w-8 overflow-hidden rounded-full border border-white bg-parchment shadow-sm">
                 {user.avatarUrl ? (
-                  <Image src={user.avatarUrl} alt={user.displayName} fill className="object-cover" />
+                  <Image src={user.avatarUrl} alt={user.displayName || user.username} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-[10px] font-black text-ink/20">
                     {(user.displayName || user.username)[0].toUpperCase()}
@@ -72,10 +74,21 @@ function CommunityGroup({ title, users }: { title: string; users: any[] }) {
             </Link>
           </li>
         ))}
-        {remaining > 0 && (
-          <li className="text-xs font-bold text-ink/40 pl-10">y {remaining} más...</li>
-        )}
       </ul>
+      {remaining > 0 ? (
+        <details className="mt-3 pl-10">
+          <summary className="cursor-pointer text-xs font-bold text-ember">Ver todos</summary>
+          <ul className="mt-3 space-y-3">
+            {users.slice(8).map((user) => (
+              <li key={user.username}>
+                <Link href={`/u/${user.username}`} className="text-sm font-bold text-ink/65 transition hover:text-ink">
+                  {user.displayName || user.username}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </div>
   );
 }

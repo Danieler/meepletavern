@@ -1,111 +1,132 @@
+import { Prisma, ProfileVisibility, type UserProfile } from "@prisma/client";
+import { getCatalogGamesByIds, type CatalogGame } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
-import { ProfileVisibility } from "@prisma/client";
 
-export async function getPublicProfileByUsername(username: string) {
-  const profile = await prisma.userProfile.findUnique({
-    where: { username },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          displayName: true
-        }
+type LibraryFlags = {
+  owned: boolean;
+  wantToPlay: boolean;
+  wantToBuy: boolean;
+  played: boolean;
+};
+
+export type PublicProfileStats = {
+  owned: number;
+  wantToPlay: number;
+  wantToBuy: number;
+  played: number;
+};
+
+export type PublicCollectionEntry = LibraryFlags & {
+  id: string;
+  gameId: string;
+  updatedAt: Date;
+  game: CatalogGame;
+};
+
+export type PublicUserCard = {
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  hasPublicCollection: boolean;
+  stats: PublicProfileStats | null;
+};
+
+const profileWithUser = Prisma.validator<Prisma.UserProfileDefaultArgs>()({
+  include: {
+    user: {
+      select: {
+        id: true,
+        email: true,
+        displayName: true
       }
     }
-  });
-
-  if (!profile) {
-    return null;
   }
+});
 
-  return profile;
+export type PublicProfile = Prisma.UserProfileGetPayload<typeof profileWithUser>;
+
+export async function getPublicProfileByUsername(username: string) {
+  return prisma.userProfile.findUnique({
+    where: { username: username.toLowerCase() },
+    ...profileWithUser
+  });
 }
 
 export async function getPublicUserCollection(userId: string) {
   const entries = await prisma.userLibraryGame.findMany({
     where: { userId },
-    include: {
-      game: {
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          name: true,
-          coverImageUrl: true
-        }
-      }
+    select: {
+      id: true,
+      gameId: true,
+      owned: true,
+      wantToPlay: true,
+      wantToBuy: true,
+      played: true,
+      updatedAt: true
     },
     orderBy: { updatedAt: "desc" }
   });
+  const games = await getCatalogGamesByIds(entries.map((entry) => entry.gameId));
+  const gamesById = new Map(games.map((game) => [game.id, game]));
+  const collectionEntries = entries.flatMap((entry): PublicCollectionEntry[] => {
+    const game = gamesById.get(entry.gameId);
+    return game ? [{ ...entry, game }] : [];
+  });
 
   return {
-    owned: entries.filter((e) => e.owned),
-    wantToPlay: entries.filter((e) => e.wantToPlay),
-    wantToBuy: entries.filter((e) => e.wantToBuy),
-    played: entries.filter((e) => e.played)
+    owned: collectionEntries.filter((entry) => entry.owned),
+    wantToPlay: collectionEntries.filter((entry) => entry.wantToPlay),
+    wantToBuy: collectionEntries.filter((entry) => entry.wantToBuy),
+    played: collectionEntries.filter((entry) => entry.played)
   };
 }
 
-export async function getPublicUsers(query?: string) {
-  const where: any = {
-    profileVisibility: ProfileVisibility.PUBLIC
-  };
-
-  if (query) {
-    where.OR = [
-      { username: { contains: query, mode: "insensitive" } },
-      { displayName: { contains: query, mode: "insensitive" } }
-    ];
-  }
-
+export async function getPublicUsers(query?: string): Promise<PublicUserCard[]> {
+  const search = query?.trim();
   const profiles = await prisma.userProfile.findMany({
-    where,
-    include: {
+    where: {
+      profileVisibility: ProfileVisibility.PUBLIC,
+      ...(search
+        ? {
+            OR: [
+              { username: { contains: search, mode: "insensitive" } },
+              { displayName: { contains: search, mode: "insensitive" } }
+            ]
+          }
+        : {})
+    },
+    select: {
+      username: true,
+      displayName: true,
+      avatarUrl: true,
+      collectionVisibility: true,
       user: {
-        include: {
-          _count: {
+        select: {
+          library: {
             select: {
-              library: true
+              owned: true,
+              wantToPlay: true,
+              wantToBuy: true,
+              played: true
             }
           }
         }
       }
     },
-    orderBy: { createdAt: "desc" }
+    orderBy: [{ displayName: "asc" }, { username: "asc" }]
   });
 
-  // We need more granular counts for the card
-  // This is a bit expensive if many users, but fine for now.
-  return Promise.all(
-    profiles.map(async (profile) => {
-      const counts = await prisma.userLibraryGame.groupBy({
-        by: ['userId'],
-        where: { userId: profile.userId },
-        _sum: {
-          owned: true,
-          wantToPlay: true,
-          wantToBuy: true,
-          played: true
-        }
-      });
+  return profiles.map((profile) => {
+    const hasPublicCollection = profile.collectionVisibility === ProfileVisibility.PUBLIC;
 
-      const stats = counts[0] || { _sum: { owned: 0, wantToPlay: 0, wantToBuy: 0, played: 0 } };
-
-      return {
-        username: profile.username,
-        displayName: profile.displayName || profile.username,
-        avatarUrl: profile.avatarUrl,
-        collectionVisibility: profile.collectionVisibility,
-        stats: {
-          owned: Number(stats._sum.owned || 0),
-          wantToPlay: Number(stats._sum.wantToPlay || 0),
-          wantToBuy: Number(stats._sum.wantToBuy || 0),
-          played: Number(stats._sum.played || 0)
-        }
-      };
-    })
-  );
+    return {
+      username: profile.username,
+      displayName: profile.displayName || profile.username,
+      avatarUrl: profile.avatarUrl,
+      hasPublicCollection,
+      stats: hasPublicCollection ? countLibraryStats(profile.user.library) : null
+    };
+  });
 }
 
 export async function getGameCommunityUsers(gameId: string) {
@@ -114,24 +135,51 @@ export async function getGameCommunityUsers(gameId: string) {
       gameId,
       user: {
         profile: {
-          profileVisibility: ProfileVisibility.PUBLIC,
-          collectionVisibility: ProfileVisibility.PUBLIC
+          is: {
+            profileVisibility: ProfileVisibility.PUBLIC,
+            collectionVisibility: ProfileVisibility.PUBLIC
+          }
         }
       }
     },
-    include: {
+    select: {
+      owned: true,
+      wantToPlay: true,
+      wantToBuy: true,
+      played: true,
       user: {
-        include: {
+        select: {
           profile: true
         }
       }
-    }
+    },
+    orderBy: { updatedAt: "desc" }
+  });
+  const profiles = entries.flatMap((entry) => {
+    const profile = entry.user.profile;
+    return profile ? [{ entry, profile }] : [];
   });
 
   return {
-    owned: entries.filter((e) => e.owned).map((e) => e.user.profile!),
-    wantToPlay: entries.filter((e) => e.wantToPlay).map((e) => e.user.profile!),
-    wantToBuy: entries.filter((e) => e.wantToBuy).map((e) => e.user.profile!),
-    played: entries.filter((e) => e.played).map((e) => e.user.profile!)
+    owned: profiles.filter(({ entry }) => entry.owned).map(({ profile }) => profile),
+    wantToPlay: profiles.filter(({ entry }) => entry.wantToPlay).map(({ profile }) => profile),
+    wantToBuy: profiles.filter(({ entry }) => entry.wantToBuy).map(({ profile }) => profile),
+    played: profiles.filter(({ entry }) => entry.played).map(({ profile }) => profile)
   };
+}
+
+function countLibraryStats(entries: LibraryFlags[]): PublicProfileStats {
+  return entries.reduce(
+    (stats, entry) => ({
+      owned: stats.owned + Number(entry.owned),
+      wantToPlay: stats.wantToPlay + Number(entry.wantToPlay),
+      wantToBuy: stats.wantToBuy + Number(entry.wantToBuy),
+      played: stats.played + Number(entry.played)
+    }),
+    { owned: 0, wantToPlay: 0, wantToBuy: 0, played: 0 }
+  );
+}
+
+export function getPublicProfileName(profile: Pick<UserProfile, "displayName" | "username">) {
+  return profile.displayName || profile.username;
 }

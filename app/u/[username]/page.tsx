@@ -4,9 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ProfileVisibility } from "@prisma/client";
 import { PublicShell } from "@/components/PublicShell";
-import { SectionHeader } from "@/components/SectionHeader";
 import { GameCard } from "@/components/GameCard";
-import { getPublicProfileByUsername, getPublicUserCollection } from "@/lib/publicProfiles";
+import { getPublicProfileByUsername, getPublicUserCollection, type PublicCollectionEntry } from "@/lib/publicProfiles";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 
 type ProfilePageProps = {
@@ -45,6 +44,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const isOwner = currentUser?.id === profile.userId;
   const isProfilePublic = profile.profileVisibility === ProfileVisibility.PUBLIC;
   const isCollectionPublic = profile.collectionVisibility === ProfileVisibility.PUBLIC;
+  const canSeeCollection = isOwner || isCollectionPublic;
 
   if (!isProfilePublic && !isOwner) {
     return (
@@ -60,7 +60,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     );
   }
 
-  const collection = await getPublicUserCollection(profile.userId);
+  const collection = canSeeCollection
+    ? await getPublicUserCollection(profile.userId)
+    : { owned: [], wantToPlay: [], wantToBuy: [], played: [] };
 
   return (
     <PublicShell>
@@ -86,12 +88,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <p className="mt-1 text-lg font-bold text-ink/40">@{profile.username}</p>
               {profile.bio && <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink/70">{profile.bio}</p>}
               
-              <div className="mt-8 flex flex-wrap justify-center gap-4 sm:justify-start">
-                <Stat label="Lo tengo" count={collection.owned.length} />
-                <Stat label="Quiero jugarlo" count={collection.wantToPlay.length} />
-                <Stat label="Quiero comprarlo" count={collection.wantToBuy.length} />
-                <Stat label="Jugados" count={collection.played.length} />
-              </div>
+              {canSeeCollection ? (
+                <div className="mt-8 flex flex-wrap justify-center gap-4 sm:justify-start">
+                  <Stat label="Lo tengo" count={collection.owned.length} />
+                  <Stat label="Quiero jugarlo" count={collection.wantToPlay.length} />
+                  <Stat label="Quiero comprarlo" count={collection.wantToBuy.length} />
+                  <Stat label="Jugados" count={collection.played.length} />
+                </div>
+              ) : (
+                <p className="mt-8 text-sm font-bold text-ink/45">Colección privada</p>
+              )}
             </div>
             {isOwner && (
                <div className="shrink-0 pt-2">
@@ -101,7 +107,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </section>
 
-        {!isCollectionPublic && !isOwner ? (
+        {!canSeeCollection ? (
           <section className="container-page py-20 text-center">
             <h2 className="text-xl font-bold text-ink">Esta colección es privada.</h2>
             <p className="mt-2 text-ink/60">El usuario ha decidido no mostrar sus juegos públicamente.</p>
@@ -128,13 +134,16 @@ function Stat({ label, count }: { label: string; count: number }) {
   );
 }
 
-function CollectionSection({ title, items }: { title: string; items: any[] }) {
+function CollectionSection({ title, items }: { title: string; items: PublicCollectionEntry[] }) {
   if (items.length === 0) return null;
 
   return (
     <section className="container-page py-10 lg:py-14">
-      <SectionHeader title={title} count={items.length} />
-      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="mb-8 flex flex-wrap items-center gap-3 border-b border-ink/5 pb-4">
+        <h2 className="font-display text-2xl font-bold text-wood sm:text-3xl">{title}</h2>
+        <span className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-bold text-ink/45">{items.length}</span>
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {items.map((entry) => (
           <GameCard key={entry.id} game={entry.game} />
         ))}

@@ -196,6 +196,26 @@ export async function getGamesBySlugs(slugs: string[]) {
     .filter(Boolean) as CatalogGame[];
 }
 
+export async function getCatalogGamesByIds(ids: string[]) {
+  if (!ids.length) {
+    return [];
+  }
+
+  const games = await prisma.game.findMany({
+    where: {
+      id: { in: ids },
+      status: GameStatus.published
+    },
+    select: catalogGameSelect
+  });
+  const byId = new Map(games.map((game) => [game.id, toCatalogGame(game)]));
+
+  return ids.flatMap((id) => {
+    const game = byId.get(id);
+    return game ? [game] : [];
+  });
+}
+
 const getDbGamesByIdentifiers = unstable_cache(
   async function getDbGamesByIdentifiers(identifiers: string[]) {
     return prisma.game.findMany({

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LibraryBig } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type LibraryEntry = {

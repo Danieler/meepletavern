@@ -2,8 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { PublicShell } from "@/components/PublicShell";
-import { SectionHeader } from "@/components/SectionHeader";
-import { getPublicUsers } from "@/lib/publicProfiles";
+import { getPublicUsers, type PublicUserCard } from "@/lib/publicProfiles";
 
 export const metadata: Metadata = {
   title: "Directorio de usuarios - MeepleTavern",
@@ -56,7 +55,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   );
 }
 
-function UserCard({ user }: { user: any }) {
+function UserCard({ user }: { user: PublicUserCard }) {
   return (
     <div className="tavern-card flex flex-col items-center p-6 text-center">
       <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-white bg-parchment shadow-sm">
@@ -71,24 +70,30 @@ function UserCard({ user }: { user: any }) {
       <h3 className="mt-4 text-lg font-black text-ink">{user.displayName}</h3>
       <p className="text-sm font-bold text-ink/40">@{user.username}</p>
       
-      <div className="mt-6 grid w-full grid-cols-2 gap-y-3 border-t border-ink/5 pt-5 text-sm">
-        <div>
-          <p className="font-black text-ink">{user.stats.owned}</p>
-          <p className="text-xs font-bold text-ink/40 uppercase">Juegos</p>
+      {user.stats ? (
+        <div className="mt-6 grid w-full grid-cols-2 gap-y-3 border-t border-ink/5 pt-5 text-sm">
+          <div>
+            <p className="font-black text-ink">{user.stats.owned}</p>
+            <p className="text-xs font-bold text-ink/40 uppercase">Juegos</p>
+          </div>
+          <div>
+            <p className="font-black text-ink">{user.stats.played}</p>
+            <p className="text-xs font-bold text-ink/40 uppercase">Jugados</p>
+          </div>
+          <div>
+            <p className="font-black text-ink">{user.stats.wantToPlay}</p>
+            <p className="text-xs font-bold text-ink/40 uppercase">Quiere jugar</p>
+          </div>
+          <div>
+            <p className="font-black text-ink">{user.stats.wantToBuy}</p>
+            <p className="text-xs font-bold text-ink/40 uppercase">Quiere comprar</p>
+          </div>
         </div>
-        <div>
-          <p className="font-black text-ink">{user.stats.played}</p>
-          <p className="text-xs font-bold text-ink/40 uppercase">Jugados</p>
-        </div>
-        <div>
-          <p className="font-black text-ink">{user.stats.wantToPlay}</p>
-          <p className="text-xs font-bold text-ink/40 uppercase">Quiere jugar</p>
-        </div>
-        <div>
-          <p className="font-black text-ink">{user.stats.wantToBuy}</p>
-          <p className="text-xs font-bold text-ink/40 uppercase">Quiere comprar</p>
-        </div>
-      </div>
+      ) : (
+        <p className="mt-6 w-full border-t border-ink/5 pt-5 text-sm font-bold text-ink/45">
+          Colección privada
+        </p>
+      )}
 
       <Link href={`/u/${user.username}`} className="button-secondary mt-8 w-full">
         Ver perfil

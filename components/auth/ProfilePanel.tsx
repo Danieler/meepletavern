@@ -27,6 +27,9 @@ export function ProfilePanel() {
     email: string;
     displayName: string | null;
     createdAt: string;
+    profile: {
+      username: string;
+    } | null;
   } | null>(null);
   const [name, setName] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -52,6 +55,9 @@ export function ProfilePanel() {
                 email: string;
                 displayName: string | null;
                 createdAt: string;
+                profile: {
+                  username: string;
+                } | null;
               };
               error?: string;
             }

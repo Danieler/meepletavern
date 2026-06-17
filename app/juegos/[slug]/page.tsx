@@ -189,6 +189,10 @@ export default async function GamePage({ params }: GamePageProps) {
               <Suspense fallback={<CommentsFallback />}>
                 <GameCommentsPanel gameId={game.id} gameSlug={game.slug} />
               </Suspense>
+
+              <Suspense fallback={null}>
+                <GameCommunitySection gameId={game.id} />
+              </Suspense>
             </div>
 
             <aside className="min-w-0 space-y-5">

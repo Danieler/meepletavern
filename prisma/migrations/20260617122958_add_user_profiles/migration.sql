@@ -1,18 +1,14 @@
-/*
-  Warnings:
-
-  - Added the required column `updatedAt` to the `UserLibraryGame` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateEnum
 CREATE TYPE "ProfileVisibility" AS ENUM ('PUBLIC', 'PRIVATE');
 
 -- AlterTable
 ALTER TABLE "UserLibraryGame" ADD COLUMN     "owned" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "played" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL,
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN     "wantToBuy" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "wantToPlay" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "UserLibraryGame" ALTER COLUMN "updatedAt" DROP DEFAULT;
 
 -- CreateTable
 CREATE TABLE "UserProfile" (

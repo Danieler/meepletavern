@@ -10,8 +10,16 @@ export default function SettingsPage() {
   const router = useRouter();
   const { user, loading, isConfigured } = useAuth();
   
-  const [profile, setProfile] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  type ProfileFormData = {
+    username: string;
+    displayName: string;
+    bio: string;
+    avatarUrl: string;
+    profileVisibility: ProfileVisibility;
+    collectionVisibility: ProfileVisibility;
+  };
+
+  const [formData, setFormData] = useState<ProfileFormData>({
     username: "",
     displayName: "",
     bio: "",
@@ -35,7 +43,6 @@ export default function SettingsPage() {
         .then(async (res) => {
           const payload = await res.json();
           if (payload.account) {
-            setProfile(payload.account);
             setFormData({
               username: payload.account.profile?.username || "",
               displayName: payload.account.displayName || "",
@@ -76,7 +83,6 @@ export default function SettingsPage() {
 
       if (res.ok) {
         setFeedback({ type: "success", message: "Perfil actualizado correctamente." });
-        setProfile(payload.account);
       } else {
         setFeedback({ type: "error", message: payload.error || "Error al actualizar el perfil." });
       }

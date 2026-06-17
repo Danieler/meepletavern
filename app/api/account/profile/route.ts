@@ -11,6 +11,10 @@ const RESERVED_USERNAMES = [
   "u", "auth", "legal", "privacy", "cookies", "tavern", "meeple"
 ];
 
+function parseProfileVisibility(value: unknown) {
+  return value === ProfileVisibility.PUBLIC || value === ProfileVisibility.PRIVATE ? value : undefined;
+}
+
 export async function GET() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -54,8 +58,8 @@ export async function PATCH(request: Request) {
   const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : undefined;
   const bio = typeof body?.bio === "string" ? body.bio.trim() : undefined;
   const avatarUrl = typeof body?.avatarUrl === "string" ? body.avatarUrl.trim() : undefined;
-  const profileVisibility = body?.profileVisibility as ProfileVisibility | undefined;
-  const collectionVisibility = body?.collectionVisibility as ProfileVisibility | undefined;
+  const profileVisibility = parseProfileVisibility(body?.profileVisibility);
+  const collectionVisibility = parseProfileVisibility(body?.collectionVisibility);
 
   if (displayName !== undefined && displayName.length < 2) {
     return NextResponse.json({ error: "El nombre debe tener al menos 2 caracteres." }, { status: 400 });
@@ -65,8 +69,8 @@ export async function PATCH(request: Request) {
     if (username.length < 3 || username.length > 20) {
       return NextResponse.json({ error: "El nombre de usuario debe tener entre 3 y 20 caracteres." }, { status: 400 });
     }
-    if (!/^[a-z0-9_]+$/.test(username)) {
-      return NextResponse.json({ error: "El nombre de usuario solo puede contener letras, números y guiones bajos." }, { status: 400 });
+    if (!/^[a-z0-9_-]+$/.test(username)) {
+      return NextResponse.json({ error: "El nombre de usuario solo puede contener letras, números, guiones y guiones bajos." }, { status: 400 });
     }
     if (RESERVED_USERNAMES.includes(username)) {
       return NextResponse.json({ error: "Este nombre de usuario no está disponible." }, { status: 400 });
@@ -82,6 +86,10 @@ export async function PATCH(request: Request) {
     if (existing) {
       return NextResponse.json({ error: "Este nombre de usuario ya está en uso." }, { status: 400 });
     }
+  }
+
+  if (avatarUrl && !/^https?:\/\/\S+$/i.test(avatarUrl)) {
+    return NextResponse.json({ error: "La URL del avatar debe empezar por http:// o https://." }, { status: 400 });
   }
 
   // Update Supabase metadata if name changed
