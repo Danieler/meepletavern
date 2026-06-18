@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
 
 const RESERVED_USERNAMES = [
-  "admin", "api", "juegos", "usuarios", "mi-ludoteca",
+  "admin", "api", "juegos", "usuarios", "taberna", "mi-ludoteca",
   "login", "register", "settings", "profile", "account",
   "u", "auth", "legal", "privacy", "cookies", "tavern", "meeple"
 ];
@@ -89,7 +89,7 @@ export async function PATCH(request: Request) {
   }
 
   if (avatarUrl && !/^https?:\/\/\S+$/i.test(avatarUrl)) {
-    return NextResponse.json({ error: "La URL del avatar debe empezar por http:// o https://." }, { status: 400 });
+    return NextResponse.json({ error: "El avatar debe ser una URL válida de imagen subida." }, { status: 400 });
   }
 
   // Update Supabase metadata if name changed
@@ -112,7 +112,7 @@ export async function PATCH(request: Request) {
           username: username ?? undefined,
           displayName: displayName ?? undefined,
           bio: bio ?? undefined,
-          avatarUrl: avatarUrl ?? undefined,
+          avatarUrl: avatarUrl !== undefined ? avatarUrl || null : undefined,
           profileVisibility: profileVisibility ?? undefined,
           collectionVisibility: collectionVisibility ?? undefined
         }

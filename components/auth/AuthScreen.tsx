@@ -16,7 +16,7 @@ type AuthScreenProps = {
 };
 
 const configMessage =
-  "Supabase no está configurado todavía. Añade NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en tu entorno.";
+  "La zona de cuenta no está configurada todavía. Revisa NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en el entorno.";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeEmail(value: string) {
@@ -154,7 +154,7 @@ export function AuthScreen({
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_420px] md:items-center">
         <section>
           <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">
-            Cuenta MeepleTavern
+            Área personal
           </span>
           <h1 className="mt-4 text-4xl font-black leading-tight text-ink md:text-5xl">
             {isRegister ? "Crea tu cuenta" : "Entra en tu cuenta"}
@@ -162,8 +162,8 @@ export function AuthScreen({
           <p className="mt-3 max-w-xl text-base font-semibold leading-7 text-ink/65">
             {introMessage ??
               (isRegister
-                ? "Guarda tus juegos, prepara tu perfil y empieza a usar la parte personal de MeepleTavern."
-                : "Accede a tu cuenta para gestionar tu perfil y tus acciones dentro de la web.")}
+                ? "Guarda tus juegos, crea tu perfil y empieza a montar tu ludoteca personal."
+                : "Accede para gestionar tu perfil, tu ludoteca y tus aportes en MeepleTavern.")}
           </p>
         </section>
 

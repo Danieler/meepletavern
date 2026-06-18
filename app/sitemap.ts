@@ -18,9 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/juegos",
     "/rankings",
     "/resenas",
+    "/taberna",
     "/categorias",
-    "/mecanicas",
-    "/tematicas"
+    "/mecanicas"
   ];
 
   return [

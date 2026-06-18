@@ -70,7 +70,7 @@ export default async function GamePage({ params }: GamePageProps) {
   }
 
   const jsonLd = buildJsonLd(game);
-  const hasRichEditorialTags = game.mechanics.length > 0 || game.themes.length > 0;
+  const hasRichEditorialTags = game.mechanics.length > 0;
   const shouldShowCategories = game.categories.length > 0 && !hasRichEditorialTags;
   const introDescription = isRedundantText(game.reviewSummary, game.description) ? "" : game.reviewSummary;
   const bodyDescription = isWeakBodyDescription(game.description, introDescription, game) ? "" : game.description;
@@ -107,7 +107,7 @@ export default async function GamePage({ params }: GamePageProps) {
                 <div className="grid min-w-0 gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
                   <aside className="min-w-0 space-y-5">
                     <GameCoverImage {...game} gameTitle={game.title} variant="detail" priority className="border border-walnut/20 shadow-tavern" />
-                    {shouldShowCategories || game.mechanics.length || game.themes.length ? (
+                    {shouldShowCategories || game.mechanics.length ? (
                       <section className="rounded-md border border-walnut/15 bg-white/70 p-4 shadow-soft">
                         <div className="grid gap-3">
                           {shouldShowCategories ? (
@@ -121,19 +121,6 @@ export default async function GamePage({ params }: GamePageProps) {
                             <TagSection title="Mecánicas">
                               {game.mechanics.map((mechanic) => (
                                 <MechanicTag key={mechanic} value={mechanic} />
-                              ))}
-                            </TagSection>
-                          ) : null}
-                          {game.themes.length ? (
-                            <TagSection title="Temáticas">
-                              {game.themes.map((theme) => (
-                                <Link
-                                  key={theme}
-                                  href={termHref("theme", theme)}
-                                  className="tavern-pill transition hover:border-ember"
-                                >
-                                  {theme}
-                                </Link>
                               ))}
                             </TagSection>
                           ) : null}

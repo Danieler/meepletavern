@@ -6,7 +6,7 @@ const labels = {
   best: "Mejor",
   duration: "Duración",
   age: "Edad",
-  weight: "Peso"
+  weight: "Dificultad"
 };
 
 export function GameStats({ game }: { game: CatalogGame }) {

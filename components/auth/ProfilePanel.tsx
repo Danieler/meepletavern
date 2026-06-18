@@ -3,8 +3,26 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff, LogOut, Settings, UserRound } from "lucide-react";
 import { LibraryPanel } from "@/components/account/LibraryPanel";
+import { UserAvatar } from "@/components/account/UserAvatar";
 import { useAuth } from "@/hooks/useAuth";
+
+type AccountProfile = {
+  id: string;
+  authUserId: string;
+  email: string;
+  displayName: string | null;
+  createdAt: string;
+  profile: {
+    username: string;
+    displayName: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+    profileVisibility: "PUBLIC" | "PRIVATE";
+    collectionVisibility: "PUBLIC" | "PRIVATE";
+  } | null;
+};
 
 function formatDate(value: string | undefined) {
   if (!value) {
@@ -12,7 +30,11 @@ function formatDate(value: string | undefined) {
   }
 
   try {
-    return new Date(value).toLocaleString("es-ES");
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }).format(new Date(value));
   } catch {
     return value;
   }
@@ -21,25 +43,13 @@ function formatDate(value: string | undefined) {
 export function ProfilePanel() {
   const router = useRouter();
   const { user, loading, warning, isConfigured, signOut } = useAuth();
-  const [profile, setProfile] = useState<{
-    id: string;
-    authUserId: string;
-    email: string;
-    displayName: string | null;
-    createdAt: string;
-    profile: {
-      username: string;
-    } | null;
-  } | null>(null);
-  const [name, setName] = useState("");
+  const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setProfile(null);
-      setName("");
       return;
     }
 
@@ -47,28 +57,13 @@ export function ProfilePanel() {
 
     fetch("/api/account/profile", { cache: "no-store" })
       .then(async (response) => {
-        const payload = (await response.json().catch(() => null)) as
-          | {
-              account?: {
-                id: string;
-                authUserId: string;
-                email: string;
-                displayName: string | null;
-                createdAt: string;
-                profile: {
-                  username: string;
-                } | null;
-              };
-              error?: string;
-            }
-          | null;
+        const payload = (await response.json().catch(() => null)) as { account?: AccountProfile; error?: string } | null;
 
         if (!active || !payload?.account) {
           return;
         }
 
         setProfile(payload.account);
-        setName(payload.account.displayName || "");
       })
       .catch(() => {
         if (active) {
@@ -83,10 +78,10 @@ export function ProfilePanel() {
 
   if (!isConfigured) {
     return (
-      <section className="rounded-md border border-ruby/20 bg-white p-6 shadow-soft">
-        <h1 className="text-2xl font-black text-ink">Mi perfil</h1>
+      <section className="tavern-card p-6">
+        <h1 className="font-display text-2xl font-bold text-wood">Mi perfil</h1>
         <p className="mt-3 text-sm font-semibold text-ruby">
-          Supabase no está configurado todavía, así que el perfil de usuario final aún no puede funcionar.
+          La zona de cuenta no está configurada todavía, así que el perfil de usuario aún no está disponible.
         </p>
       </section>
     );
@@ -94,51 +89,98 @@ export function ProfilePanel() {
 
   if (loading) {
     return (
-      <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-        <h1 className="text-2xl font-black text-ink">Mi perfil</h1>
-        <p className="mt-3 text-sm font-semibold text-ink/60">Cargando tu sesión...</p>
+      <section className="tavern-card p-6">
+        <h1 className="font-display text-2xl font-bold text-wood">Mi perfil</h1>
+        <p className="mt-3 text-sm font-semibold text-walnut/65">Cargando tu sesión...</p>
       </section>
     );
   }
 
   if (!user) {
     return (
-      <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-        <h1 className="text-2xl font-black text-ink">Mi perfil</h1>
-        <p className="mt-3 text-sm font-semibold text-ink/65">
-          Necesitas entrar con tu cuenta para ver esta sección.
-        </p>
-        <Link className="button-primary mt-5 inline-flex" href="/auth?next=%2Fmi-perfil">
-          Entrar
-        </Link>
+      <section className="tavern-panel overflow-hidden">
+        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
+          <div>
+            <p className="tavern-eyebrow">Cuenta</p>
+            <h1 className="font-display mt-3 text-4xl font-bold text-wood sm:text-5xl">Tu mesa personal</h1>
+            <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-walnut/75">
+              Entra para guardar juegos, cuidar tu perfil y tener tu ludoteca siempre a mano.
+            </p>
+            <Link className="button-primary mt-6 inline-flex" href="/auth?next=%2Fmi-perfil">
+              Entrar
+            </Link>
+          </div>
+          <div className="rounded-md border border-walnut/15 bg-paper/80 p-5">
+            <p className="text-sm font-extrabold text-wood">Lo que desbloqueas</p>
+            <div className="mt-4 grid gap-3 text-sm font-semibold text-walnut/75">
+              <span>Perfil público con avatar y bio</span>
+              <span>Ludoteca por estados</span>
+              <span>Privacidad ajustable</span>
+            </div>
+          </div>
+        </div>
       </section>
     );
   }
 
+  const displayName = profile?.displayName || user.email?.split("@")[0] || "Usuario";
+  const username = profile?.profile?.username;
+  const profileName = profile?.profile?.displayName || displayName;
+  const avatarUrl = profile?.profile?.avatarUrl;
+  const isProfilePublic = profile?.profile?.profileVisibility === "PUBLIC";
+  const isCollectionPublic = profile?.profile?.collectionVisibility === "PUBLIC";
+
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="space-y-6">
-        <div className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm font-bold uppercase text-moss">Mi ludoteca</p>
-              <h1 className="mt-2 text-3xl font-black text-ink">
-                {profile?.displayName || user.email || "Usuario"}
+    <section className="space-y-8">
+      <section className="relative overflow-hidden rounded-md border border-walnut/15 bg-wood text-white shadow-tavern">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(201,130,31,0.35),transparent_28rem),linear-gradient(135deg,rgba(54,32,22,0.98),rgba(31,31,31,0.96)_58%,rgba(47,79,111,0.45))]" />
+        <div className="relative grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
+          <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-end">
+            <UserAvatar src={avatarUrl} name={profileName} size="xl" className="border-white/20 bg-paper/95" />
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-ember">Mi perfil</p>
+              <h1 className="font-display mt-2 text-4xl font-bold leading-tight text-white sm:text-5xl">
+                {profileName}
               </h1>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {profile?.profile?.username && (
-                  <Link href={`/u/${profile.profile.username}`} className="button-secondary text-xs py-1.5 px-3 h-auto">
-                    Ver mi perfil público
+              <p className="mt-2 text-sm font-extrabold text-parchment/68">
+                {username ? `@${username}` : "Sin usuario público todavía"}
+              </p>
+              {profile?.profile?.bio ? (
+                <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-parchment/78">{profile.profile.bio}</p>
+              ) : (
+                <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-parchment/62">
+                  Añade una bio breve para que otros sepan qué tipo de juegos te gustan.
+                </p>
+              )}
+              <div className="mt-5 flex flex-wrap gap-2">
+                {username ? (
+                  <Link className="button-primary" href={`/u/${username}`}>
+                    <UserRound size={17} />
+                    Ver público
                   </Link>
-                )}
-                <Link href="/mi-perfil/ajustes" className="button-secondary text-xs py-1.5 px-3 h-auto">
-                  Ajustes de perfil
+                ) : null}
+                <Link className="button-secondary bg-white" href="/mi-perfil/ajustes">
+                  <Settings size={17} />
+                  Ajustes
                 </Link>
               </div>
             </div>
+          </div>
+
+          <div className="grid gap-3 rounded-md border border-white/10 bg-white/8 p-4 backdrop-blur">
+            <VisibilityPill
+              label="Perfil"
+              value={isProfilePublic ? "Público" : "Privado"}
+              icon={isProfilePublic ? Eye : EyeOff}
+            />
+            <VisibilityPill
+              label="Ludoteca"
+              value={isCollectionPublic ? "Pública" : "Privada"}
+              icon={isCollectionPublic ? Eye : EyeOff}
+            />
             <button
               type="button"
-              className="button-secondary"
+              className="button-secondary mt-1 bg-white"
               disabled={signingOut}
               onClick={async () => {
                 setSigningOut(true);
@@ -152,45 +194,63 @@ export function ProfilePanel() {
                 setFeedback(result.message ?? "No hemos podido cerrar la sesión.");
               }}
             >
+              <LogOut size={17} />
               {signingOut ? "Saliendo..." : "Cerrar sesión"}
             </button>
           </div>
-
-          {warning ? (
-            <div className="mt-5 rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
-              {warning}
-            </div>
-          ) : null}
-
-          {feedback ? (
-            <div className="mt-5 rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm font-semibold text-moss">
-              {feedback}
-            </div>
-          ) : null}
         </div>
+      </section>
 
+      {warning ? (
+        <div className="rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
+          {warning}
+        </div>
+      ) : null}
+
+      {feedback ? (
+        <div className="rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm font-semibold text-moss">
+          {feedback}
+        </div>
+      ) : null}
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <LibraryPanel embedded />
-      </div>
 
-      <aside className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-        <h2 className="text-lg font-black text-ink">Datos de la cuenta</h2>
-        <dl className="mt-4 space-y-4 text-sm">
-          <div>
-            <dt className="font-bold text-ink/50">Email</dt>
-            <dd className="mt-1 font-semibold text-ink">{profile?.email || user.email || "No disponible"}</dd>
-          </div>
-          <div>
-            <dt className="font-bold text-ink/50">Cuenta creada</dt>
-            <dd className="mt-1 font-semibold text-ink">{formatDate(profile?.createdAt || user.created_at)}</dd>
-          </div>
-          <div>
-            <dt className="font-bold text-ink/50">Email confirmado</dt>
-            <dd className="mt-1 font-semibold text-ink">
-              {user.email_confirmed_at ? formatDate(user.email_confirmed_at) : "Pendiente"}
-            </dd>
-          </div>
-        </dl>
-      </aside>
+        <aside className="tavern-card p-5 sm:p-6">
+          <h2 className="font-display text-xl font-bold text-wood">Cuenta</h2>
+          <dl className="mt-5 space-y-5 text-sm">
+            <AccountDatum label="Email" value={profile?.email || user.email || "No disponible"} />
+            <AccountDatum label="Cuenta creada" value={formatDate(profile?.createdAt || user.created_at)} />
+            <AccountDatum
+              label="Email confirmado"
+              value={user.email_confirmed_at ? formatDate(user.email_confirmed_at) : "Pendiente"}
+            />
+          </dl>
+        </aside>
+      </div>
     </section>
+  );
+}
+
+function VisibilityPill({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Eye }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/12 px-3 py-2.5">
+      <span className="inline-flex items-center gap-2 text-sm font-extrabold text-parchment/80">
+        <Icon size={16} />
+        {label}
+      </span>
+      <span className="rounded-md bg-white/12 px-2 py-1 text-xs font-black uppercase tracking-[0.08em] text-white">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function AccountDatum({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-black uppercase tracking-[0.12em] text-walnut/50">{label}</dt>
+      <dd className="mt-1 break-words font-semibold leading-6 text-ink">{value}</dd>
+    </div>
   );
 }

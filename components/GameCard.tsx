@@ -126,12 +126,12 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <BrandIcon name="gauge" size={16} />
-              {game.complexity || "Complejidad pendiente"}
+              {game.complexity || "Dificultad pendiente"}
             </span>
           </div>
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-walnut/10 pt-4">
             <span className="text-xs font-bold uppercase tracking-[0.12em] text-walnut/55">
-              {game.categories[0] || game.themes[0] || "Juego de mesa"}
+              {game.categories[0] || "Juego de mesa"}
             </span>
             <span className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ember">
               Ver ficha

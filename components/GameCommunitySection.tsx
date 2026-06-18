@@ -28,16 +28,16 @@ export async function GameCommunitySection({ gameId }: GameCommunitySectionProps
         <p className="mt-6 text-ink/60 font-bold italic">Todavía nadie de la comunidad ha añadido este juego.</p>
       ) : (
         <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          <CommunityGroup title="Lo tienen" countLabel="usuarios lo tienen" users={community.owned} />
-          <CommunityGroup title="Quieren jugarlo" countLabel="usuarios quieren jugarlo" users={community.wantToPlay} />
-          <CommunityGroup title="Quieren comprarlo" countLabel="usuarios quieren comprarlo" users={community.wantToBuy} />
-          <CommunityGroup title="Lo han jugado" countLabel="usuarios lo han jugado" users={community.played} />
+          <CommunityGroup title="Lo tienen en casa" countLabel="taberneros lo tienen" users={community.owned} />
+          <CommunityGroup title="Quieren probarlo" countLabel="taberneros quieren probarlo" users={community.wantToPlay} />
+          <CommunityGroup title="Lo tienen en la lista" countLabel="taberneros lo siguen" users={community.wantToBuy} />
+          <CommunityGroup title="Lo han jugado" countLabel="taberneros lo han jugado" users={community.played} />
         </div>
       )}
 
       {!currentUser && (
         <div className="mt-12 rounded-md bg-parchment/50 border border-ink/5 p-6 text-center">
-          <p className="text-ink/70 font-bold">Crea tu ludoteca para aparecer aquí y descubrir qué juegos interesan a otros jugadores.</p>
+          <p className="text-ink/70 font-bold">Crea tu ludoteca para aparecer aquí y descubrir qué está llamando la atención a otros jugadores.</p>
           <div className="mt-4">
             <Link href="/auth" className="button-primary">Iniciar sesión / Crear cuenta</Link>
           </div>

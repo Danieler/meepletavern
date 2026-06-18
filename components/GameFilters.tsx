@@ -56,13 +56,11 @@ const sortItems = [
 export function GameFilters({
   active,
   categoryTerms,
-  mechanicTerms,
-  themeTerms
+  mechanicTerms
 }: {
   active: GameFilterInput;
   categoryTerms: string[];
   mechanicTerms: string[];
-  themeTerms: string[];
 }) {
   return (
     <aside className="tavern-card space-y-5 p-4 sm:p-5">
@@ -90,11 +88,6 @@ export function GameFilters({
       <FilterGroup title="Mecánicas">
         {mechanicTerms.slice(0, 7).map((term) => (
           <FilterPill key={term} item={{ label: term, param: "mechanic", value: term }} active={active} />
-        ))}
-      </FilterGroup>
-      <FilterGroup title="Temática">
-        {themeTerms.slice(0, 7).map((term) => (
-          <FilterPill key={term} item={{ label: term, param: "theme", value: term }} active={active} />
         ))}
       </FilterGroup>
       <FilterGroup title="Ordenar por">

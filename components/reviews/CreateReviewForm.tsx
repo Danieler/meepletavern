@@ -27,7 +27,7 @@ export function CreateReviewForm({
       <section className="rounded-md border border-ruby/20 bg-white p-6 shadow-soft">
         <h1 className="text-3xl font-black text-ink">Escribir reseña</h1>
         <p className="mt-3 text-sm font-semibold text-ruby">
-          Supabase no está configurado todavía, así que los usuarios aún no pueden crear reseñas.
+          La zona de cuenta no está configurada todavía, así que la taberna aún no puede publicar reseñas.
         </p>
       </section>
     );

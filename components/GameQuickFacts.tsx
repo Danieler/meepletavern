@@ -14,7 +14,7 @@ export function GameQuickFacts({ game }: GameQuickFactsProps) {
     },
     { label: "Duración", value: game.playtime, icon: "clock" },
     { label: "Edad", value: game.age, icon: "calendar" },
-    { label: "Complejidad", value: game.complexity, icon: "gauge" },
+    { label: "Dificultad", value: game.complexity, icon: "gauge" },
     { label: "Categorías", value: game.categories.join(", "), icon: "tag" }
   ].filter((fact) => fact.value);
 

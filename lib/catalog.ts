@@ -77,7 +77,7 @@ export type Ranking = {
   slug: string;
   title: string;
   description: string;
-  type: "all" | "category" | "mechanic" | "theme";
+  type: "all" | "category" | "mechanic";
   term?: string;
 };
 
@@ -89,7 +89,6 @@ export type GameFilterInput = {
   age?: string | string[];
   category?: string | string[];
   mechanic?: string | string[];
-  theme?: string | string[];
   sort?: string;
   page?: string | number;
 };
@@ -249,7 +248,6 @@ export async function getRankings() {
   const games = await getCatalogGames();
   const categoryRankings = buildTermRankings("category", "Categoría", games, getGameCategories);
   const mechanicRankings = buildTermRankings("mechanic", "Mecánica", games, getGameMechanics);
-  const themeRankings = buildTermRankings("theme", "Taberna", games, getGameThemes);
 
   return [
     {
@@ -259,8 +257,7 @@ export async function getRankings() {
       type: "all" as const
     },
     ...categoryRankings,
-    ...mechanicRankings,
-    ...themeRankings
+    ...mechanicRankings
   ];
 }
 
@@ -278,10 +275,6 @@ export async function getRankingGames(ranking: Ranking) {
 
   if (ranking.type === "mechanic" && ranking.term) {
     return sortGamesByEffectiveRating(games.filter((game) => game.mechanics.includes(ranking.term as string)));
-  }
-
-  if (ranking.type === "theme" && ranking.term) {
-    return sortGamesByEffectiveRating(games.filter((game) => game.themes.includes(ranking.term as string)));
   }
 
   return sortGamesByEffectiveRating(games);
@@ -346,7 +339,6 @@ export async function filterGames(input: GameFilterInput) {
   const query = input.q?.trim().toLowerCase();
   const categories = getFilterValues(input.category);
   const mechanics = getFilterValues(input.mechanic);
-  const themes = getFilterValues(input.theme);
   const players = getFilterValues(input.players);
   const durations = getFilterValues(input.duration);
   const weights = getFilterValues(input.weight);
@@ -361,8 +353,7 @@ export async function filterGames(input: GameFilterInput) {
           game.reviewSummary,
           game.complexity,
           ...game.categories,
-          ...game.mechanics,
-          ...game.themes
+          ...game.mechanics
         ]
           .filter(Boolean)
         .join(" ")
@@ -383,7 +374,6 @@ export async function filterGames(input: GameFilterInput) {
         )
       : true;
     const matchesMechanics = mechanics.length ? mechanics.some((value) => game.mechanics.includes(value)) : true;
-    const matchesThemes = themes.length ? themes.some((value) => game.themes.includes(value)) : true;
 
     return (
       matchesQuery &&
@@ -392,8 +382,7 @@ export async function filterGames(input: GameFilterInput) {
       matchesWeight &&
       matchesAge &&
       matchesCategories &&
-      matchesMechanics &&
-      matchesThemes
+      matchesMechanics
     );
   });
 
@@ -463,12 +452,8 @@ export async function getMechanicTerms() {
   return sanitizeImportedList(await getTaxonomyTermNames("mechanic"), "mechanics");
 }
 
-export async function getThemeTerms() {
-  return sanitizeImportedList(await getTaxonomyTermNames("theme"), "themes");
-}
-
-export function termHref(type: "category" | "mechanic" | "theme", term: string) {
-  const key = type === "category" ? "category" : type === "mechanic" ? "mechanic" : "theme";
+export function termHref(type: "category" | "mechanic", term: string) {
+  const key = type === "category" ? "category" : "mechanic";
   return `/juegos?${key}=${encodeURIComponent(term)}`;
 }
 
@@ -790,7 +775,7 @@ function getFilterValues(value: string | string[] | undefined) {
 }
 
 function buildTermRankings(
-  type: "category" | "mechanic" | "theme",
+  type: "category" | "mechanic",
   label: string,
   games: CatalogGame[],
   picker: (game: CatalogGame) => string[]
@@ -826,10 +811,6 @@ function getGameCategories(game: CatalogGame) {
 
 function getGameMechanics(game: CatalogGame) {
   return game.mechanics;
-}
-
-function getGameThemes(game: CatalogGame) {
-  return game.themes;
 }
 
 function normalizeIdentifier(value: string) {

@@ -6,6 +6,7 @@ import { Brain, Clock3, House, Shield, Users, Users2 } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
+import { HeroDiscoveryBoard } from "@/components/home/HeroDiscoveryBoard";
 import { PublicShell } from "@/components/PublicShell";
 import { RankingList } from "@/components/RankingList";
 import { ReviewCard } from "@/components/ReviewCard";
@@ -57,7 +58,26 @@ export default async function Home() {
   const ratedGames = popularGames.filter((game) => typeof getEffectiveRatingScore(game) === "number");
   const showRatingsSection = ratedGames.length >= 3;
   const editorsPick = ratedGames[0] || popularGames[0] || beginnerGames[0] || null;
-  const editorsPickScore = editorsPick ? getEffectiveRatingScore(editorsPick) : null;
+  const heroGamePool = dedupeGames([
+    ...(ratedGames[0] ? [ratedGames[0]] : []),
+    ...(beginnerGames[0] ? [beginnerGames[0]] : []),
+    ...(newGames[0] ? [newGames[0]] : []),
+    ...newGames,
+    ...beginnerGames,
+    ...popularGames
+  ])
+    .slice(0, 9)
+    .map((game) => ({
+      slug: game.slug,
+      title: game.title,
+      coverImageUrl: game.coverImageUrl,
+      coverImageAlt: game.coverImageAlt,
+      reviewSummary: game.reviewSummary,
+      playersLabel: game.playersLabel,
+      playtime: game.playtime,
+      complexity: game.complexity,
+      ratingScore: getEffectiveRatingScore(game)
+    }));
   const featuredGames = dedupeGames([
     ...(editorsPick ? [editorsPick] : []),
     ...beginnerGames,
@@ -71,7 +91,7 @@ export default async function Home() {
     <PublicShell>
       <main>
         <section className="container-page pt-5">
-          <div className="tavern-panel relative min-h-[500px] overflow-hidden p-5 sm:p-8 lg:p-10">
+          <div className="tavern-panel relative min-h-[500px] overflow-hidden p-5 sm:p-7 lg:p-8">
             <Image
               src="/design-assets/home-background.webp"
               alt="Mesa de juegos de mesa con cartas, dados y meeples"
@@ -80,28 +100,33 @@ export default async function Home() {
               sizes="100vw"
               className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,241,230,0.97),rgba(247,241,230,0.88)_46%,rgba(59,33,22,0.24)_100%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,241,230,0.98),rgba(247,241,230,0.9)_47%,rgba(59,33,22,0.36)_100%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,251,243,0.65),transparent_34%)]" />
+            <div className="absolute -right-20 top-10 hidden h-64 w-64 rounded-full border border-white/30 bg-ember/18 blur-2xl lg:block" />
 
-            <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center">
-              <div className="flex flex-col justify-center py-3 lg:py-8">
-                <p className="tavern-eyebrow">Recomendaciones de juegos de mesa</p>
+            <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_430px] lg:items-center">
+              <div className="flex flex-col justify-center py-2 lg:py-5">
+                <p className="tavern-eyebrow">La carta de juegos de mesa</p>
                 <h1 className="font-display mt-3 max-w-3xl text-4xl font-bold leading-[0.98] text-wood sm:text-5xl lg:text-6xl">
-                  Encuentra tu próximo juego de mesa
+                  La partida perfecta no se busca: se sirve
                 </h1>
-                <p className="mt-5 max-w-2xl text-lg font-medium leading-8 text-walnut/80">
-                  Busca, compara y descubre juegos según tu grupo, tiempo y estilo de partida.
+                <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-walnut/85 sm:text-lg">
+                  Dinos cuántos sois, cuánto tiempo tenéis y qué os apetece. En MeepleTavern
+                  cruzamos fichas, reseñas y señales útiles para llevarte a juegos que encajan con tu mesa.
                 </p>
-                <div className="mt-7 max-w-3xl">
+                <div className="mt-6 max-w-3xl">
                   <GameSearch variant="hero" submitLabel="Buscar juegos" />
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link href="#recomendaciones" className="button-secondary">
-                    Ver recomendaciones
+                    Ver la selección de la casa
+                  </Link>
+                  <Link href="/rankings" className="button-secondary">
+                    Consultar rankings
                   </Link>
                 </div>
                 <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-extrabold leading-5 text-walnut">
-                  <span>Explora rápido:</span>
+                  <span>Atajos de barra:</span>
                   {heroLinks.map((chip) => (
                     <Link
                       key={chip.label}
@@ -115,64 +140,14 @@ export default async function Home() {
               </div>
 
               <aside className="relative z-10 self-center lg:justify-self-end">
-                {editorsPick ? (
-                  <Link
-                    href={`/juegos/${editorsPick.slug}`}
-                    className="tavern-card block overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45"
-                  >
-                    <div className="relative h-11 bg-ember text-center font-display text-lg font-bold uppercase leading-[44px] text-white">
-                      Empieza por aqui
-                    </div>
-                    <div className="relative h-32">
-                      <img
-                        src={editorsPick.coverImageUrl || siteConfig.markImage}
-                        alt={editorsPick.coverImageAlt || editorsPick.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="p-5">
-                      <p className="tavern-eyebrow">Recomendacion destacada</p>
-                      <h2 className="font-display mt-2 text-2xl font-bold leading-tight text-wood">
-                        {editorsPick.title}
-                      </h2>
-                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-walnut/80">
-                        {editorsPick.reviewSummary}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-3 text-xs font-bold text-walnut/75">
-                        <span className="inline-flex items-center gap-1">
-                          <BrandIcon name="users" size={15} />
-                          {editorsPick.playersLabel || "Jugadores"}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <BrandIcon name="clock" size={15} />
-                          {editorsPick.playtime || "Duracion"}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <BrandIcon name="gauge" size={15} />
-                          {editorsPick.complexity || "Peso"}
-                        </span>
-                      </div>
-                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-walnut/10 pt-4">
-                        {typeof editorsPickScore === "number" ? (
-                          <span className="rating-chip">
-                            <BrandIcon name="star" size={14} />
-                            {editorsPickScore.toFixed(1)}
-                          </span>
-                        ) : (
-                          <span className="tavern-meta">Seleccion editorial</span>
-                        )}
-                        <span className="text-sm font-extrabold text-ember">Ver ficha</span>
-                      </div>
-                    </div>
-                  </Link>
+                {heroGamePool.length ? (
+                  <HeroDiscoveryBoard games={heroGamePool} />
                 ) : (
                   <EmptyStatePanel
-                    title="Empieza explorando"
-                    description="Usa el buscador para encontrar juegos por jugadores, duracion o categoria desde la primera visita."
+                    title="La mesa se está preparando"
+                    description="Usa el buscador para encontrar juegos por jugadores, duración o categoría desde la primera visita."
                     href="/juegos"
-                    linkLabel="Ir al catalogo"
+                    linkLabel="Ir al catálogo"
                   />
                 )}
               </aside>
@@ -180,11 +155,11 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="container-page py-10 lg:py-12">
+        <section className="container-page py-8 lg:py-10">
           <SectionHeader
-            eyebrow="Exploracion guiada"
-            title="Que quieres jugar hoy?"
-            description="Accesos directos pensados para situaciones reales: pareja, familia, cooperativos, partidas rapidas, grupos grandes o mesas mas exigentes."
+            eyebrow="Exploración guiada"
+            title="¿Qué quieres jugar hoy?"
+            description="Atajos para situaciones reales: pareja, familia, cooperativos, partidas rápidas, grupos grandes o mesas más exigentes."
           />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {intentCards.map((card) => (
@@ -193,12 +168,12 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="recomendaciones" className="border-y border-walnut/15 bg-[#fffaf0]/70 py-12 lg:py-16">
+        <section id="recomendaciones" className="border-y border-walnut/15 bg-[#fffaf0]/70 py-9 lg:py-12">
           <div className="container-page">
             <SectionHeader
               eyebrow="Juegos recomendados"
-              title="Recomendaciones destacadas para encontrar mesa rapido"
-              description="Una seleccion pensada para comparar juegos de mesa por sensaciones, duracion, dificultad y numero de jugadores sin perder tiempo."
+              title="Recomendaciones destacadas para encontrar mesa rápido"
+              description="Una selección pensada para comparar sensaciones, duración, dificultad y número de jugadores sin perder tiempo."
             />
             {featuredGames.length ? (
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -208,26 +183,26 @@ export default async function Home() {
               </div>
             ) : (
               <EmptyStatePanel
-                title="Estamos preparando mas recomendaciones"
-                description="Mientras tanto, puedes usar el catalogo para explorar juegos por categoria, mecanica o tipo de grupo."
+                title="Estamos preparando más recomendaciones"
+                description="Mientras tanto, puedes usar el catálogo para explorar juegos por categoría, mecánica o tipo de grupo."
                 href="/juegos"
-                linkLabel="Explorar el catalogo"
+                linkLabel="Explorar el catálogo"
               />
             )}
           </div>
         </section>
 
         {showRatingsSection ? (
-          <section className="container-page py-12 lg:py-16">
+          <section className="container-page py-9 lg:py-12">
             <SectionHeader
               eyebrow="Valoraciones con contexto"
               title="Juegos mejor valorados por ahora"
-              description="Mostramos esta seleccion solo cuando hay senal suficiente para que la comparacion resulte realmente util."
+              description="Mostramos esta selección solo cuando hay señal suficiente para que la comparación resulte realmente útil."
             />
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <RankingList games={ratedGames.slice(0, 5)} />
               <div className="tavern-card p-5">
-                <p className="tavern-eyebrow">Lectura rapida</p>
+                <p className="tavern-eyebrow">Lectura rápida</p>
                 <h3 className="font-display mt-2 text-2xl font-bold text-wood">
                   Prioriza lo que encaja con tu mesa
                 </h3>
@@ -238,7 +213,7 @@ export default async function Home() {
                 <div className="mt-5 grid gap-3 text-sm font-semibold text-walnut/75">
                   <span className="inline-flex items-center gap-2">
                     <BrandIcon name="users" size={16} />
-                    Compara numero de jugadores y rango ideal.
+                    Compara número de jugadores y rango ideal.
                   </span>
                   <span className="inline-flex items-center gap-2">
                     <BrandIcon name="clock" size={16} />
@@ -246,7 +221,7 @@ export default async function Home() {
                   </span>
                   <span className="inline-flex items-center gap-2">
                     <BrandIcon name="gauge" size={16} />
-                    Evita pesos que no encajan con la mesa de hoy.
+                    Evita dificultades que no encajan con la mesa de hoy.
                   </span>
                 </div>
               </div>
@@ -254,11 +229,11 @@ export default async function Home() {
           </section>
         ) : null}
 
-        <section className="container-page py-12 lg:py-16">
+        <section className="container-page py-9 lg:py-12">
           <SectionHeader
-            eyebrow="Ultimas resenas"
-            title="Resenas recientes para decidir mejor"
-            description="Articulos en espanol centrados en lo que mas suele importar antes de comprar, recomendar o sacar un juego a mesa."
+            eyebrow="Últimas reseñas"
+            title="Reseñas recientes para decidir mejor"
+            description="Artículos en español centrados en lo que más suele importar antes de comprar, recomendar o sacar un juego a mesa."
           />
           {latestReviews.length ? (
             <div className="grid gap-5 lg:grid-cols-3">
@@ -267,21 +242,21 @@ export default async function Home() {
               ))}
             </div>
           ) : (
-            <EmptyStatePanel
-              title="Las resenas nuevas estan en camino"
-              description="Por ahora puedes explorar las fichas publicadas y volver pronto para ver analisis mas en profundidad."
-              href="/resenas"
-              linkLabel="Ver archivo de resenas"
+              <EmptyStatePanel
+                title="Las reseñas nuevas están en camino"
+                description="Por ahora puedes explorar las fichas publicadas y volver pronto para ver análisis más en profundidad."
+                href="/resenas"
+                linkLabel="Ver archivo de reseñas"
             />
           )}
         </section>
 
-        <section className="container-page pb-12 lg:pb-16">
-          <div className="tavern-panel overflow-hidden p-6 sm:p-7 lg:p-8">
+        <section className="container-page pb-9 lg:pb-12">
+          <div className="tavern-panel overflow-hidden p-5 sm:p-6 lg:p-7">
             <SectionHeader
               eyebrow="Por que usar MeepleTavern"
-              title="Menos ruido, mas contexto para elegir bien"
-              description="La idea no es ensenarte un catalogo infinito, sino ayudarte a decidir antes que juego encaja contigo y con tu grupo."
+            title="Menos ruido, más contexto para elegir bien"
+            description="La idea no es enseñarte una lista interminable, sino ayudarte a decidir qué juego encaja contigo y con tu grupo."
             />
             <div className="grid gap-4 md:grid-cols-3">
               {VALUE_POINTS.map((item) => (
@@ -294,11 +269,11 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="container-page py-12 lg:py-16">
+        <section className="container-page py-9 lg:py-12">
           <SectionHeader
-            eyebrow="Explora por categorias"
+            eyebrow="Explora por categorías"
             title="Atajos para seguir descubriendo juegos de mesa"
-            description="Navega por categorias reales del archivo para encontrar juegos familiares, cooperativos, estrategicos o pensados para perfiles concretos."
+            description="Navega por categorías reales del archivo para encontrar juegos familiares, cooperativos, estratégicos o pensados para grupos concretos."
           />
           {featuredCategories.length ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -308,7 +283,7 @@ export default async function Home() {
                   href={termHref("category", term)}
                   className="tavern-card block p-5 transition hover:-translate-y-0.5 hover:border-ember/35"
                 >
-                  <p className="tavern-eyebrow">Categoria</p>
+                  <p className="tavern-eyebrow">Categoría</p>
                   <h3 className="font-display mt-2 text-2xl font-bold text-wood">{term}</h3>
                   <p className="mt-3 text-sm leading-6 text-walnut/80">{describeCategory(term)}</p>
                   <p className="mt-5 text-sm font-extrabold text-ember">Ver juegos</p>
@@ -316,21 +291,20 @@ export default async function Home() {
               ))}
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <QuickLink href="/categorias" title="Categorias" icon="crown" />
-              <QuickLink href="/mecanicas" title="Mecanicas" icon="settings" />
-              <QuickLink href="/tematicas" title="Tematicas" icon="tag" />
-              <QuickLink href="/juegos" title="Catalogo completo" icon="grid" />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <QuickLink href="/categorias" title="Categorías" icon="crown" />
+              <QuickLink href="/mecanicas" title="Mecánicas" icon="settings" />
+              <QuickLink href="/juegos" title="Catálogo completo" icon="grid" />
             </div>
           )}
         </section>
 
-        <section className="border-t border-walnut/15 bg-parchment py-12 lg:py-16">
+        <section className="border-t border-walnut/15 bg-parchment py-9 lg:py-12">
           <div className="container-page">
             <SectionHeader
               eyebrow="Nuevas fichas"
-              title="Juegos recien anadidos"
-              description="Entradas recientes del archivo para seguir ampliando opciones sin saturar la home."
+              title="Juegos recién añadidos"
+              description="Entradas recientes del archivo para seguir ampliando opciones sin saturar la mesa."
             />
             {newGames.length ? (
               <div className="grid gap-4 lg:grid-cols-2">
@@ -349,13 +323,13 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="container-page py-12 lg:py-16">
-          <SEOTextBlock title="Recomendaciones de juegos de mesa en espanol">
+        <section className="container-page py-9 lg:py-11">
+          <SEOTextBlock title="Recomendaciones de juegos de mesa en español">
             <p>
-              MeepleTavern organiza fichas, resenas y recomendaciones de juegos de mesa para que
-              sea mas facil encontrar que jugar segun el grupo, la duracion disponible y el tipo de
+              MeepleTavern organiza fichas, reseñas y recomendaciones de juegos de mesa para que
+              sea más fácil encontrar qué jugar según el grupo, la duración disponible y el tipo de
               experiencia que apetece. Si buscas juegos de mesa familiares, cooperativos, para 2
-              jugadores o nuevas ideas para tu mesa, esta home esta pensada para llevarte rapido al
+              jugadores o nuevas ideas para tu mesa, esta página está pensada para llevarte rápido al
               siguiente paso.
             </p>
           </SEOTextBlock>
@@ -367,19 +341,19 @@ export default async function Home() {
 
 const VALUE_POINTS = [
   {
-    title: "Decide mas rapido",
+    title: "Decide más rápido",
     description:
-      "Resumen claro de jugadores, duracion, dificultad y tipo de experiencia para comparar sin leer veinte fichas."
+      "Resumen claro de jugadores, duración, dificultad y tipo de experiencia para comparar sin leer veinte fichas."
   },
   {
     title: "Encuentra juegos para tu grupo",
     description:
-      "Filtra segun con quien juegas y cuanto tiempo tienes para aterrizar opciones que si encajan con la sesion."
+      "Filtra según con quién juegas y cuánto tiempo tienes para aterrizar opciones que sí encajan con la sesión."
   },
   {
     title: "Compara antes de comprar",
     description:
-      "Consulta fichas, resenas, valoraciones y alternativas similares antes de comprometer una compra o una recomendacion."
+      "Consulta fichas, reseñas, valoraciones y alternativas similares antes de comprometer una compra o una recomendación."
   }
 ] as const;
 
@@ -416,7 +390,7 @@ function QuickLink({
 }: {
   href: string;
   title: string;
-  icon: "crown" | "grid" | "settings" | "tag";
+  icon: "crown" | "grid" | "settings";
 }) {
   return (
     <Link
@@ -464,7 +438,7 @@ function buildHeroLinks(categoryTerms: string[]) {
       label: "Cooperativos",
       href: getCategoryMatchHref(categoryTerms, ["cooperativo"], { q: "cooperativo" })
     },
-    { label: "Partidas rapidas", href: buildCatalogHref({ duration: "45" }) },
+    { label: "Partidas rápidas", href: buildCatalogHref({ duration: "45" }) },
     { label: "Miniaturas", href: buildCatalogHref({ q: "miniaturas" }) },
     {
       label: "Para principiantes",
@@ -483,7 +457,7 @@ function buildIntentCards(categoryTerms: string[]) {
     },
     {
       title: "Para jugar en familia",
-      description: "Faciles de explicar y buenos para todos.",
+      description: "Fáciles de explicar y buenos para todos.",
       href: getCategoryMatchHref(categoryTerms, ["familiar"], { q: "familiar" }),
       icon: House
     },
@@ -494,7 +468,7 @@ function buildIntentCards(categoryTerms: string[]) {
       icon: Shield
     },
     {
-      title: "Partidas rapidas",
+      title: "Partidas rápidas",
       description: "Juegos de menos de 30-45 minutos.",
       href: buildCatalogHref({ duration: "45" }),
       icon: Clock3
@@ -507,7 +481,7 @@ function buildIntentCards(categoryTerms: string[]) {
     },
     {
       title: "Para jugones",
-      description: "Mas estrategia, mas profundidad.",
+      description: "Más estrategia, más profundidad.",
       href: buildCatalogHref({ weight: "duro" }),
       icon: Brain
     }
@@ -615,7 +589,7 @@ function describeCategory(term: string) {
   }
 
   if (normalized.includes("gateway")) {
-    return "Buenas puertas de entrada para nuevos jugadores que quieren aprender sin friccion.";
+    return "Buenas puertas de entrada para nuevos jugadores que quieren aprender sin fricción.";
   }
 
   if (normalized.includes("party")) {
@@ -623,10 +597,10 @@ function describeCategory(term: string) {
   }
 
   if (normalized.includes("estrateg")) {
-    return "Juegos con mas decisiones, planificacion y profundidad para quienes disfrutan optimizando.";
+    return "Juegos con más decisiones, planificación y profundidad para quienes disfrutan optimizando.";
   }
 
-  return `Explora juegos de mesa de la categoria ${term} y compara duracion, jugadores y sensaciones antes de elegir.`;
+  return `Explora juegos de mesa de la categoría ${term} y compara duración, jugadores y sensaciones antes de elegir.`;
 }
 
 function dedupeGames(games: Array<CatalogGame | null | undefined>) {

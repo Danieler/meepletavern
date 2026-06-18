@@ -154,7 +154,7 @@ export function GameComments({
 
           {!isConfigured ? (
             <p className="mt-4 text-sm font-semibold text-ruby">
-              Supabase no está configurado todavía, así que los comentarios de usuarios aún no están disponibles.
+              La zona de cuenta no está configurada todavía, así que las conversaciones de la taberna aún no están disponibles.
             </p>
           ) : loading ? (
             <p className="mt-4 text-sm font-semibold text-walnut/65">Comprobando tu sesión...</p>

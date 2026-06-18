@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LibraryBig } from "lucide-react";
+import { CheckCircle2, Gamepad2, LibraryBig, Plus, Search, ShoppingCart, Trophy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 type LibraryEntry = {
@@ -25,11 +25,23 @@ type LibraryPanelProps = {
   embedded?: boolean;
 };
 
+const tabs = [
+  { key: "all", label: "Todo", icon: LibraryBig },
+  { key: "owned", label: "En casa", icon: CheckCircle2 },
+  { key: "wantToPlay", label: "Quiero probar", icon: Gamepad2 },
+  { key: "wantToBuy", label: "En la lista", icon: ShoppingCart },
+  { key: "played", label: "Jugados", icon: Trophy }
+] as const;
+
+type TabKey = (typeof tabs)[number]["key"];
+
 export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
   const { user, loading, warning, isConfigured } = useAuth();
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [fetching, setFetching] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("all");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -78,10 +90,10 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
 
   if (!isConfigured) {
     return (
-      <section className="rounded-md border border-ruby/20 bg-white p-6 shadow-soft">
-        <h1 className="text-3xl font-black text-ink">Mi colección</h1>
+      <section className="tavern-card p-6">
+        <h1 className="font-display text-3xl font-bold text-wood">Mi ludoteca</h1>
         <p className="mt-3 text-sm font-semibold text-ruby">
-          Supabase no está configurado todavía, así que la colección personal aún no puede funcionar.
+          La zona de cuenta no está configurada todavía, así que la ludoteca personal aún no está disponible.
         </p>
       </section>
     );
@@ -89,18 +101,18 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
 
   if (loading) {
     return (
-      <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-        <h1 className="text-3xl font-black text-ink">Mi colección</h1>
-        <p className="mt-3 text-sm font-semibold text-ink/60">Cargando tu sesión...</p>
+      <section className="tavern-card p-6">
+        <h1 className="font-display text-3xl font-bold text-wood">Mi ludoteca</h1>
+        <p className="mt-3 text-sm font-semibold text-walnut/65">Cargando tu sesión...</p>
       </section>
     );
   }
 
   if (!user) {
     return (
-      <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-        <h1 className="text-3xl font-black text-ink">Mi colección</h1>
-        <p className="mt-3 text-sm font-semibold text-ink/65">
+      <section className="tavern-card p-6">
+        <h1 className="font-display text-3xl font-bold text-wood">Mi ludoteca</h1>
+        <p className="mt-3 text-sm font-semibold text-walnut/65">
           Entra con tu cuenta para guardar los juegos que ya tienes.
         </p>
         <Link className="button-primary mt-5 inline-flex" href="/auth?next=%2Fmi-perfil">
@@ -110,29 +122,60 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
     );
   }
 
-  const owned = entries.filter(e => e.owned);
-  const wantToPlay = entries.filter(e => e.wantToPlay);
-  const wantToBuy = entries.filter(e => e.wantToBuy);
-  const played = entries.filter(e => e.played);
+  const stats = {
+    all: entries.length,
+    owned: entries.filter((entry) => entry.owned).length,
+    wantToPlay: entries.filter((entry) => entry.wantToPlay).length,
+    wantToBuy: entries.filter((entry) => entry.wantToBuy).length,
+    played: entries.filter((entry) => entry.played).length
+  };
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredEntries = entries
+    .filter((entry) => (activeTab === "all" ? true : entry[activeTab]))
+    .filter((entry) => (normalizedQuery ? entry.game.title.toLowerCase().includes(normalizedQuery) : true));
 
   return (
-    <section className="space-y-6">
-      {embedded ? (
-        <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-          <h2 className="text-2xl font-black text-ink">Mi ludoteca</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-ink/72">
-            Gestiona aquí los juegos que tienes, los que quieres jugar o comprar y los que ya has disfrutado.
-          </p>
-        </section>
-      ) : (
-        <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-          <p className="text-sm font-bold uppercase text-ember">Cuenta</p>
-          <h1 className="mt-3 text-4xl font-black text-ink sm:text-5xl">Mi ludoteca</h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-ink/72">
-            Tu archivo personal en MeepleTavern.
-          </p>
-        </section>
-      )}
+    <section className="space-y-5">
+      <section className="tavern-card overflow-hidden">
+        <div className="grid gap-5 border-b border-walnut/10 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div>
+            <p className="tavern-eyebrow">{embedded ? "Ludoteca" : "Cuenta"}</p>
+            <h2 className="font-display mt-2 text-3xl font-bold text-wood sm:text-4xl">Mi ludoteca</h2>
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-walnut/72">
+              Organiza tus juegos por lo que tienes, lo que quieres probar y lo que ya ha pasado por mesa.
+            </p>
+          </div>
+          <Link className="button-primary" href="/juegos">
+            <Plus size={17} />
+            Añadir juegos
+          </Link>
+        </div>
+
+        <div className="grid gap-2 border-b border-walnut/10 p-4 sm:grid-cols-5">
+          {tabs.map((tab) => (
+            <MetricButton
+              key={tab.key}
+              label={tab.label}
+              count={stats[tab.key]}
+              active={activeTab === tab.key}
+              icon={tab.icon}
+              onClick={() => setActiveTab(tab.key)}
+            />
+          ))}
+        </div>
+
+        <div className="p-4 sm:p-5">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-walnut/45" size={17} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filtrar mi ludoteca..."
+              className="field-input h-11 pl-10"
+            />
+          </label>
+        </div>
+      </section>
 
       {warning ? (
         <section className="rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
@@ -147,64 +190,116 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
       ) : null}
 
       {fetching ? (
-        <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-          <p className="text-sm font-semibold text-ink/65">Cargando tus juegos...</p>
+        <section className="tavern-card p-6">
+          <p className="text-sm font-semibold text-walnut/65">Cargando tus juegos...</p>
         </section>
       ) : entries.length ? (
-        <div className="space-y-12">
-          <DashboardSection title="Lo tengo" entries={owned} />
-          <DashboardSection title="Quiero jugarlo" entries={wantToPlay} />
-          <DashboardSection title="Quiero comprarlo" entries={wantToBuy} />
-          <DashboardSection title="Lo he jugado" entries={played} />
-        </div>
+        filteredEntries.length ? (
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredEntries.map((entry) => (
+              <LibraryGameCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+        ) : (
+          <EmptyLibraryState title="No hay juegos en este filtro" actionLabel="Ver toda la ludoteca" onAction={() => setActiveTab("all")} />
+        )
       ) : (
-        <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
-          <p className="text-sm font-semibold text-ink/65">
-            Todavía no has añadido juegos a tu ludoteca. Entra en una ficha y marca los juegos que te interesen.
-          </p>
+        <section className="tavern-card grid gap-5 p-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div>
+            <h3 className="font-display text-2xl font-bold text-wood">Tu ludoteca empieza con una ficha</h3>
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-walnut/70">
+              Abre cualquier juego y marca si lo tienes, quieres jugarlo, comprarlo o ya lo has jugado.
+            </p>
+          </div>
+          <Link className="button-primary" href="/juegos">
+            <Plus size={17} />
+            Explorar juegos
+          </Link>
         </section>
       )}
     </section>
   );
 }
 
-function DashboardSection({ title, entries }: { title: string; entries: LibraryEntry[] }) {
-  if (entries.length === 0) return null;
+function MetricButton({
+  label,
+  count,
+  active,
+  icon: Icon,
+  onClick
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  icon: typeof LibraryBig;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`focus-ring rounded-md border px-3 py-3 text-left transition ${
+        active
+          ? "border-ember/45 bg-ember/10 text-wood shadow-sm"
+          : "border-walnut/10 bg-white/55 text-walnut hover:border-walnut/25 hover:bg-white"
+      }`}
+    >
+      <span className="flex items-center justify-between gap-3">
+        <Icon size={18} />
+        <span className="font-display text-2xl font-bold leading-none">{count}</span>
+      </span>
+      <span className="mt-2 block text-xs font-black uppercase tracking-[0.1em]">{label}</span>
+    </button>
+  );
+}
+
+function LibraryGameCard({ entry }: { entry: LibraryEntry }) {
+  const badges = [
+    entry.owned ? "En casa" : null,
+    entry.wantToPlay ? "Quiero probar" : null,
+    entry.wantToBuy ? "En la lista" : null,
+    entry.played ? "Jugado" : null
+  ].filter(Boolean);
 
   return (
-    <section>
-      <div className="flex items-center gap-3 mb-6">
-        <h3 className="text-xl font-black text-ink">{title}</h3>
-        <span className="rounded-full bg-ink/5 px-2 py-0.5 text-xs font-bold text-ink/40">{entries.length}</span>
-      </div>
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {entries.map((entry) => (
-          <article
-            key={entry.id}
-            className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft transition hover:border-ink/20"
-          >
-            <Link href={`/juegos/${entry.game.slug}`} className="block">
-              <div className="aspect-[4/3] bg-ink/5 overflow-hidden">
-                {entry.game.coverImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={entry.game.coverImageUrl}
-                    alt={entry.game.title}
-                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-ink/10">
-                     <LibraryBig size={40} />
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h2 className="text-lg font-black text-ink line-clamp-1">{entry.game.title}</h2>
-              </div>
-            </Link>
-          </article>
-        ))}
-      </div>
+    <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45">
+      <Link href={`/juegos/${entry.game.slug}`} className="block">
+        <div className="aspect-[4/3] overflow-hidden bg-walnut/8">
+          {entry.game.coverImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={entry.game.coverImageUrl}
+              alt={entry.game.title}
+              className="h-full w-full object-cover transition duration-500 hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-walnut/20">
+              <LibraryBig size={42} />
+            </div>
+          )}
+        </div>
+        <div className="p-4">
+          <div className="flex flex-wrap gap-2">
+            {badges.map((badge) => (
+              <span key={badge} className="tavern-pill">
+                {badge}
+              </span>
+            ))}
+          </div>
+          <h3 className="font-display mt-3 line-clamp-2 text-xl font-bold leading-tight text-wood">{entry.game.title}</h3>
+        </div>
+      </Link>
+    </article>
+  );
+}
+
+function EmptyLibraryState({ title, actionLabel, onAction }: { title: string; actionLabel: string; onAction: () => void }) {
+  return (
+    <section className="tavern-card p-6 text-center">
+      <h3 className="font-display text-2xl font-bold text-wood">{title}</h3>
+      <button type="button" onClick={onAction} className="button-secondary mt-5">
+        {actionLabel}
+      </button>
     </section>
   );
 }

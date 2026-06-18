@@ -6,12 +6,12 @@ import { Pagination } from "@/components/Pagination";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { filterGames, getCategoryTerms, getMechanicTerms, getThemeTerms, type GameFilterInput } from "@/lib/catalog";
+import { filterGames, getCategoryTerms, getMechanicTerms, type GameFilterInput } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Catálogo de juegos de mesa",
   description:
-    "Explora juegos de mesa por jugadores, duración, dificultad, categorías, mecánicas, temáticas, puntuación y popularidad."
+    "Explora juegos de mesa por jugadores, duración, dificultad, categorías, mecánicas, puntuación y popularidad."
 };
 
 type GamesPageProps = {
@@ -22,11 +22,10 @@ export const revalidate = 3600;
 
 export default async function GamesPage({ searchParams }: GamesPageProps) {
   const filters = (await searchParams) || {};
-  const [filterResult, categoryTerms, mechanicTerms, themeTerms] = await Promise.all([
+  const [filterResult, categoryTerms, mechanicTerms] = await Promise.all([
     filterGames(filters),
     getCategoryTerms(),
-    getMechanicTerms(),
-    getThemeTerms()
+    getMechanicTerms()
   ]);
 
   const { games, total, page, totalPages } = filterResult;
@@ -39,8 +38,8 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
             <p className="tavern-eyebrow">Archivo de juegos</p>
             <h1 className="page-hero-title">Catálogo de juegos de mesa</h1>
             <p className="page-hero-copy">
-              Busca por título, filtra por mesa, compara peso y salta entre categorías, mecánicas
-              y temáticas sin perder el hilo.
+              Busca por título, filtra por mesa y compara categorías, mecánicas, duración y dificultad
+              sin perder el hilo.
             </p>
             <div className="mt-7 max-w-3xl">
               <GameSearch query={filters.q} variant="hero" />
@@ -49,11 +48,11 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
         </section>
 
         <section className="container-page grid gap-8 py-10 lg:grid-cols-[300px_1fr] lg:py-14">
-          <GameFilters active={filters} categoryTerms={categoryTerms} mechanicTerms={mechanicTerms} themeTerms={themeTerms} />
+          <GameFilters active={filters} categoryTerms={categoryTerms} mechanicTerms={mechanicTerms} />
           <div>
             <SectionHeader
               title={`${total} juegos encontrados`}
-              description="Cards con puntuación, ranking, duración, jugadores y peso para comparar de un vistazo."
+              description="Fichas con puntuación, ranking, duración, jugadores y dificultad para comparar de un vistazo."
             />
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {games.map((game) => (
@@ -65,7 +64,7 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
 
             {!games.length ? (
               <SEOTextBlock title="Sin resultados">
-                <p>Prueba a relajar filtros o buscar por categoría, mecánica o temática más amplia.</p>
+                <p>Prueba a relajar filtros o buscar por una categoría o mecánica más amplia.</p>
               </SEOTextBlock>
             ) : null}
           </div>

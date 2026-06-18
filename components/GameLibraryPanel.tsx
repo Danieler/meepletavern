@@ -101,21 +101,21 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
       <h2 className="text-lg font-black text-ink">Mi ludoteca</h2>
       <div className="mt-4 grid gap-2">
         <ToggleButton
-          label="Lo tengo"
+          label="Lo tengo en casa"
           active={state.owned}
           loading={busy === "owned"}
           icon={<Check size={18} />}
           onClick={() => toggleStatus("owned")}
         />
         <ToggleButton
-          label="Quiero jugarlo"
+          label="Quiero probarlo"
           active={state.wantToPlay}
           loading={busy === "wantToPlay"}
           icon={<Gamepad2 size={18} />}
           onClick={() => toggleStatus("wantToPlay")}
         />
         <ToggleButton
-          label="Quiero comprarlo"
+          label="Lo tengo en la lista"
           active={state.wantToBuy}
           loading={busy === "wantToBuy"}
           icon={<ShoppingCart size={18} />}

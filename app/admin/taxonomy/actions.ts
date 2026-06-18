@@ -75,7 +75,6 @@ function revalidateTaxonomy(type: TaxonomyTypeKey) {
   revalidatePath("/juegos");
   revalidatePath("/categorias");
   revalidatePath("/mecanicas");
-  revalidatePath("/tematicas");
 
   if (type === "category") {
     revalidatePath("/admin/categories");
