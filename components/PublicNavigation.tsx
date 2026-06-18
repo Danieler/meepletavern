@@ -134,26 +134,7 @@ export function PublicMobileMenu() {
             className="mobile-nav-panel"
             aria-label="Navegación principal"
           >
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-ember">
-                  Menú
-                </p>
-                <p className="font-display mt-1 text-xl font-bold leading-none text-white">
-                  Meeple Tavern
-                </p>
-              </div>
-              <button
-                type="button"
-                className="header-action w-10 px-0"
-                aria-label="Cerrar menú"
-                onClick={() => setOpen(false)}
-              >
-                <BrandIcon name="x" size={18} />
-              </button>
-            </div>
-
-            <div className="mt-3 space-y-3">
+            <div className="space-y-3">
               {navGroups.map((group) => (
                 <section key={group.tone} className={`mobile-nav-group mobile-nav-group-${group.tone}`}>
                   <p className="mobile-nav-label">{group.label}</p>
