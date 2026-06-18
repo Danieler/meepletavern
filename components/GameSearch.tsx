@@ -33,7 +33,6 @@ export function GameSearch({
         />
       </div>
       <button className={`button-primary ${isHero ? "min-h-14 px-6" : ""}`} type="submit">
-        <BrandIcon name="search" size={20} />
         {resolvedSubmitLabel}
       </button>
     </form>

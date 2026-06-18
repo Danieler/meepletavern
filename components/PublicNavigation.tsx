@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import { PublicAuthControls } from "@/components/PublicAuthControls";
 
@@ -85,7 +85,7 @@ export function PublicDesktopNavigation() {
 }
 
 export function PublicMobileMenu() {
-  const panelId = useId();
+  const panelId = "mobile-menu-panel";
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 

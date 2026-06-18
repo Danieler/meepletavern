@@ -1,11 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { BrandIcon } from "@/components/BrandIcon";
 import { PublicAuthControls } from "@/components/PublicAuthControls";
 import { PublicDesktopNavigation, PublicMobileMenu } from "@/components/PublicNavigation";
 import { siteConfig } from "@/lib/site";
 
 export function PublicHeader() {
+  const pathname = usePathname();
+  const isSearchPage = pathname === "/juegos";
+
   return (
     <header className="tavern-header sticky top-0 z-40 text-white">
       <div className="container-page flex min-h-[72px] flex-col gap-2 py-2 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:py-2.5">
@@ -34,10 +40,12 @@ export function PublicHeader() {
             </span>
           </Link>
           <div className="flex shrink-0 items-center gap-2 lg:hidden">
-            <Link className="header-action w-10 px-0 sm:w-auto sm:px-3" href="/juegos" aria-label="Buscar juegos">
-              <BrandIcon name="search" size={18} />
-              <span className="hidden sm:inline">Buscar</span>
-            </Link>
+            {!isSearchPage && (
+              <Link className="header-action w-10 px-0 sm:w-auto sm:px-3" href="/juegos" aria-label="Buscar juegos">
+                <BrandIcon name="search" size={18} />
+                <span className="hidden sm:inline">Buscar</span>
+              </Link>
+            )}
             <PublicMobileMenu />
           </div>
         </div>

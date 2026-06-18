@@ -23,7 +23,9 @@ import {
   Users,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 export type BrandIconName =
@@ -51,7 +53,9 @@ export type BrandIconName =
   | "users"
   | "x"
   | "chevron-left"
-  | "chevron-right";
+  | "chevron-right"
+  | "chevron-down"
+  | "chevron-up";
 
 type BrandIconProps = {
   name: BrandIconName;
@@ -85,7 +89,9 @@ const iconMap: Record<BrandIconName, LucideIcon> = {
   users: Users,
   x: X,
   "chevron-left": ChevronLeft,
-  "chevron-right": ChevronRight
+  "chevron-right": ChevronRight,
+  "chevron-down": ChevronDown,
+  "chevron-up": ChevronUp
 };
 
 export function BrandIcon({

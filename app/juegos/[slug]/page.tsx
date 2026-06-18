@@ -42,6 +42,7 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
 
   const title = `${game.title}: ficha, duración y jugadores`;
   const description = `${game.title} en MeepleTavern: jugadores, duración, dificultad, resumen editorial, pros, contras, categorías, mecánicas y juegos parecidos.`;
+  const imageUrl = hasVerifiedCoverImage(game) && game.coverImageUrl ? game.coverImageUrl : null;
 
   return {
     title,
@@ -54,7 +55,13 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
       description,
       type: "article",
       url: `${siteConfig.url}/juegos/${game.slug}`,
-      images: hasVerifiedCoverImage(game) && game.coverImageUrl ? [{ url: game.coverImageUrl, alt: game.coverImageAlt }] : []
+      images: imageUrl ? [{ url: imageUrl, alt: game.coverImageAlt }] : []
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : []
     }
   };
 }
@@ -500,15 +507,48 @@ function hasGenericPublicCopy(value: string) {
 
 function buildJsonLd(game: CatalogGame) {
   const url = `${siteConfig.url}/juegos/${game.slug}`;
+  const hasExternalRating = game.ratings.external && game.ratings.external.score;
+  const hasUserRating = game.ratings.users && game.ratings.users.votesCount > 0;
 
   return [
     {
       "@context": "https://schema.org",
-      "@type": "Product",
+      "@type": "BoardGame",
       name: game.title,
       ...(hasVerifiedCoverImage(game) && game.coverImageUrl ? { image: game.coverImageUrl } : {}),
-      description: game.description,
-      category: game.categories.join(", "),
+      description: game.description || game.reviewSummary,
+      genre: game.categories.join(", "),
+      gameMechanic: game.mechanics.join(", "),
+      ...(game.playersMin || game.playersMax
+        ? {
+            numberOfPlayers: {
+              "@type": "QuantitativeValue",
+              ...(game.playersMin ? { minValue: game.playersMin } : {}),
+              ...(game.playersMax ? { maxValue: game.playersMax } : {})
+            }
+          }
+        : {}),
+      ...(game.durationMax
+        ? {
+            timeToPlay: {
+              "@type": "Duration",
+              name: `${game.durationMax} minutes`,
+              value: `PT${game.durationMax}M`
+            }
+          }
+        : {}),
+      ...(game.ageValue ? { typicalAgeRange: `${game.ageValue}+` } : {}),
+      ...(hasExternalRating || hasUserRating
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: game.ratings.combined?.score || game.ratings.external?.score || game.ratings.users?.score,
+              bestRating: "10",
+              worstRating: "1",
+              ratingCount: (game.ratings.users?.votesCount || 0) + (hasExternalRating ? 1 : 0)
+            }
+          }
+        : {}),
       url
     },
     {

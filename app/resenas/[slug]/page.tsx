@@ -15,7 +15,6 @@ type ReviewPageProps = {
 };
 
 export const revalidate = 3600;
-
 export async function generateMetadata({ params }: ReviewPageProps): Promise<Metadata> {
   const { slug } = await params;
   const review = await getReviewBySlug(slug);
@@ -27,6 +26,8 @@ export async function generateMetadata({ params }: ReviewPageProps): Promise<Met
     };
   }
 
+  const imageUrl = hasVerifiedCoverImage(review) && review.coverImageUrl ? review.coverImageUrl : null;
+
   return {
     title: review.title,
     description: review.summary,
@@ -37,7 +38,13 @@ export async function generateMetadata({ params }: ReviewPageProps): Promise<Met
       title: review.title,
       description: review.summary,
       type: "article",
-      images: hasVerifiedCoverImage(review) && review.coverImageUrl ? [{ url: review.coverImageUrl, alt: review.coverImageAlt }] : []
+      images: imageUrl ? [{ url: imageUrl, alt: review.coverImageAlt }] : []
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: review.title,
+      description: review.summary,
+      images: imageUrl ? [imageUrl] : []
     }
   };
 }
@@ -50,10 +57,37 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
     notFound();
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    itemReviewed: {
+      "@type": "BoardGame",
+      name: review.gameTitle,
+      url: `${siteConfig.url}/juegos/${review.gameSlug}`
+    },
+    author: {
+      "@type": "Person",
+      name: review.authorName
+    },
+    reviewBody: review.summary,
+    publisher: {
+      "@type": "Organization",
+      name: siteConfig.name
+    },
+    datePublished: review.publishedAt,
+    headline: review.title,
+    url: `${siteConfig.url}/resenas/${review.slug}`
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <article>
+...
           <section className="page-hero">
             <div className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_360px] lg:items-center">
               <div>

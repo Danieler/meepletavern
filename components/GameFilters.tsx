@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
 
 type FilterLink = {
@@ -7,9 +11,10 @@ type FilterLink = {
   value: string;
 };
 
-const filters: Array<{ title: string; items: FilterLink[] }> = [
+const filters: Array<{ title: string; icon: BrandIconName; items: FilterLink[] }> = [
   {
     title: "Jugadores",
+    icon: "users",
     items: [
       { label: "1", param: "players", value: "1" },
       { label: "2", param: "players", value: "2" },
@@ -19,6 +24,7 @@ const filters: Array<{ title: string; items: FilterLink[] }> = [
   },
   {
     title: "Duración",
+    icon: "clock",
     items: [
       { label: "<30 min", param: "duration", value: "30" },
       { label: "<45 min", param: "duration", value: "45" },
@@ -29,6 +35,7 @@ const filters: Array<{ title: string; items: FilterLink[] }> = [
   },
   {
     title: "Dificultad",
+    icon: "gauge",
     items: [
       { label: "Ligera", param: "weight", value: "ligero" },
       { label: "Media", param: "weight", value: "medio" },
@@ -37,6 +44,7 @@ const filters: Array<{ title: string; items: FilterLink[] }> = [
   },
   {
     title: "Edad",
+    icon: "user",
     items: [
       { label: "7+", param: "age", value: "7" },
       { label: "8+", param: "age", value: "8" },
@@ -62,48 +70,106 @@ export function GameFilters({
   categoryTerms: string[];
   mechanicTerms: string[];
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllMechanics, setShowAllMechanics] = useState(false);
+
+  const activeCount = Object.entries(active).reduce((acc, [key, value]) => {
+    if (key === "page" || key === "sort" || !value) return acc;
+    if (Array.isArray(value)) return acc + value.filter(Boolean).length;
+    return acc + 1;
+  }, 0);
+
   return (
-    <aside className="tavern-card space-y-5 p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="tavern-eyebrow">Explorar</p>
-          <h2 className="font-display mt-1 text-xl font-bold text-ink">Filtros</h2>
+    <aside className="tavern-card h-fit p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3 lg:items-start">
+        <div className="min-w-0 lg:block">
+          <p className="tavern-eyebrow hidden lg:block">Explorar</p>
+          <h2 className="font-display text-xl font-bold text-ink lg:mt-1">Filtros</h2>
         </div>
-        <Link className="mt-1 inline-flex text-sm font-bold text-moss transition hover:text-wood hover:underline" href="/juegos">
-          Limpiar filtros
-        </Link>
+        
+        <div className="flex shrink-0 items-center gap-2">
+          {activeCount > 0 && (
+            <Link
+              className="inline-flex h-9 items-center px-2 text-sm font-bold text-moss transition hover:text-wood hover:underline"
+              href="/juegos"
+            >
+              Limpiar {activeCount > 0 && `(${activeCount})`}
+            </Link>
+          )}
+          
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-bold transition lg:hidden ${
+              isExpanded
+                ? "border-walnut/20 bg-paper text-ink"
+                : "border-moss/20 bg-moss/5 text-moss shadow-sm"
+            }`}
+            aria-expanded={isExpanded}
+          >
+            <BrandIcon name={isExpanded ? "x" : "sliders"} size={16} />
+            <span>{isExpanded ? "Cerrar" : "Opciones"}</span>
+          </button>
+        </div>
       </div>
-      {filters.map((group) => (
-        <FilterGroup key={group.title} title={group.title}>
-          {group.items.map((item) => (
-            <FilterPill key={`${item.param}-${item.value}`} item={item} active={active} />
+
+      <div className={`${isExpanded ? "mt-6 block" : "hidden"} space-y-7 lg:mt-7 lg:block`}>
+        {filters.map((group) => (
+          <FilterGroup key={group.title} title={group.title} icon={group.icon}>
+            {group.items.map((item) => (
+              <FilterPill key={`${item.param}-${item.value}`} item={item} active={active} />
+            ))}
+          </FilterGroup>
+        ))}
+
+        <FilterGroup title="Categoría" icon="grid">
+          {(showAllCategories ? categoryTerms : categoryTerms.slice(0, 8)).map((term) => (
+            <FilterPill key={term} item={{ label: term, param: "category", value: term }} active={active} />
           ))}
+          {categoryTerms.length > 8 && (
+            <button
+              onClick={() => setShowAllCategories(!showAllCategories)}
+              className="mt-1 block w-full text-left text-xs font-bold text-moss/60 hover:text-moss underline decoration-moss/20 underline-offset-4"
+            >
+              {showAllCategories ? "Ver menos" : `Ver todas (${categoryTerms.length})`}
+            </button>
+          )}
         </FilterGroup>
-      ))}
-      <FilterGroup title="Categoría">
-        {categoryTerms.slice(0, 8).map((term) => (
-          <FilterPill key={term} item={{ label: term, param: "category", value: term }} active={active} />
-        ))}
-      </FilterGroup>
-      <FilterGroup title="Mecánicas">
-        {mechanicTerms.slice(0, 7).map((term) => (
-          <FilterPill key={term} item={{ label: term, param: "mechanic", value: term }} active={active} />
-        ))}
-      </FilterGroup>
-      <FilterGroup title="Ordenar por">
-        {sortItems.map((item) => (
-          <FilterPill key={item.value} item={{ label: item.label, param: "sort", value: item.value }} active={active} />
-        ))}
-      </FilterGroup>
+
+        <FilterGroup title="Mecánicas" icon="dice">
+          {(showAllMechanics ? mechanicTerms : mechanicTerms.slice(0, 7)).map((term) => (
+            <FilterPill key={term} item={{ label: term, param: "mechanic", value: term }} active={active} />
+          ))}
+          {mechanicTerms.length > 7 && (
+            <button
+              onClick={() => setShowAllMechanics(!showAllMechanics)}
+              className="mt-1 block w-full text-left text-xs font-bold text-moss/60 hover:text-moss underline decoration-moss/20 underline-offset-4"
+            >
+              {showAllMechanics ? "Ver menos" : `Ver todas (${mechanicTerms.length})`}
+            </button>
+          )}
+        </FilterGroup>
+
+        <div className="pt-2 border-t border-walnut/10">
+          <FilterGroup title="Ordenar por" icon="sliders">
+            {sortItems.map((item) => (
+              <FilterPill key={item.value} item={{ label: item.label, param: "sort", value: item.value }} active={active} />
+            ))}
+          </FilterGroup>
+        </div>
+      </div>
     </aside>
   );
 }
 
-function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterGroup({ title, icon, children }: { title: string; icon: BrandIconName; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="tavern-meta">{title}</h3>
-      <div className="mt-3 flex flex-wrap gap-2">{children}</div>
+      <div className="flex items-center gap-2 mb-3">
+        <BrandIcon name={icon} size={14} className="text-walnut/40" />
+        <h3 className="tavern-meta !mb-0">{title}</h3>
+      </div>
+      <div className="flex flex-wrap gap-2">{children}</div>
     </section>
   );
 }

@@ -90,9 +90,26 @@ export default async function Home() {
   const latestGames = dedupeGames([...newGames, ...popularGames]).slice(0, 3);
   const intentCards = buildIntentCards(categoryTerms);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteConfig.name,
+    alternateName: "Meeple Tavern",
+    url: siteConfig.url,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${siteConfig.url}/juegos?q={search_term_string}`,
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="container-page pt-5">
           <div className="tavern-panel relative min-h-[460px] overflow-hidden p-5 sm:p-6 lg:p-8">
             <Image
@@ -138,7 +155,7 @@ export default async function Home() {
                   <p className="mt-2 text-sm font-semibold leading-6 text-walnut/76">
                     Menos filtros, más partida.
                   </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
                     {intentCards.map((card) => (
                       <IntentCard key={card.title} {...card} />
                     ))}
