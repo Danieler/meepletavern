@@ -542,7 +542,7 @@ function buildJsonLd(game: CatalogGame) {
         ? {
             aggregateRating: {
               "@type": "AggregateRating",
-              ratingValue: game.ratings.combined?.score || game.ratings.external?.score || game.ratings.users?.score,
+              ratingValue: game.ratings.combined?.score || game.ratings.external?.score || game.ratings.users?.averageScore,
               bestRating: "10",
               worstRating: "1",
               ratingCount: (game.ratings.users?.votesCount || 0) + (hasExternalRating ? 1 : 0)
