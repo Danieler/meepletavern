@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Brain, Clock3, House, Shield, Users, Users2 } from "lucide-react";
+import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
@@ -79,14 +79,13 @@ export default async function Home() {
     ...popularGames
   ]).slice(0, 3);
   const latestGames = dedupeGames([...newGames, ...popularGames]).slice(0, 3);
-  const heroLinks = buildHeroLinks(categoryTerms);
   const intentCards = buildIntentCards(categoryTerms);
 
   return (
     <PublicShell>
       <main>
         <section className="container-page pt-5">
-          <div className="tavern-panel relative min-h-[420px] overflow-hidden p-5 sm:p-6 lg:p-7">
+          <div className="tavern-panel relative min-h-[460px] overflow-hidden p-5 sm:p-6 lg:p-8">
             <Image
               src="/design-assets/home-background.webp"
               alt="Mesa de juegos de mesa con cartas, dados y meeples"
@@ -98,67 +97,49 @@ export default async function Home() {
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,241,230,0.985),rgba(247,241,230,0.93)_52%,rgba(59,33,22,0.22)_100%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,251,243,0.65),transparent_34%)]" />
 
-            <div className="relative z-10 grid gap-6 py-2 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:py-4">
-              <div className="flex flex-col justify-center">
-                <p className="tavern-eyebrow">La carta de juegos de mesa</p>
-                <h1 className="font-display mt-3 max-w-3xl text-4xl font-bold leading-[0.98] text-wood sm:text-5xl lg:text-6xl">
-                  Encuentra tu próximo juego de mesa
+            <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_400px] lg:items-center">
+              <div className="flex flex-col">
+                <p className="tavern-eyebrow text-ember/80 tracking-[0.25em]">La carta de juegos de mesa</p>
+                <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-wood sm:text-6xl lg:text-7xl">
+                  Encuentra tu próximo <span className="text-ember">juego de mesa</span>
                 </h1>
-                <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-walnut/85 sm:text-lg">
+                <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-walnut/85 sm:text-xl">
                   Busca, compara y descubre qué sacar a mesa según tu grupo, el tiempo disponible y
                   el tipo de partida que os apetece hoy.
                 </p>
-                <div className="mt-5 max-w-3xl">
+                <div className="mt-8 max-w-2xl">
                   <GameSearch variant="hero" submitLabel="Buscar juegos" />
                 </div>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Link href="#recomendaciones" className="button-primary">
-                    Ver la selección de la casa
+                <div className="mt-5 flex flex-wrap gap-4">
+                  <Link href="#recomendaciones" className="button-primary px-8 py-3 text-base">
+                    Ver selección de la taberna
                   </Link>
-                  <Link href="/juegos" className="button-secondary">
+                  <Link href="/juegos" className="button-secondary px-8 py-3 text-base">
                     Explorar catálogo
                   </Link>
                 </div>
-                <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-extrabold leading-5 text-walnut">
-                  <span>Atajos de barra:</span>
-                  {heroLinks.map((chip) => (
-                    <Link
-                      key={chip.label}
-                      href={chip.href}
-                      className="tavern-pill transition hover:border-ember/40 hover:bg-white hover:text-wood"
-                    >
-                      {chip.label}
-                    </Link>
-                  ))}
-                </div>
-                <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                  {VALUE_POINTS.map((item) => (
-                    <div key={item.title} className="rounded-md border border-walnut/10 bg-white/72 px-3 py-3 shadow-sm">
-                      <p className="text-sm font-black text-wood">{item.title}</p>
-                      <p className="mt-1 text-xs font-semibold leading-5 text-walnut/72">{item.description}</p>
-                    </div>
-                  ))}
+
+                <div className="mt-12">
+                  <div className="flex items-center gap-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50">
+                      Mesa de descubrimiento
+                    </p>
+                    <div className="h-px flex-1 bg-walnut/10" />
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {intentCards.map((card) => (
+                      <IntentCard key={card.title} {...card} />
+                    ))}
+                  </div>
                 </div>
               </div>
+              
               {heroGamePool.length ? (
-                <aside className="lg:pt-2">
+                <aside className="h-full">
                   <HeroDiscoveryBoard games={heroGamePool} />
                 </aside>
               ) : null}
             </div>
-          </div>
-        </section>
-
-        <section className="container-page py-7 lg:py-9">
-          <SectionHeader
-            eyebrow="Mesa de descubrimiento"
-            title="Elige rápido según tu grupo, tiempo y tipo de partida"
-            description="Accesos claros para aterrizar juegos sin pelearte con filtros desde el primer minuto."
-          />
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {intentCards.map((card) => (
-              <IntentCard key={card.title} {...card} />
-            ))}
           </div>
         </section>
 
@@ -237,21 +218,6 @@ export default async function Home() {
   );
 }
 
-const VALUE_POINTS = [
-  {
-    title: "Decide más rápido",
-    description: "Resumen claro de jugadores, duración y dificultad."
-  },
-  {
-    title: "Encuentra juegos para tu grupo",
-    description: "Atajos pensados para mesas reales, no para perderte navegando."
-  },
-  {
-    title: "Compara antes de comprar",
-    description: "Fichas, valoraciones y contexto antes de meter un juego en casa."
-  }
-] as const;
-
 function IntentCard({
   title,
   description,
@@ -266,16 +232,19 @@ function IntentCard({
   return (
     <Link
       href={href}
-      className="tavern-card group block p-4 transition hover:-translate-y-0.5 hover:border-ember/40"
+      className="tavern-card group flex items-center gap-3 p-3.5 transition hover:-translate-y-0.5 hover:border-ember/40 bg-white/40"
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-ember/10 text-ember transition group-hover:bg-ember/15">
-          <Icon size={20} strokeWidth={2.1} absoluteStrokeWidth />
-        </span>
-        <span className="text-xs font-black uppercase tracking-[0.12em] text-ember">Ver juegos</span>
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-ember/10 text-ember transition group-hover:bg-ember/15">
+        <Icon size={20} strokeWidth={2.1} absoluteStrokeWidth />
+      </span>
+      <div className="min-w-0">
+        <h3 className="font-display text-[15px] font-bold text-wood leading-tight group-hover:text-ember transition">
+          {title}
+        </h3>
+        <p className="mt-1 line-clamp-1 text-[11px] font-medium leading-tight text-walnut/70">
+          {description}
+        </p>
       </div>
-      <h3 className="font-display mt-3 text-xl font-bold text-wood">{title}</h3>
-      <p className="mt-2 line-clamp-1 text-sm leading-6 text-walnut/80">{description}</p>
     </Link>
   );
 }
@@ -302,65 +271,65 @@ function EmptyStatePanel({
   );
 }
 
-function buildHeroLinks(categoryTerms: string[]) {
-  return [
-    { label: "Para 2 jugadores", href: buildCatalogHref({ players: "2" }) },
-    {
-      label: "Familiares",
-      href: getCategoryMatchHref(categoryTerms, ["familiar"], { q: "familiar" })
-    },
-    {
-      label: "Cooperativos",
-      href: getCategoryMatchHref(categoryTerms, ["cooperativo"], { q: "cooperativo" })
-    },
-    { label: "Partidas rápidas", href: buildCatalogHref({ duration: "45" }) },
-    { label: "Miniaturas", href: buildCatalogHref({ q: "miniaturas" }) },
-    {
-      label: "Para principiantes",
-      href: getCategoryMatchHref(categoryTerms, ["gateway", "familiar"], { q: "principiantes" })
-    }
-  ];
-}
-
 function buildIntentCards(categoryTerms: string[]) {
-  return [
+  const cards = [
     {
       title: "Para 2 jugadores",
-      description: "Pareja o duelo mano a mano.",
+      description: "Duelo o pareja.",
       href: buildCatalogHref({ players: "2" }),
       icon: Users2
     },
     {
       title: "Familiares",
-      description: "Fáciles de explicar y sacar.",
+      description: "Fáciles de sacar.",
       href: getCategoryMatchHref(categoryTerms, ["familiar"], { q: "familiar" }),
       icon: House
     },
     {
       title: "Cooperativos",
-      description: "Toda la mesa contra el juego.",
+      description: "Todos contra el juego.",
       href: getCategoryMatchHref(categoryTerms, ["cooperativo"], { q: "cooperativo" }),
       icon: Shield
     },
     {
       title: "Partidas rápidas",
-      description: "Cuando el tiempo va justo.",
+      description: "Menos de 45 min.",
       href: buildCatalogHref({ duration: "45" }),
       icon: Clock3
     },
     {
       title: "Grupos grandes",
-      description: "Opciones para más gente alrededor.",
+      description: "Para 5 o más.",
       href: buildCatalogHref({ players: "6" }),
       icon: Users
     },
     {
+      title: "Principiantes",
+      description: "Ideal para empezar.",
+      href: getCategoryMatchHref(categoryTerms, ["gateway", "familiar"], { q: "principiantes" }),
+      icon: Sparkles
+    },
+    {
       title: "Para jugones",
-      description: "Más profundidad y más decisión.",
+      description: "Más profundidad.",
       href: buildCatalogHref({ weight: "duro" }),
       icon: Brain
+    },
+    {
+      title: "Miniaturas",
+      description: "Espectáculo visual.",
+      href: buildCatalogHref({ q: "miniaturas" }),
+      icon: Swords
+    },
+    {
+      title: "En solitario",
+      description: "Tú contra el reto.",
+      href: buildCatalogHref({ players: "1" }),
+      icon: User
     }
   ];
+
+  return cards.sort((a, b) => a.title.localeCompare(b.title));
 }
 
 function buildCatalogHref(filters: Partial<GameFilterInput>) {

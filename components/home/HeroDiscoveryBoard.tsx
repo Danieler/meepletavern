@@ -144,7 +144,7 @@ function HeroGameRoute({
       </div>
       <div className="min-w-0 p-3">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-ember">{label}</p>
-        <h3 className={`font-display mt-1 truncate font-bold text-wood ${featured ? "text-[1.65rem]" : "text-lg"}`}>
+        <h3 className={`font-display mt-1 truncate font-bold text-wood ${featured ? "text-2xl" : "text-lg"}`}>
           {game.title}
         </h3>
         <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-walnut/78">
