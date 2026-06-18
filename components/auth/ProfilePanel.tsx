@@ -45,16 +45,20 @@ export function ProfilePanel() {
   const router = useRouter();
   const { user, loading, warning, isConfigured, signOut } = useAuth();
   const [profile, setProfile] = useState<AccountProfile | null>(null);
+
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setProfile(null);
+      setLoadingProfile(false);
       return;
     }
 
     let active = true;
+    setLoadingProfile(true);
 
     fetch("/api/account/profile", { cache: "no-store" })
       .then(async (response) => {
@@ -69,6 +73,11 @@ export function ProfilePanel() {
       .catch(() => {
         if (active) {
           setFeedback("No hemos podido cargar tu perfil.");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingProfile(false);
         }
       });
 
@@ -97,28 +106,61 @@ export function ProfilePanel() {
     );
   }
 
-  if (!user) {
+  if (!user || (loadingProfile && !profile)) {
     return (
-      <section className="tavern-panel overflow-hidden">
-        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
-          <div>
-            <p className="tavern-eyebrow">Cuenta</p>
-            <h1 className="font-display mt-3 text-4xl font-bold text-wood sm:text-5xl">Tu mesa personal</h1>
-            <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-walnut/75">
-              Entra para guardar juegos, cuidar tu perfil y tener tu ludoteca siempre a mano.
-            </p>
-            <Link className="button-primary mt-6 inline-flex" href="/auth">
-              Entrar
-            </Link>
-          </div>
-          <div className="rounded-md border border-walnut/15 bg-paper/80 p-5">
-            <p className="text-sm font-extrabold text-wood">Lo que desbloqueas</p>
-            <div className="mt-4 grid gap-3 text-sm font-semibold text-walnut/75">
-              <span>Perfil público con avatar y bio</span>
-              <span>Ludoteca por estados</span>
-              <span>Privacidad ajustable</span>
+      <section className="space-y-8">
+        <section className="relative overflow-hidden rounded-md border border-walnut/15 bg-wood text-white shadow-tavern">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(201,130,31,0.35),transparent_28rem),linear-gradient(135deg,rgba(54,32,22,0.98),rgba(31,31,31,0.96)_58%,rgba(47,79,111,0.45))]" />
+          <div className="relative grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
+            <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-end">
+              <div className="h-20 w-20 shrink-0 animate-pulse rounded-full bg-white/20" />
+              <div className="min-w-0 space-y-3">
+                <div className="h-4 w-24 animate-pulse rounded bg-white/20" />
+                <div className="h-8 w-48 animate-pulse rounded bg-white/30" />
+                <div className="h-4 w-32 animate-pulse rounded bg-white/20" />
+                <div className="mt-4 h-5 w-full max-w-xl animate-pulse rounded bg-white/10" />
+                <div className="h-5 w-full max-w-lg animate-pulse rounded bg-white/10" />
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <div className="h-10 w-32 animate-pulse rounded bg-white/20" />
+                  <div className="h-10 w-24 animate-pulse rounded bg-white/20" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 rounded-md border border-white/10 bg-white/8 p-4 backdrop-blur">
+              <div className="h-10 animate-pulse rounded bg-white/10" />
+              <div className="h-10 animate-pulse rounded bg-white/10" />
+              <div className="h-10 mt-1 animate-pulse rounded bg-white/10" />
             </div>
           </div>
+        </section>
+
+        {warning ? (
+          <div className="rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
+            {warning}
+          </div>
+        ) : null}
+
+        {feedback ? (
+          <div className="rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm font-semibold text-moss">
+            {feedback}
+          </div>
+        ) : null}
+
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <div className="space-y-8">
+            <div className="h-64 animate-pulse rounded-md bg-gray-200" /> {/* Placeholder for LibraryPanel */}
+            <div className="h-64 animate-pulse rounded-md bg-gray-200" /> {/* Placeholder for UserRatingsPanel */}
+          </div>
+
+          <aside className="tavern-card p-5 sm:p-6">
+            <h2 className="font-display text-xl font-bold text-wood">Cuenta</h2>
+            <dl className="mt-5 space-y-5 text-sm">
+              <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-gray-200" />
+              <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200" />
+            </dl>
+          </aside>
         </div>
       </section>
     );

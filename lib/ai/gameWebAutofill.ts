@@ -241,7 +241,7 @@ export async function extractBoardGameFieldsWithNova(input: {
           "Do not use description.value to restate alreadyDisplayedFacts such as players, duration, age, publisher or year unless essential; those facts are displayed elsewhere. " +
           "If you improve description.value, make it complement the short copy: start with gameplay/objective, not with the same facts. " +
           "For known board games, explain the actual gameplay instead of describing it generically. For example, mention concrete actions such as placing tiles, playing cards, assigning workers, scoring areas, revealing clues or managing resources when supported. " +
-          "For mechanics.value, return gameplay systems, not components: prefer Colocación de piezas, Movimiento, Bloqueo, Gestión de mano, Dados, Draft, Mayorías, Cooperativo or Control de áreas; avoid Tablero, Fichas, Piezas or generic Cartas. " +
+          "For mechanics.value, return gameplay systems, not components. Prefer the following: Colocación de trabajadores, Colocación de losetas, Gestión de recursos, Gestión de mano, Deckbuilding, Engine building, Set collection, Draft de cartas, Mayorías, Area control, Rutas y redes, Negociación, Push your luck, Deducción, Roles ocultos, Cooperativo, Campaña, Legacy, Combate con dados, Wargame. Avoid generic terms like Tablero, Fichas, Piezas, Cartas, Movimientos, or any terms not in the curated list." +
           "Use web_search sources to enrich direct store sources: shops often have shallow commercial copy, while BoardGameGeek/rules/reviews usually explain gameplay better. " +
           "Do not introduce exact victory thresholds, component counts or special rules unless they are explicitly present in sourceContext. " +
           "Do not write generic SEO filler such as 'propuesta de mesa', 'foco en la experiencia de juego', 'contexto temático', 'para disfrutar en grupo' or vague restatements of players/playtime/age. " +
@@ -452,7 +452,10 @@ export async function applyGameImportProposalFields(input: {
     }
 
     if (field === "mechanics" && Array.isArray(extracted.mechanics.value) && extracted.mechanics.value.length && canApply(input.emptyOnly, game.mechanics)) {
-      update.mechanics = sanitizeImportedList(sanitizeStringList(extracted.mechanics.value), "mechanics");
+      const normalizedMechanics = extracted.mechanics.value
+        .map((name) => normalizeMechanicName(name))
+        .filter((name): name is string => name !== null);
+      update.mechanics = sanitizeImportedList(sanitizeStringList(normalizedMechanics), "mechanics");
       appliedFields.push(field);
     }
 

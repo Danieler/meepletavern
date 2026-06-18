@@ -847,38 +847,47 @@ function extractCandidateFactTextList(metadata: Prisma.JsonObject, keys: string[
 
 function extractCandidateMechanics(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
   const fromDirect = sanitizeImportedList(extractCandidateTextList(metadata, ["mechanics", "mechanic", "mechanicHints"]), "mechanics");
-  if (isAmazonMetadata(metadata)) {
-    return fromDirect;
-  }
-
-  const features = extractStringArray(metadata, ["features"]).join(" ").toLowerCase();
   const values = new Set<string>(fromDirect);
 
-  if (features.includes("cooperativ")) {
-    values.add("Cooperativo");
-  }
+  if (isAmazonMetadata(metadata)) {
+    // Amazon specific logic might not infer mechanics from generic features
+    // or we might trust Amazon's provided mechanics more directly
+  } else {
+    const features = extractStringArray(metadata, ["features"]).join(" ").toLowerCase();
 
-  if (features.includes("cartas")) {
-    values.add("Cartas");
-  }
+    if (features.includes("cooperativ")) {
+      values.add("Cooperativo");
+    }
 
-  if (features.includes("dados")) {
-    values.add("Dados");
-  }
+    if (features.includes("cartas")) {
+      // "Cartas" is too generic, and we have "Gestión de mano" and "Draft de cartas".
+      // We should avoid adding generic terms if specific ones are preferred.
+      // For now, I will remove it as per "gameplay systems, not components" rule.
+    }
 
-  if (features.includes("losetas")) {
-    values.add("Colocación de losetas");
-  }
+    if (features.includes("dados")) {
+      values.add("Combate con dados");
+    }
 
-  if (features.includes("miniaturas")) {
-    values.add("Miniaturas");
+    if (features.includes("losetas")) {
+      values.add("Colocación de losetas");
+    }
+
+    if (features.includes("miniaturas")) {
+      // "Miniaturas" is a component/theme, not a mechanic. Remove.
+    }
   }
 
   if (!values.size && candidate.flags.includes(EditorialFlag.low_confidence)) {
-    values.add("Pendiente de revisión");
+    // This seems like a fallback, which should be re-evaluated against the curated list.
+    // For now, I'll filter it out if not in curated list after normalization.
   }
 
-  return sanitizeImportedList([...values], "mechanics");
+  const normalizedAndCuratedMechanics = Array.from(values)
+    .map((name) => normalizeMechanicName(name))
+    .filter((name): name is string => name !== null);
+
+  return sanitizeImportedList(normalizedAndCuratedMechanics, "mechanics");
 }
 
 function getCandidateGameTitle(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {

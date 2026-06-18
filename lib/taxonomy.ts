@@ -2,6 +2,7 @@ import { Prisma, TaxonomyType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
+import { CURATED_MECHANICS_LIST } from "@/lib/constants/mechanics";
 
 export type TaxonomyTypeKey = `${TaxonomyType}`;
 
@@ -49,6 +50,11 @@ const getCachedTaxonomyTermNames = unstable_cache(
       select: { name: true }
     });
 
+    if (type === TaxonomyType.mechanic) {
+      // Filter mechanics to only include those in the curated list
+      return terms.map((term) => term.name).filter(name => CURATED_MECHANICS_LIST.includes(name));
+    }
+
     return terms.map((term) => term.name);
   },
   ["taxonomy-term-names"],
@@ -61,6 +67,11 @@ async function getDirectTaxonomyTermNames(type: TaxonomyTypeKey) {
     orderBy: [{ name: "asc" }],
     select: { name: true }
   });
+
+  if (type === TaxonomyType.mechanic) {
+    // Filter mechanics to only include those in the curated list
+    return terms.map((term) => term.name).filter(name => CURATED_MECHANICS_LIST.includes(name));
+  }
 
   return terms.map((term) => term.name);
 }

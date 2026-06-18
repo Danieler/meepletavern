@@ -63,7 +63,7 @@ export async function completeGameEditorialFieldsWithBedrock(
               "Si el juego es conocido y el título coincide claramente con una edición real, también puedes completar jugadores, duración, edad y editorial usando conocimiento general fiable de catálogo. " +
               "Si no tienes suficiente seguridad en un dato objetivo, devuelve null en ese campo. " +
               "Las categorías, mecánicas y temáticas deben ser etiquetas cortas. " +
-              "Las mecánicas deben describir decisiones o sistemas de juego, no componentes: usa Colocación de piezas, Movimiento, Bloqueo, Gestión de mano o Control de áreas antes que Tablero, Fichas o Cartas. " +
+              "Las mecánicas deben describir decisiones o sistemas de juego, no componentes. Prioriza las siguientes: Colocación de trabajadores, Colocación de losetas, Gestión de recursos, Gestión de mano, Deckbuilding, Engine building, Set collection, Draft de cartas, Mayorías, Area control, Rutas y redes, Negociación, Push your luck, Deducción, Roles ocultos, Cooperativo, Campaña, Legacy, Combate con dados, Wargame. Evita términos genéricos como Tablero, Fichas, Piezas, Cartas, Movimientos o cualquier término que no esté en esta lista curada." +
               "Las temáticas deben ser mundos o géneros amplios, no elementos concretos del juego: usa Insectos o Naturaleza antes que Reina, Abeja o Colmena. " +
               "Si faltan datos, omítelos con naturalidad en vez de escribir texto de relleno. " +
               "Si el título parece una editorial o marca, devuelve cleanTitle null y añade warning. " +
@@ -280,7 +280,9 @@ export function normalizeEditorialCompletionPayload(input: unknown): EditorialCo
     longDescription,
     difficulty: normalizeDifficulty(readFirst(record, ["difficulty", "dificultad"])),
     categories: normalizeStringList(readFirst(record, ["categories", "categorias"]), 5, 40),
-    mechanics: normalizeStringList(readFirst(record, ["mechanics", "mecanicas"]), 6, 40),
+    mechanics: normalizeStringList(readFirst(record, ["mechanics", "mecanicas"]), 6, 40)
+      .map(name => normalizeMechanicName(name))
+      .filter((name): name is string => name !== null),
     themes: normalizeStringList(readFirst(record, ["themes", "tematicas"]), 5, 40),
     bestFor: normalizeString(readFirst(record, ["bestFor", "best_for", "paraQuienEs", "para_quien_es"]), 260),
     notFor: normalizeString(readFirst(record, ["notFor", "not_for", "paraQuienNoEs", "para_quien_no_es"]), 260),
