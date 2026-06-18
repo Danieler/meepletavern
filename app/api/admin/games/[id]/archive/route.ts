@@ -1,3 +1,4 @@
+import { revalidatePath, revalidateTag } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { archiveGame } from "@/lib/games";
 
@@ -12,6 +13,10 @@ export async function POST(request: Request, context: RouteContext) {
     assertTrustedAdminApiRequest(request);
     const { id } = await context.params;
     const game = await archiveGame(id);
+
+    revalidateTag("public-games");
+    revalidatePath("/juegos");
+    revalidatePath(`/juegos/${game.slug}`);
 
     return jsonNoStore({ gameId: game.id, status: game.status, slug: game.slug });
   } catch (error) {

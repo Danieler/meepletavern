@@ -162,11 +162,66 @@ const catalogGameSelect = {
   publishedAt: true
 } satisfies Prisma.GameSelect;
 
+// Excludes heavy relations (offers, howToPlayVideos) to optimize payload size and allow persistent cache
+const catalogListGameSelect = {
+  id: true,
+  name: true,
+  title: true,
+  slug: true,
+  coverImageUrl: true,
+  imageUrl: true,
+  coverImageAlt: true,
+  imageSourceName: true,
+  imageSourceUrl: true,
+  imageLicenseNote: true,
+  imageStatus: true,
+  primaryImageId: true,
+  description: true,
+  review: true,
+  shortSummary: true,
+  shortDescription: true,
+  quickVerdict: true,
+  pros: true,
+  cons: true,
+  bestFor: true,
+  notFor: true,
+  minPlayers: true,
+  maxPlayers: true,
+  playtime: true,
+  age: true,
+  complexity: true,
+  difficulty: true,
+  categories: true,
+  mechanics: true,
+  themes: true,
+  similarGames: true,
+  buyUrl: true,
+  ratings: true,
+  mediaAssets: {
+    select: {
+      id: true,
+      url: true,
+      status: true,
+      usage: true,
+      attribution: true,
+      source: {
+        select: {
+          name: true,
+          baseUrl: true
+        }
+      }
+    }
+  },
+  createdAt: true,
+  updatedAt: true,
+  publishedAt: true
+} satisfies Prisma.GameSelect;
+
 type CatalogDbGame = Prisma.GameGetPayload<{ select: typeof catalogGameSelect }>;
 
 export const getCatalogGames = cache(async function getCatalogGames() {
-  const games = await getPublishedDbGames();
-  return games.map(toCatalogGame);
+  const games = await getPublishedDbGamesList();
+  return (games as unknown as CatalogDbGame[]).map(toCatalogGame);
 });
 
 export const getGameBySlug = cache(async function getGameBySlug(slug: string) {
@@ -457,14 +512,19 @@ export function termHref(type: "category" | "mechanic", term: string) {
   return `/juegos?${key}=${encodeURIComponent(term)}`;
 }
 
-// Do not persistently cache the full catalogue here because the payload can exceed the Next.js Data Cache 2MB item limit.
-async function getPublishedDbGames() {
-  return prisma.game.findMany({
-    where: { status: GameStatus.published },
-    select: catalogGameSelect,
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
-  });
-}
+// Do not persistently cache the full catalogue with relations here because the payload can exceed the Next.js Data Cache 2MB item limit.
+// We use a minimized catalog list selection instead for public listing queries.
+const getPublishedDbGamesList = unstable_cache(
+  async function getPublishedDbGamesList() {
+    return prisma.game.findMany({
+      where: { status: GameStatus.published },
+      select: catalogListGameSelect,
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
+    });
+  },
+  ["published-db-games-list"],
+  { revalidate: 3600, tags: ["public-games"] }
+);
 
 const getPublishedDbGameBySlug = unstable_cache(
   async function getPublishedDbGameBySlug(slug: string) {

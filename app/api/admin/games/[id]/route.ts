@@ -1,3 +1,4 @@
+import { revalidatePath, revalidateTag } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { isUniqueConstraintError, updateGameFromPayload } from "@/lib/games";
 
@@ -13,6 +14,12 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const body = await request.json();
     const game = await updateGameFromPayload(id, body);
+
+    if (game.status === "published") {
+      revalidateTag("public-games");
+      revalidatePath("/juegos");
+      revalidatePath(`/juegos/${game.slug}`);
+    }
 
     return jsonNoStore({ gameId: game.id, slug: game.slug, status: game.status });
   } catch (error) {

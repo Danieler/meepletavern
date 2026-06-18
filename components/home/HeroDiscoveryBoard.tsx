@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { startTransition, useState } from "react";
 import { BrandIcon } from "@/components/BrandIcon";
 import { siteConfig } from "@/lib/site";
@@ -57,8 +58,8 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
               className="inline-flex"
               style={{
                 animation: spinning
-                  ? "heroDiceSpin 560ms cubic-bezier(0.22, 1, 0.36, 1)"
-                  : "heroDiceFloat 4s ease-in-out infinite"
+                   ? "heroDiceSpin 560ms cubic-bezier(0.22, 1, 0.36, 1)"
+                   : "heroDiceFloat 4s ease-in-out infinite"
               }}
             >
               <BrandIcon name="dice" size={24} />
@@ -120,6 +121,10 @@ function HeroGameRoute({
   label: string;
   featured: boolean;
 }) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const coverUrl = game.coverImageUrl || siteConfig.markImage;
+  const isOptimizable = Boolean(game.coverImageUrl && supabaseUrl && game.coverImageUrl.startsWith(supabaseUrl));
+
   return (
     <Link
       href={`/juegos/${game.slug}`}
@@ -128,12 +133,13 @@ function HeroGameRoute({
       }`}
     >
       <div className={`relative ${featured ? "h-24" : "h-[78px]"}`}>
-        <img
-          src={game.coverImageUrl || siteConfig.markImage}
+        <Image
+          src={coverUrl}
           alt={game.coverImageAlt || game.title}
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+          fill
+          sizes="(max-width: 640px) 90px, 120px"
+          className="object-cover transition duration-300 group-hover:scale-105"
+          unoptimized={!isOptimizable}
         />
       </div>
       <div className="min-w-0 p-3">

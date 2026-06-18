@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   getGameCoverAlt,
   hasVerifiedCoverImage,
@@ -62,16 +63,21 @@ export function GameCoverImage({
     }
   }, [coverImageAlt, coverImageUrl, gameTitle, imageStatus]);
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const isOptimizable = Boolean(coverImageUrl && supabaseUrl && coverImageUrl.startsWith(supabaseUrl));
+
   return (
     <div className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-md bg-ink/5 ${variantClasses[variant]} ${className}`}>
       {showVerifiedCover ? (
-        <img
+        <Image
           src={coverImageUrl || ""}
           alt={getGameCoverAlt(image, gameTitle)}
-          loading={priority ? "eager" : "lazy"}
-          decoding="async"
-          className="h-full w-full object-cover"
+          priority={priority}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover"
           onError={() => setFailed(true)}
+          unoptimized={!isOptimizable}
         />
       ) : (
         <MeepleTavernCoverPlaceholder
@@ -100,12 +106,13 @@ function MeepleTavernCoverPlaceholder({
       className="relative h-full min-h-full w-full overflow-hidden bg-ink/5 text-white"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(217,137,43,0.22),transparent_46%),linear-gradient(135deg,rgba(50,18,6,0.95),rgba(90,58,36,0.92))]" />
-      <img
+      <Image
         src={placeholderUrl(kind)}
         alt=""
-        loading="lazy"
-        decoding="async"
+        fill
+        sizes="(max-width: 640px) 80vw, 300px"
         className="absolute inset-0 m-auto h-3/4 w-3/4 object-contain opacity-80"
+        unoptimized
       />
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(29,37,48,0.72))]" />
       <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3">
