@@ -11,6 +11,7 @@ import {
   Flame,
   Gauge,
   LayoutGrid,
+  Menu,
   MessageSquareText,
   Search,
   Settings2,
@@ -20,6 +21,7 @@ import {
   Trophy,
   UserRound,
   Users,
+  X,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -38,6 +40,7 @@ export type BrandIconName =
   | "gauge"
   | "grid"
   | "meeple"
+  | "menu"
   | "search"
   | "settings"
   | "sliders"
@@ -46,6 +49,7 @@ export type BrandIconName =
   | "trophy"
   | "user"
   | "users"
+  | "x"
   | "chevron-left"
   | "chevron-right";
 
@@ -70,6 +74,7 @@ const iconMap: Record<BrandIconName, LucideIcon> = {
   gauge: Gauge,
   grid: LayoutGrid,
   meeple: Users,
+  menu: Menu,
   search: Search,
   settings: Settings2,
   sliders: SlidersHorizontal,
@@ -78,6 +83,7 @@ const iconMap: Record<BrandIconName, LucideIcon> = {
   trophy: Trophy,
   user: UserRound,
   users: Users,
+  x: X,
   "chevron-left": ChevronLeft,
   "chevron-right": ChevronRight
 };

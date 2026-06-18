@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogOut, Settings, UserRound } from "lucide-react";
 import { LibraryPanel } from "@/components/account/LibraryPanel";
+import { UserRatingsPanel } from "@/components/account/UserRatingsPanel";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -106,7 +107,7 @@ export function ProfilePanel() {
             <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-walnut/75">
               Entra para guardar juegos, cuidar tu perfil y tener tu ludoteca siempre a mano.
             </p>
-            <Link className="button-primary mt-6 inline-flex" href="/auth?next=%2Fmi-perfil">
+            <Link className="button-primary mt-6 inline-flex" href="/auth">
               Entrar
             </Link>
           </div>
@@ -214,7 +215,10 @@ export function ProfilePanel() {
       ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <LibraryPanel embedded />
+        <div className="space-y-8">
+          <LibraryPanel embedded />
+          <UserRatingsPanel />
+        </div>
 
         <aside className="tavern-card p-5 sm:p-6">
           <h2 className="font-display text-xl font-bold text-wood">Cuenta</h2>

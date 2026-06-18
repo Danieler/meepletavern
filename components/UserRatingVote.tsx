@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useState } from "react";
 import type { GameRatingsData } from "@/lib/ratings/types";
 
@@ -15,6 +16,27 @@ export function UserRatingVote({
   const [score, setScore] = useState("8");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [hasExistingScore, setHasExistingScore] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch(`/api/account/ratings?gameId=${encodeURIComponent(gameId)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as { score?: number | null } | null;
+        if (!active || !response.ok || typeof payload?.score !== "number") {
+          return;
+        }
+
+        setScore(String(payload.score));
+        setHasExistingScore(true);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [gameId]);
 
   async function submit() {
     setPending(true);
@@ -35,6 +57,7 @@ export function UserRatingVote({
 
       onRated?.(payload.ratings);
       window.dispatchEvent(new CustomEvent("meepletavern:ratings-updated", { detail: payload.ratings }));
+      setHasExistingScore(true);
       setMessage("Tu nota ya cuenta en la valoración.");
     } catch {
       setMessage("No se pudo guardar tu nota.");
@@ -60,11 +83,15 @@ export function UserRatingVote({
           ))}
         </select>
         <button className="button-primary min-h-10 shrink-0 px-4 py-2 text-sm" type="button" onClick={submit} disabled={pending}>
-          {pending ? "Guardando..." : "Puntuar"}
+          {pending ? "Guardando..." : hasExistingScore ? "Actualizar nota" : "Puntuar"}
         </button>
       </div>
       <p className="mt-2 text-xs font-semibold text-walnut/60">
-        {initialVotesCount ? "Tu nota actualiza la media al momento." : "Tu nota estrenará la media de jugadores."}
+        {hasExistingScore
+          ? `Tu nota actual es ${score}/10.`
+          : initialVotesCount
+            ? "Tu nota actualiza la media al momento."
+            : "Tu nota estrenará la media de jugadores."}
       </p>
       {message ? <p className="mt-2 text-xs font-bold text-wood">{message}</p> : null}
     </div>

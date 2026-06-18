@@ -115,7 +115,7 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
         <p className="mt-3 text-sm font-semibold text-walnut/65">
           Entra con tu cuenta para guardar los juegos que ya tienes.
         </p>
-        <Link className="button-primary mt-5 inline-flex" href="/auth?next=%2Fmi-perfil">
+        <Link className="button-primary mt-5 inline-flex" href="/auth">
           Entrar
         </Link>
       </section>

@@ -3,36 +3,41 @@ import { calculateExternalRating } from "@/lib/ratings/calculateExternalRating";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import type { ExternalSignal } from "@/lib/ratings/types";
 
-export function applyUserRatingVote(currentRatings: Prisma.JsonValue | null | undefined, score: number): Prisma.JsonObject {
+export function applyUserRatingsAggregate(
+  currentRatings: Prisma.JsonValue | null | undefined,
+  input: { votesCount: number; averageScore: number | null }
+): Prisma.JsonObject {
   const ratings = normalizeGameRatings(currentRatings);
-  const cleanScore = clamp(score, 1, 10);
-  const currentAverage = ratings.users.averageScore;
-  const currentVotes = ratings.users.votesCount || 0;
-  const nextVotes = currentVotes + 1;
+  const nextVotes = Math.max(0, Math.trunc(input.votesCount || 0));
   const nextAverage =
-    typeof currentAverage === "number"
-      ? roundOneDecimal((currentAverage * currentVotes + cleanScore) / nextVotes)
-      : roundOneDecimal(cleanScore);
+    typeof input.averageScore === "number" && Number.isFinite(input.averageScore)
+      ? roundOneDecimal(clamp(input.averageScore, 1, 10))
+      : null;
   const baseSignals = (ratings.external?.signals || []).filter((signal) => signal.sourceName !== "Comunidad MeepleTavern");
-  const communitySignal: ExternalSignal = {
-    sourceName: "Comunidad MeepleTavern",
-    sourceType: "community_sentiment",
-    score: nextAverage,
-    rawRating: nextAverage,
-    rawScale: 10,
-    reviewCount: nextVotes,
-    confidence: nextVotes >= 20 ? "high" : nextVotes >= 5 ? "medium" : "low",
-    isExactMatch: true
-  };
-  const combined = calculateExternalRating([...baseSignals, communitySignal]);
+  const combined =
+    nextVotes > 0 && typeof nextAverage === "number"
+      ? calculateExternalRating([
+          ...baseSignals,
+          {
+            sourceName: "Comunidad MeepleTavern",
+            sourceType: "community_sentiment",
+            score: nextAverage,
+            rawRating: nextAverage,
+            rawScale: 10,
+            reviewCount: nextVotes,
+            confidence: nextVotes >= 20 ? "high" : nextVotes >= 5 ? "medium" : "low",
+            isExactMatch: true
+          } satisfies ExternalSignal
+        ])
+      : undefined;
 
   return {
     ...(ratings.external ? { external: ratings.external } : {}),
-    combined,
+    ...(combined ? { combined } : {}),
     users: {
       votesCount: nextVotes,
-      averageScore: nextAverage,
-      enabled: true
+      ...(typeof nextAverage === "number" ? { averageScore: nextAverage } : {}),
+      enabled: nextVotes > 0
     }
   };
 }

@@ -9,9 +9,10 @@ type GameCardProps = {
   game: CatalogGame;
   compact?: boolean;
   poster?: boolean;
+  dateMode?: "absolute" | "relativeRecent";
 };
 
-export function GameCard({ game, compact, poster }: GameCardProps) {
+export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameCardProps) {
   const primaryTags = getPrimaryGameTags(game, 2);
   const ratingScore = getEffectiveRatingScore(game);
 
@@ -43,11 +44,11 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
 
   if (compact) {
     return (
-      <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45">
+      <article className="tavern-card h-full min-h-[144px] overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45 xl:h-[150px] xl:min-h-[150px]">
         <Link
           href={`/juegos/${game.slug}`}
           prefetch
-          className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 p-3 touch-manipulation cursor-pointer sm:p-4"
+          className="grid h-full min-h-[144px] grid-cols-[88px_minmax(0,1fr)] items-center gap-4 p-3 touch-manipulation cursor-pointer sm:p-4 xl:h-[150px] xl:min-h-[150px]"
           aria-label={`Abrir ficha de ${game.title}`}
         >
           <GameCoverImage
@@ -65,9 +66,11 @@ export function GameCard({ game, compact, poster }: GameCardProps) {
                 </span>
               ))}
             </div>
-            <h3 className="font-display mt-3 text-lg font-bold leading-tight text-wood">{game.title}</h3>
+            <h3 className="font-display mt-3 line-clamp-2 text-lg font-bold leading-tight text-wood">{game.title}</h3>
             {game.publishedAt ? (
-              <p className="tavern-meta mt-1">{formatDate(game.publishedAt)}</p>
+              <p className="mt-1.5 inline-flex w-fit rounded-[4px] border border-ember/18 bg-ember/8 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.11em] text-ember">
+                {formatAddedDate(game.publishedAt, dateMode)}
+              </p>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold leading-5 text-walnut/70">
               <span className="inline-flex items-center gap-1.5">
@@ -150,4 +153,29 @@ function formatDate(value: string) {
     month: "short",
     year: "numeric"
   }).format(new Date(value));
+}
+
+function formatAddedDate(value: string, mode: GameCardProps["dateMode"]) {
+  if (mode !== "relativeRecent") {
+    return formatDate(value);
+  }
+
+  const addedAt = new Date(value);
+  const today = startOfDay(new Date());
+  const addedDay = startOfDay(addedAt);
+  const daysAgo = Math.floor((today.getTime() - addedDay.getTime()) / 86_400_000);
+
+  if (daysAgo <= 0) {
+    return "Añadido hoy";
+  }
+
+  if (daysAgo <= 3) {
+    return `Añadido hace ${daysAgo} ${daysAgo === 1 ? "día" : "días"}`;
+  }
+
+  return `Añadido el ${formatDate(value)}`;
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

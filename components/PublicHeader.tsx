@@ -2,16 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { BrandIcon } from "@/components/BrandIcon";
 import { PublicAuthControls } from "@/components/PublicAuthControls";
+import { PublicDesktopNavigation, PublicMobileMenu } from "@/components/PublicNavigation";
 import { siteConfig } from "@/lib/site";
-
-const navItems = [
-  { href: "/resenas", label: "Reseñas" },
-  { href: "/rankings", label: "Rankings" },
-  { href: "/juegos", label: "Juegos" },
-  { href: "/taberna", label: "La taberna" },
-  { href: "/categorias", label: "Categorías" },
-  { href: "/mecanicas", label: "Mecánicas" }
-];
 
 export function PublicHeader() {
   return (
@@ -46,20 +38,10 @@ export function PublicHeader() {
               <BrandIcon name="search" size={18} />
               <span className="hidden sm:inline">Buscar</span>
             </Link>
-            <PublicAuthControls />
+            <PublicMobileMenu />
           </div>
         </div>
-        <nav className="header-nav-shell grid grid-cols-3 gap-1 text-center text-[11px] font-black uppercase tracking-wide sm:flex sm:overflow-x-auto sm:text-sm lg:items-center lg:overflow-visible">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="header-nav-link"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <PublicDesktopNavigation />
         <div className="hidden items-center justify-end lg:flex">
           <PublicAuthControls />
         </div>

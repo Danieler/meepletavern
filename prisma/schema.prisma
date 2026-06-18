@@ -127,6 +127,7 @@ model Game {
   mediaAssets           MediaAsset[]
   candidates            GameCandidate[]
   libraryEntries        UserLibraryGame[]
+  userRatings           UserGameRating[]
   reviews               Review[]
   comments              GameComment[]
   importProposals       GameImportProposal[]
@@ -166,6 +167,7 @@ model User {
   updatedAt   DateTime @updatedAt
   profile     UserProfile?
   library     UserLibraryGame[]
+  gameRatings UserGameRating[]
   reviews     Review[]
   comments    GameComment[]
 }
@@ -219,6 +221,20 @@ model GameComment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, gameId])
+  @@index([gameId, updatedAt])
+  @@index([userId, updatedAt])
+}
+
+model UserGameRating {
+  userId    String
+  gameId    String
+  score     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([userId, gameId])
   @@index([gameId, updatedAt])
   @@index([userId, updatedAt])
 }

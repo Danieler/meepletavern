@@ -2,19 +2,21 @@ import { PublicShell } from "@/components/PublicShell";
 import { AuthPageClient } from "@/components/auth/AuthPageClient";
 
 type AuthPageProps = {
-  searchParams: Promise<{
-    next?: string;
-    mode?: string;
+  searchParams?: Promise<{
+    next?: string | string[];
+    mode?: string | string[];
   }>;
 };
 
 export default async function AuthPage({ searchParams }: AuthPageProps) {
-  const params = await searchParams;
+  const params = searchParams ? await searchParams : undefined;
+  const nextValue = Array.isArray(params?.next) ? params?.next[0] : params?.next;
+  const modeValue = Array.isArray(params?.mode) ? params?.mode[0] : params?.mode;
   const nextPath =
-    typeof params.next === "string" && params.next.startsWith("/")
-      ? params.next
+    typeof nextValue === "string" && nextValue.startsWith("/")
+      ? nextValue
       : "/mi-perfil";
-  const initialMode = params.mode === "register" ? "register" : "login";
+  const initialMode = modeValue === "register" ? "register" : "login";
 
   return (
     <PublicShell>

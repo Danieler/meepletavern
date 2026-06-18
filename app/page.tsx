@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import type { LucideIcon } from "lucide-react";
 import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
@@ -21,6 +22,7 @@ import {
   type GameFilterInput
 } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "MeepleTavern - Juegos de mesa, reseñas y recomendaciones",
@@ -43,6 +45,13 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  const profileHref = user ? "/mi-perfil" : "/auth";
+
   const [popularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
     getPopularGames(6),
     getBeginnerGames(4),
@@ -97,36 +106,39 @@ export default async function Home() {
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,241,230,0.985),rgba(247,241,230,0.93)_52%,rgba(59,33,22,0.22)_100%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,251,243,0.65),transparent_34%)]" />
 
-            <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_400px] lg:items-center">
-              <div className="flex flex-col">
+            <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_400px] lg:items-stretch">
+              <div className="flex h-full flex-col">
                 <p className="tavern-eyebrow text-ember/80 tracking-[0.25em]">La carta de juegos de mesa</p>
                 <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-wood sm:text-6xl lg:text-7xl">
                   Encuentra tu próximo <span className="text-ember">juego de mesa</span>
                 </h1>
                 <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-walnut/85 sm:text-xl">
-                  Busca, compara y descubre qué sacar a mesa según tu grupo, el tiempo disponible y
-                  el tipo de partida que os apetece hoy.
+                  Busca, compara y descubre qué sacar a mesa según tu grupo, tu tiempo y las
+                  ludotecas de otros jugadores.
                 </p>
                 <div className="mt-8 max-w-2xl">
                   <GameSearch variant="hero" submitLabel="Buscar juegos" />
                 </div>
                 <div className="mt-5 flex flex-wrap gap-4">
-                  <Link href="#recomendaciones" className="button-primary px-8 py-3 text-base">
-                    Ver selección de la taberna
+                  <Link href="/juegos" className="button-primary px-8 py-3 text-base">
+                    Explorar juegos
                   </Link>
-                  <Link href="/juegos" className="button-secondary px-8 py-3 text-base">
-                    Explorar catálogo
+                  <Link href="/taberna" className="button-secondary px-8 py-3 text-base">
+                    Entrar en la taberna
                   </Link>
                 </div>
 
-                <div className="mt-12">
+                <div className="mt-10">
                   <div className="flex items-center gap-4">
                     <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50">
                       Mesa de descubrimiento
                     </p>
                     <div className="h-px flex-1 bg-walnut/10" />
                   </div>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <p className="mt-2 text-sm font-semibold leading-6 text-walnut/76">
+                    Menos filtros, más partida.
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {intentCards.map((card) => (
                       <IntentCard key={card.title} {...card} />
                     ))}
@@ -135,10 +147,59 @@ export default async function Home() {
               </div>
               
               {heroGamePool.length ? (
-                <aside className="h-full">
+                <aside className="h-full lg:flex">
                   <HeroDiscoveryBoard games={heroGamePool} />
                 </aside>
               ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="container-page py-7 lg:py-8">
+          <div className="overflow-hidden rounded-lg border border-walnut/12 bg-[linear-gradient(135deg,#fffaf0,#f5e9d6)] shadow-soft">
+            <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="p-5 sm:p-6">
+                <p className="tavern-eyebrow">La taberna está abierta</p>
+                <h2 className="font-display mt-2 text-3xl font-bold leading-tight text-wood sm:text-4xl">
+                  Tu próxima partida empieza en la taberna
+                </h2>
+                <p className="mt-3 text-base font-medium leading-7 text-walnut/80">
+                  Crea tu rincón, guarda tu ludoteca y descubre qué juegos tienen otros jugadores
+                  antes de montar la próxima partida.
+                </p>
+                <div className="mt-5 grid gap-3 md:grid-cols-3">
+                  {TAVERN_FEATURES.map((feature) => (
+                    <TavernFeatureCard
+                      key={feature.title}
+                      {...feature}
+                      href={feature.title === "Mi ludoteca" ? profileHref : feature.href}
+                    />
+                  ))}
+                </div>
+              </div>
+              <aside className="border-t border-walnut/10 bg-[#3a2118] p-5 text-white lg:border-l lg:border-t-0 sm:p-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-ember">Rincón de jugador</p>
+                <h3 className="font-display mt-3 text-3xl font-bold leading-tight">
+                  Entra y pon tu mesa en marcha
+                </h3>
+                <p className="mt-3 text-sm font-semibold leading-6 text-parchment/78">
+                  Guarda tu colección, descubre otras ludotecas y encuentra ideas para la próxima noche de juegos.
+                </p>
+                <div className="mt-5 grid gap-3">
+                  <Link href={profileHref} className="button-primary justify-center">
+                    Crear mi rincón
+                  </Link>
+                  <Link href="/taberna" className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
+                    Ver la taberna
+                  </Link>
+                </div>
+                <div className="mt-5 rounded-md border border-white/10 bg-white/8 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-ember">Para empezar</p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-parchment/80">
+                    Menos rankings sueltos, más mesas reales y ludotecas con contexto.
+                  </p>
+                </div>
+              </aside>
             </div>
           </div>
         </section>
@@ -167,38 +228,42 @@ export default async function Home() {
           </div>
         </section>
 
-        {showRatingsSection ? (
-          <section className="container-page py-8 lg:py-10">
-            <SectionHeader
-              eyebrow="Valoraciones con contexto"
-              title="Juegos mejor valorados por ahora"
-              description="Una lectura rápida de lo que mejor está funcionando ahora mismo en la taberna."
-            />
-            <RankingList games={ratedGames.slice(0, 4)} />
-          </section>
-        ) : null}
-
         <section className="border-t border-walnut/15 bg-parchment py-8 lg:py-10">
           <div className="container-page">
-            <SectionHeader
-              eyebrow="Nuevas fichas"
-              title="Juegos recién añadidos"
-              description="Un vistazo rápido a lo último que ha entrado en el archivo."
-            />
-            {latestGames.length ? (
-              <div className="grid gap-4 lg:grid-cols-3">
-                {latestGames.map((game) => (
-                  <GameCard key={game.slug} game={game} compact />
-                ))}
+            <div className={`grid gap-6 ${showRatingsSection ? "xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]" : ""}`}>
+              {showRatingsSection ? (
+                <div>
+                  <SectionHeader
+                    eyebrow="Valoraciones con contexto"
+                    title="Juegos mejor valorados por ahora"
+                    description="Una lectura rápida de lo que mejor está funcionando ahora mismo en la taberna."
+                  />
+                  <RankingList games={ratedGames.slice(0, 6)} variant="featured" />
+                </div>
+              ) : null}
+
+              <div>
+                <SectionHeader
+                  eyebrow="Nuevas fichas"
+                  title="Juegos recién añadidos"
+                  description="Un vistazo rápido a lo último que ha entrado en el archivo."
+                />
+                {latestGames.length ? (
+                  <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-1">
+                    {latestGames.map((game) => (
+                      <GameCard key={game.slug} game={game} compact dateMode="relativeRecent" />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyStatePanel
+                    title="Volveremos a llenar esta mesa pronto"
+                    description="Cuando entren nuevas fichas apareceran aqui para que puedas seguir explorando sin perder el hilo."
+                    href="/juegos"
+                    linkLabel="Ver todos los juegos"
+                  />
+                )}
               </div>
-            ) : (
-              <EmptyStatePanel
-                title="Volveremos a llenar esta mesa pronto"
-                description="Cuando entren nuevas fichas apareceran aqui para que puedas seguir explorando sin perder el hilo."
-                href="/juegos"
-                linkLabel="Ver todos los juegos"
-              />
-            )}
+            </div>
           </div>
         </section>
 
@@ -218,6 +283,30 @@ export default async function Home() {
   );
 }
 
+const TAVERN_FEATURES = [
+  {
+    title: "Mi ludoteca",
+    description: "Guarda los juegos que tienes, los que quieres, los que has jugado y los que quieres jugar.",
+    icon: User,
+    href: "/mi-perfil",
+    action: "Abrir rincón"
+  },
+  {
+    title: "Otros taberneros",
+    description: "Explora perfiles públicos, descubre colecciones reales y encuentra jugadores con gustos parecidos.",
+    icon: Users,
+    href: "/taberna",
+    action: "Ver perfiles"
+  },
+  {
+    title: "Ideas para sacar a mesa",
+    description: "Descubre juegos desde mesas reales, no solo desde rankings.",
+    icon: Sparkles,
+    href: "/juegos",
+    action: "Descubrir juegos"
+  }
+] as const;
+
 function IntentCard({
   title,
   description,
@@ -232,7 +321,7 @@ function IntentCard({
   return (
     <Link
       href={href}
-      className="tavern-card group flex items-center gap-3 p-3.5 transition hover:-translate-y-0.5 hover:border-ember/40 bg-white/40"
+      className="tavern-card group flex items-center gap-3 bg-white/50 p-3.5 transition hover:-translate-y-0.5 hover:border-ember/40"
     >
       <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-ember/10 text-ember transition group-hover:bg-ember/15">
         <Icon size={20} strokeWidth={2.1} absoluteStrokeWidth />
@@ -245,6 +334,34 @@ function IntentCard({
           {description}
         </p>
       </div>
+    </Link>
+  );
+}
+
+function TavernFeatureCard({
+  title,
+  description,
+  icon: Icon,
+  href,
+  action
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  href: string;
+  action: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-md border border-walnut/10 bg-white/72 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-ember/45 hover:bg-white"
+    >
+      <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-ember/10 text-ember">
+        <Icon size={20} strokeWidth={2.1} absoluteStrokeWidth />
+      </span>
+      <h3 className="font-display mt-3 text-xl font-bold text-wood transition group-hover:text-ember">{title}</h3>
+      <p className="mt-2 text-sm font-semibold leading-6 text-walnut/78">{description}</p>
+      <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-ember">{action}</p>
     </Link>
   );
 }
