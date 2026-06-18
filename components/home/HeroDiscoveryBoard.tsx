@@ -33,25 +33,25 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-white/20 bg-[#2a160f]/94 p-4 text-white shadow-[0_18px_52px_rgba(42,24,18,0.24)]">
-      <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(251,246,236,0.08),rgba(192,117,26,0.18)_44%,rgba(42,22,15,0.12)_100%)]" />
-      <div className="absolute inset-x-6 top-0 h-px bg-white/30" />
-
-      <div className="relative">
+    <div className="overflow-hidden rounded-lg border border-walnut/12 bg-[#f4ecde] p-4 text-wood shadow-[0_14px_34px_rgba(53,31,22,0.08)]">
+      <div>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-ember">
-              Mesa de descubrimiento
+              La mesa del tabernero
             </p>
-            <h2 className="font-display mt-2 max-w-[10ch] text-3xl font-bold leading-[0.95] text-white sm:max-w-none">
-              Tres formas de pedir partida
+            <h2 className="font-display mt-2 text-2xl font-bold leading-tight text-wood">
+              Tres recomendaciones al vuelo
             </h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-walnut/72">
+              Dale al dado y cambia la mesa en un toque.
+            </p>
           </div>
           <button
             type="button"
             onClick={shuffleGames}
             aria-label="Barajar recomendaciones"
-            className="group inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/6 text-white transition hover:border-ember/70 hover:bg-white/10"
+            className="group inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-ember/22 bg-white text-wood transition hover:border-ember/70 hover:bg-[#fff8ef]"
           >
             <span
               className="inline-flex"
@@ -66,7 +66,7 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
           </button>
         </div>
 
-        <div className="mt-4 grid gap-2.5">
+        <div className="mt-4 grid gap-2">
           {selection.map((game, index) => (
             <HeroGameRoute
               key={`${game.slug}-${index}`}
@@ -77,7 +77,7 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
           ))}
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3">
+        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-walnut/10 pt-3">
           <HeroMiniStat label="Jugadores" value={firstGame?.playersLabel || "1-6"} icon="users" />
           <HeroMiniStat label="Tiempo" value={firstGame?.playtime || "30-90 min"} icon="clock" />
           <HeroMiniStat label="Dificultad" value={firstGame?.complexity || "A elegir"} icon="gauge" />
@@ -123,11 +123,11 @@ function HeroGameRoute({
   return (
     <Link
       href={`/juegos/${game.slug}`}
-      className={`group grid overflow-hidden rounded-md border border-white/12 bg-black/18 transition hover:-translate-y-0.5 hover:border-ember/60 hover:bg-black/24 ${
-        featured ? "grid-cols-[104px_minmax(0,1fr)]" : "grid-cols-[72px_minmax(0,1fr)]"
+      className={`group grid overflow-hidden rounded-md border border-walnut/12 bg-white transition hover:-translate-y-0.5 hover:border-ember/45 hover:shadow-soft ${
+        featured ? "grid-cols-[92px_minmax(0,1fr)]" : "grid-cols-[64px_minmax(0,1fr)]"
       }`}
     >
-      <div className={`relative ${featured ? "h-28" : "h-20"}`}>
+      <div className={`relative ${featured ? "h-24" : "h-[78px]"}`}>
         <img
           src={game.coverImageUrl || siteConfig.markImage}
           alt={game.coverImageAlt || game.title}
@@ -138,20 +138,20 @@ function HeroGameRoute({
       </div>
       <div className="min-w-0 p-3">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-ember">{label}</p>
-        <h3 className={`font-display mt-1 truncate font-bold text-white ${featured ? "text-[1.9rem]" : "text-lg"}`}>
+        <h3 className={`font-display mt-1 truncate font-bold text-wood ${featured ? "text-[1.65rem]" : "text-lg"}`}>
           {game.title}
         </h3>
-        <p className="mt-1.5 line-clamp-2 text-sm font-semibold leading-6 text-white/84">
+        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-walnut/78">
           {game.reviewSummary}
         </p>
-        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-white/82">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-walnut/80">
           {typeof game.ratingScore === "number" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-parchment px-2 py-1">
               <BrandIcon name="star" size={12} />
               {game.ratingScore.toFixed(1)}
             </span>
           ) : null}
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-parchment px-2 py-1">
             <BrandIcon name="users" size={12} />
             {game.playersLabel || "Mesa flexible"}
           </span>
@@ -171,12 +171,12 @@ function HeroMiniStat({
   icon: "users" | "clock" | "gauge";
 }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/6 p-2.5">
-      <p className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/56">
+    <div className="rounded-md border border-walnut/10 bg-white/72 p-2.5">
+      <p className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.12em] text-walnut/52">
         <BrandIcon name={icon} size={12} />
         {label}
       </p>
-      <p className="mt-1.5 truncate font-display text-base font-bold leading-none text-white">{value}</p>
+      <p className="mt-1.5 truncate font-display text-base font-bold leading-none text-wood">{value}</p>
     </div>
   );
 }
