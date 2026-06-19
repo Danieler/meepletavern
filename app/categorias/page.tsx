@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { getCatalogGames, getCategoryTerms } from "@/lib/catalog";
+import { getCategoryGameCounts, getCategoryTerms } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Categorías de juegos de mesa",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function CategoriesPage() {
-  const [terms, games] = await Promise.all([getCategoryTerms(), getCatalogGames()]);
+  const [terms, counts] = await Promise.all([getCategoryTerms(), getCategoryGameCounts()]);
 
   return (
     <PublicShell>
@@ -22,7 +22,7 @@ export default async function CategoriesPage() {
         title="Categorías de juegos de mesa"
         description="Una entrada rápida para explorar el catálogo por tipo de experiencia."
         terms={terms}
-        games={games.map((game) => ({ categories: game.categories }))}
+        counts={counts}
         param="category"
       />
     </PublicShell>
@@ -34,14 +34,14 @@ function TermPage({
   title,
   description,
   terms,
-  games,
+  counts,
   param
 }: {
   eyebrow: string;
   title: string;
   description: string;
   terms: string[];
-  games: Array<{ categories: string[] }>;
+  counts: Record<string, number>;
   param: string;
 }) {
   return (
@@ -55,7 +55,7 @@ function TermPage({
       </section>
       <section className="container-page grid gap-4 py-12 sm:grid-cols-2 lg:grid-cols-3">
         {terms.map((term) => {
-          const count = games.filter((game) => game.categories.includes(term)).length;
+          const count = counts[term] || 0;
           return (
             <Link
               key={term}

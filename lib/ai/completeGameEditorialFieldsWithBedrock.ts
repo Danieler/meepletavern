@@ -7,6 +7,7 @@ import {
   type EditorialCompletion
 } from "@/lib/ai/editorialCompletionSchema";
 import { getBedrockRuntimeClient } from "@/lib/ai/bedrockClient";
+import { normalizeMechanicName } from "@/lib/constants/mechanics";
 import { normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 

@@ -9,6 +9,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
+import { normalizeMechanicName } from "@/lib/constants/mechanics";
 import {
   normalizeCandidateImages,
   normalizeCandidateMetadata,

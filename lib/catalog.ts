@@ -1,4 +1,4 @@
-import { GameStatus, Prisma } from "@prisma/client";
+import { GameStatus, MediaAssetStatus, MediaAssetUsage, Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import type { GameImageFields } from "@/lib/gameImages";
@@ -93,7 +93,21 @@ export type GameFilterInput = {
   page?: string | number;
 };
 
-const catalogGameSelect = {
+const publicMediaAssetSelect = {
+  id: true,
+  url: true,
+  status: true,
+  usage: true,
+  attribution: true,
+  source: {
+    select: {
+      name: true,
+      baseUrl: true
+    }
+  }
+} satisfies Prisma.MediaAssetSelect;
+
+const catalogCardGameSelect = {
   id: true,
   name: true,
   title: true,
@@ -106,15 +120,9 @@ const catalogGameSelect = {
   imageLicenseNote: true,
   imageStatus: true,
   primaryImageId: true,
-  description: true,
-  review: true,
   shortSummary: true,
   shortDescription: true,
   quickVerdict: true,
-  pros: true,
-  cons: true,
-  bestFor: true,
-  notFor: true,
   minPlayers: true,
   maxPlayers: true,
   playtime: true,
@@ -124,6 +132,29 @@ const catalogGameSelect = {
   categories: true,
   mechanics: true,
   themes: true,
+  ratings: true,
+  mediaAssets: {
+    where: {
+      status: MediaAssetStatus.approved,
+      usage: MediaAssetUsage.public
+    },
+    select: publicMediaAssetSelect,
+    orderBy: [{ updatedAt: "desc" }],
+    take: 1
+  },
+  createdAt: true,
+  updatedAt: true,
+  publishedAt: true
+} satisfies Prisma.GameSelect;
+
+const catalogGameSelect = {
+  ...catalogCardGameSelect,
+  description: true,
+  review: true,
+  pros: true,
+  cons: true,
+  bestFor: true,
+  notFor: true,
   similarGames: true,
   buyUrl: true,
   offers: {
@@ -140,88 +171,24 @@ const catalogGameSelect = {
     },
     orderBy: [{ fetchedAt: "desc" }]
   },
-  ratings: true,
   howToPlayVideos: true,
   mediaAssets: {
-    select: {
-      id: true,
-      url: true,
-      status: true,
-      usage: true,
-      attribution: true,
-      source: {
-        select: {
-          name: true,
-          baseUrl: true
-        }
-      }
-    }
-  },
-  createdAt: true,
-  updatedAt: true,
-  publishedAt: true
+    select: publicMediaAssetSelect
+  }
 } satisfies Prisma.GameSelect;
 
-// Excludes heavy relations (offers, howToPlayVideos) to optimize payload size and allow persistent cache
-const catalogListGameSelect = {
-  id: true,
-  name: true,
-  title: true,
-  slug: true,
-  coverImageUrl: true,
-  imageUrl: true,
-  coverImageAlt: true,
-  imageSourceName: true,
-  imageSourceUrl: true,
-  imageLicenseNote: true,
-  imageStatus: true,
-  primaryImageId: true,
-  description: true,
-  review: true,
-  shortSummary: true,
-  shortDescription: true,
-  quickVerdict: true,
-  pros: true,
-  cons: true,
-  bestFor: true,
-  notFor: true,
-  minPlayers: true,
-  maxPlayers: true,
-  playtime: true,
-  age: true,
-  complexity: true,
-  difficulty: true,
+const catalogTermCountsSelect = {
   categories: true,
-  mechanics: true,
-  themes: true,
-  similarGames: true,
-  buyUrl: true,
-  ratings: true,
-  mediaAssets: {
-    select: {
-      id: true,
-      url: true,
-      status: true,
-      usage: true,
-      attribution: true,
-      source: {
-        select: {
-          name: true,
-          baseUrl: true
-        }
-      }
-    }
-  },
-  createdAt: true,
-  updatedAt: true,
-  publishedAt: true
+  mechanics: true
 } satisfies Prisma.GameSelect;
 
+type CatalogCardDbGame = Prisma.GameGetPayload<{ select: typeof catalogCardGameSelect }>;
 type CatalogDbGame = Prisma.GameGetPayload<{ select: typeof catalogGameSelect }>;
+type CatalogTermCountsRow = Prisma.GameGetPayload<{ select: typeof catalogTermCountsSelect }>;
 
 export const getCatalogGames = cache(async function getCatalogGames() {
   const games = await getPublishedDbGamesList();
-  return (games as unknown as CatalogDbGame[]).map(toCatalogGame);
+  return games.map(toCatalogCardGame);
 });
 
 export const getGameBySlug = cache(async function getGameBySlug(slug: string) {
@@ -237,7 +204,7 @@ export async function getGamesBySlugs(slugs: string[]) {
 
   const identifiers = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
   const games = await getDbGamesByIdentifiers(identifiers);
-  const catalogGames = games.map(toCatalogGame);
+  const catalogGames = games.map(toCatalogCardGame);
 
   return identifiers
     .map((identifier) =>
@@ -260,9 +227,9 @@ export async function getCatalogGamesByIds(ids: string[]) {
       id: { in: ids },
       status: GameStatus.published
     },
-    select: catalogGameSelect
+    select: catalogCardGameSelect
   });
-  const byId = new Map(games.map((game) => [game.id, toCatalogGame(game)]));
+  const byId = new Map(games.map((game) => [game.id, toCatalogCardGame(game)]));
 
   return ids.flatMap((id) => {
     const game = byId.get(id);
@@ -281,7 +248,7 @@ const getDbGamesByIdentifiers = unstable_cache(
           { name: { in: identifiers } }
         ]
       },
-      select: catalogGameSelect,
+      select: catalogCardGameSelect,
       take: Math.max(identifiers.length, 4)
     });
   },
@@ -379,7 +346,7 @@ export async function getRelatedGames(game: CatalogGame) {
   const games = await getRelatedDbGames(game.slug, game.categories, game.mechanics, game.themes);
 
   return games
-    .map(toCatalogGame)
+    .map(toCatalogCardGame)
     .map((candidate) => ({
       game: candidate,
       score: overlapScore(game.categories, candidate.categories) + overlapScore(game.mechanics, candidate.mechanics) + overlapScore(game.themes, candidate.themes)
@@ -507,22 +474,31 @@ export async function getMechanicTerms() {
   return sanitizeImportedList(await getTaxonomyTermNames("mechanic"), "mechanics");
 }
 
+export async function getCategoryGameCounts() {
+  const rows = await getPublishedGameTermCountsRows();
+  return countGameTerms(rows, "categories");
+}
+
+export async function getMechanicGameCounts() {
+  const rows = await getPublishedGameTermCountsRows();
+  return countGameTerms(rows, "mechanics");
+}
+
 export function termHref(type: "category" | "mechanic", term: string) {
   const key = type === "category" ? "category" : "mechanic";
   return `/juegos?${key}=${encodeURIComponent(term)}`;
 }
 
-// Do not persistently cache the full catalogue with relations here because the payload can exceed the Next.js Data Cache 2MB item limit.
-// We use a minimized catalog list selection instead for public listing queries.
+// Public list/ranking/card paths should stay below the Data Cache item limit and avoid detail-page fields.
 const getPublishedDbGamesList = unstable_cache(
   async function getPublishedDbGamesList() {
     return prisma.game.findMany({
       where: { status: GameStatus.published },
-      select: catalogListGameSelect,
+      select: catalogCardGameSelect,
       orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
     });
   },
-  ["published-db-games-list"],
+  ["published-game-cards"],
   { revalidate: 3600, tags: ["public-games"] }
 );
 
@@ -537,6 +513,17 @@ const getPublishedDbGameBySlug = unstable_cache(
     });
   },
   ["published-db-game-by-slug"],
+  { revalidate: 3600, tags: ["public-games"] }
+);
+
+const getPublishedGameTermCountsRows = unstable_cache(
+  async function getPublishedGameTermCountsRows() {
+    return prisma.game.findMany({
+      where: { status: GameStatus.published },
+      select: catalogTermCountsSelect
+    });
+  },
+  ["published-game-term-counts"],
   { revalidate: 3600, tags: ["public-games"] }
 );
 
@@ -563,7 +550,7 @@ const getRelatedDbGames = unstable_cache(
         slug: { not: slug },
         OR: relatedFilters
       },
-      select: catalogGameSelect,
+      select: catalogCardGameSelect,
       take: 12
     });
   },
@@ -571,11 +558,61 @@ const getRelatedDbGames = unstable_cache(
   { revalidate: 3600, tags: ["public-games"] }
 );
 
+type CatalogGameDetails = {
+  description: string | null;
+  review: string | null;
+  pros: string[];
+  cons: string[];
+  bestFor: string | null;
+  notFor: string | null;
+  similarGames: string[];
+  buyUrl: string | null;
+  offers: CatalogDbGame["offers"];
+  howToPlayVideos: unknown;
+};
+
+type CatalogGameMediaFields = Pick<CatalogCardDbGame, "mediaAssets" | "primaryImageId">;
+type CatalogGameImageFields = Pick<
+  CatalogCardDbGame,
+  "coverImageUrl" | "imageUrl" | "imageStatus" | "primaryImageId"
+>;
+type CatalogGamePlayerFields = Pick<CatalogCardDbGame, "minPlayers" | "maxPlayers">;
+
 function toCatalogGame(game: CatalogDbGame): CatalogGame {
+  return toCatalogGameShape(game, {
+    description: game.description,
+    review: game.review,
+    pros: game.pros,
+    cons: game.cons,
+    bestFor: game.bestFor,
+    notFor: game.notFor,
+    similarGames: game.similarGames,
+    buyUrl: game.buyUrl,
+    offers: game.offers,
+    howToPlayVideos: game.howToPlayVideos
+  });
+}
+
+function toCatalogCardGame(game: CatalogCardDbGame): CatalogGame {
+  return toCatalogGameShape(game, {
+    description: null,
+    review: null,
+    pros: [],
+    cons: [],
+    bestFor: null,
+    notFor: null,
+    similarGames: [],
+    buyUrl: null,
+    offers: [],
+    howToPlayVideos: []
+  });
+}
+
+function toCatalogGameShape(game: CatalogCardDbGame, details: CatalogGameDetails): CatalogGame {
   const duration = parseDuration(game.playtime);
   const title = sanitizeImportedTitle(game.title || game.name) || game.title || game.name;
   const shortDescription = game.shortDescription || game.shortSummary;
-  const quickVerdict = game.quickVerdict || game.review;
+  const quickVerdict = game.quickVerdict || details.review;
   const difficulty = game.difficulty || game.complexity;
   const categories = sanitizeImportedList(game.categories, "categories");
   const mechanics = sanitizeImportedList(game.mechanics, "mechanics");
@@ -584,14 +621,14 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     title,
     shortDescription,
     shortSummary: game.shortSummary,
-    description: game.description,
+    description: details.description,
     quickVerdict
   });
   const publicDescription = getPublicGameDescription({
     title,
     shortDescription,
     shortSummary: game.shortSummary,
-    description: game.description,
+    description: details.description,
     quickVerdict
   });
   const safeMedia = pickSafeMedia(game);
@@ -630,21 +667,21 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
     ratings: normalizeGameRatings(game.ratings),
     description: publicDescription,
     reviewSummary: publicSummary,
-    pros: game.pros,
-    cons: game.cons,
-    recommendedFor: game.bestFor || "",
-    notRecommendedFor: game.notFor || "",
-    similarGames: game.similarGames,
-    buyLinks: buildBuyLinks(game),
+    pros: details.pros,
+    cons: details.cons,
+    recommendedFor: details.bestFor || "",
+    notRecommendedFor: details.notFor || "",
+    similarGames: details.similarGames,
+    buyLinks: buildBuyLinks(details),
     galleryImages,
-    howToPlayVideos: normalizeHowToPlayVideos(game.howToPlayVideos),
+    howToPlayVideos: normalizeHowToPlayVideos(details.howToPlayVideos),
     addedAt: toIsoString(game.createdAt) || new Date().toISOString(),
     updatedAt: toIsoString(game.updatedAt) || new Date().toISOString(),
     publishedAt: toIsoString(game.publishedAt)
   };
 }
 
-function buildBuyLinks(game: CatalogDbGame): BuyLink[] {
+function buildBuyLinks(game: Pick<CatalogGameDetails, "buyUrl" | "offers">): BuyLink[] {
   const offers = Array.isArray(game.offers) ? game.offers : [];
   const links = offers
     .flatMap((offer) => {
@@ -755,11 +792,11 @@ function toIsoString(value: Date | string | null | undefined) {
   return value;
 }
 
-function pickSafeMedia(game: CatalogDbGame) {
+function pickSafeMedia(game: CatalogGameMediaFields) {
   return getOrderedMedia(game).find((asset) => canShowMedia(asset, asset.source)) || null;
 }
 
-function buildPublicGalleryImages(game: CatalogDbGame, publicCoverImage: string | null, title: string) {
+function buildPublicGalleryImages(game: CatalogGameMediaFields, publicCoverImage: string | null, title: string) {
   const seen = new Set<string>();
   const images: GalleryImage[] = [];
 
@@ -789,7 +826,7 @@ function buildPublicGalleryImages(game: CatalogDbGame, publicCoverImage: string 
   return images;
 }
 
-function getOrderedMedia(game: CatalogDbGame) {
+function getOrderedMedia(game: CatalogGameMediaFields) {
   return [...game.mediaAssets].sort((left, right) => {
     if (left.id === game.primaryImageId) {
       return -1;
@@ -803,7 +840,7 @@ function getOrderedMedia(game: CatalogDbGame) {
   });
 }
 
-function resolveLegacyPublicImage(game: CatalogDbGame) {
+function resolveLegacyPublicImage(game: CatalogGameImageFields) {
   if (game.imageStatus === "verified") {
     return game.coverImageUrl || game.imageUrl || null;
   }
@@ -865,6 +902,19 @@ function getTerms(games: CatalogGame[], picker: (game: CatalogGame) => string[])
     .map(([term]) => term);
 }
 
+function countGameTerms(rows: CatalogTermCountsRow[], field: "categories" | "mechanics") {
+  const counts: Record<string, number> = {};
+  const sanitizer = field === "categories" ? "categories" : "mechanics";
+
+  for (const row of rows) {
+    for (const term of sanitizeImportedList(row[field], sanitizer)) {
+      counts[term] = (counts[term] || 0) + 1;
+    }
+  }
+
+  return counts;
+}
+
 function getGameCategories(game: CatalogGame) {
   return game.categories;
 }
@@ -884,7 +934,7 @@ function splitParagraphs(value: string) {
     .filter(Boolean);
 }
 
-function formatPlayers(game: CatalogDbGame) {
+function formatPlayers(game: CatalogGamePlayerFields) {
   if (game.minPlayers && game.maxPlayers && game.minPlayers !== game.maxPlayers) {
     return `${game.minPlayers}-${game.maxPlayers}`;
   }

@@ -3,6 +3,7 @@ import { tavily } from "@tavily/core";
 import { Prisma, GameImportProposalStatus, type Game, type GameImportProposal } from "@prisma/client";
 import { z } from "zod";
 import { getBedrockRuntimeClient } from "@/lib/ai/bedrockClient";
+import { normalizeMechanicName } from "@/lib/constants/mechanics";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
 import { calculateExternalRating } from "@/lib/ratings/calculateExternalRating";

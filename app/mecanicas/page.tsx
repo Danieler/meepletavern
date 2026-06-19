@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { getCatalogGames, getMechanicTerms } from "@/lib/catalog";
+import { getMechanicGameCounts, getMechanicTerms } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Mecánicas de juegos de mesa",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function MechanicsPage() {
-  const [mechanicTerms, games] = await Promise.all([getMechanicTerms(), getCatalogGames()]);
+  const [mechanicTerms, counts] = await Promise.all([getMechanicTerms(), getMechanicGameCounts()]);
 
   return (
     <PublicShell>
@@ -30,7 +30,7 @@ export default async function MechanicsPage() {
         </section>
         <section className="container-page grid gap-4 py-12 sm:grid-cols-2 lg:grid-cols-3">
           {mechanicTerms.map((term) => {
-            const count = games.filter((game) => game.mechanics.includes(term)).length;
+            const count = counts[term] || 0;
             return (
               <Link
                 key={term}
