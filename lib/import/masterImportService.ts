@@ -26,6 +26,7 @@ import { buildStoreOfferInputFromCandidate, getBestOffer, type NormalizedStoreOf
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 import { sourceRepository } from "@/lib/editorialRepositories";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
 import type { AiPromptSource, AiWebProposal } from "@/lib/ai/gameWebAutofill";
@@ -619,8 +620,10 @@ function applyAiProposalToResolved(
   const age = normalizeNumberValue(proposal.age.value);
   const year = normalizeNumberValue(proposal.year.value);
   const publisher = normalizeStringValue(proposal.publisher.value);
-  const categories = normalizeStringArrayValue(proposal.categories.value);
-  const mechanics = normalizeStringArrayValue(proposal.mechanics.value);
+  const categories = normalizeCategories(proposal.categories.value);
+  const mechanics = normalizeMechanics(proposal.mechanics.value);
+  const resolvedCategories = categories.length ? categories : normalizeCategories(metadata.categories || metadata.categoryHints);
+  const resolvedMechanics = mechanics.length ? mechanics : normalizeMechanics(metadata.mechanics || metadata.mechanicHints);
   const shortDescription = normalizeStringValue(proposal.shortDescription.value);
   const description = normalizeStringValue(proposal.description.value);
   const appliedFields: string[] = [];
@@ -671,8 +674,8 @@ function applyAiProposalToResolved(
     originalTitle: resolved.candidate.originalTitle,
     metadata,
     description: description || resolved.candidate.extractedDescription,
-    categories,
-    mechanics,
+    categories: resolvedCategories,
+    mechanics: resolvedMechanics,
     themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
     minAge: age,
     minPlayTime: playTime?.min ?? readPositiveNumber(metadata.minPlayTime),
@@ -750,11 +753,15 @@ function buildDraftGameForAi(resolved: ResolvedCandidateData): Game {
   const maxPlayTime = readPositiveNumber(metadata.maxPlayTime);
   const minAge = readPositiveNumber(metadata.minAge);
   const playtime = formatPlaytimeLabel(minPlayTime, maxPlayTime);
+  const categories = normalizeCategories(metadata.categories || metadata.categoryHints);
+  const mechanics = normalizeMechanics(metadata.mechanics || metadata.mechanicHints);
   const difficulty = normalizeDifficultyFromImportedData({
     title,
     originalTitle: resolved.candidate.originalTitle,
     metadata,
     description: resolved.candidate.extractedDescription,
+    categories,
+    mechanics,
     minAge,
     minPlayTime,
     maxPlayTime,
@@ -793,8 +800,8 @@ function buildDraftGameForAi(resolved: ResolvedCandidateData): Game {
     minAge,
     complexity: difficulty,
     difficulty,
-    categories: normalizeStringArrayValue(metadata.categories || metadata.categoryHints),
-    mechanics: normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints),
+    categories,
+    mechanics,
     themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
     publisher: readString(metadata, ["publisher", "brand", "manufacturer"]),
     spanishPublisher: null,
@@ -827,8 +834,8 @@ async function buildGameCreateData(resolved: ResolvedCandidateData): Promise<Pri
   const maxPlayTime = readPositiveNumber(metadata.maxPlayTime);
   const playtime = formatPlaytimeLabel(minPlayTime, maxPlayTime);
   const sourceIds = buildGameSourceIds(metadata, resolved.primarySource.id);
-  const categories = normalizeStringArrayValue(metadata.categories || metadata.categoryHints);
-  const mechanics = normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints);
+  const categories = normalizeCategories(metadata.categories || metadata.categoryHints);
+  const mechanics = normalizeMechanics(metadata.mechanics || metadata.mechanicHints);
   const themes = normalizeStringArrayValue(metadata.themes || metadata.themeHints);
   const seedCopy = buildEditorialSeedCopy({
     title,
@@ -926,13 +933,15 @@ function buildGameUpdateData(resolved: ResolvedCandidateData): Prisma.GameUpdate
   const minPlayTime = readPositiveNumber(metadata.minPlayTime);
   const maxPlayTime = readPositiveNumber(metadata.maxPlayTime);
   const playtime = formatPlaytimeLabel(minPlayTime, maxPlayTime);
+  const categories = normalizeCategories(metadata.categories || metadata.categoryHints);
+  const mechanics = normalizeMechanics(metadata.mechanics || metadata.mechanicHints);
   const difficulty = normalizeDifficultyFromImportedDataOrNull({
     title: resolved.candidate.title,
     originalTitle: resolved.candidate.originalTitle,
     metadata,
     description: normalizeStringValue(metadata.description) || resolved.candidate.extractedDescription,
-    categories: normalizeStringArrayValue(metadata.categories || metadata.categoryHints),
-    mechanics: normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints),
+    categories,
+    mechanics,
     themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
     minAge,
     minPlayTime,
@@ -952,8 +961,8 @@ function buildGameUpdateData(resolved: ResolvedCandidateData): Prisma.GameUpdate
     minAge,
     age: minAge ? `${minAge}+` : null,
     ...(difficulty ? { difficulty, complexity: difficulty } : {}),
-    categories: normalizeStringArrayValue(metadata.categories || metadata.categoryHints),
-    mechanics: normalizeStringArrayValue(metadata.mechanics || metadata.mechanicHints),
+    categories,
+    mechanics,
     themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
     publisher: readString(metadata, ["publisher", "brand", "manufacturer"]),
     shortDescription: normalizeStringValue(metadata.shortDescription),

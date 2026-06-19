@@ -17,7 +17,7 @@ test("sanitizeEditorialFields removes Amazon garbage from editorial output", () 
     difficulty: "Media",
     categories: ["Carreras", "Añadir al carrito"],
     mechanics: ["Gestión de mano", "Comprar ahora"],
-    themes: ["Motor", "Amazon"],
+    themes: ["Carreras", "Amazon"],
     bestFor: "Mesas que quieren interacción directa.",
     notFor: "Quien busque una política de devoluciones flexible.",
     pros: ["Alta tensión en cada curva", "Oferta relámpago"],
@@ -45,9 +45,9 @@ test("sanitizeEditorialFields removes Amazon garbage from editorial output", () 
   const sanitized = sanitizeEditorialFields(input);
 
   assert.equal(sanitized.shortDescription, "");
-  assert.deepEqual(sanitized.categories, ["Carreras"]);
+  assert.deepEqual(sanitized.categories, []);
   assert.deepEqual(sanitized.mechanics, ["Gestión de mano"]);
-  assert.deepEqual(sanitized.themes, ["Motor"]);
+  assert.deepEqual(sanitized.themes, ["Carreras"]);
   assert.equal(sanitized.notFor, "");
   assert.deepEqual(sanitized.pros, ["Alta tensión en cada curva"]);
   assert.equal(sanitized.faq.length, 2);

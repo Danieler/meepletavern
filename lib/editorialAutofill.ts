@@ -1,4 +1,5 @@
 import { normalizeGameFaq } from "@/lib/editorialMappers";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 
 export type EditorialAutofillInput = {
   title: string;
@@ -57,8 +58,8 @@ export function buildEditorialAutofill(input: EditorialAutofillInput): Editorial
     .join(" ")
     .toLowerCase();
   const profile = detectProfile(text, input);
-  const categories = mergeUnique(input.categories || [], profile.categories);
-  const mechanics = mergeUnique(input.mechanics || [], profile.mechanics);
+  const categories = normalizeCategories(mergeUnique(input.categories || [], profile.categories));
+  const mechanics = normalizeMechanics(mergeUnique(input.mechanics || [], profile.mechanics));
   const themes = mergeUnique(input.themes || [], profile.themes);
 
   return {
@@ -96,8 +97,8 @@ function detectProfile(text: string, input: EditorialAutofillInput): EditorialAu
 
 const socialDeductionProfile = {
   difficulty: "Fácil",
-  categories: ["Fiesta", "Roles ocultos", "Deducción", "Faroleo"],
-  mechanics: ["Roles ocultos", "Deducción social", "Votación", "Eliminación de jugadores", "Moderador"],
+  categories: ["Party", "Deducción"],
+  mechanics: ["Roles ocultos", "Deducción"],
   themes: ["Fiesta", "Roles ocultos", "Deducción"],
   bestFor: (_title: string, input: EditorialAutofillInput) =>
     `${groupText(input)} fiestas, reuniones familiares o de amigos y jugadores que disfrutan acusando, mintiendo, deduciendo y metiéndose en el papel.`,
@@ -174,8 +175,8 @@ const cooperativeProfile = {
 
 const partyProfile = {
   difficulty: "Fácil",
-  categories: ["Fiesta", "Familiar"],
-  mechanics: ["Interacción"],
+  categories: ["Party", "Familiar"],
+  mechanics: [],
   themes: ["Fiesta", "Familiar"],
   bestFor: () => "Grupos que buscan una partida accesible, social y fácil de sacar a mesa.",
   notFor: () => "Jugadores que buscan estrategia profunda, planificación larga o partidas silenciosas.",
@@ -190,7 +191,7 @@ const partyProfile = {
 const familyProfile = {
   difficulty: "Fácil",
   categories: ["Familiar", "Infantil"],
-  mechanics: ["Accesible"],
+  mechanics: [],
   themes: ["Familiar", "Infantil"],
   bestFor: () => "Familias, jugadores ocasionales y mesas que quieren reglas sencillas.",
   notFor: () => "Jugadores que buscan mucha profundidad estratégica o partidas largas y exigentes.",
@@ -205,7 +206,7 @@ const familyProfile = {
 const genericProfile = {
   difficulty: "Media ligera",
   categories: ["Familiar"],
-  mechanics: ["Interacción"],
+  mechanics: [],
   themes: [],
   bestFor: (title: string) =>
     `Jugadores que quieren descubrir ${title} con una ficha preliminar clara antes de completar la reseña editorial.`,

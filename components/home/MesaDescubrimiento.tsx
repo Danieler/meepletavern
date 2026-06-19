@@ -68,7 +68,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
 
   const playersOptions = ["2", "3-4", "5+", "Familia"];
   const durationOptions = ["15-30 min", "30-60 min", "60+ min"];
-  const typeOptions = ["Familiar", "Cooperativo", "Fiesta", "Estratégico", "Principiantes"];
+  const typeOptions = ["Familiar", "Cooperativo", "Party", "Estratégico", "Principiantes"];
 
   const playersMap: Record<string, { param: string; value: string }> = {
     "2": { param: "players", value: "2" },
@@ -86,7 +86,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
   const typeMap: Record<string, { param: string; value: string }> = {
     "Familiar": { param: "category", value: "Familiar" },
     "Cooperativo": { param: "category", value: "Cooperativo" },
-    "Fiesta": { param: "category", value: "Fiesta" },
+    "Party": { param: "category", value: "Party" },
     "Estratégico": { param: "weight", value: "duro" },
     "Principiantes": { param: "weight", value: "ligero" }
   };

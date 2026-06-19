@@ -7,9 +7,9 @@ import {
   type EditorialCompletion
 } from "@/lib/ai/editorialCompletionSchema";
 import { getBedrockRuntimeClient } from "@/lib/ai/bedrockClient";
-import { normalizeMechanicName } from "@/lib/constants/mechanics";
 import { normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
+import { CANONICAL_CATEGORIES, CANONICAL_MECHANICS, normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 
 const DEFAULT_BEDROCK_MODEL = "amazon.nova-lite-v1:0";
 const EDITORIAL_DIFFICULTY_SET = new Set<string>(EDITORIAL_DIFFICULTIES);
@@ -52,6 +52,7 @@ export async function completeGameEditorialFieldsWithBedrock(
               "Eres un editor experto de juegos de mesa para TheMeepleTavern. " +
               "Escribe en español de España. " +
               "Todo el texto final debe quedar completamente en español de España. " +
+              "Excepción: categories y mechanics deben usar exactamente las etiquetas canónicas indicadas, aunque algunas estén en inglés. " +
               "Si alguna fuente o fragmento está en inglés, tradúcelo y adáptalo por completo antes de responder. " +
               "No mezcles idiomas dentro de una misma frase ni dentro del mismo campo. " +
               "Ignora y elimina cualquier código interno de catálogo o Amazon en el título o en la descripción, como (TRG-01vir), (1138753.62) o referencias parecidas. " +
@@ -63,8 +64,9 @@ export async function completeGameEditorialFieldsWithBedrock(
               "Puedes inferir campos editoriales razonables como dificultad, categorías, mecánicas, temáticas, pros, contras, bestFor, notFor y FAQ. " +
               "Si el juego es conocido y el título coincide claramente con una edición real, también puedes completar jugadores, duración, edad y editorial usando conocimiento general fiable de catálogo. " +
               "Si no tienes suficiente seguridad en un dato objetivo, devuelve null en ese campo. " +
-              "Las categorías, mecánicas y temáticas deben ser etiquetas cortas. " +
-              "Las mecánicas deben describir decisiones o sistemas de juego, no componentes. Prioriza las siguientes: Colocación de trabajadores, Colocación de losetas, Gestión de recursos, Gestión de mano, Deckbuilding, Engine building, Set collection, Draft de cartas, Mayorías, Area control, Rutas y redes, Negociación, Push your luck, Deducción, Roles ocultos, Cooperativo, Campaña, Legacy, Combate con dados, Wargame. Evita términos genéricos como Tablero, Fichas, Piezas, Cartas, Movimientos o cualquier término que no esté en esta lista curada." +
+              `Las categorías deben usar solo estas etiquetas exactas: ${CANONICAL_CATEGORIES.join(", ")}. ` +
+              `Las mecánicas deben describir decisiones o sistemas de juego, no componentes, y usar solo estas etiquetas exactas: ${CANONICAL_MECHANICS.join(", ")}. ` +
+              "No traduzcas etiquetas canónicas en inglés como Party, Gateway, Eurogame, Dungeon Crawler, Deckbuilding, Roll & Write, Engine building, Set collection, Area control, Push your luck, Legacy o Wargame. Evita términos genéricos como Tablero, Fichas, Piezas, Cartas, Movimientos o cualquier término que no esté en esta lista curada. " +
               "Las temáticas deben ser mundos o géneros amplios, no elementos concretos del juego: usa Insectos o Naturaleza antes que Reina, Abeja o Colmena. " +
               "Si faltan datos, omítelos con naturalidad en vez de escribir texto de relleno. " +
               "Si el título parece una editorial o marca, devuelve cleanTitle null y añade warning. " +
@@ -104,6 +106,7 @@ export async function completeGameEditorialFieldsWithBedrock(
                   "}\n\n" +
                   "Restricciones:\n" +
                   "- Todo el contenido textual final debe estar íntegramente en español de España.\n" +
+                  "- Excepción: categories y mechanics deben usar exactamente las etiquetas canónicas, aunque algunas estén en inglés.\n" +
                   "- Si algún bullet, fact o descripción de origen está en inglés, tradúcelo antes de usarlo o descártalo si no aporta valor.\n" +
                   "- No devuelvas frases híbridas con partes en inglés y partes en español.\n" +
                   "- Elimina cualquier código interno de catálogo o Amazon en el título o en la descripción, como (TRG-01vir), (1138753.62) o referencias similares.\n" +
@@ -117,8 +120,8 @@ export async function completeGameEditorialFieldsWithBedrock(
                   "- Usa título limpio del juego, no la marca o editorial, salvo que sea realmente parte del nombre.\n" +
                   "- shortDescription máximo 300 caracteres.\n" +
                   "- longDescription máximo 1200 caracteres.\n" +
-                  "- categories máximo 5.\n" +
-                  "- mechanics máximo 6 y solo con sistemas reales de juego. Evita componentes o palabras genéricas como Tablero, Fichas, Piezas, Cartas o Movimientos si puedes usar Colocación de piezas, Movimiento, Bloqueo, Gestión de mano, Dados, Draft, Mayorías, Cooperativo, Deducción o Control de áreas.\n" +
+                  `- categories máximo 5 y solo etiquetas exactas de esta lista: ${CANONICAL_CATEGORIES.join(", ")}.\n` +
+                  `- mechanics máximo 6, solo sistemas reales de juego y solo etiquetas exactas de esta lista: ${CANONICAL_MECHANICS.join(", ")}.\n` +
                   "- themes máximo 5 y solo con temas genéricos como Fantasía, Ciencia ficción, Terror, Naturaleza, Animales, Insectos, Espacio, Histórico, Economía, Guerra o Aventura. No uses personajes, piezas, roles, componentes ni objetivos concretos como Reina, Abeja Reina, Colmena o similares.\n" +
                   "- pros entre 3 y 6.\n" +
                   "- cons entre 2 y 5.\n" +
@@ -280,10 +283,8 @@ export function normalizeEditorialCompletionPayload(input: unknown): EditorialCo
     shortDescription,
     longDescription,
     difficulty: normalizeDifficulty(readFirst(record, ["difficulty", "dificultad"])),
-    categories: normalizeStringList(readFirst(record, ["categories", "categorias"]), 5, 40),
-    mechanics: normalizeStringList(readFirst(record, ["mechanics", "mecanicas"]), 6, 40)
-      .map(name => normalizeMechanicName(name))
-      .filter((name): name is string => name !== null),
+    categories: normalizeCategories(normalizeStringList(readFirst(record, ["categories", "categorias"]), 5, 40)).slice(0, 5),
+    mechanics: normalizeMechanics(normalizeStringList(readFirst(record, ["mechanics", "mecanicas"]), 6, 40)).slice(0, 6),
     themes: normalizeStringList(readFirst(record, ["themes", "tematicas"]), 5, 40),
     bestFor: normalizeString(readFirst(record, ["bestFor", "best_for", "paraQuienEs", "para_quien_es"]), 260),
     notFor: normalizeString(readFirst(record, ["notFor", "not_for", "paraQuienNoEs", "para_quien_no_es"]), 260),

@@ -53,8 +53,8 @@ test("buildEditorialAutofill infers social deduction fields for Hombres Lobo", (
   });
 
   assert.equal(autofill.difficulty, "Fácil");
-  assert.deepEqual(autofill.categories, ["Fiesta", "Roles ocultos", "Deducción", "Faroleo"]);
-  assert.ok(autofill.mechanics.includes("Deducción social"));
+  assert.deepEqual(autofill.categories, ["Party", "Deducción"]);
+  assert.ok(autofill.mechanics.includes("Roles ocultos"));
   assert.ok(autofill.bestFor.includes("Grupos grandes"));
   assert.ok(autofill.faq[0].answer.includes("8-18 jugadores"));
 });

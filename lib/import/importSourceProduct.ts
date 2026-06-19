@@ -208,33 +208,27 @@ function inferCategoryHints(product: SourcePageProduct, description: string | nu
   const hints = new Set<string>();
 
   if (/(hombres lobo|castronegro|werewolf|aldeanos|roles ocultos|noche|votaci[oó]n)/i.test(text)) {
-    hints.add("Fiesta");
-    hints.add("Roles ocultos");
+    hints.add("Party");
     hints.add("Deducción");
   }
   if (/(escape room|unlock|exit)/i.test(text)) {
-    hints.add("Escape room");
-    hints.add("Puzzle");
     hints.add("Cooperativo");
   }
   if (/\bzombie|zombicide|zombies\b/i.test(text)) {
-    hints.add("Zombis");
-    hints.add("Supervivencia");
+    hints.add("Terror");
     hints.add("Cooperativo");
   }
   if (/(harry potter|hogwarts|magia)/i.test(text)) {
     hints.add("Fantasía");
-    hints.add("Magia");
   }
   if (/(marvel|superh[eé]roes?)/i.test(text)) {
-    hints.add("Superhéroes");
-    hints.add("Cómics");
+    hints.add("Temático");
   }
   if (/campa[nñ]a/i.test(text)) {
-    hints.add("Campaña");
+    hints.add("Campaña / Legacy");
   }
   if (/miniaturas?/i.test(text)) {
-    hints.add("Con miniaturas");
+    hints.add("Miniaturas");
   }
 
   return sanitizeImportedList([...hints], "categories");

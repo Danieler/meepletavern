@@ -1,5 +1,6 @@
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { keepSpanishEditorialText } from "@/lib/editorialLanguage";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 import type { EditorialCompletion } from "@/lib/ai/editorialCompletionSchema";
 
 const EDITORIAL_GARBAGE_PATTERN =
@@ -34,10 +35,20 @@ export function containsEditorialGarbage(value: string | null | undefined) {
 }
 
 function sanitizeTagList(values: string[], type: "categories" | "mechanics" | "themes") {
+  const cleanedValues = values
+    .map((value) => sanitizeText(value))
+    .filter(Boolean);
+
+  if (type === "categories") {
+    return normalizeCategories(cleanedValues);
+  }
+
+  if (type === "mechanics") {
+    return normalizeMechanics(cleanedValues);
+  }
+
   return sanitizeImportedList(
-    values
-      .map((value) => sanitizeText(value))
-      .filter(Boolean),
+    cleanedValues,
     type
   );
 }

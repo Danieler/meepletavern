@@ -9,6 +9,7 @@ import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { buildPublicEditorialCopy, needsPublicEditorialRewrite } from "@/lib/publicEditorialCopy";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
 
 export type GameEditorActionState = {
@@ -230,8 +231,8 @@ function toGameUpdateInput(
     age: minAge ? `${minAge}+` : null,
     difficulty,
     complexity: difficulty,
-    categories: sanitizeImportedList(parseStringList(formData.get("categories")), "categories"),
-    mechanics: sanitizeImportedList(parseStringList(formData.get("mechanics")), "mechanics"),
+    categories: normalizeCategories(parseStringList(formData.get("categories"))),
+    mechanics: normalizeMechanics(parseStringList(formData.get("mechanics"))),
     themes: sanitizeImportedList(parseStringList(formData.get("themes")), "themes"),
     publisher: optionalString(formData.get("publisher")),
     spanishPublisher: optionalString(formData.get("spanishPublisher")),
@@ -281,8 +282,8 @@ function applyEditorialAutofill(input: Prisma.GameUpdateInput): Prisma.GameUpdat
     ...input,
     difficulty: stringInput(input.difficulty) || autofill.difficulty,
     complexity: stringInput(input.complexity) || stringInput(input.difficulty) || autofill.difficulty,
-    categories: categories.length ? categories : autofill.categories,
-    mechanics: mechanics.length ? mechanics : sanitizeImportedList(autofill.mechanics, "mechanics"),
+    categories: categories.length ? normalizeCategories(categories) : autofill.categories,
+    mechanics: mechanics.length ? normalizeMechanics(mechanics) : autofill.mechanics,
     themes: themes.length ? themes : sanitizeImportedList(autofill.themes, "themes"),
     bestFor: stringInput(input.bestFor) || autofill.bestFor,
     notFor: stringInput(input.notFor) || autofill.notFor,

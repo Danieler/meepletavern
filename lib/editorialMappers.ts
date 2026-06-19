@@ -5,11 +5,12 @@ import type {
   GamePlayers,
   MediaAssetTypeKey
 } from "@/lib/editorialTypes";
+import { normalizeTaxonomyMetadata } from "@/lib/taxonomy";
 
 const mediaAssetTypes = new Set<MediaAssetTypeKey>(["cover", "box", "component", "placeholder"]);
 
 export function normalizeCandidateMetadata(input: unknown): Prisma.JsonObject {
-  return normalizeJsonObject(input);
+  return normalizeTaxonomyMetadata(normalizeJsonObject(input));
 }
 
 export function normalizeCandidateImages(input: unknown): CandidateImage[] {

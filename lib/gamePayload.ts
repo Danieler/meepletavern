@@ -7,6 +7,7 @@ import {
   type SourceItem
 } from "@/lib/content";
 import { slugify } from "@/lib/slug";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 
 export type GameFormPayload = {
   name?: unknown;
@@ -107,8 +108,8 @@ export function normalizeGamePayload(payload: GameFormPayload): NormalizedGamePa
     playtime: optionalString(payload.playtime),
     age: optionalString(payload.age),
     complexity: optionalString(payload.complexity),
-    categories: cleanStringList(payload.categories),
-    mechanics: cleanStringList(payload.mechanics),
+    categories: normalizeCategories(payload.categories),
+    mechanics: normalizeMechanics(payload.mechanics),
     themes: cleanStringList(payload.themes),
     similarGames: cleanStringList(payload.similarGames),
     faqs: cleanFaqItems(payload.faqs),

@@ -5,6 +5,7 @@ import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 import { slugify } from "@/lib/slug";
 import { difficultyRank } from "@/lib/import/difficulty";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 
 const VALID_DIFFICULTIES = new Set(["Muy fácil", "Fácil", "Media ligera", "Media", "Alta", "Muy alta"]);
 const SUSPICIOUS_TITLES = new Set(["maldito games", "asmodee", "devir", "zygomatic", "hasbro"]);
@@ -184,7 +185,14 @@ export function buildSafeEditorialPatch(
     nextValue: string[],
     minItems = 1
   ) {
-    if (nextValue.length < minItems) {
+    const normalizedNext =
+      field === "categories"
+        ? normalizeCategories(nextValue)
+        : field === "mechanics"
+          ? normalizeMechanics(nextValue)
+          : nextValue;
+
+    if (normalizedNext.length < minItems) {
       return;
     }
 
@@ -192,7 +200,7 @@ export function buildSafeEditorialPatch(
       return;
     }
 
-    patch[field] = nextValue;
+    patch[field] = normalizedNext;
     appliedFields.push(field);
   }
 

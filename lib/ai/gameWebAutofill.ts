@@ -3,12 +3,11 @@ import { tavily } from "@tavily/core";
 import { Prisma, GameImportProposalStatus, type Game, type GameImportProposal } from "@prisma/client";
 import { z } from "zod";
 import { getBedrockRuntimeClient } from "@/lib/ai/bedrockClient";
-import { normalizeMechanicName } from "@/lib/constants/mechanics";
-import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
 import { calculateExternalRating } from "@/lib/ratings/calculateExternalRating";
 import { buildExternalSignalFromSearchResult } from "@/lib/ratings/externalSignals";
 import { buildGameRatingsPatch } from "@/lib/ratings/gameRatings";
+import { CANONICAL_CATEGORIES, CANONICAL_MECHANICS, normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 import { mergeHowToPlayVideoSuggestions } from "@/lib/videos/howToPlayVideos";
 
 const DEFAULT_BEDROCK_MODEL = process.env.BEDROCK_MODEL_ID?.trim() || "amazon.nova-micro-v1:0";
@@ -191,7 +190,7 @@ export async function extractBoardGameFieldsWithNova(input: {
   extraSources?: AiPromptSource[];
 }) {
   const sourceContext = await buildPromptSourceContext(input.game, input.tavilyResults, input.extraSources || []);
-  const fallbackProposal = buildFallbackProposal(input.game, input.tavilyResults);
+  const fallbackProposal = normalizeAiWebProposal(buildFallbackProposal(input.game, input.tavilyResults));
   const region = process.env.AWS_REGION?.trim();
   if (!region) {
     if (hasAnyProposalValue(fallbackProposal)) {
@@ -242,7 +241,8 @@ export async function extractBoardGameFieldsWithNova(input: {
           "Do not use description.value to restate alreadyDisplayedFacts such as players, duration, age, publisher or year unless essential; those facts are displayed elsewhere. " +
           "If you improve description.value, make it complement the short copy: start with gameplay/objective, not with the same facts. " +
           "For known board games, explain the actual gameplay instead of describing it generically. For example, mention concrete actions such as placing tiles, playing cards, assigning workers, scoring areas, revealing clues or managing resources when supported. " +
-          "For mechanics.value, return gameplay systems, not components. Prefer the following: Colocación de trabajadores, Colocación de losetas, Gestión de recursos, Gestión de mano, Deckbuilding, Engine building, Set collection, Draft de cartas, Mayorías, Area control, Rutas y redes, Negociación, Push your luck, Deducción, Roles ocultos, Cooperativo, Campaña, Legacy, Combate con dados, Wargame. Avoid generic terms like Tablero, Fichas, Piezas, Cartas, Movimientos, or any terms not in the curated list." +
+          `For categories.value, return only exact labels from this canonical list: ${CANONICAL_CATEGORIES.join(", ")}. Do not translate English canonical labels such as Party, Gateway, Eurogame, Dungeon Crawler, Deckbuilding, or Roll & Write. ` +
+          `For mechanics.value, return gameplay systems, not components, and only exact labels from this canonical list: ${CANONICAL_MECHANICS.join(", ")}. Do not translate English canonical labels such as Deckbuilding, Engine building, Set collection, Area control, Push your luck, Legacy, or Wargame. Avoid generic terms like Tablero, Fichas, Piezas, Cartas, Movimientos, or any terms not in the curated list. ` +
           "Use web_search sources to enrich direct store sources: shops often have shallow commercial copy, while BoardGameGeek/rules/reviews usually explain gameplay better. " +
           "Do not introduce exact victory thresholds, component counts or special rules unless they are explicitly present in sourceContext. " +
           "Do not write generic SEO filler such as 'propuesta de mesa', 'foco en la experiencia de juego', 'contexto temático', 'para disfrutar en grupo' or vague restatements of players/playtime/age. " +
@@ -306,8 +306,8 @@ export async function extractBoardGameFieldsWithNova(input: {
     const parsedOuter = JSON.parse(raw);
     const responseText = extractBedrockResponseText(parsedOuter);
     const parsedJson = parseLooseJson(responseText);
-    const extracted = aiProposalSchema.parse(parsedJson);
-    const merged = mergeProposals(extracted, fallbackProposal);
+    const extracted = normalizeAiWebProposal(aiProposalSchema.parse(parsedJson));
+    const merged = normalizeAiWebProposal(mergeProposals(extracted, fallbackProposal));
     console.info("[ai-web-autofill] JSON parse success", { gameId: input.game.id });
     return merged;
   } catch (error) {
@@ -352,7 +352,7 @@ export async function saveGameImportProposal(input: {
         provider: PROPOSAL_PROVIDER,
         query: input.query,
         rawSearchResults: input.rawSearchResults,
-        extractedFields: input.extractedFields as unknown as Prisma.InputJsonValue
+        extractedFields: normalizeAiWebProposal(input.extractedFields) as unknown as Prisma.InputJsonValue
       }
     });
 
@@ -429,7 +429,7 @@ export async function applyGameImportProposalFields(input: {
     throw new Error("No se encontró la propuesta.");
   }
 
-  const extracted = aiProposalSchema.parse(proposal.extractedFields);
+  const extracted = normalizeAiWebProposal(aiProposalSchema.parse(proposal.extractedFields));
   const update: Prisma.GameUpdateInput = {};
   const appliedFields: string[] = [];
 
@@ -448,16 +448,19 @@ export async function applyGameImportProposalFields(input: {
     }
 
     if (field === "categories" && Array.isArray(extracted.categories.value) && extracted.categories.value.length && canApply(input.emptyOnly, game.categories)) {
-      update.categories = sanitizeImportedList(sanitizeStringList(extracted.categories.value), "categories");
-      appliedFields.push(field);
+      const categories = normalizeCategories(extracted.categories.value);
+      if (categories.length) {
+        update.categories = categories;
+        appliedFields.push(field);
+      }
     }
 
     if (field === "mechanics" && Array.isArray(extracted.mechanics.value) && extracted.mechanics.value.length && canApply(input.emptyOnly, game.mechanics)) {
-      const normalizedMechanics = extracted.mechanics.value
-        .map((name) => normalizeMechanicName(name))
-        .filter((name): name is string => name !== null);
-      update.mechanics = sanitizeImportedList(sanitizeStringList(normalizedMechanics), "mechanics");
-      appliedFields.push(field);
+      const mechanics = normalizeMechanics(extracted.mechanics.value);
+      if (mechanics.length) {
+        update.mechanics = mechanics;
+        appliedFields.push(field);
+      }
     }
 
     if (field === "shortDescription" && typeof extracted.shortDescription.value === "string" && extracted.shortDescription.value.trim() && canApplyStructuredField(input.emptyOnly, game.shortDescription, game.shortSummary)) {
@@ -636,7 +639,7 @@ export function serializeProposal(proposal: GameImportProposal): SerializableGam
     provider: proposal.provider,
     status: proposal.status,
     query: proposal.query,
-    extractedFields: aiProposalSchema.parse(proposal.extractedFields),
+    extractedFields: normalizeAiWebProposal(aiProposalSchema.parse(proposal.extractedFields)),
     createdAt: proposal.createdAt.toISOString(),
     updatedAt: proposal.updatedAt.toISOString()
   };
@@ -944,6 +947,19 @@ function mergeProposals(primary: AiWebProposal, fallback: AiWebProposal): AiWebP
   merged.needsHumanReview = primary.needsHumanReview || fallback.needsHumanReview;
 
   return merged;
+}
+
+function normalizeAiWebProposal(proposal: AiWebProposal): AiWebProposal {
+  const normalized = cloneProposal(proposal);
+  normalized.categories = {
+    ...normalized.categories,
+    value: normalizeCategories(normalized.categories.value).slice(0, 5)
+  };
+  normalized.mechanics = {
+    ...normalized.mechanics,
+    value: normalizeMechanics(normalized.mechanics.value).slice(0, 6)
+  };
+  return normalized;
 }
 
 function isWeakDescription(value: unknown) {
@@ -1534,12 +1550,6 @@ function normalizeNumber(value: unknown): number | null {
     return normalizeNumber(record.value ?? record.age ?? record.minAge ?? record.year);
   }
   return null;
-}
-
-function sanitizeStringList(value: unknown) {
-  return Array.isArray(value)
-    ? [...new Set(value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim()))].slice(0, 8)
-    : [];
 }
 
 function arrayFirst(value: unknown) {

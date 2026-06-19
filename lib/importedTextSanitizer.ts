@@ -1,4 +1,5 @@
 import { slugify } from "@/lib/slug";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 
 export type ImportedListFieldType = "themes" | "categories" | "mechanics" | "tags";
 
@@ -58,6 +59,7 @@ export function sanitizeImportedTitle(title: string) {
 export function sanitizeImportedList(values: string[], fieldType: ImportedListFieldType): string[] {
   const maxWords = fieldType === "tags" ? 5 : fieldType === "themes" ? 3 : 4;
   const seen = new Map<string, string>();
+  const cleanedValues: string[] = [];
 
   for (const value of values) {
     const cleaned = sanitizeImportedText(value);
@@ -65,17 +67,26 @@ export function sanitizeImportedList(values: string[], fieldType: ImportedListFi
       continue;
     }
 
-    const normalized =
-      fieldType === "themes"
-        ? normalizeThemeTag(cleaned)
-        : fieldType === "mechanics"
-          ? normalizeMechanicTag(cleaned)
-          : normalizeTag(cleaned);
+    cleanedValues.push(cleaned);
+
+    if (fieldType === "categories" || fieldType === "mechanics") {
+      continue;
+    }
+
+    const normalized = fieldType === "themes" ? normalizeThemeTag(cleaned) : normalizeTag(cleaned);
     if (!normalized || TRUNCATED_GARBAGE_PATTERN.test(normalized)) {
       continue;
     }
 
     seen.set(slugify(normalized), normalized);
+  }
+
+  if (fieldType === "categories") {
+    return normalizeCategories(cleanedValues);
+  }
+
+  if (fieldType === "mechanics") {
+    return normalizeMechanics(cleanedValues);
   }
 
   return [...seen.values()];
@@ -143,102 +154,6 @@ function looksLikeSentence(value: string) {
 function normalizeTag(value: string) {
   const lower = value.toLocaleLowerCase("es");
   return lower ? `${lower[0].toLocaleUpperCase("es")}${lower.slice(1)}`.trim() : "";
-}
-
-const MECHANIC_ALIASES: Record<string, string | null> = {
-  tablero: null,
-  tableros: null,
-  ficha: "Colocación de piezas",
-  fichas: "Colocación de piezas",
-  pieza: "Colocación de piezas",
-  piezas: "Colocación de piezas",
-  loseta: "Colocación de losetas",
-  losetas: "Colocación de losetas",
-  movimiento: "Movimiento",
-  movimientos: "Movimiento",
-  mover: "Movimiento",
-  bloqueo: "Bloqueo",
-  bloquear: "Bloqueo",
-  abstracto: "Abstracto",
-  abstracta: "Abstracto",
-  cartas: "Gestión de mano",
-  carta: "Gestión de mano",
-  dados: "Dados",
-  dado: "Dados",
-  draft: "Draft",
-  subasta: "Subastas",
-  subastas: "Subastas",
-  comercio: "Negociación",
-  negociacion: "Negociación",
-  roles: "Roles ocultos",
-  "roles-ocultos": "Roles ocultos",
-  deduccion: "Deducción",
-  "deduccion-social": "Deducción social",
-  cooperativo: "Cooperativo",
-  cooperativa: "Cooperativo",
-  mayorias: "Mayorías",
-  control: "Control de áreas",
-  "control-de-areas": "Control de áreas",
-  "colocacion-de-trabajadores": "Colocación de trabajadores",
-  trabajadores: "Colocación de trabajadores",
-  "construccion-de-mazos": "Construcción de mazos",
-  mazos: "Construcción de mazos",
-  "gestion-de-recursos": "Gestión de recursos",
-  recursos: "Gestión de recursos",
-  "set-collection": "Colección de sets",
-  coleccion: "Colección de sets",
-  "coleccion-de-sets": "Colección de sets",
-  carrera: "Carrera",
-  carreras: "Carrera",
-  memoria: "Memoria",
-  narrativo: "Narrativo",
-  legacy: "Legacy",
-  campaña: "Campaña",
-  campana: "Campaña"
-};
-
-const GENERIC_MECHANICS = new Set([
-  "Abstracto",
-  "Bloqueo",
-  "Movimiento",
-  "Colocación de piezas",
-  "Colocación de losetas",
-  "Colocación de trabajadores",
-  "Control de áreas",
-  "Mayorías",
-  "Gestión de mano",
-  "Gestión de recursos",
-  "Construcción de mazos",
-  "Colección de sets",
-  "Draft",
-  "Dados",
-  "Subastas",
-  "Negociación",
-  "Roles ocultos",
-  "Deducción",
-  "Deducción social",
-  "Cooperativo",
-  "Carrera",
-  "Memoria",
-  "Narrativo",
-  "Legacy",
-  "Campaña"
-]);
-
-function normalizeMechanicTag(value: string) {
-  const normalized = normalizeTag(value);
-  const key = slugify(normalized);
-  const alias = MECHANIC_ALIASES[key];
-
-  if (alias === null) {
-    return "";
-  }
-
-  if (alias) {
-    return alias;
-  }
-
-  return GENERIC_MECHANICS.has(normalized) ? normalized : "";
 }
 
 const THEME_ALIASES: Record<string, string | null> = {

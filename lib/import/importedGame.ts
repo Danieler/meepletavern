@@ -20,7 +20,7 @@ import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { slugify } from "@/lib/slug";
-import { getTaxonomyTermNames } from "@/lib/taxonomy";
+import { getTaxonomyTermNames, normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 
 export type NormalizedImportedCandidate = {
   sourceUrl: string;
@@ -403,18 +403,17 @@ export async function cleanupImportedCandidate(candidateId: string) {
 }
 
 async function resolveImportedTaxonomy(metadata: Record<string, unknown>) {
-  const [existingCategories, existingMechanics, existingThemes] = await Promise.all([
-    getTaxonomyTermNames("category"),
-    getTaxonomyTermNames("mechanic"),
-    getTaxonomyTermNames("theme")
-  ]);
+  const existingThemes = await getTaxonomyTermNames("theme");
 
   return {
-    categories: filterExistingTerms(stringListFromMetadata(metadata, "categoryHints"), existingCategories),
-    mechanics: sanitizeImportedList(
-      filterExistingTerms(stringListFromMetadata(metadata, "mechanicHints"), existingMechanics),
-      "mechanics"
-    ),
+    categories: normalizeCategories([
+      ...stringListFromMetadata(metadata, "categories"),
+      ...stringListFromMetadata(metadata, "categoryHints")
+    ]),
+    mechanics: normalizeMechanics([
+      ...stringListFromMetadata(metadata, "mechanics"),
+      ...stringListFromMetadata(metadata, "mechanicHints")
+    ]),
     themes: sanitizeImportedList(
       filterExistingTerms(stringListFromMetadata(metadata, "themeHints"), existingThemes),
       "themes"

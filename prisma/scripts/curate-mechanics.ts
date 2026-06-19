@@ -1,7 +1,7 @@
 // prisma/scripts/curate-mechanics.ts
 
 import { PrismaClient, TaxonomyType } from "@prisma/client";
-import { CURATED_MECHANICS_LIST, MECHANIC_REMAPPINGS, normalizeMechanicName } from "../../lib/constants/mechanics";
+import { CURATED_MECHANICS_LIST, normalizeMechanicName } from "../../lib/constants/mechanics";
 import { slugify } from "../../lib/slug"; // Assuming slugify is correctly exported and accessible
 
 const prisma = new PrismaClient();

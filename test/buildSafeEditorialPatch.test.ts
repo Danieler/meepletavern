@@ -218,7 +218,7 @@ test("buildSafeEditorialPatch can prefer model completion during import flows", 
 
   assert.equal(result.patch.shortDescription, "Cooperativo de supervivencia espacial para grupos que disfrutan la presión constante y la coordinación.");
   assert.equal(result.patch.description, "Rebel Nemesis plantea una lucha tensa por sobrevivir en una nave hostil, con decisiones compartidas y amenazas que obligan a coordinar cada turno.");
-  assert.deepEqual(result.patch.mechanics, ["Gestión de mano", "Cooperación"]);
+  assert.deepEqual(result.patch.mechanics, ["Gestión de mano", "Cooperativo"]);
   assert.equal(result.patch.publisher, "Awaken Realms");
   assert.equal(result.patch.minPlayers, 1);
   assert.equal(result.patch.maxPlayers, 5);

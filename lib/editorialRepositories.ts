@@ -9,11 +9,9 @@ import {
   Prisma
 } from "@prisma/client";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
-import { normalizeMechanicName } from "@/lib/constants/mechanics";
 import {
   normalizeCandidateImages,
   normalizeCandidateMetadata,
-  normalizeGameFaq,
   normalizeGamePlayers
 } from "@/lib/editorialMappers";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
@@ -22,6 +20,7 @@ import { canShowMedia } from "@/lib/mediaSafety";
 import { prisma } from "@/lib/prisma";
 import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
 import { slugify } from "@/lib/slug";
+import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 
 export type CandidateFilter =
   | "all"
@@ -505,10 +504,10 @@ async function buildGameCreateDataFromCandidate(candidate: CandidateForGameConve
     age: minAge ? `${minAge}+` : null,
     difficulty: extractCandidateDifficulty(metadata),
     complexity: extractCandidateDifficulty(metadata),
-    categories: sanitizeImportedList([...new Set([
-      ...extractCandidateTextList(metadata, ["categories", "category"]),
+    categories: normalizeCategories([...new Set([
+      ...extractCandidateTextList(metadata, ["categories", "category", "categoryHints"]),
       ...extractCandidateFactTextList(metadata, ["Género", "Genero"])
-    ])], "categories"),
+    ])]),
     mechanics: extractCandidateMechanics(candidate, metadata),
     themes: sanitizeImportedList([...new Set([
       ...extractCandidateTextList(metadata, ["themes", "theme"]),
@@ -586,7 +585,7 @@ function buildAmazonCandidateDraftContent(candidate: CandidateForGameConversion,
     playersLabel: extractCandidatePlayers(metadata).label || null,
     playtime: extractCandidatePlaytime(metadata),
     minAge: normalizeCandidateAge(extractCandidateNumber(metadata, ["minAge", "age", "edad"])),
-    categories: sanitizeImportedList(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"]), "categories"),
+    categories: normalizeCategories(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"])),
     mechanics: extractCandidateMechanics(candidate, metadata),
     themes: sanitizeImportedList(extractCandidateTextList(metadata, ["themes", "theme", "themeHints"]), "themes"),
     features: extractStringArray(metadata, ["features"])
@@ -652,7 +651,7 @@ function buildFallbackShortDescription(candidate: CandidateForGameConversion, me
     playersLabel: extractCandidatePlayers(metadata).label || null,
     playtime: extractCandidatePlaytime(metadata),
     minAge: normalizeCandidateAge(extractCandidateNumber(metadata, ["minAge", "age", "edad"])),
-    categories: sanitizeImportedList(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"]), "categories"),
+    categories: normalizeCategories(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"])),
     mechanics: extractCandidateMechanics(candidate, metadata),
     themes: sanitizeImportedList(extractCandidateTextList(metadata, ["themes", "theme", "themeHints"]), "themes"),
     features: extractStringArray(metadata, ["features"]),
@@ -674,7 +673,7 @@ function buildFallbackDescription(candidate: CandidateForGameConversion, metadat
     playersLabel: extractCandidatePlayers(metadata).label || null,
     playtime: extractCandidatePlaytime(metadata),
     minAge: normalizeCandidateAge(extractCandidateNumber(metadata, ["minAge", "age", "edad"])),
-    categories: sanitizeImportedList(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"]), "categories"),
+    categories: normalizeCategories(extractCandidateTextList(metadata, ["categories", "category", "categoryHints"])),
     mechanics: extractCandidateMechanics(candidate, metadata),
     themes: sanitizeImportedList(extractCandidateTextList(metadata, ["themes", "theme", "themeHints"]), "themes"),
     features: extractStringArray(metadata, ["features"]),
@@ -847,7 +846,7 @@ function extractCandidateFactTextList(metadata: Prisma.JsonObject, keys: string[
 }
 
 function extractCandidateMechanics(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {
-  const fromDirect = sanitizeImportedList(extractCandidateTextList(metadata, ["mechanics", "mechanic", "mechanicHints"]), "mechanics");
+  const fromDirect = normalizeMechanics(extractCandidateTextList(metadata, ["mechanics", "mechanic", "mechanicHints"]));
   const values = new Set<string>(fromDirect);
 
   if (isAmazonMetadata(metadata)) {
@@ -884,11 +883,7 @@ function extractCandidateMechanics(candidate: CandidateForGameConversion, metada
     // For now, I'll filter it out if not in curated list after normalization.
   }
 
-  const normalizedAndCuratedMechanics = Array.from(values)
-    .map((name) => normalizeMechanicName(name))
-    .filter((name): name is string => name !== null);
-
-  return sanitizeImportedList(normalizedAndCuratedMechanics, "mechanics");
+  return normalizeMechanics([...values]);
 }
 
 function getCandidateGameTitle(candidate: CandidateForGameConversion, metadata: Prisma.JsonObject) {

@@ -44,8 +44,8 @@ test("normalizeEditorialCompletionPayload unwraps nested Bedrock payloads and to
   assert.equal(normalized.shortDescription, "Cooperativo para dos con tensión constante en cabina.");
   assert.equal(normalized.longDescription, "Sky Team propone coordinar cada decisión de aterrizaje con información limitada y mucha presión compartida.");
   assert.equal(normalized.difficulty, "Alta");
-  assert.deepEqual(normalized.categories, ["Cooperativo", "Estrategia"]);
-  assert.deepEqual(normalized.mechanics, ["Coordinación", "Gestión de dados"]);
+  assert.deepEqual(normalized.categories, ["Estrategia", "Cooperativo"]);
+  assert.deepEqual(normalized.mechanics, ["Cooperativo"]);
   assert.deepEqual(normalized.themes, ["Aviación"]);
   assert.deepEqual(normalized.pros, [
     "Escala perfecto a dos",

@@ -14,7 +14,18 @@ test("sanitizeImportedList keeps short game terms and removes garbage", () => {
       ["Fantasía", "de seguridad de pagos encripta tu información durante la tra", "Roles ocultos", "Compra verificada"],
       "themes"
     ),
-    ["Fantasía", "Roles ocultos"]
+    ["Fantasía"]
+  );
+});
+
+test("sanitizeImportedList normalizes category and mechanic aliases to canonical taxonomy", () => {
+  assert.deepEqual(
+    sanitizeImportedList(["Fiesta", "Familiares", "Campaña", "Colocación de losetas"], "categories"),
+    ["Familiar", "Party", "Campaña / Legacy"]
+  );
+  assert.deepEqual(
+    sanitizeImportedList(["Construcción de mazos", "Colección de sets", "Control de áreas", "Draft", "Dados"], "mechanics"),
+    ["Deckbuilding", "Set collection", "Draft de cartas", "Area control"]
   );
 });
 
