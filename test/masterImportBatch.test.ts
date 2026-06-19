@@ -45,6 +45,32 @@ function buildSummary(title: string): MasterImportSummary {
     suggestedAction: "review_candidate",
     sourceDiagnostics: [],
     sourcesWithOffers: [],
-    sourcesWithoutOffers: []
+    sourcesWithoutOffers: [],
+    imageDiagnostics: {
+      totalFound: 0,
+      publicSafeFound: 0,
+      rejected: [],
+      selectedMainImage: null,
+      selectedAdditionalImages: []
+    },
+    fieldDiagnostics: {},
+    taxonomyDiagnostics: {
+      categories: [],
+      mechanics: [],
+      themes: [],
+      confidence: 0,
+      decisions: [],
+      warnings: [],
+      needsReview: true
+    },
+    cacheDiagnostics: [],
+    externalCallDiagnostics: [],
+    costDiagnostics: {
+      tavilyUsed: false,
+      tavilyReason: null,
+      bedrockUsed: false,
+      bedrockReason: null,
+      videoSearchUsed: false
+    }
   };
 }

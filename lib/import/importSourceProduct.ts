@@ -6,6 +6,7 @@ import { buildAmazonCanonicalUrl, parseAmazonInput } from "@/lib/amazon/parseAma
 import { sourceRepository } from "@/lib/editorialRepositories";
 import { persistImportedGameReview, type ImportedGameResult, type NormalizedImportedCandidate } from "@/lib/import/importedGame";
 import { getStoreSourceConnector, mapStoreSourceResultToImportCandidate } from "@/lib/import/sourceConnectors";
+import type { ImportExecutionContext } from "@/lib/import/importExecutionContext";
 import { fetchSourcePageProduct, type SourcePageProduct } from "@/lib/import/sourceProductPage";
 import {
   sanitizeImportedFacts,
@@ -61,6 +62,7 @@ export async function importSourceProductReview(input: {
 export async function importSourceProductCandidate(input: {
   source: Pick<Source, "id" | "name" | "baseUrl">;
   sourceUrl: string;
+  context?: ImportExecutionContext;
 }): Promise<{
   candidate: NormalizedImportedCandidate;
   publicImageUrls: string[];
@@ -89,7 +91,7 @@ export async function importSourceProductCandidate(input: {
 
   const connector = getStoreSourceConnector(input.source);
   if (connector) {
-    const result = await connector.importGameFromSourceUrl(input.sourceUrl);
+    const result = await connector.importGameFromSourceUrl(input.sourceUrl, input.context);
     const candidate = mapStoreSourceResultToImportCandidate(result);
 
     return {

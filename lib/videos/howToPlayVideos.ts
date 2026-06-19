@@ -1,4 +1,4 @@
-import { Prisma, type Game } from "@prisma/client";
+import type { Game } from "@prisma/client";
 import { getYouTubeVideoId, isYouTubeUrl } from "@/lib/videos/youtube";
 
 export const howToPlayVideoTypes = ["tutorial", "rules", "playthrough", "review_with_rules"] as const;
@@ -29,7 +29,6 @@ const TRUSTED_CHANNEL_PATTERNS = [
   /aprende a jugar/i,
   /juegorrinos/i,
   /an[aá]lisis par[aá]lisis/i,
-  /boardgamegeek/i,
   /devir/i,
   /asmodee/i,
   /maldito games/i,
@@ -75,6 +74,8 @@ export function normalizeHowToPlayVideos(value: unknown): HowToPlayVideo[] {
 
 export function scoreHowToPlayVideoCandidate(candidate: VideoCandidate, game: Pick<Game, "title" | "name" | "originalTitle" | "publisher">) {
   const title = candidate.title || candidate.url;
+  const titleText = normalizeComparable(title);
+  const sourceText = normalizeComparable(candidate.source || "");
   const haystack = normalizeComparable(`${title} ${candidate.snippet || ""}`);
   const gameTitle = game.title || game.name;
   const normalizedTitle = normalizeComparable(gameTitle);
@@ -95,7 +96,7 @@ export function scoreHowToPlayVideoCandidate(candidate: VideoCandidate, game: Pi
   }
 
   if (looksLikeWrongEdition(candidate, gameTitle)) {
-    score -= 25;
+    score -= 60;
     reasons.push("podría ser otra edición o expansión");
   }
 
@@ -129,20 +130,29 @@ export function scoreHowToPlayVideoCandidate(candidate: VideoCandidate, game: Pi
     }
   }
   if (/unboxing/.test(haystack)) {
-    score -= 25;
+    score -= 80;
     reasons.push("unboxing descartable");
+  }
+  if (/\b(abrimos|opening)\b|\bwe open\b/.test(titleText)) {
+    score -= 80;
+    reasons.push("apertura/unboxing descartable");
   }
   if (/partida completa/.test(haystack) && !/explicada|tutorial|reglas/.test(haystack)) {
     score -= 20;
     reasons.push("partida completa sin explicación");
   }
 
-  if (looksSpanish(haystack)) {
+  const titleLooksSpanish = looksSpanish(titleText) || looksSpanish(sourceText);
+  const titleLooksEnglish = looksEnglish(titleText) || looksEnglish(sourceText);
+  if (titleLooksSpanish) {
     score += 20;
     reasons.push("parece contenido en español");
-  } else if (looksEnglish(haystack)) {
-    score -= 10;
+  } else if (titleLooksEnglish) {
+    score -= 55;
     reasons.push("parece estar en inglés");
+  } else if (looksSpanish(haystack) && !looksEnglish(titleText)) {
+    score += 5;
+    reasons.push("incluye señales débiles en español");
   }
 
   if (game.publisher && normalizeComparable(candidate.source || "").includes(normalizeComparable(game.publisher))) {
@@ -216,7 +226,7 @@ export function buildHowToPlayVideoQueries(game: Game) {
 export function selectHowToPlayVideos(candidates: VideoCandidate[], game: Game) {
   const scored = candidates
     .map((candidate) => scoreHowToPlayVideoCandidate(candidate, game))
-    .filter((video) => video.confidence !== "low" || video.score >= 25)
+    .filter((video) => video.confidence !== "low")
     .sort((left, right) => right.score - left.score);
   const selected: HowToPlayVideo[] = [];
 
@@ -299,14 +309,18 @@ function looksLikeWrongEdition(candidate: VideoCandidate, gameTitle: string) {
   const text = normalizeComparable(candidate.title);
   const game = normalizeComparable(gameTitle);
   const gameTokens = titleWords(gameTitle);
-  if (!gameTokens.length || text.includes(game)) {
+  if (!gameTokens.length) {
     return false;
   }
-  return /expansion|expansion|white death|segunda edicion|pocket|legacy|junior/.test(text) && gameTokens.some((token) => text.includes(token));
+  const suspiciousVariant = /expansion|expansion|white death|segunda edicion|pocket|legacy|junior|disney edition|munchkin|anniversary|kidsplaining/.test(text);
+  if (text.includes(game)) {
+    return suspiciousVariant;
+  }
+  return suspiciousVariant && gameTokens.some((token) => text.includes(token));
 }
 
 function looksSpanish(value: string) {
-  return /\b(c[oó]mo|como|juega|reglas|espa[nñ]ol|aprende|partida|rese[nñ]a|tutorial)\b/.test(value);
+  return /\b(c[oó]mo|como|juega|reglas|espa[nñ]ol|aprende|partida|rese[nñ]a)\b/.test(value);
 }
 
 function looksEnglish(value: string) {

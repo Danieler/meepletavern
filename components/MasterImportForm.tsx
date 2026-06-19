@@ -276,6 +276,8 @@ export function MasterImportForm({ disabled }: { disabled?: boolean }) {
                 </div>
               ) : null}
 
+              <ImportDiagnostics result={result} />
+
               {result.warnings.length ? (
                 <p className="mt-2 text-sm text-amber-700">Avisos: {result.warnings.join(" ")}</p>
               ) : null}
@@ -294,6 +296,61 @@ export function MasterImportForm({ disabled }: { disabled?: boolean }) {
         </div>
       ) : null}
     </section>
+  );
+}
+
+function ImportDiagnostics({ result }: { result: MasterImportBatchState["results"][number] }) {
+  const selectedImage = result.imageDiagnostics?.selectedMainImage;
+  const taxonomy = result.taxonomyDiagnostics;
+  const cost = result.costDiagnostics;
+  const fieldEntries = Object.entries(result.fieldDiagnostics || {}).slice(0, 8);
+  const cacheHits = result.cacheDiagnostics?.filter((entry) => entry.hit).length || 0;
+  const cacheMisses = result.cacheDiagnostics?.filter((entry) => !entry.hit).length || 0;
+  const externalCalls = result.externalCallDiagnostics || [];
+
+  if (!result.imageDiagnostics && !taxonomy && !cost && !fieldEntries.length && !externalCalls.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 grid gap-2 text-xs text-ink/65 md:grid-cols-2">
+      {result.imageDiagnostics ? (
+        <div className="rounded-md border border-ink/10 bg-white/60 p-3">
+          <p className="font-bold text-ink">Imágenes</p>
+          <p>Encontradas: {result.imageDiagnostics.totalFound} · Públicas: {result.imageDiagnostics.publicSafeFound}</p>
+          {selectedImage ? <p>Principal: {selectedImage.sourceName || "Fuente"} · {shortUrl(selectedImage.url)}</p> : null}
+          {result.imageDiagnostics.rejected.length ? <p>Rechazadas: {result.imageDiagnostics.rejected.length}</p> : null}
+        </div>
+      ) : null}
+
+      {taxonomy ? (
+        <div className="rounded-md border border-ink/10 bg-white/60 p-3">
+          <p className="font-bold text-ink">Taxonomía {Math.round(taxonomy.confidence * 100)}%</p>
+          {taxonomy.categories.length ? <p>Categorías: {taxonomy.categories.join(", ")}</p> : null}
+          {taxonomy.mechanics.length ? <p>Mecánicas: {taxonomy.mechanics.join(", ")}</p> : null}
+          {taxonomy.warnings.length ? <p className="text-amber-700">{taxonomy.warnings.join(" ")}</p> : null}
+        </div>
+      ) : null}
+
+      {fieldEntries.length ? (
+        <div className="rounded-md border border-ink/10 bg-white/60 p-3">
+          <p className="font-bold text-ink">Campos</p>
+          {fieldEntries.map(([field, diagnostic]) => (
+            <p key={field}>{field}: {diagnostic.sourceName || "Fuente"} · {Math.round(diagnostic.confidence * 100)}%</p>
+          ))}
+        </div>
+      ) : null}
+
+      {cost || externalCalls.length || result.cacheDiagnostics?.length ? (
+        <div className="rounded-md border border-ink/10 bg-white/60 p-3">
+          <p className="font-bold text-ink">Coste</p>
+          {cost ? <p>Tavily: {cost.tavilyUsed ? "sí" : "no"} · Bedrock: {cost.bedrockUsed ? "sí" : "no"} · Vídeo: {cost.videoSearchUsed ? "sí" : "no"}</p> : null}
+          {cost?.tavilyReason ? <p>{cost.tavilyReason}</p> : null}
+          {externalCalls.length ? <p>Llamadas externas: {externalCalls.filter((entry) => entry.allowed).length}/{externalCalls.length}</p> : null}
+          {result.cacheDiagnostics?.length ? <p>Caché: {cacheHits} hit · {cacheMisses} miss</p> : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -439,4 +496,14 @@ function formatMoney(value: number, currency: string | null) {
     style: "currency",
     currency: currency || "EUR"
   }).format(value);
+}
+
+function shortUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const filename = url.pathname.split("/").filter(Boolean).at(-1) || url.hostname;
+    return `${url.hostname}/${filename}`.slice(0, 64);
+  } catch {
+    return value.slice(0, 64);
+  }
 }

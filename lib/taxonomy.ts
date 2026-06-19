@@ -1,9 +1,6 @@
-import { Prisma, TaxonomyType } from "@prisma/client";
-import { unstable_cache } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
 
-export type TaxonomyTypeKey = `${TaxonomyType}`;
+export type TaxonomyTypeKey = "category" | "mechanic" | "theme";
 
 export type TaxonomyTermItem = {
   id: string;
@@ -11,12 +8,6 @@ export type TaxonomyTermItem = {
   name: string;
   slug: string;
 };
-
-const taxonomyColumns = {
-  category: Prisma.raw('"categories"'),
-  mechanic: Prisma.raw('"mechanics"'),
-  theme: Prisma.raw('"themes"')
-} satisfies Record<TaxonomyTypeKey, Prisma.Sql>;
 
 export const CANONICAL_CATEGORIES = [
   "Familiar",
@@ -244,7 +235,7 @@ const mechanicAliases: Record<string, CanonicalMechanic[] | null> = {
 };
 
 export function isTaxonomyType(value: unknown): value is TaxonomyTypeKey {
-  return value === TaxonomyType.category || value === TaxonomyType.mechanic || value === TaxonomyType.theme;
+  return value === "category" || value === "mechanic" || value === "theme";
 }
 
 export function isCanonicalCategory(value: string): value is CanonicalCategory {
@@ -300,6 +291,7 @@ export function normalizeTaxonomyMetadata<T extends Record<string, unknown>>(met
 }
 
 export async function getAdminTaxonomyTerms(type: TaxonomyTypeKey) {
+  const prisma = await getPrismaClient();
   return prisma.taxonomyTerm.findMany({
     where: { type },
     orderBy: [{ name: "asc" }]
@@ -318,47 +310,40 @@ export async function getTaxonomyTermNames(type: TaxonomyTypeKey) {
   }
 }
 
-const getCachedTaxonomyTermNames = unstable_cache(
-  async function getCachedTaxonomyTermNames(type: TaxonomyTypeKey) {
-    const terms = await prisma.taxonomyTerm.findMany({
-      where: { type },
-      orderBy: [{ name: "asc" }],
-      select: { name: true }
-    });
+async function getCachedTaxonomyTermNames(type: TaxonomyTypeKey) {
+  const { unstable_cache } = await import("next/cache");
+  const cached = unstable_cache(
+    async function cachedTaxonomyTermNames(innerType: TaxonomyTypeKey) {
+      return getDirectTaxonomyTermNames(innerType);
+    },
+    ["taxonomy-term-names"],
+    { revalidate: 3600, tags: ["public-taxonomy"] }
+  );
 
-    if (type === TaxonomyType.category) {
-      return [...CANONICAL_CATEGORIES];
-    }
-
-    if (type === TaxonomyType.mechanic) {
-      return [...CANONICAL_MECHANICS];
-    }
-
-    return terms.map((term) => term.name);
-  },
-  ["taxonomy-term-names"],
-  { revalidate: 3600, tags: ["public-taxonomy"] }
-);
+  return cached(type);
+}
 
 async function getDirectTaxonomyTermNames(type: TaxonomyTypeKey) {
+  if (type === "category") {
+    return [...CANONICAL_CATEGORIES];
+  }
+
+  if (type === "mechanic") {
+    return [...CANONICAL_MECHANICS];
+  }
+
+  const prisma = await getPrismaClient();
   const terms = await prisma.taxonomyTerm.findMany({
     where: { type },
     orderBy: [{ name: "asc" }],
     select: { name: true }
   });
 
-  if (type === TaxonomyType.category) {
-    return [...CANONICAL_CATEGORIES];
-  }
-
-  if (type === TaxonomyType.mechanic) {
-    return [...CANONICAL_MECHANICS];
-  }
-
   return terms.map((term) => term.name);
 }
 
 export async function createTaxonomyTerm(type: TaxonomyTypeKey, rawName: unknown) {
+  const prisma = await getPrismaClient();
   const name = normalizeTermName(type, rawName);
   const slug = normalizeTermSlug(name);
 
@@ -372,6 +357,7 @@ export async function createTaxonomyTerm(type: TaxonomyTypeKey, rawName: unknown
 }
 
 export async function renameTaxonomyTerm(id: unknown, rawName: unknown) {
+  const prisma = await getPrismaClient();
   const termId = normalizeTermId(id);
   const existingTerm = await prisma.taxonomyTerm.findUnique({ where: { id: termId } });
 
@@ -386,7 +372,8 @@ export async function renameTaxonomyTerm(id: unknown, rawName: unknown) {
     return existingTerm;
   }
 
-  const column = taxonomyColumns[existingTerm.type];
+  const { Prisma } = await import("@prisma/client");
+  const column = taxonomyColumn(existingTerm.type as TaxonomyTypeKey, Prisma);
 
   const [updatedTerm] = await prisma.$transaction([
     prisma.taxonomyTerm.update({
@@ -404,6 +391,7 @@ export async function renameTaxonomyTerm(id: unknown, rawName: unknown) {
 }
 
 export async function deleteTaxonomyTerm(id: unknown) {
+  const prisma = await getPrismaClient();
   const termId = normalizeTermId(id);
   const existingTerm = await prisma.taxonomyTerm.findUnique({ where: { id: termId } });
 
@@ -411,7 +399,8 @@ export async function deleteTaxonomyTerm(id: unknown) {
     throw new Error("No existe ese término.");
   }
 
-  const column = taxonomyColumns[existingTerm.type];
+  const { Prisma } = await import("@prisma/client");
+  const column = taxonomyColumn(existingTerm.type as TaxonomyTypeKey, Prisma);
 
   await prisma.$transaction([
     prisma.$executeRaw`
@@ -424,7 +413,7 @@ export async function deleteTaxonomyTerm(id: unknown) {
 }
 
 export function taxonomyErrorMessage(error: unknown) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+  if (isPrismaUniqueConstraintError(error)) {
     return "Ya existe un término con ese nombre.";
   }
 
@@ -446,7 +435,7 @@ function normalizeTermName(type: TaxonomyTypeKey, value: unknown) {
 
   const rawName = value.trim().replace(/\s+/g, " ");
 
-  if (type === TaxonomyType.category) {
+  if (type === "category") {
     const [category] = normalizeCategories([rawName]);
     if (!category) {
       throw new Error("La categoría no pertenece a la taxonomía canónica.");
@@ -454,7 +443,7 @@ function normalizeTermName(type: TaxonomyTypeKey, value: unknown) {
     return category;
   }
 
-  if (type === TaxonomyType.mechanic) {
+  if (type === "mechanic") {
     const [mechanic] = normalizeMechanics([rawName]);
     if (!mechanic) {
       throw new Error("La mecánica no pertenece a la taxonomía canónica.");
@@ -473,6 +462,32 @@ function normalizeTermSlug(name: string) {
   }
 
   return slug;
+}
+
+async function getPrismaClient() {
+  const { prisma } = await import("@/lib/prisma");
+  return prisma;
+}
+
+function taxonomyColumn(type: TaxonomyTypeKey, prismaRuntime: { raw(value: string): unknown }) {
+  if (type === "category") {
+    return prismaRuntime.raw('"categories"');
+  }
+
+  if (type === "mechanic") {
+    return prismaRuntime.raw('"mechanics"');
+  }
+
+  return prismaRuntime.raw('"themes"');
+}
+
+function isPrismaUniqueConstraintError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "P2002"
+  );
 }
 
 function isMissingIncrementalCacheError(error: unknown) {

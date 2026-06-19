@@ -5,6 +5,7 @@ import type { GameImageFields } from "@/lib/gameImages";
 import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
 import { sanitizeImportedList, sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
+import { isUnavailableOfferAvailability } from "@/lib/gameOffers";
 import { prisma } from "@/lib/prisma";
 import { getPublishedReviewBySlug, getPublishedReviews } from "@/lib/reviews";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
@@ -685,6 +686,8 @@ function buildBuyLinks(game: Pick<CatalogGameDetails, "buyUrl" | "offers">): Buy
   const offers = Array.isArray(game.offers) ? game.offers : [];
   const links = offers
     .flatMap((offer) => {
+      if (isUnavailableOfferAvailability(offer.availability)) return [];
+
       const url = offer.affiliateUrl || offer.purchaseUrl || offer.sourceUrl;
       if (!url) return [];
 
@@ -696,7 +699,7 @@ function buildBuyLinks(game: Pick<CatalogGameDetails, "buyUrl" | "offers">): Buy
       }];
     });
 
-  if (!links.length && game.buyUrl) {
+  if (!links.length && game.buyUrl && !offers.length) {
     return [{ store: "Comprar", url: game.buyUrl, priceLabel: null, availability: null }];
   }
 

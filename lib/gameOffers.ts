@@ -77,6 +77,14 @@ export function normalizeStoreOffer(input: StoreOfferInput, source: Pick<Source,
   const rawData = normalizeJsonValue(input.rawData);
   const fetchedAt = normalizeDate(input.fetchedAt) || new Date();
 
+  if (isUnavailableOfferAvailability(availability)) {
+    return null;
+  }
+
+  if (price !== null && !availability && sourceName !== "amazon") {
+    return null;
+  }
+
   if (!hasUsefulOfferData({ price, availability, purchaseUrl, affiliateUrl, sourceUrl, externalId })) {
     return null;
   }
@@ -242,14 +250,16 @@ export async function upsertStoreOfferRecordDetailed(
 export function getBestOffer<T extends Pick<GameOffer, "price" | "availability" | "purchaseUrl" | "affiliateUrl" | "sourceUrl" | "fetchedAt">>(
   offers: T[]
 ) {
-  const usefulOffers = offers.filter((offer) => hasUsefulOfferData({
-    price: offer.price,
-    availability: offer.availability,
-    purchaseUrl: offer.purchaseUrl,
-    affiliateUrl: offer.affiliateUrl,
-    sourceUrl: offer.sourceUrl,
-    externalId: null
-  }));
+  const usefulOffers = offers
+    .filter((offer) => !isUnavailableOfferAvailability(offer.availability))
+    .filter((offer) => hasUsefulOfferData({
+      price: offer.price,
+      availability: offer.availability,
+      purchaseUrl: offer.purchaseUrl,
+      affiliateUrl: offer.affiliateUrl,
+      sourceUrl: offer.sourceUrl,
+      externalId: null
+    }));
 
   if (!usefulOffers.length) {
     return null;
@@ -577,6 +587,16 @@ function hasUsefulOfferData(input: {
   );
 }
 
+export function isUnavailableOfferAvailability(value: string | null | undefined) {
+  const normalized = (value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  return /agotad|sin stock|fuera de stock|outofstock|unavailable|no esta disponible|no disponible/.test(normalized);
+}
+
 function availabilityPriority(value: string | null | undefined) {
   const normalized = (value || "").trim().toLowerCase();
 
@@ -584,7 +604,7 @@ function availabilityPriority(value: string | null | undefined) {
     return 1;
   }
 
-  if (/agotad|sin stock|fuera de stock|outofstock|unavailable/.test(normalized)) {
+  if (isUnavailableOfferAvailability(normalized)) {
     return 2;
   }
 

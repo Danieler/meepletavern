@@ -1,8 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GameCandidateStatus, type GameOffer } from "@prisma/client";
-import { createMasterImportService, type MasterImportInput } from "@/lib/import/masterImportService";
+import { buildMasterImportSearchQueries, createMasterImportService, type MasterImportInput } from "@/lib/import/masterImportService";
 import type { NormalizedImportedCandidate } from "@/lib/import/importedGame";
+
+process.env.MASTER_IMPORT_TAVILY_MODE = "off";
+process.env.MASTER_IMPORT_BEDROCK_MODE = "off";
+process.env.MASTER_IMPORT_VIDEO_SEARCH_MODE = "off";
 
 const SOURCE_A = { id: "source_a", name: "Juegos de la Mesa Redonda", baseUrl: "https://juegosdelamesaredonda.com" };
 const SOURCE_B = { id: "source_b", name: "Dungeon Marvels", baseUrl: "https://dungeonmarvels.com" };
@@ -781,6 +785,215 @@ test("importAndEnrichGame respeta dryRun y no persiste", async () => {
   assert.equal(offers, 0);
 });
 
+test("buildMasterImportSearchQueries añade variantes juego de mesa y sin apóstrofe", () => {
+  assert.deepEqual(buildMasterImportSearchQueries("Earth"), ["Earth", "Earth juego de mesa", "Earth juego de tablero"]);
+  assert.deepEqual(buildMasterImportSearchQueries("Can't Stop"), [
+    "Can't Stop",
+    "Cant Stop",
+    "Can't Stop juego de mesa",
+    "Can't Stop juego de tablero",
+    "Cant Stop juego de mesa",
+    "Cant Stop juego de tablero"
+  ]);
+  assert.deepEqual(buildMasterImportSearchQueries("Bang! El juego de dados").slice(0, 4), [
+    "Bang! El juego de dados",
+    "Bang El juego de dados",
+    "Bang! The Dice Game",
+    "Bang! Dice Game"
+  ]);
+});
+
+test("importAndEnrichGame prueba variantes de búsqueda cuando la query exacta no encuentra match", async () => {
+  const queries: string[] = [];
+  const service = createMasterImportService({
+    ...createDeps({
+      sources: [SOURCE_A],
+      importedByUrl: {
+        "https://juegosdelamesaredonda.com/earth.html": importedCandidate("Earth", SOURCE_A, {
+          price: 42.95,
+          availability: "En stock"
+        })
+      }
+    }),
+    async searchSource(source, title) {
+      queries.push(title);
+      return {
+        supported: true,
+        results: title === "Earth juego de mesa"
+          ? [
+              searchResult({
+                sourceName: "juegos_de_la_mesa_redonda",
+                sourceDisplayName: source.name,
+                sourceUrl: "https://juegosdelamesaredonda.com/earth.html",
+                purchaseUrl: "https://juegosdelamesaredonda.com/earth.html",
+                title: "Earth",
+                normalizedTitle: "earth",
+                price: 42.95,
+                currency: "EUR",
+                availability: "En stock",
+                imageAllowed: false,
+                imageUrl: null,
+                confidence: 0.9
+              })
+            ]
+          : []
+      };
+    }
+  });
+
+  const result = await service({ title: "Earth" });
+
+  assert.deepEqual(queries, ["Earth", "Earth juego de mesa", "Earth juego de tablero"]);
+  assert.equal(result.title, "Earth");
+  assert.equal(result.offersCreated, 1);
+});
+
+test("importAndEnrichGame no corta la búsqueda al primer match y conserva resultados de variantes", async () => {
+  const queries: string[] = [];
+  const service = createMasterImportService({
+    ...createDeps({
+      sources: [SOURCE_A],
+      importedByUrl: {
+        "https://juegosdelamesaredonda.com/earth.html": importedCandidate("Earth", SOURCE_A, {
+          price: 42.95,
+          availability: "En stock"
+        })
+      }
+    }),
+    async searchSource(source, title) {
+      queries.push(title);
+      return {
+        supported: true,
+        results:
+          title === "Earth"
+            ? [
+                searchResult({
+                  sourceName: "juegos_de_la_mesa_redonda",
+                  sourceDisplayName: source.name,
+                  sourceUrl: "https://juegosdelamesaredonda.com/earth-abundancia.html",
+                  purchaseUrl: "https://juegosdelamesaredonda.com/earth-abundancia.html",
+                  title: "Earth: Abundancia",
+                  normalizedTitle: "earth-abundancia",
+                  price: 24.95,
+                  currency: "EUR",
+                  availability: "En stock",
+                  imageAllowed: false,
+                  imageUrl: null,
+                  confidence: 0.95
+                })
+              ]
+            : title === "Earth juego de tablero"
+              ? [
+                  searchResult({
+                    sourceName: "juegos_de_la_mesa_redonda",
+                    sourceDisplayName: source.name,
+                    sourceUrl: "https://juegosdelamesaredonda.com/earth.html",
+                    purchaseUrl: "https://juegosdelamesaredonda.com/earth.html",
+                    title: "Earth",
+                    normalizedTitle: "earth",
+                    price: 42.95,
+                    currency: "EUR",
+                    availability: "En stock",
+                    imageAllowed: false,
+                    imageUrl: null,
+                    confidence: 0.9
+                  })
+                ]
+              : []
+      };
+    }
+  });
+
+  const result = await service({ title: "Earth" });
+
+  assert.deepEqual(queries, ["Earth", "Earth juego de mesa", "Earth juego de tablero"]);
+  assert.equal(result.title, "Earth");
+  assert.equal(result.bestOffer?.price, 42.95);
+});
+
+test("importAndEnrichGame descarta precios agotados pero conserva sus imágenes públicas", async () => {
+  const service = createMasterImportService(
+    createDeps({
+      sources: [SOURCE_B],
+      searchResults: {
+        [SOURCE_B.id]: [
+          searchResult({
+            sourceName: "dungeon_marvels",
+            sourceDisplayName: SOURCE_B.name,
+            sourceUrl: "https://dungeonmarvels.com/earth-castellano-73021.html",
+            purchaseUrl: "https://dungeonmarvels.com/earth-castellano-73021.html",
+            title: "Earth (Castellano)",
+            normalizedTitle: "earth-castellano",
+            price: 50,
+            currency: "EUR",
+            availability: "Agotado",
+            imageAllowed: true,
+            imageUrl: "https://dungeonmarvels.com/137272-large_default/earth-castellano.jpg",
+            confidence: 0.94
+          })
+        ]
+      },
+      importedByUrl: {
+        "https://dungeonmarvels.com/earth-castellano-73021.html": importedCandidate("Earth (Castellano)", SOURCE_B, {
+          price: 45,
+          availability: "Agotado",
+          imageUrls: [
+            "https://dungeonmarvels.com/137272-large_default/earth-castellano.jpg",
+            "https://dungeonmarvels.com/137273-large_default/earth-castellano.jpg",
+            "https://dungeonmarvels.com/137274-large_default/earth-castellano.jpg"
+          ]
+        })
+      }
+    })
+  );
+
+  const result = await service({ title: "Earth" });
+
+  assert.equal(result.offersCreated, 0);
+  assert.deepEqual(result.sourcesWithOffers, []);
+  assert.deepEqual(result.sourcesWithoutOffers, [SOURCE_B.name]);
+  assert.equal(result.bestOffer, null);
+  assert.equal(result.imageDiagnostics.publicSafeFound, 3);
+  assert.equal(result.imageDiagnostics.selectedAdditionalImages.length, 2);
+});
+
+test("importAndEnrichGame conserva precio de búsqueda si la ficha detallada pierde comercio disponible", async () => {
+  const service = createMasterImportService(
+    createDeps({
+      sources: [SOURCE_A],
+      searchResults: {
+        [SOURCE_A.id]: [
+          searchResult({
+            sourceName: "juegos_de_la_mesa_redonda",
+            sourceDisplayName: SOURCE_A.name,
+            sourceUrl: "https://juegosdelamesaredonda.com/earth.html",
+            purchaseUrl: "https://juegosdelamesaredonda.com/earth.html",
+            title: "Earth",
+            normalizedTitle: "earth",
+            price: 42.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: false,
+            imageUrl: null,
+            confidence: 0.9
+          })
+        ]
+      },
+      importedByUrl: {
+        "https://juegosdelamesaredonda.com/earth.html": importedCandidate("Earth", SOURCE_A, {
+          availability: "En stock"
+        })
+      }
+    })
+  );
+
+  const result = await service({ title: "Earth" });
+
+  assert.equal(result.offersCreated, 1);
+  assert.deepEqual(result.sourcesWithOffers, [SOURCE_A.name]);
+  assert.equal(result.bestOffer?.price, 42.95);
+});
+
 function createDeps(input: {
   sources?: Array<typeof SOURCE_A>;
   searchResults?: Record<string, ReturnType<typeof searchResult>[]>;
@@ -905,6 +1118,7 @@ function importedCandidate(
     availability?: string;
     description?: string;
     imageUrl?: string;
+    imageUrls?: string[];
   }
 ) {
   const sourceNameById: Record<string, "juegos_de_la_mesa_redonda" | "dungeon_marvels" | "amazon" | "dracotienda" | "zacatrus"> = {
@@ -919,6 +1133,8 @@ function importedCandidate(
   const sourceUrl = source.id === SOURCE_C.id
     ? `https://www.amazon.es/dp/${slug.replace(/-/g, "").slice(0, 10).toUpperCase().padEnd(10, "X")}`
     : `${source.baseUrl}/${slug}.html`;
+
+  const imageUrls = input.imageUrls || (input.imageUrl ? [input.imageUrl] : []);
 
   return {
     candidate: {
@@ -942,13 +1158,15 @@ function importedCandidate(
         minAge: 8
       },
       extractedDescription: input.description || `${title} es un juego con información suficiente para validar el importador maestro y su agregación de fuentes.`,
-      candidateImages: input.imageUrl
-        ? [{ url: input.imageUrl, type: "cover" as const, sourceUrl }]
-        : [],
+      candidateImages: imageUrls.map((url, index) => ({
+        url,
+        type: index === 0 ? ("cover" as const) : ("component" as const),
+        sourceUrl
+      })),
       confidence: 0.84,
       flags: []
     },
-    publicImageUrls: input.imageUrl ? [input.imageUrl] : []
+    publicImageUrls: imageUrls
   };
 }
 

@@ -13,7 +13,7 @@ export type ImportedDifficultyInput = {
   fallback?: string | null;
 };
 
-export type ImportedDifficultySource = "bgg_weight" | "known_weight" | "explicit" | "heuristic" | "fallback" | "default";
+export type ImportedDifficultySource = "known_weight" | "explicit" | "heuristic" | "fallback" | "default";
 
 export type ImportedDifficultyResult = {
   value: string;
@@ -21,7 +21,7 @@ export type ImportedDifficultyResult = {
   weight: number | null;
 };
 
-const KNOWN_BGG_WEIGHTS: Array<{ pattern: RegExp; weight: number }> = [
+const KNOWN_COMPLEXITY_WEIGHTS: Array<{ pattern: RegExp; weight: number }> = [
   { pattern: /\bspirit island\b/i, weight: 4.07 },
   { pattern: /\bgloomhaven\b/i, weight: 3.92 },
   { pattern: /\bbrass\s*:?\s*birmingham\b/i, weight: 3.86 },
@@ -48,11 +48,6 @@ export function normalizeDifficultyFromImportedDataOrNull(input: ImportedDifficu
 
 export function inferImportedDifficulty(input: ImportedDifficultyInput): ImportedDifficultyResult {
   const metadata = input.metadata || {};
-  const bggWeight = readBggWeight(metadata);
-  if (bggWeight !== null) {
-    return { value: difficultyFromWeight(bggWeight), source: "bgg_weight", weight: bggWeight };
-  }
-
   const knownWeight = readKnownWeight(`${input.title || ""} ${input.originalTitle || ""}`);
   if (knownWeight !== null) {
     return { value: difficultyFromWeight(knownWeight), source: "known_weight", weight: knownWeight };
@@ -117,52 +112,6 @@ function difficultyFromHeuristics(input: ImportedDifficultyInput) {
   return null;
 }
 
-function readBggWeight(metadata: Record<string, unknown> | null | undefined): number | null {
-  if (!metadata) return null;
-  const direct = readFirstNumber(metadata, [
-    "bggWeight",
-    "bggAverageWeight",
-    "averageweight",
-    "averageWeight",
-    "average_weight",
-    "boardGameGeekWeight",
-    "boardgamegeekWeight",
-    "complexityWeight",
-    "complexityScore"
-  ]);
-  if (direct !== null && direct >= 1 && direct <= 5) return direct;
-
-  const nested = readNestedWeight(metadata, 0);
-  return nested !== null && nested >= 1 && nested <= 5 ? nested : null;
-}
-
-function readNestedWeight(value: unknown, depth: number): number | null {
-  if (depth > 4 || !value || typeof value !== "object") return null;
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = readNestedWeight(item, depth + 1);
-      if (found !== null) return found;
-    }
-    return null;
-  }
-
-  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-    const keyLooksUseful = /(bgg|boardgamegeek|average).*weight|weight.*(bgg|boardgamegeek|average)|complexity.*(weight|score)/i.test(key);
-    if (keyLooksUseful) {
-      const parsed = numberFromUnknown(item);
-      if (parsed !== null && parsed >= 1 && parsed <= 5) return parsed;
-    }
-
-    if (/^(bgg|boardgamegeek|statistics|stats|ratings)$/i.test(key)) {
-      const found = readNestedWeight(item, depth + 1);
-      if (found !== null) return found;
-    }
-  }
-
-  return null;
-}
-
 function readExplicitDifficulty(metadata: Record<string, unknown>) {
   const direct = readFirstString(metadata, ["difficulty", "complexity", "dificultad", "complejidad", "difficultyLabel", "complexityLabel"]);
   const normalizedDirect = normalizeDifficultyLabel(direct);
@@ -200,7 +149,7 @@ function normalizeDifficultyLabel(value: unknown): string | null {
 function readKnownWeight(text: string) {
   const normalized = text.trim();
   if (!normalized) return null;
-  return KNOWN_BGG_WEIGHTS.find((entry) => entry.pattern.test(normalized))?.weight ?? null;
+  return KNOWN_COMPLEXITY_WEIGHTS.find((entry) => entry.pattern.test(normalized))?.weight ?? null;
 }
 
 function readPlaytimeRange(input: ImportedDifficultyInput) {
@@ -256,14 +205,6 @@ function readFacts(metadata: Record<string, unknown>) {
   const facts = metadata.facts;
   if (!facts || typeof facts !== "object" || Array.isArray(facts)) return [];
   return Object.entries(facts as Record<string, unknown>).flatMap(([key, value]) => [`${key}`, typeof value === "string" ? value : String(value ?? "")]);
-}
-
-function readFirstNumber(metadata: Record<string, unknown>, keys: string[]) {
-  for (const key of keys) {
-    const value = numberFromUnknown(metadata[key]);
-    if (value !== null) return value;
-  }
-  return null;
 }
 
 function readPositiveNumber(metadata: Record<string, unknown> | null | undefined, key: string) {

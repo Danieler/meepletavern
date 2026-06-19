@@ -13,10 +13,6 @@ const defaultSources = [
     baseUrl: "https://www.asmodee.es"
   },
   {
-    name: "BoardGameGeek",
-    baseUrl: "https://boardgamegeek.com"
-  },
-  {
     name: "Juegos de la Mesa Redonda",
     baseUrl: "https://juegosdelamesaredonda.com"
   },

@@ -22,7 +22,7 @@ import { buildEditorialAutofill } from "@/lib/editorialAutofill";
 import { buildEditorialSeedCopy } from "@/lib/editorialSeedCopy";
 import type { CandidateImage } from "@/lib/editorialTypes";
 import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
-import { buildStoreOfferInputFromCandidate, getBestOffer, type NormalizedStoreOffer, upsertStoreOfferRecordDetailed } from "@/lib/gameOffers";
+import { buildStoreOfferInputFromCandidate, getBestOffer, isUnavailableOfferAvailability, type NormalizedStoreOffer, upsertStoreOfferRecordDetailed } from "@/lib/gameOffers";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
@@ -31,6 +31,30 @@ import { sourceRepository } from "@/lib/editorialRepositories";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
 import type { AiPromptSource, AiWebProposal } from "@/lib/ai/gameWebAutofill";
 import { importSourceProductCandidate } from "@/lib/import/importSourceProduct";
+import {
+  createImportExecutionContext,
+  runTrackedExternalCall,
+  type CacheDiagnostic,
+  type ExternalCallDiagnostic,
+  type ImportExecutionContext
+} from "@/lib/import/importExecutionContext";
+import {
+  buildImageDiagnostics,
+  collectImageEvidence,
+  imageEvidenceToCandidateImages,
+  selectPublicImages,
+  type ImageDiagnostics
+} from "@/lib/import/imageEvidence";
+import {
+  buildFieldEvidence,
+  fieldDiagnosticsToMetadataPatch,
+  resolveFieldEvidence,
+  type FieldDiagnostics
+} from "@/lib/import/fieldEvidence";
+import {
+  resolveImportTaxonomy,
+  type TaxonomyResolution
+} from "@/lib/import/taxonomyResolver";
 import type { NormalizedImportedCandidate } from "@/lib/import/importedGame";
 import { normalizeDifficultyFromImportedData, normalizeDifficultyFromImportedDataOrNull } from "@/lib/import/difficulty";
 import {
@@ -39,8 +63,45 @@ import {
   searchGameInSource,
   type StoreSourceSearchResult
 } from "@/lib/import/sourceConnectors";
+import {
+  assessBaseGameTitleMatch,
+  canonicalGameTitleKey,
+  isSuspiciousEditionVariant,
+  titleSimilarity
+} from "@/lib/import/titleMatching";
 
 type SourceInfo = Pick<Source, "id" | "name" | "baseUrl">;
+
+const DEFAULT_MASTER_IMPORT_SOURCES = [
+  {
+    name: "Amazon PA API España",
+    baseUrl: "https://www.amazon.es"
+  },
+  {
+    name: "Dungeon Marvels",
+    baseUrl: "https://dungeonmarvels.com"
+  },
+  {
+    name: "Juegos de la Mesa Redonda",
+    baseUrl: "https://juegosdelamesaredonda.com"
+  },
+  {
+    name: "Mathom",
+    baseUrl: "https://mathom.es"
+  },
+  {
+    name: "Dracotienda",
+    baseUrl: "https://dracotienda.com"
+  },
+  {
+    name: "Zacatrus",
+    baseUrl: "https://zacatrus.es"
+  },
+  {
+    name: "MasQueOca",
+    baseUrl: "https://www.masqueoca.com/tienda"
+  }
+] as const;
 
 type CandidateRecord = Pick<
   GameCandidate,
@@ -97,6 +158,18 @@ export type MasterImportSummary = {
   sourceDiagnostics: SourceDiagnostic[];
   sourcesWithOffers: string[];
   sourcesWithoutOffers: string[];
+  imageDiagnostics: ImageDiagnostics;
+  fieldDiagnostics: FieldDiagnostics;
+  taxonomyDiagnostics: TaxonomyResolution;
+  cacheDiagnostics: CacheDiagnostic[];
+  externalCallDiagnostics: ExternalCallDiagnostic[];
+  costDiagnostics: {
+    tavilyUsed: boolean;
+    tavilyReason: string | null;
+    bedrockUsed: boolean;
+    bedrockReason: string | null;
+    videoSearchUsed: boolean;
+  };
 };
 
 type ImportedSourceCandidate = {
@@ -135,13 +208,14 @@ type DuplicateMatch = {
 
 type MasterImporterDeps = {
   listSources(): Promise<SourceInfo[]>;
-  searchSource(source: SourceInfo, title: string): Promise<SearchSourceOutcome>;
-  importSourceUrl(source: SourceInfo, sourceUrl: string): Promise<{ candidate: NormalizedImportedCandidate; publicImageUrls: string[] }>;
+  searchSource(source: SourceInfo, title: string, context?: ImportExecutionContext): Promise<SearchSourceOutcome>;
+  importSourceUrl(source: SourceInfo, sourceUrl: string, context?: ImportExecutionContext): Promise<{ candidate: NormalizedImportedCandidate; publicImageUrls: string[] }>;
   findDuplicates(input: { title: string; sourceUrls: string[]; slugs: string[] }): Promise<DuplicateMatch>;
   resolveFinalData?(input: {
     resolved: ResolvedCandidateData;
     evidence: ImportedSourceCandidate[];
     requestedTitle: string | null;
+    context: ImportExecutionContext;
   }): Promise<ResolvedCandidateData>;
   persistCandidate(input: {
     resolved: ResolvedCandidateData;
@@ -163,6 +237,9 @@ type ResolvedCandidateData = {
   missingFields: string[];
   matchedSources: string[];
   warnings: string[];
+  imageDiagnostics: ImageDiagnostics;
+  fieldDiagnostics: FieldDiagnostics;
+  taxonomyDiagnostics: TaxonomyResolution;
   aiProposal?: AiWebProposal | null;
   aiSearchQuery?: string | null;
   aiSearchResults?: Prisma.InputJsonValue | null;
@@ -177,6 +254,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
 
   return async function importAndEnrichGame(input: MasterImportInput): Promise<MasterImportSummary> {
     const mode = resolveMode(input);
+    const context = createImportExecutionContext();
     const diagnostics: SourceDiagnostic[] = [];
     const failedSources: Array<{ sourceName: string; reason: string }> = [];
     const warnings: string[] = [];
@@ -197,7 +275,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
       }
 
       try {
-        const imported = await deps.importSourceUrl(detectedSource, input.sourceUrl);
+        const imported = await deps.importSourceUrl(detectedSource, input.sourceUrl, context);
         const confidence = imported.candidate.confidence || 0.95;
         pushImportedResult(results, seenResultKeys, {
           source: detectedSource,
@@ -237,6 +315,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
         mode === "search" ? [] : results.map((result) => result.source.id)
       );
 
+      const sourcesToSearch: SourceInfo[] = [];
       for (const source of sources) {
         if (excludedSourceIds.has(source.id)) {
           diagnostics.push({
@@ -248,9 +327,18 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
           continue;
         }
 
+        sourcesToSearch.push(source);
+      }
+
+      await runLimitedConcurrency(sourcesToSearch, getSourceConcurrency(), async (source) => {
         let searchOutcome: SearchSourceOutcome;
         try {
-          searchOutcome = await deps.searchSource(source, seedTitle);
+          searchOutcome = await searchSourceWithFallbackQueries({
+            deps,
+            source,
+            requestedTitle: seedTitle,
+            context
+          });
         } catch (error) {
           const reason = error instanceof Error ? error.message : "La búsqueda falló";
           diagnostics.push({
@@ -260,7 +348,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
             reason
           });
           failedSources.push({ sourceName: source.name, reason });
-          continue;
+          return;
         }
 
         if (!searchOutcome.supported) {
@@ -270,7 +358,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
             outcome: "unsupported",
             reason: "La fuente no soporta búsqueda automática por título"
           });
-          continue;
+          return;
         }
 
         const candidateMatches = searchOutcome.results
@@ -284,13 +372,16 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
             outcome: "no_match",
             reason: topMatch ? "No se encontró una coincidencia suficientemente fiable con el juego base" : "Sin resultados"
           });
-          continue;
+          return;
         }
 
         let matched = false;
         for (const match of candidateMatches) {
           try {
-            const imported = await deps.importSourceUrl(source, match.purchaseUrl || match.sourceUrl);
+            const imported = mergeSearchResultEvidenceIntoImported(
+              await deps.importSourceUrl(source, match.purchaseUrl || match.sourceUrl, context),
+              match
+            );
             const confidence = Math.max(imported.candidate.confidence || 0, match.confidence);
             pushImportedResult(results, seenResultKeys, {
               source,
@@ -331,7 +422,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
           });
           warnings.push(`[${source.name}] Se usó el resultado de búsqueda sin ficha detallada.`);
         }
-      }
+      });
     }
 
     if (!results.length) {
@@ -357,7 +448,8 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
       resolved = await deps.resolveFinalData({
         resolved,
         evidence: offerEligibleResults.results,
-        requestedTitle: seedTitle || null
+        requestedTitle: seedTitle || null,
+        context
       });
       resolved = mergeOfferEvidenceIntoResolved(resolved, offerEligibleResults.results);
     }
@@ -392,6 +484,10 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
       });
 
       for (const result of offerEligibleResults.results) {
+        if (!hasOfferData(result)) {
+          continue;
+        }
+
         const offerResult = await deps.upsertOffer({
           source: result.source,
           candidateId: persisted?.candidateId || duplicates.exactCandidate?.id || null,
@@ -455,12 +551,41 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
         offerEligibleResults.results
           .filter((result) => !hasOfferData(result))
           .map((result) => result.source.name)
-      )
+      ),
+      imageDiagnostics: resolved.imageDiagnostics,
+      fieldDiagnostics: resolved.fieldDiagnostics,
+      taxonomyDiagnostics: resolved.taxonomyDiagnostics,
+      cacheDiagnostics: context.cacheDiagnostics,
+      externalCallDiagnostics: context.diagnostics,
+      costDiagnostics: buildCostDiagnostics(context)
     };
   };
 }
 
 export const importAndEnrichGame = createMasterImportService();
+
+export async function listMasterImportSources(): Promise<SourceInfo[]> {
+  const existing = await sourceRepository.list();
+  const sources: SourceInfo[] = [...existing];
+
+  for (const defaultSource of DEFAULT_MASTER_IMPORT_SOURCES) {
+    const defaultHost = hostOf(defaultSource.baseUrl);
+    const found = sources.find((source) => hostMatches(hostOf(source.baseUrl), defaultHost));
+    if (found) {
+      continue;
+    }
+
+    const created = await prisma.source.create({
+      data: {
+        name: defaultSource.name,
+        baseUrl: defaultSource.baseUrl
+      }
+    });
+    sources.push(created);
+  }
+
+  return sources;
+}
 
 export function resolveBestCandidateData(input: {
   results: ImportedSourceCandidate[];
@@ -468,24 +593,62 @@ export function resolveBestCandidateData(input: {
 }): ResolvedCandidateData {
   const sorted = [...input.results].sort((left, right) => rankSourceCandidate(right, input.requestedTitle) - rankSourceCandidate(left, input.requestedTitle));
   const primary = sorted[0];
-  const primaryMetadata = normalizeCandidateMetadata(primary.candidate.metadata);
-  const mergedTitle = primary.candidate.title;
+  const fieldDiagnostics = resolveFieldEvidence(buildFieldEvidence(sorted));
+  const fieldPatch = fieldDiagnosticsToMetadataPatch(fieldDiagnostics);
+  const mergedTitle = normalizeStringValue(fieldDiagnostics.title?.value) || primary.candidate.title;
   const normalizedTitle = slugify(mergedTitle);
   const mergedMetadata = mergeMetadata(
     sorted.map((result) => normalizeCandidateMetadata(result.candidate.metadata)),
-    buildSourceMetadataExtras(sorted, {
-      cleanTitle: mergedTitle,
-      normalizedTitle
-    })
+    {
+      ...fieldPatch,
+      ...buildSourceMetadataExtras(sorted, {
+        cleanTitle: mergedTitle,
+        normalizedTitle
+      })
+    }
   );
+  const taxonomyDiagnostics = resolveImportTaxonomy({
+    requestedTitle: input.requestedTitle || mergedTitle,
+    matchedTitles: sorted.map((result) => result.candidate.title),
+    descriptions: sorted.map((result) => result.candidate.extractedDescription || "").filter(Boolean),
+    facts: sorted.flatMap((result) => {
+      const metadata = normalizeCandidateMetadata(result.candidate.metadata);
+      const facts = isRecord(metadata.facts) ? metadata.facts : {};
+      return Object.entries(facts).map(([key, value]) => `${key}: ${String(value)}`);
+    }),
+    sourceNames: sorted.map((result) => result.source.name)
+  });
+  if (taxonomyDiagnostics.categories.length) {
+    mergedMetadata.categories = taxonomyDiagnostics.categories;
+    mergedMetadata.categoryHints = taxonomyDiagnostics.categories;
+  }
+  if (taxonomyDiagnostics.mechanics.length) {
+    mergedMetadata.mechanics = taxonomyDiagnostics.mechanics;
+    mergedMetadata.mechanicHints = taxonomyDiagnostics.mechanics;
+  }
+  if (taxonomyDiagnostics.themes.length) {
+    mergedMetadata.themes = taxonomyDiagnostics.themes;
+    mergedMetadata.themeHints = taxonomyDiagnostics.themes;
+  }
+  mergedMetadata.taxonomyResolution = taxonomyDiagnostics;
   applyImportedDifficultyToMetadata(mergedMetadata, {
     title: mergedTitle,
     originalTitle: primary.candidate.originalTitle,
     description: pickDescription(sorted),
     metadata: mergedMetadata
   });
-  const candidateImages = buildAllowedCandidateImages(sorted);
-  const warnings = candidateImages.length ? [] : ["No se encontró ninguna imagen reutilizable permitida."];
+  const imageEvidence = collectImageEvidence(sorted);
+  const selectedImages = selectPublicImages(imageEvidence, 3);
+  const imageDiagnostics = buildImageDiagnostics(imageEvidence, selectedImages);
+  const candidateImages = imageEvidenceToCandidateImages(selectedImages);
+  const warnings = [
+    ...(candidateImages.length
+    ? []
+    : imageEvidence.length
+      ? ["Se encontraron imágenes, pero ninguna tenía permiso público reutilizable."]
+      : ["No se encontró ninguna imagen reutilizable permitida."]),
+    ...taxonomyDiagnostics.warnings.map((warning) => `Taxonomía: ${warning}`)
+  ];
   const missingFields = collectMissingFields({
     title: mergedTitle,
     minPlayers: readPositiveNumber(mergedMetadata.minPlayers),
@@ -508,7 +671,13 @@ export function resolveBestCandidateData(input: {
       sourceUrl: primary.candidate.sourceUrl,
       title: mergedTitle,
       originalTitle: primary.candidate.originalTitle,
-      metadata: mergedMetadata,
+      metadata: normalizeCandidateMetadata({
+        ...mergedMetadata,
+        imageEvidence: selectedImages,
+        imageDiagnostics,
+        fieldDiagnostics,
+        taxonomyResolution: taxonomyDiagnostics
+      }),
       extractedDescription: pickDescription(sorted),
       candidateImages,
       confidence,
@@ -516,7 +685,10 @@ export function resolveBestCandidateData(input: {
     },
     missingFields,
     matchedSources: dedupeStrings(sorted.map((result) => result.source.name)),
-    warnings
+    warnings,
+    imageDiagnostics,
+    fieldDiagnostics,
+    taxonomyDiagnostics
   };
 }
 
@@ -547,14 +719,208 @@ export function calculateCandidateQualityScore(input: {
   return Math.max(0, Math.min(100, score));
 }
 
+export function shouldUseTavilyForMasterImport(
+  resolved: ResolvedCandidateData,
+  evidence: ImportedSourceCandidate[],
+  context: ImportExecutionContext
+): { shouldUse: boolean; reason?: string } {
+  if (context.tavilyMode === "off") {
+    return { shouldUse: false, reason: "Tavily desactivado por configuración." };
+  }
+
+  if (context.tavilyMode === "always") {
+    return { shouldUse: true, reason: "Tavily activado explícitamente para importación maestra." };
+  }
+
+  const reasons = [
+    resolved.imageDiagnostics.totalFound > 0 && resolved.imageDiagnostics.publicSafeFound === 0 ? "hay imágenes encontradas pero ninguna es pública segura" : null,
+    resolved.missingFields.includes("description") ? "falta una descripción útil" : null,
+    resolved.missingFields.includes("players") ? "faltan jugadores" : null,
+    resolved.missingFields.includes("age") ? "falta edad" : null,
+    resolved.missingFields.includes("playtime") ? "falta duración" : null,
+    resolved.missingFields.includes("publisher") ? "falta editorial" : null,
+    resolved.candidate.confidence < 0.75 ? "la coincidencia de título tiene baja confianza" : null
+  ].filter((reason): reason is string => Boolean(reason));
+
+  if (!reasons.length) {
+    return { shouldUse: false };
+  }
+
+  return {
+    shouldUse: true,
+    reason: `Fallback de calidad: ${reasons.join("; ")}.`
+  };
+}
+
+export function buildMasterImportSearchQueries(title: string) {
+  const clean = sanitizeImportedTitle(title).replace(/\s+/g, " ").trim();
+  if (!clean) {
+    return [];
+  }
+
+  const withoutApostrophes = clean
+    .replace(/[’‘`´']/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const withoutDecorativePunctuation = clean
+    .replace(/[!¡¿?:;,.()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const withoutAccents = removeDiacritics(clean);
+  const baseQueries = dedupeStrings([
+    clean,
+    withoutApostrophes,
+    withoutDecorativePunctuation,
+    removeDiacritics(withoutApostrophes),
+    withoutAccents,
+    ...buildControlledEquivalentSearchQueries(clean)
+  ]);
+  const needsBoardGameQualifier = !/\b(?:juego de (?:mesa|tablero|cartas|dados)|board game|card game|dice game)\b/i.test(clean);
+  const qualifierQueries = needsBoardGameQualifier
+    ? baseQueries.flatMap((query) => [`${query} juego de mesa`, `${query} juego de tablero`])
+    : [];
+
+  return dedupeStrings([
+    ...baseQueries,
+    ...qualifierQueries
+  ]).slice(0, 12);
+}
+
+async function searchSourceWithFallbackQueries(input: {
+  deps: MasterImporterDeps;
+  source: SourceInfo;
+  requestedTitle: string;
+  context: ImportExecutionContext;
+}): Promise<SearchSourceOutcome> {
+  const queries = buildMasterImportSearchQueries(input.requestedTitle);
+  const mergedResults: StoreSourceSearchResult[] = [];
+  const seenUrls = new Set<string>();
+  let supported: boolean | null = null;
+  let lastError: unknown = null;
+
+  for (const query of queries) {
+    try {
+      const outcome = await runTrackedExternalCall(input.context, {
+        type: "source_search",
+        sourceName: input.source.name,
+        reason: `Buscar coincidencias por título en fuente configurada: ${query}`,
+        cacheKey: `source-search:${input.source.id}:${canonicalGameTitleKey(query)}`,
+        timeoutMs: getSourceTimeoutMs()
+      }, () => input.deps.searchSource(input.source, query, input.context));
+
+      supported = outcome.supported;
+      if (!outcome.supported) {
+        return outcome;
+      }
+
+      for (const result of outcome.results.map((entry) => normalizeSearchResultConfidence(input.requestedTitle, entry))) {
+        const key = result.purchaseUrl || result.sourceUrl || `${result.sourceName}:${result.title}`;
+        if (seenUrls.has(key)) {
+          continue;
+        }
+        seenUrls.add(key);
+        mergedResults.push(result);
+      }
+
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
+  }
+
+  if (supported === null && lastError) {
+    throw lastError;
+  }
+
+  return {
+    supported: supported ?? true,
+    results: mergedResults.sort((left, right) => right.confidence - left.confidence || left.title.localeCompare(right.title, "es"))
+  };
+}
+
+function buildControlledEquivalentSearchQueries(title: string) {
+  const queries: string[] = [];
+  const replacements: Array<[RegExp, string[]]> = [
+    [/\bel juego de dados\b/i, ["The Dice Game", "Dice Game"]],
+    [/\bthe dice game\b/i, ["El juego de dados"]],
+    [/\bseñor de los anillos\b/i, ["Lord of the Rings", "LOTR"]],
+    [/\bsenor de los anillos\b/i, ["Lord of the Rings", "LOTR"]],
+    [/\blord of the rings\b/i, ["Señor de los Anillos"]],
+    [/\blotr\b/i, ["Señor de los Anillos"]]
+  ];
+
+  for (const [pattern, values] of replacements) {
+    if (!pattern.test(title)) {
+      continue;
+    }
+
+    for (const value of values) {
+      queries.push(title.replace(pattern, value).replace(/\s+/g, " ").trim());
+    }
+  }
+
+  return queries;
+}
+
+function removeDiacritics(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeSearchResultConfidence(requestedTitle: string, result: StoreSourceSearchResult): StoreSourceSearchResult {
+  const match = assessBaseGameTitleMatch(requestedTitle, result.title);
+  if (!match.matched) {
+    return result;
+  }
+
+  return {
+    ...result,
+    confidence: Math.max(result.confidence, match.score, 0.9)
+  };
+}
+
+function shouldUseBedrockForMasterImport(
+  resolved: ResolvedCandidateData,
+  _evidence: ImportedSourceCandidate[],
+  context: ImportExecutionContext,
+  tavilyWillRun: boolean
+): { shouldUse: boolean; reason?: string } {
+  if (context.bedrockMode === "off") {
+    return { shouldUse: false, reason: "Bedrock desactivado por configuración." };
+  }
+
+  if (context.bedrockMode === "always") {
+    return { shouldUse: true, reason: "Bedrock activado explícitamente para importación maestra." };
+  }
+
+  const metadata = normalizeCandidateMetadata(resolved.candidate.metadata);
+  const description = resolved.candidate.extractedDescription || normalizeStringValue(metadata.description);
+  const reasons = [
+    tavilyWillRun ? "sintetizar resultados de búsqueda de calidad" : null,
+    !description || description.length < 120 ? "descripción ausente o débil" : null,
+    resolved.missingFields.length ? `hay campos pendientes: ${resolved.missingFields.join(", ")}` : null
+  ].filter((reason): reason is string => Boolean(reason));
+
+  if (!reasons.length) {
+    return { shouldUse: false };
+  }
+
+  return {
+    shouldUse: true,
+    reason: `Nova requerido para ${reasons.join("; ")}.`
+  };
+}
+
 async function resolveWithTavilyAndNova(input: {
   resolved: ResolvedCandidateData;
   evidence: ImportedSourceCandidate[];
   requestedTitle: string | null;
+  context: ImportExecutionContext;
 }): Promise<ResolvedCandidateData> {
   const warnings: string[] = [];
   const game = buildDraftGameForAi(input.resolved);
   const extraSources = buildAiPromptSources(input.evidence);
+  const tavilyDecision = shouldUseTavilyForMasterImport(input.resolved, input.evidence, input.context);
+  const bedrockDecision = shouldUseBedrockForMasterImport(input.resolved, input.evidence, input.context, tavilyDecision.shouldUse);
   let aiSearchQuery: string | null = null;
   let aiSearchResults: Prisma.InputJsonValue | null = null;
   let proposal: AiWebProposal | null = null;
@@ -566,29 +932,39 @@ async function resolveWithTavilyAndNova(input: {
     return aiModule;
   };
 
-  if (process.env.TAVILY_API_KEY?.trim()) {
+  if (tavilyDecision.shouldUse && process.env.TAVILY_API_KEY?.trim() && input.context.canUseExternalCall("tavily_search", tavilyDecision.reason || "Completar campos críticos ausentes.")) {
     try {
       const autofillModule = await loadAiModule();
-      const search = await autofillModule.searchBoardGameWithTavily(game);
+      const search = await runTrackedExternalCall(input.context, {
+        type: "tavily_search",
+        reason: tavilyDecision.reason || "Completar campos críticos ausentes.",
+        cacheKey: `tavily:master:${canonicalGameTitleKey(input.requestedTitle || input.resolved.candidate.title)}`
+      }, () => autofillModule.searchBoardGameWithTavily(game));
       aiSearchQuery = search.query;
       aiSearchResults = search.results as unknown as Prisma.InputJsonValue;
       tavilyResults = search.results;
     } catch (error) {
       warnings.push(error instanceof Error ? `Tavily falló: ${error.message}` : "Tavily falló.");
     }
-  } else {
+  } else if (tavilyDecision.shouldUse && !process.env.TAVILY_API_KEY?.trim()) {
     warnings.push("Tavily no está configurado; se usaron solo fuentes importadas.");
   }
 
-  try {
-    const autofillModule = await loadAiModule();
-    proposal = await autofillModule.extractBoardGameFieldsWithNova({
-      game,
-      tavilyResults,
-      extraSources
-    });
-  } catch (error) {
-    warnings.push(error instanceof Error ? `Nova falló: ${error.message}` : "Nova falló.");
+  if (bedrockDecision.shouldUse && input.context.canUseExternalCall("bedrock_extract", bedrockDecision.reason || "Sintetizar evidencia importada.")) {
+    try {
+      const autofillModule = await loadAiModule();
+      proposal = await runTrackedExternalCall(input.context, {
+        type: "bedrock_extract",
+        reason: bedrockDecision.reason || "Sintetizar evidencia importada.",
+        cacheKey: `nova:${hashCompactEvidence(extraSources.map((source) => source.content || "").join("\n\n"))}`
+      }, () => autofillModule.extractBoardGameFieldsWithNova({
+        game,
+        tavilyResults,
+        extraSources
+      }));
+    } catch (error) {
+      warnings.push(error instanceof Error ? `Nova falló: ${error.message}` : "Nova falló.");
+    }
   }
 
   if (!proposal) {
@@ -726,6 +1102,18 @@ function mergeOfferEvidenceIntoResolved(
     [normalizeCandidateMetadata(resolved.candidate.metadata)],
     buildSourceMetadataExtras(results)
   );
+  const imageEvidence = collectImageEvidence(results);
+  const selectedImages = selectPublicImages(imageEvidence, 3);
+  const imageDiagnostics = selectedImages.length
+    ? buildImageDiagnostics(imageEvidence, selectedImages)
+    : resolved.imageDiagnostics;
+  const candidateImages = selectedImages.length
+    ? imageEvidenceToCandidateImages(selectedImages)
+    : resolved.candidate.candidateImages;
+  if (selectedImages.length) {
+    metadata.imageEvidence = selectedImages;
+    metadata.imageDiagnostics = imageDiagnostics;
+  }
   applyImportedDifficultyToMetadata(metadata, {
     title: resolved.candidate.title,
     originalTitle: resolved.candidate.originalTitle,
@@ -737,8 +1125,10 @@ function mergeOfferEvidenceIntoResolved(
     ...resolved,
     candidate: {
       ...resolved.candidate,
-      metadata
+      metadata,
+      candidateImages
     },
+    imageDiagnostics,
     matchedSources: dedupeStrings(results.map((result) => result.source.name))
   };
 }
@@ -949,30 +1339,40 @@ function buildGameUpdateData(resolved: ResolvedCandidateData): Prisma.GameUpdate
     playtime
   });
 
-  return {
+  return compactGameUpdateInput({
     name: resolved.candidate.title,
     title: resolved.candidate.title,
-    originalTitle: resolved.candidate.originalTitle,
+    originalTitle: resolved.candidate.originalTitle || undefined,
     year: readPositiveNumber(metadata.year),
-    players: { min: minPlayers, max: maxPlayers, label: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null } as Prisma.InputJsonValue,
+    players: minPlayers && maxPlayers
+      ? { min: minPlayers, max: maxPlayers, label: `${minPlayers}-${maxPlayers}` } as Prisma.InputJsonValue
+      : undefined,
     minPlayers,
     maxPlayers,
-    playtime,
+    playtime: playtime || undefined,
     minAge,
-    age: minAge ? `${minAge}+` : null,
+    age: minAge ? `${minAge}+` : undefined,
     ...(difficulty ? { difficulty, complexity: difficulty } : {}),
-    categories,
-    mechanics,
-    themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints),
-    publisher: readString(metadata, ["publisher", "brand", "manufacturer"]),
-    shortDescription: normalizeStringValue(metadata.shortDescription),
-    shortSummary: normalizeStringValue(metadata.shortDescription),
-    description: normalizeStringValue(metadata.description) || resolved.candidate.extractedDescription,
-    buyUrl: getBestSourceOfferUrl(metadata),
+    categories: categories.length ? categories : undefined,
+    mechanics: mechanics.length ? mechanics : undefined,
+    themes: normalizeStringArrayValue(metadata.themes || metadata.themeHints).length
+      ? normalizeStringArrayValue(metadata.themes || metadata.themeHints)
+      : undefined,
+    publisher: readString(metadata, ["publisher", "brand", "manufacturer"]) || undefined,
+    shortDescription: normalizeStringValue(metadata.shortDescription) || undefined,
+    shortSummary: normalizeStringValue(metadata.shortDescription) || undefined,
+    description: normalizeStringValue(metadata.description) || resolved.candidate.extractedDescription || undefined,
+    buyUrl: getBestSourceOfferUrl(metadata) || undefined,
     sources: buildGameSources(metadata) as Prisma.InputJsonValue,
     sourceIds: buildGameSourceIds(metadata, resolved.primarySource.id),
     createdByAi: Boolean(resolved.aiProposal)
-  };
+  });
+}
+
+function compactGameUpdateInput(input: Prisma.GameUpdateInput): Prisma.GameUpdateInput {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined && value !== null)
+  ) as Prisma.GameUpdateInput;
 }
 
 function applyImportedDifficultyToMetadata(
@@ -1064,6 +1464,44 @@ function hasOfferData(result: ImportedSourceCandidate) {
   return Boolean(buildOfferFromImportedCandidate(result));
 }
 
+function mergeSearchResultEvidenceIntoImported(
+  imported: { candidate: NormalizedImportedCandidate; publicImageUrls: string[] },
+  result: StoreSourceSearchResult
+) {
+  const metadata = normalizeCandidateMetadata(imported.candidate.metadata);
+  const nextMetadata = { ...metadata };
+  const detailedUnavailable = isUnavailableOfferAvailability(normalizeStringValue(metadata.availability));
+  const searchUnavailable = isUnavailableOfferAvailability(result.availability);
+  const canUseSearchCommerce = !detailedUnavailable && !searchUnavailable;
+
+  if (!normalizeStringValue(nextMetadata.availability) && result.availability) {
+    nextMetadata.availability = result.availability;
+  }
+
+  if (canUseSearchCommerce) {
+    if (!readPositiveNumber(nextMetadata.price) && result.price) {
+      nextMetadata.price = result.price;
+    }
+    if (!normalizeStringValue(nextMetadata.currency) && result.currency) {
+      nextMetadata.currency = result.currency;
+    }
+    if (!normalizeStringValue(nextMetadata.purchaseUrl) && (result.purchaseUrl || result.sourceUrl)) {
+      nextMetadata.purchaseUrl = result.purchaseUrl || result.sourceUrl;
+    }
+  }
+
+  return {
+    candidate: {
+      ...imported.candidate,
+      metadata: nextMetadata
+    },
+    publicImageUrls: dedupeStrings([
+      ...imported.publicImageUrls,
+      result.imageAllowed && result.imageUrl ? result.imageUrl : ""
+    ])
+  };
+}
+
 function buildGameSources(metadata: Record<string, unknown>) {
   const evidence = Array.isArray(metadata.sourceEvidence) ? metadata.sourceEvidence : [];
   return evidence
@@ -1099,6 +1537,60 @@ function getBestSourceOfferUrl(metadata: Record<string, unknown>) {
     .filter((offer) => offer.purchaseUrl || offer.affiliateUrl || offer.sourceUrl);
   const best = getBestOffer(normalized);
   return best?.affiliateUrl || best?.purchaseUrl || best?.sourceUrl || null;
+}
+
+function buildCostDiagnostics(context: ImportExecutionContext): MasterImportSummary["costDiagnostics"] {
+  const tavily = context.diagnostics.find((entry) => entry.type === "tavily_search" && entry.allowed) ||
+    context.diagnostics.find((entry) => entry.type === "tavily_search");
+  const bedrock = context.diagnostics.find((entry) => entry.type === "bedrock_extract" && entry.allowed) ||
+    context.diagnostics.find((entry) => entry.type === "bedrock_extract");
+  const video = context.diagnostics.find((entry) => entry.type === "video_search" && entry.allowed);
+
+  return {
+    tavilyUsed: Boolean(tavily?.allowed),
+    tavilyReason: tavily?.reason || null,
+    bedrockUsed: Boolean(bedrock?.allowed),
+    bedrockReason: bedrock?.reason || null,
+    videoSearchUsed: Boolean(video)
+  };
+}
+
+function getSourceTimeoutMs() {
+  const parsed = Number.parseInt(process.env.MASTER_IMPORT_SOURCE_TIMEOUT_MS || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 7000;
+}
+
+function getSourceConcurrency() {
+  const parsed = Number.parseInt(process.env.MASTER_IMPORT_SOURCE_CONCURRENCY || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
+}
+
+async function runLimitedConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<void>
+) {
+  const limit = Math.max(1, Math.min(concurrency, items.length || 1));
+  let nextIndex = 0;
+  const workers = Array.from({ length: limit }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      await worker(items[currentIndex], currentIndex);
+    }
+  });
+
+  await Promise.allSettled(workers);
+}
+
+function hashCompactEvidence(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16);
 }
 
 function normalizeRangeValue(value: unknown) {
@@ -1180,36 +1672,45 @@ async function ensureUniqueGameSlug(baseSlug: string) {
 function createDefaultDeps(): MasterImporterDeps {
   return {
     async listSources() {
-      return sourceRepository.list();
+      return listMasterImportSources();
     },
-    async searchSource(source, title) {
+    async searchSource(source, title, context) {
       if (isAmazonSource(source)) {
+        const { mapAmazonProductToCandidate } = await import("@/lib/amazon/mapAmazonProductToCandidate");
         return {
           supported: true,
-          results: (await searchAmazonProducts(title)).map((product) => ({
-            sourceName: "amazon",
-            sourceDisplayName: source.name,
-            sourceUrl: product.detailPageUrl || buildAmazonCanonicalUrl(product.asin),
-            title: product.title,
-            normalizedTitle: slugify(product.title),
-            price: product.price ?? null,
-            currency: product.currency === "EUR" ? "EUR" : product.price ? "EUR" : null,
-            availability: product.availability ?? null,
-            purchaseUrl: product.detailPageUrl || buildAmazonCanonicalUrl(product.asin),
-            publisher: product.manufacturer || product.brand || null,
-            imageUrl: product.imageUrl || null,
-            imageAllowed: Boolean(product.imageUrl),
-            description: product.features?.join(" ") || null,
-            minPlayers: null,
-            maxPlayers: null,
-            minPlayTime: null,
-            maxPlayTime: null,
-            recommendedAge: null,
-            language: null,
-            rawData: product,
-            fetchedAt: new Date(),
-            confidence: scoreAmazonSearchConfidence(title, product.title)
-          }))
+          results: (await searchAmazonProducts(title)).map((product) => {
+            const sourceUrl = product.detailPageUrl || buildAmazonCanonicalUrl(product.asin);
+            const candidate = mapAmazonProductToCandidate({ product, sourceUrl });
+
+            return {
+              sourceName: "amazon",
+              sourceDisplayName: source.name,
+              sourceUrl,
+              title: candidate.title,
+              normalizedTitle: slugify(candidate.title),
+              price: product.price ?? null,
+              currency: product.currency === "EUR" ? "EUR" : product.price ? "EUR" : null,
+              availability: product.availability ?? null,
+              purchaseUrl: sourceUrl,
+              publisher: product.manufacturer || product.brand || null,
+              imageUrl: product.imageUrl || null,
+              imageAllowed: Boolean(product.imageUrl),
+              description: product.features?.join(" ") || null,
+              minPlayers: null,
+              maxPlayers: null,
+              minPlayTime: null,
+              maxPlayTime: null,
+              recommendedAge: null,
+              language: null,
+              rawData: {
+                ...product,
+                amazonTitleOriginal: product.title
+              },
+              fetchedAt: new Date(),
+              confidence: scoreAmazonSearchConfidence(title, candidate.title)
+            };
+          })
         };
       }
 
@@ -1222,10 +1723,10 @@ function createDefaultDeps(): MasterImporterDeps {
 
       return {
         supported: true,
-        results: await searchGameInSource(source, title)
+        results: await searchGameInSource(source, title, context)
       };
     },
-    async importSourceUrl(source, sourceUrl) {
+    async importSourceUrl(source, sourceUrl, context) {
       if (isAmazonSource(source)) {
         const parsed = parseAmazonInput(sourceUrl);
         if (parsed.asin) {
@@ -1243,7 +1744,8 @@ function createDefaultDeps(): MasterImporterDeps {
 
       return importSourceProductCandidate({
         source,
-        sourceUrl
+        sourceUrl,
+        context
       });
     },
     async resolveFinalData(input) {
@@ -1368,7 +1870,8 @@ function createDefaultDeps(): MasterImporterDeps {
           sourceName: input.resolved.primarySource.name,
           sourceUrl: input.resolved.primarySource.baseUrl,
           title: input.resolved.candidate.title,
-          images: candidateImages
+          images: candidateImages,
+          imageEvidence: readSelectedImageEvidence(metadata)
         });
 
         return { candidate, game };
@@ -1446,6 +1949,12 @@ async function attachMasterImportImages(
     sourceUrl: string;
     title: string;
     images: CandidateImage[];
+    imageEvidence: Array<{
+      url: string;
+      sourceId?: string;
+      sourceName?: string;
+      sourceUrl?: string;
+    }>;
   }
 ) {
   const images = input.images.slice(0, 3);
@@ -1462,20 +1971,22 @@ async function attachMasterImportImages(
     }
   });
   const existingAssetsByUrl = new Map(existingAssets.map((asset) => [asset.url, asset]));
+  const evidenceByUrl = new Map(input.imageEvidence.map((entry) => [entry.url, entry]));
   const assets = [];
   for (const [index, image] of images.entries()) {
     const existing = existingAssetsByUrl.get(image.url);
+    const evidence = evidenceByUrl.get(image.url);
 
     assets.push(existing || await transaction.mediaAsset.create({
       data: {
         gameId: input.gameId,
         candidateId: input.candidateId,
-        sourceId: input.sourceId,
+        sourceId: evidence?.sourceId || input.sourceId,
         url: image.url,
         type: index === 0 ? MediaAssetType.cover : mediaAssetTypeFromCandidateImage(image.type),
         status: MediaAssetStatus.approved,
         usage: MediaAssetUsage.public,
-        attribution: null
+        attribution: image.attribution || evidence?.sourceName || null
       }
     }));
   }
@@ -1485,6 +1996,7 @@ async function attachMasterImportImages(
     return;
   }
 
+  const primaryEvidence = evidenceByUrl.get(primary.url);
   await transaction.game.update({
     where: { id: input.gameId },
     data: {
@@ -1494,8 +2006,8 @@ async function attachMasterImportImages(
       coverImageUrl: primary.url,
       imageUrl: primary.url,
       coverImageAlt: `Portada de ${input.title}`,
-      imageSourceName: input.sourceName,
-      imageSourceUrl: input.sourceUrl,
+      imageSourceName: primaryEvidence?.sourceName || input.sourceName,
+      imageSourceUrl: primaryEvidence?.sourceUrl || input.sourceUrl,
       imageLicenseNote: primary.attribution
     }
   });
@@ -1506,15 +2018,7 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
   missingFields: string[];
   warnings: string[];
 }> {
-  const warnings: string[] = [];
-
-  try {
-    const { autoApplyGameWebAutofill } = await import("@/lib/ai/gameWebAutofill");
-    const result = await autoApplyGameWebAutofill(gameId);
-    warnings.push(...result.warnings);
-  } catch (error) {
-    warnings.push(error instanceof Error ? `IA web no aplicada: ${error.message}` : "IA web no aplicada.");
-  }
+  const warnings: string[] = ["Autocompletado web posterior desactivado para mantener la importación maestra controlada."];
 
   const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) {
@@ -1551,6 +2055,20 @@ function mediaAssetTypeFromCandidateImage(type: CandidateImage["type"] | undefin
   if (type === "component") return MediaAssetType.component;
   if (type === "placeholder") return MediaAssetType.placeholder;
   return MediaAssetType.cover;
+}
+
+function readSelectedImageEvidence(metadata: Record<string, unknown>) {
+  const imageEvidence = Array.isArray(metadata.imageEvidence) ? metadata.imageEvidence : [];
+
+  return imageEvidence
+    .filter(isRecord)
+    .map((entry) => ({
+      url: normalizeStringValue(entry.url) || "",
+      sourceId: normalizeStringValue(entry.sourceId) || undefined,
+      sourceName: normalizeStringValue(entry.sourceName) || undefined,
+      sourceUrl: normalizeStringValue(entry.sourceUrl) || undefined
+    }))
+    .filter((entry) => entry.url);
 }
 
 function resolveMode(input: MasterImportInput): MasterImportMode {
@@ -1606,7 +2124,29 @@ function isLikelySameGameResult(requestedTitle: string, result: StoreSourceSearc
     return false;
   }
 
-  return assessBaseGameTitleMatch(requestedTitle, result.title).matched;
+  if (!assessBaseGameTitleMatch(requestedTitle, result.title).matched) {
+    return false;
+  }
+
+  if (!isSuspiciousEditionVariant(requestedTitle) && hasSuspiciousVariantEvidence(result)) {
+    return false;
+  }
+
+  return true;
+}
+
+function hasSuspiciousVariantEvidence(result: StoreSourceSearchResult) {
+  const rawTitle = isRecord(result.rawData)
+    ? normalizeStringValue(result.rawData.amazonTitleOriginal) || normalizeStringValue(result.rawData.title)
+    : null;
+  const evidence = [
+    result.title,
+    result.sourceUrl,
+    result.purchaseUrl,
+    rawTitle
+  ].filter((value): value is string => Boolean(value)).join(" ");
+
+  return isSuspiciousEditionVariant(evidence);
 }
 
 function rankSourceCandidate(result: ImportedSourceCandidate, requestedTitle: string | null) {
@@ -1617,7 +2157,7 @@ function rankSourceCandidate(result: ImportedSourceCandidate, requestedTitle: st
 function sourceReliabilityScore(sourceName: string) {
   const normalized = normalizeText(sourceName);
 
-  if (/(asmodee|devir|maldito|fantasy flight|boardgamegeek|bgg|editorial|oficial|distribuid)/i.test(normalized)) {
+  if (/(asmodee|devir|maldito|fantasy flight|editorial|oficial|distribuid)/i.test(normalized)) {
     return 90;
   }
 
@@ -1650,29 +2190,6 @@ function pickDescription(results: ImportedSourceCandidate[]) {
     .filter((value) => value.length >= 40 && value.length <= 650);
 
   return descriptions[0] || null;
-}
-
-function buildAllowedCandidateImages(results: ImportedSourceCandidate[]) {
-  const images: Array<{ url: string; type?: "cover" | "box" | "component" | "placeholder"; sourceUrl?: string }> = [];
-  const seen = new Set<string>();
-
-  for (const result of results) {
-    for (const url of result.publicImageUrls) {
-      if (!url || seen.has(url)) {
-        continue;
-      }
-
-      seen.add(url);
-      const sourceImage = result.candidate.candidateImages.find((image) => image.url === url);
-      images.push({
-        url,
-        type: sourceImage?.type || "cover",
-        sourceUrl: sourceImage?.sourceUrl || result.candidate.sourceUrl
-      });
-    }
-  }
-
-  return images;
 }
 
 function collectMissingFields(input: {
@@ -1797,7 +2314,7 @@ function mergeMetadata(metadataEntries: Record<string, unknown>[], extra?: Recor
         continue;
       }
 
-      if (!merged[key] || isPreferredScalarValue(value)) {
+      if (!isPreferredScalarValue(merged[key]) && isPreferredScalarValue(value)) {
         merged[key] = value;
       }
     }
@@ -1827,17 +2344,50 @@ function mergeCandidateImages(existing: unknown, next: CandidateImage[]) {
 }
 
 function pushImportedResult(results: ImportedSourceCandidate[], seen: Set<string>, result: ImportedSourceCandidate) {
-  const key = importedResultKey(result);
+  const normalizedResult = normalizeImportedResultCommerce(result);
+  const key = importedResultKey(normalizedResult);
   if (seen.has(key)) {
     return;
   }
 
   seen.add(key);
-  results.push(result);
+  results.push(normalizedResult);
 }
 
 function importedResultKey(result: ImportedSourceCandidate) {
   return `${result.source.id}:${result.candidate.sourceUrl}:${slugify(result.candidate.title)}`;
+}
+
+function normalizeImportedResultCommerce(result: ImportedSourceCandidate): ImportedSourceCandidate {
+  const metadata = normalizeCandidateMetadata(result.candidate.metadata);
+  const availability = normalizeStringValue(metadata.availability);
+  if (!isUnavailableOfferAvailability(availability)) {
+    return result;
+  }
+
+  const rawData = isRecord(metadata.rawData) ? { ...metadata.rawData } : metadata.rawData;
+  if (isRecord(rawData)) {
+    delete rawData.price;
+    delete rawData.currency;
+    delete rawData.purchaseUrl;
+    delete rawData.affiliateUrl;
+  }
+
+  const nextMetadata = { ...metadata };
+  delete nextMetadata.price;
+  delete nextMetadata.currency;
+  delete nextMetadata.purchaseUrl;
+  delete nextMetadata.affiliateUrl;
+  nextMetadata.rawData = rawData;
+  nextMetadata.unavailableOfferIgnored = true;
+
+  return {
+    ...result,
+    candidate: {
+      ...result.candidate,
+      metadata: nextMetadata
+    }
+  };
 }
 
 function collectOfferEligibleResults(input: {
@@ -1876,27 +2426,6 @@ function collectOfferEligibleResults(input: {
   };
 }
 
-function titleSimilarity(left: string, right: string) {
-  if (!left || !right) {
-    return 0;
-  }
-
-  if (left === right) {
-    return 1;
-  }
-
-  if (left.includes(right) || right.includes(left)) {
-    return 0.8;
-  }
-
-  const leftTokens = new Set(left.split("-").filter(Boolean));
-  const rightTokens = new Set(right.split("-").filter(Boolean));
-  const shared = [...leftTokens].filter((token) => rightTokens.has(token)).length;
-  const total = new Set([...leftTokens, ...rightTokens]).size;
-
-  return total ? shared / total : 0;
-}
-
 function scoreAmazonSearchConfidence(requestedTitle: string, candidateTitle: string) {
   const requestedKey = canonicalGameTitleKey(requestedTitle);
   const candidateKey = canonicalGameTitleKey(candidateTitle);
@@ -1911,253 +2440,6 @@ function scoreAmazonSearchConfidence(requestedTitle: string, candidateTitle: str
   }
 
   return baseScore;
-}
-
-function canonicalGameTitleKey(value: string) {
-  const tokens = slugify(value)
-    .split("-")
-    .filter((token) => token && !BASE_TITLE_VARIANT_TOKENS.has(token) && !looksLikeCatalogToken(token));
-
-  return tokens.join("-");
-}
-
-const BASE_TITLE_VARIANT_TOKENS = new Set([
-  "a",
-  "al",
-  "adultos",
-  "akarure",
-  "ano",
-  "anos",
-  "base",
-  "board",
-  "cartas",
-  "castellana",
-  "castellano",
-  "de",
-  "del",
-  "disponible",
-  "edicion",
-  "edad",
-  "edition",
-  "el",
-  "en",
-  "english",
-  "espanol",
-  "espanola",
-  "feuerland",
-  "for",
-  "from",
-  "game",
-  "games",
-  "hasbro",
-  "ages",
-  "juego",
-  "jugador",
-  "jugadores",
-  "player",
-  "players",
-  "la",
-  "las",
-  "los",
-  "maldito",
-  "mesa",
-  "minuto",
-  "minutos",
-  "oficial",
-  "partir",
-  "preventa",
-  "promedio",
-  "spanish",
-  "spiele",
-  "septiembre",
-  "the",
-  "tiempo",
-  "tranjis",
-  "devir",
-  "asmodee"
-]);
-
-const BASE_TITLE_REJECTION_TOKENS = new Set([
-  "accesorio",
-  "accesorios",
-  "architects",
-  "booster",
-  "bundle",
-  "campaign",
-  "campana",
-  "duel",
-  "evolution",
-  "expansion",
-  "extra",
-  "familia",
-  "family",
-  "funda",
-  "fundas",
-  "insert",
-  "junior",
-  "kids",
-  "legacy",
-  "marine",
-  "marinos",
-  "mini",
-  "mundos",
-  "organizer",
-  "organizador",
-  "pack",
-  "playmat",
-  "preorder",
-  "promo",
-  "refill",
-  "season",
-  "secuela",
-  "sleeve",
-  "sleeves",
-  "spare",
-  "storage",
-  "upgrade",
-  "worlds"
-]);
-
-function assessBaseGameTitleMatch(referenceTitle: string, candidateTitle: string) {
-  const referenceKey = canonicalGameTitleKey(referenceTitle);
-  const candidateKey = canonicalGameTitleKey(candidateTitle);
-  const score = titleSimilarity(candidateKey, referenceKey);
-
-  if (!referenceKey || !candidateKey) {
-    return {
-      matched: false,
-      score,
-      warn: null
-    };
-  }
-
-  if (looksLikeNumberedSequel(referenceTitle, candidateTitle)) {
-    return {
-      matched: false,
-      score,
-      warn: "Parece una secuela numerada y no se mezcló con el juego base."
-    };
-  }
-
-  if (referenceKey === candidateKey) {
-    return {
-      matched: true,
-      score: Math.max(score, 0.98),
-      warn: null
-    };
-  }
-
-  const referenceTokens = new Set(referenceKey.split("-").filter(Boolean));
-  const candidateTokens = candidateKey.split("-").filter(Boolean);
-  const extraTokens = candidateTokens.filter((token) => !referenceTokens.has(token));
-  const rejectedToken = extraTokens.find((token) => BASE_TITLE_REJECTION_TOKENS.has(token) || /^\d+$/.test(token));
-
-  if (rejectedToken) {
-    return {
-      matched: false,
-      score,
-      warn: "Parece una expansión, secuela o accesorio y no se mezcló con el juego base."
-    };
-  }
-
-  if (
-    candidateTokens.length > referenceTokens.size &&
-    candidateTokens.filter((token) => referenceTokens.has(token)).length === referenceTokens.size
-  ) {
-    if (hasReferenceWithOnlyNoiseSuffix(candidateTokens, [...referenceTokens])) {
-      return {
-        matched: true,
-        score: Math.max(score, 0.9),
-        warn: null
-      };
-    }
-
-    return {
-      matched: false,
-      score,
-      warn: "El título añade términos extra que no parecen una variante segura del juego base."
-    };
-  }
-
-  return {
-    matched: false,
-    score,
-    warn: score >= 0.55 ? "La coincidencia no fue lo bastante fiable para guardarla como oferta automática." : null
-  };
-}
-
-function looksLikeCatalogToken(token: string) {
-  return /^\d+$/.test(token) || (/\d/.test(token) && /[a-z]/i.test(token)) || /^(?:b0|trg|sku|ref|isbn)\w*/i.test(token);
-}
-
-function hasReferenceWithOnlyNoiseSuffix(candidateTokens: string[], referenceTokens: string[]) {
-  if (!referenceTokens.length || candidateTokens.length < referenceTokens.length) {
-    return false;
-  }
-
-  for (let index = 0; index <= candidateTokens.length - referenceTokens.length; index += 1) {
-    const slice = candidateTokens.slice(index, index + referenceTokens.length);
-    if (slice.join("-") !== referenceTokens.join("-")) {
-      continue;
-    }
-
-    const suffix = candidateTokens.slice(index + referenceTokens.length);
-    if (suffix.every((token) => looksLikeTitleNoiseToken(token))) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function looksLikeTitleNoiseToken(token: string) {
-  return TITLE_NOISE_TOKENS.has(token) || looksLikeCatalogToken(token);
-}
-
-const TITLE_NOISE_TOKENS = new Set([
-  "a",
-  "adultos",
-  "board",
-  "cartas",
-  "cooperativo",
-  "de",
-  "del",
-  "edicion",
-  "edition",
-  "el",
-  "en",
-  "espanol",
-  "espanola",
-  "game",
-  "games",
-  "juego",
-  "juegos",
-  "jugador",
-  "jugadores",
-  "la",
-  "las",
-  "los",
-  "mesa",
-  "minutos",
-  "para",
-  "partir",
-  "tiempo",
-  "y"
-]);
-
-function looksLikeNumberedSequel(referenceTitle: string, candidateTitle: string) {
-  const referenceSlug = slugify(referenceTitle);
-  const candidateSlug = slugify(candidateTitle);
-
-  if (!referenceSlug || referenceSlug === candidateSlug) {
-    return false;
-  }
-
-  return new RegExp(`(?:^|-)${escapeRegExp(referenceSlug)}-(?:2|3|4|ii|iii|iv)(?:-|$)`, "i").test(candidateSlug);
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function hostOf(value: string) {

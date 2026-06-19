@@ -127,13 +127,15 @@ function cleanAmazonTitle(title: string, asin: string, brand?: string | null, ma
   if (separatorParts.length > 1) {
     const tail = separatorParts.slice(1).join(" ");
     if (looksLikeCommercialTail(tail)) {
-      cleaned = separatorParts.find((part, index) => index > 0 && !looksLikeCommercialTail(part)) || separatorParts[0];
+      cleaned = pickAmazonTitleIdentityPart(separatorParts, brand || manufacturer) || separatorParts[0];
     }
   }
 
   cleaned = cleaned
+    .replace(/\s*\((?:juego en caja|juego de mesa|board game).*$/i, " ")
+    .replace(/\bclassico\b/gi, "Clásico")
     .replace(/\b(juego de mesa|board game)\b/gi, " ")
-    .replace(/\b(para adultos|juego cooperativo|cooperativo|jugadores?|minutos?|a partir de)\b.*$/i, " ")
+    .replace(/\b(para adultos|juego cooperativo|cooperativo|a partir de)\b.*$/i, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -157,6 +159,37 @@ function removeLeadingMaker(title: string, maker?: string | null) {
 
   const rest = match[1].trim();
   return looksLikeCommercialTail(rest) ? title : rest;
+}
+
+function pickAmazonTitleIdentityPart(parts: string[], maker?: string | null) {
+  const explicitMaker = maker?.replace(/\s+/g, " ").trim().toLowerCase() || "";
+  const candidates = parts.filter((part) => !looksLikeStandaloneMaker(part, explicitMaker) && !looksLikeGenericAmazonTitlePart(part));
+
+  return candidates[0] || parts.find((part) => !looksLikeStandaloneMaker(part, explicitMaker)) || parts[0] || "";
+}
+
+function looksLikeStandaloneMaker(value: string, explicitMaker: string) {
+  const normalized = value.replace(/\s+/g, " ").trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  if (explicitMaker && normalized === explicitMaker) {
+    return true;
+  }
+
+  return /^(alderac entertainment|hasbro gaming|asmodee|cmon|goliath|devir|ravensburger|mattel|kosmos|fantasy flight games)$/i.test(value.trim());
+}
+
+function looksLikeGenericAmazonTitlePart(value: string) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+
+  return (
+    /^(juegos?|juego)\s+de\s+mesa\b/i.test(normalized) ||
+    /^(juegos?|juego)\s+(?:para|adultos|niños|ninos)\b/i.test(normalized) ||
+    /^(?:a partir de|para)\b/i.test(normalized) ||
+    /^(?:estrategia|familiar|infantil|adultos|niños|ninos)\b/i.test(normalized)
+  );
 }
 
 function escapeRegExp(value: string) {

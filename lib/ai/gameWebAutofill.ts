@@ -129,7 +129,7 @@ function buildBoardGameSearchQueries(game: Game) {
     game.buyUrl,
     ...readSourceValues(game.sources, "ean"),
     ...readSourceValues(game.sources, "asin"),
-    "board game BoardGameGeek players age playtime designer publisher mechanics"
+    "board game players age playtime designer publisher mechanics rules overview"
   ].filter(Boolean);
 
   const metadataQuery = parts.join(" ").slice(0, 400);
@@ -138,18 +138,13 @@ function buildBoardGameSearchQueries(game: Game) {
     game.originalTitle ? exact(game.originalTitle) : null,
     "juego de mesa cómo se juega reglas reseña descripción objetivo turno mecánicas jugadores duración edad"
   ].filter(Boolean).join(" ").slice(0, 400);
-  const bggQuery = [
-    exact(cleanTitle || title),
-    game.originalTitle ? exact(game.originalTitle) : null,
-    "BoardGameGeek overview gameplay rules mechanisms"
-  ].filter(Boolean).join(" ").slice(0, 400);
   const ratingsQuery = [
     exact(cleanTitle || title),
     game.originalTitle ? exact(game.originalTitle) : null,
-    "BoardGameGeek rating Amazon rating reseña nota puntuación review score board game"
+    "rating reseña nota puntuación review score board game"
   ].filter(Boolean).join(" ").slice(0, 400);
 
-  return [...new Set([metadataQuery, gameplayQuery, bggQuery, ratingsQuery])];
+  return [...new Set([metadataQuery, gameplayQuery, ratingsQuery])];
 }
 
 export async function searchBoardGameWithTavily(game: Game) {
@@ -243,7 +238,7 @@ export async function extractBoardGameFieldsWithNova(input: {
           "For known board games, explain the actual gameplay instead of describing it generically. For example, mention concrete actions such as placing tiles, playing cards, assigning workers, scoring areas, revealing clues or managing resources when supported. " +
           `For categories.value, return only exact labels from this canonical list: ${CANONICAL_CATEGORIES.join(", ")}. Do not translate English canonical labels such as Party, Gateway, Eurogame, Dungeon Crawler, Deckbuilding, or Roll & Write. ` +
           `For mechanics.value, return gameplay systems, not components, and only exact labels from this canonical list: ${CANONICAL_MECHANICS.join(", ")}. Do not translate English canonical labels such as Deckbuilding, Engine building, Set collection, Area control, Push your luck, Legacy, or Wargame. Avoid generic terms like Tablero, Fichas, Piezas, Cartas, Movimientos, or any terms not in the curated list. ` +
-          "Use web_search sources to enrich direct store sources: shops often have shallow commercial copy, while BoardGameGeek/rules/reviews usually explain gameplay better. " +
+          "Use web_search sources to enrich direct store sources: shops often have shallow commercial copy, while rules pages and reviews usually explain gameplay better. " +
           "Do not introduce exact victory thresholds, component counts or special rules unless they are explicitly present in sourceContext. " +
           "Do not write generic SEO filler such as 'propuesta de mesa', 'foco en la experiencia de juego', 'contexto temático', 'para disfrutar en grupo' or vague restatements of players/playtime/age. " +
           "When the provided source has enough material, description.value should be substantial: 700-1100 characters in 2 readable paragraphs inside the same string. " +

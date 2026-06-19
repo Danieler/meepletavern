@@ -28,10 +28,11 @@ test("normalizeStoreOffer normalizes Juegos de la Mesa Redonda offers with price
   assert.equal(offer?.availability, "En stock");
 });
 
-test("normalizeStoreOffer tolerates Dungeon Marvels offers without price", () => {
+test("normalizeStoreOffer descarta ofertas agotadas aunque tengan enlace", () => {
   const offer = normalizeStoreOffer(
     {
       sourceName: "dungeon_marvels",
+      price: 45,
       availability: "Agotado",
       purchaseUrl: "https://dungeonmarvels.com/azul.html"
     },
@@ -42,12 +43,10 @@ test("normalizeStoreOffer tolerates Dungeon Marvels offers without price", () =>
     }
   );
 
-  assert.equal(offer?.price, null);
-  assert.equal(offer?.availability, "Agotado");
-  assert.equal(offer?.purchaseUrl, "https://dungeonmarvels.com/azul.html");
+  assert.equal(offer, null);
 });
 
-test("normalizeStoreOffer tolerates sources without availability or link", () => {
+test("normalizeStoreOffer descarta precio sin disponibilidad confirmada salvo Amazon", () => {
   const noAvailability = normalizeStoreOffer(
     {
       sourceName: "dracotienda",
@@ -60,22 +59,22 @@ test("normalizeStoreOffer tolerates sources without availability or link", () =>
       baseUrl: "https://dracotienda.com"
     }
   );
-  const noLink = normalizeStoreOffer(
+  const amazon = normalizeStoreOffer(
     {
-      sourceName: "asmodee",
-      price: 44.99
+      sourceName: "amazon",
+      price: 44.99,
+      purchaseUrl: "https://www.amazon.es/dp/B000000000"
     },
     {
-      id: "src_asmodee",
-      name: "Asmodee",
-      baseUrl: "https://www.asmodee.es"
+      id: "src_amazon",
+      name: "Amazon PA API España",
+      baseUrl: "https://www.amazon.es"
     }
   );
 
-  assert.equal(noAvailability?.availability, null);
-  assert.equal(noAvailability?.purchaseUrl, "https://dracotienda.com/azul.html");
-  assert.equal(noLink?.price, 44.99);
-  assert.equal(noLink?.purchaseUrl, null);
+  assert.equal(noAvailability, null);
+  assert.equal(amazon?.availability, null);
+  assert.equal(amazon?.price, 44.99);
 });
 
 test("upsertStoreOfferRecord creates an offer associated to a candidate and updates without duplicating", async () => {

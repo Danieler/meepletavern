@@ -1,7 +1,4 @@
-import "server-only";
-
-import { sourceRepository } from "@/lib/editorialRepositories";
-import { createMasterImportService, type MasterImportInput, type MasterImportSummary } from "@/lib/import/masterImportService";
+import { createMasterImportService, listMasterImportSources, type MasterImportInput, type MasterImportSummary } from "@/lib/import/masterImportService";
 import {
   type MasterImportBatchEvent,
   type MasterImportBatchItem,
@@ -31,7 +28,7 @@ export async function runMasterImportBatch(input: RunMasterImportBatchInput): Pr
     };
   }
 
-  const sources = input.sources || (input.listSources ? await input.listSources() : await sourceRepository.list());
+  const sources = input.sources || (input.listSources ? await input.listSources() : await listMasterImportSources());
   const importGame =
     input.importGame ||
     createMasterImportService({
@@ -128,6 +125,12 @@ function buildSuccessBatchItem(inputTitle: string, summary: MasterImportSummary)
     sourcesWithoutOffers: summary.sourcesWithoutOffers,
     failedSources: summary.failedSources,
     sourceDiagnostics: summary.sourceDiagnostics,
+    imageDiagnostics: summary.imageDiagnostics,
+    fieldDiagnostics: summary.fieldDiagnostics,
+    taxonomyDiagnostics: summary.taxonomyDiagnostics,
+    cacheDiagnostics: summary.cacheDiagnostics,
+    externalCallDiagnostics: summary.externalCallDiagnostics,
+    costDiagnostics: summary.costDiagnostics,
     bestOffer: summary.bestOffer,
     warnings: summary.warnings,
     error: null
@@ -148,6 +151,12 @@ function buildFailedBatchItem(inputTitle: string, error: unknown): MasterImportB
     sourcesWithoutOffers: [],
     failedSources: [],
     sourceDiagnostics: [],
+    imageDiagnostics: undefined,
+    fieldDiagnostics: undefined,
+    taxonomyDiagnostics: undefined,
+    cacheDiagnostics: [],
+    externalCallDiagnostics: [],
+    costDiagnostics: undefined,
     bestOffer: null,
     warnings: [],
     error: error instanceof Error ? error.message : "No se pudo importar este juego."

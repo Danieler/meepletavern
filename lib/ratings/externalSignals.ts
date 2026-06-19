@@ -236,7 +236,7 @@ function dedupeSearchResults(results: ExternalSearchResult[]) {
 function parseScoreFromText(text: string) {
   const normalizedText = text.replace(/\s+/g, " ").trim();
   const patterns = [
-    /(?:boardgamegeek|bgg|avg rating|average rating|user rating|community rating|geek rating)\D{0,36}(\d+(?:[.,]\d+)?)(?:\s*\/\s*(10|5|100))?/i,
+    /(?:avg rating|average rating|user rating|community rating)\D{0,36}(\d+(?:[.,]\d+)?)(?:\s*\/\s*(10|5|100))?/i,
     /(?:amazon|clientes?|usuarios?|valoraci[oó]n media|customer rating)\D{0,36}(\d+(?:[.,]\d+)?)(?:\s*(?:de|out of|\/)\s*(5|10|100))?/i,
     /(\d+(?:[.,]\d+)?)\s*\/\s*(100|10|5)\b/i,
     /(?:puntuaci[oó]n(?: final)?|nota|valoraci[oó]n|rating|score)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)(?:\s*\/\s*(100|10|5))?/i

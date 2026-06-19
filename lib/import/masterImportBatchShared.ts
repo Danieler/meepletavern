@@ -18,6 +18,45 @@ export type MasterImportBatchItem = {
     confidence?: number;
     sourceUrl?: string | null;
   }>;
+  imageDiagnostics?: {
+    totalFound: number;
+    publicSafeFound: number;
+    selectedMainImage: { url: string; sourceName?: string } | null;
+    selectedAdditionalImages: Array<{ url: string; sourceName?: string }>;
+    rejected: Array<{ url: string; sourceName?: string; reason: string }>;
+  };
+  fieldDiagnostics?: Record<string, {
+    value?: unknown;
+    confidence: number;
+    sourceName?: string;
+    reason?: string;
+  }>;
+  taxonomyDiagnostics?: {
+    categories: string[];
+    mechanics: string[];
+    themes: string[];
+    confidence: number;
+    warnings: string[];
+    needsReview: boolean;
+  };
+  cacheDiagnostics?: Array<{ key: string; hit: boolean }>;
+  externalCallDiagnostics?: Array<{
+    type: string;
+    sourceName?: string;
+    cacheHit?: boolean;
+    durationMs?: number;
+    allowed: boolean;
+    reason?: string;
+    error?: string;
+    timeout?: boolean;
+  }>;
+  costDiagnostics?: {
+    tavilyUsed: boolean;
+    tavilyReason: string | null;
+    bedrockUsed: boolean;
+    bedrockReason: string | null;
+    videoSearchUsed: boolean;
+  };
   bestOffer: {
     sourceName: string;
     sourceDisplayName: string | null;

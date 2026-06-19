@@ -1,8 +1,12 @@
 import type { Source } from "@prisma/client";
 import type { NormalizedImportedCandidate } from "@/lib/import/importedGame";
 import { sanitizeImportedText, sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
-import { slugify } from "@/lib/slug";
 import { fetchSourcePageProduct, type SourcePageProduct } from "@/lib/import/sourceProductPage";
+import {
+  runTrackedExternalCall,
+  type ImportExecutionContext
+} from "@/lib/import/importExecutionContext";
+import { normalizeTitleForMatching, scoreTitleMatch } from "@/lib/import/titleMatching";
 
 export type StoreSourceName =
   | "juegos_de_la_mesa_redonda"
@@ -48,8 +52,8 @@ type SourceConnector = {
   imageAllowed: boolean;
   buildSearchUrl(title: string): string;
   matches(source: Pick<Source, "name" | "baseUrl">): boolean;
-  searchGameInSource(title: string): Promise<StoreSourceSearchResult[]>;
-  importGameFromSourceUrl(sourceUrl: string): Promise<StoreSourceResult>;
+  searchGameInSource(title: string, context?: ImportExecutionContext): Promise<StoreSourceSearchResult[]>;
+  importGameFromSourceUrl(sourceUrl: string, context?: ImportExecutionContext): Promise<StoreSourceResult>;
 };
 
 const connectors: SourceConnector[] = [
@@ -98,13 +102,13 @@ export function getStoreSourceConnector(source: Pick<Source, "name" | "baseUrl">
   return connectors.find((connector) => connector.matches(source)) || null;
 }
 
-export async function searchGameInSource(source: Pick<Source, "name" | "baseUrl">, title: string) {
+export async function searchGameInSource(source: Pick<Source, "name" | "baseUrl">, title: string, context?: ImportExecutionContext) {
   const connector = getStoreSourceConnector(source);
   if (!connector) {
     return [];
   }
 
-  return connector.searchGameInSource(title);
+  return connector.searchGameInSource(title, context);
 }
 
 export function mapStoreSourceResultToImportCandidate(result: StoreSourceResult): NormalizedImportedCandidate {
@@ -429,7 +433,7 @@ function createPrestashopSearchConnector(input: {
     matches(source) {
       return normalizeHost(source.baseUrl) === normalizeHost(input.baseUrl);
     },
-    async searchGameInSource(title) {
+    async searchGameInSource(title, context) {
       const searchUrl = input.buildSearchUrl
         ? input.buildSearchUrl(title)
         : `${input.baseUrl}/buscar?controller=search&s=${encodeURIComponent(title)}`;
@@ -444,7 +448,7 @@ function createPrestashopSearchConnector(input: {
         }
 
         if (shouldUseMirrorSearchFallback(input, null)) {
-          const markdown = await fetchStoreSearchMarkdown(searchUrl, input.sourceDisplayName);
+          const markdown = await fetchStoreSearchMarkdown(searchUrl, input.sourceDisplayName, context);
           const mirrorResults = extractSearchResultsFromMarkdown(markdown, {
             ...input,
             searchTitle: title
@@ -454,7 +458,7 @@ function createPrestashopSearchConnector(input: {
           }
         }
 
-        const tavilyResults = await searchStoreWithTavily(input, title);
+        const tavilyResults = await searchStoreWithTavily(input, title, context);
         if (tavilyResults.length) {
           return tavilyResults;
         }
@@ -462,7 +466,7 @@ function createPrestashopSearchConnector(input: {
         return htmlResults;
       } catch (error) {
         if (shouldUseMirrorSearchFallback(input, error)) {
-          const markdown = await fetchStoreSearchMarkdown(searchUrl, input.sourceDisplayName);
+          const markdown = await fetchStoreSearchMarkdown(searchUrl, input.sourceDisplayName, context);
           const mirrorResults = extractSearchResultsFromMarkdown(markdown, {
             ...input,
             searchTitle: title
@@ -472,7 +476,7 @@ function createPrestashopSearchConnector(input: {
           }
         }
 
-        const tavilyResults = await searchStoreWithTavily(input, title);
+        const tavilyResults = await searchStoreWithTavily(input, title, context);
         if (tavilyResults.length) {
           return tavilyResults;
         }
@@ -480,9 +484,15 @@ function createPrestashopSearchConnector(input: {
         throw error;
       }
     },
-    async importGameFromSourceUrl(sourceUrl) {
+    async importGameFromSourceUrl(sourceUrl, context) {
       try {
-        const product = await fetchSourcePageProduct(sourceUrl);
+        const product = await runTrackedExternalCall(context, {
+          type: "product_fetch",
+          sourceName: input.sourceDisplayName,
+          reason: "Importar ficha de producto desde fuente compatible.",
+          cacheKey: `source-product:${normalizeUrlForCache(sourceUrl)}`,
+          timeoutMs: getProductTimeoutMs()
+        }, () => fetchSourcePageProduct(sourceUrl));
         return mapSourcePageProductToStoreSourceResult(product, input);
       } catch (error) {
         const reason = error instanceof Error ? error.message : "error desconocido";
@@ -571,7 +581,7 @@ function createMasqueocaConnector(input: {
     matches(source) {
       return normalizeHost(source.baseUrl) === normalizeHost(input.baseUrl);
     },
-    async searchGameInSource(title) {
+    async searchGameInSource(title, context) {
       const suggestionHtml = await fetchStoreHtml(this.buildSearchUrl(title), input.sourceDisplayName);
       const suggestionResults = extractMasqueocaSuggestionsFromHtml(suggestionHtml, {
         ...input,
@@ -585,7 +595,13 @@ function createMasqueocaConnector(input: {
       const hydratedResults = await Promise.all(
         suggestionResults.map(async (result) => {
           try {
-            const product = await fetchSourcePageProduct(result.sourceUrl);
+            const product = await runTrackedExternalCall(context, {
+              type: "product_fetch",
+              sourceName: input.sourceDisplayName,
+              reason: "Hidratar resultado de búsqueda ya devuelto por la fuente.",
+              cacheKey: `source-product:${normalizeUrlForCache(result.sourceUrl)}`,
+              timeoutMs: getProductTimeoutMs()
+            }, () => fetchSourcePageProduct(result.sourceUrl));
             return {
               ...mapSourcePageProductToStoreSourceResult(product, input),
               confidence: result.confidence
@@ -600,9 +616,15 @@ function createMasqueocaConnector(input: {
         (left, right) => right.confidence - left.confidence || left.title.localeCompare(right.title, "es")
       );
     },
-    async importGameFromSourceUrl(sourceUrl) {
+    async importGameFromSourceUrl(sourceUrl, context) {
       try {
-        const product = await fetchSourcePageProduct(sourceUrl);
+        const product = await runTrackedExternalCall(context, {
+          type: "product_fetch",
+          sourceName: input.sourceDisplayName,
+          reason: "Importar ficha de producto desde fuente compatible.",
+          cacheKey: `source-product:${normalizeUrlForCache(sourceUrl)}`,
+          timeoutMs: getProductTimeoutMs()
+        }, () => fetchSourcePageProduct(sourceUrl));
         return mapSourcePageProductToStoreSourceResult(product, input);
       } catch (error) {
         const reason = error instanceof Error ? error.message : "error desconocido";
@@ -686,33 +708,52 @@ async function fetchStoreHtml(url: string, sourceDisplayName: string) {
   return response.text();
 }
 
-async function fetchStoreSearchMarkdown(url: string, sourceDisplayName: string) {
-  let response: Response;
+async function fetchStoreSearchMarkdown(url: string, sourceDisplayName: string, context?: ImportExecutionContext) {
+  return runTrackedExternalCall(context, {
+    type: "mirror_fetch",
+    sourceName: sourceDisplayName,
+    reason: "Fallback mirror para recuperar resultados de una fuente con bloqueo HTML.",
+    cacheKey: `mirror-fetch:${normalizeUrlForCache(url)}`,
+    timeoutMs: getSourceTimeoutMs()
+  }, async () => {
+    let response: Response;
 
-  try {
-    response = await fetch(`https://r.jina.ai/http://${url.replace(/^https?:\/\//i, "")}`, {
-      headers: {
-        Accept: "text/plain, text/markdown;q=0.9, */*;q=0.8"
-      },
-      cache: "no-store"
-    });
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : "error desconocido";
-    throw new Error(`[${sourceDisplayName}] No se pudo ejecutar la búsqueda mirror (${reason}).`);
-  }
+    try {
+      response = await fetch(`https://r.jina.ai/http://${url.replace(/^https?:\/\//i, "")}`, {
+        headers: {
+          Accept: "text/plain, text/markdown;q=0.9, */*;q=0.8"
+        },
+        cache: "no-store"
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "error desconocido";
+      throw new Error(`[${sourceDisplayName}] No se pudo ejecutar la búsqueda mirror (${reason}).`);
+    }
 
-  if (!response.ok) {
-    throw new Error(`[${sourceDisplayName}] La búsqueda mirror devolvió ${response.status}.`);
-  }
+    if (!response.ok) {
+      throw new Error(`[${sourceDisplayName}] La búsqueda mirror devolvió ${response.status}.`);
+    }
 
-  return response.text();
+    return response.text();
+  });
 }
 
 async function searchStoreWithTavily(
   input: Pick<SourceConnector, "sourceName" | "sourceDisplayName" | "baseUrl" | "imageAllowed">,
-  title: string
+  title: string,
+  context?: ImportExecutionContext
 ) {
   if (input.sourceName !== "zacatrus") {
+    return [];
+  }
+
+  if (!context || context.tavilyMode !== "always") {
+    context?.recordCall({
+      type: "tavily_search",
+      sourceName: input.sourceDisplayName,
+      allowed: false,
+      reason: "Fallback Tavily de conector bloqueado; la importación maestra decide Tavily al final si la calidad lo exige."
+    });
     return [];
   }
 
@@ -722,21 +763,29 @@ async function searchStoreWithTavily(
   }
 
   try {
-    const { tavily } = await import("@tavily/core");
-    const client = tavily({ apiKey });
-    const searchQuery = `site:${normalizeHost(input.baseUrl)} \"${title.trim()}\"`;
-    const response = await client.search(searchQuery, {
-      searchDepth: "basic",
-      topic: "general",
-      maxResults: 6,
-      includeAnswer: false,
-      includeRawContent: "text",
-      includeImages: false
-    });
+    return await runTrackedExternalCall(context, {
+      type: "tavily_search",
+      sourceName: input.sourceDisplayName,
+      reason: "Fallback explícito de búsqueda de tienda.",
+      cacheKey: `tavily:connector:${normalizeHost(input.baseUrl)}:${normalizeTitleForMatching(title)}`,
+      requireExplicitAllowance: true
+    }, async () => {
+      const { tavily } = await import("@tavily/core");
+      const client = tavily({ apiKey });
+      const searchQuery = `site:${normalizeHost(input.baseUrl)} \"${title.trim()}\"`;
+      const response = await client.search(searchQuery, {
+        searchDepth: "basic",
+        topic: "general",
+        maxResults: 6,
+        includeAnswer: false,
+        includeRawContent: "text",
+        includeImages: false
+      });
 
-    return mapTavilyResultsToStoreSourceResults(response.results || [], {
-      ...input,
-      searchTitle: title
+      return mapTavilyResultsToStoreSourceResults(response.results || [], {
+        ...input,
+        searchTitle: title
+      });
     });
   } catch (error) {
     console.warn(`[${input.sourceDisplayName}] Tavily fallback falló`, error);
@@ -863,34 +912,27 @@ function shouldUseMirrorSearchFallback(
 }
 
 function normalizeGameTitle(value: string) {
-  return slugify(sanitizeImportedTitle(value).toLowerCase());
+  return normalizeTitleForMatching(sanitizeImportedTitle(value).toLowerCase());
 }
 
-function scoreTitleMatch(resultTitle: string, queryTitle: string) {
-  if (!resultTitle || !queryTitle) {
-    return 0;
-  }
+function getSourceTimeoutMs() {
+  const parsed = Number.parseInt(process.env.MASTER_IMPORT_SOURCE_TIMEOUT_MS || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 7000;
+}
 
-  if (resultTitle === queryTitle) {
-    return 1;
-  }
+function getProductTimeoutMs() {
+  const parsed = Number.parseInt(process.env.MASTER_IMPORT_PRODUCT_TIMEOUT_MS || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 9000;
+}
 
-  if (resultTitle.startsWith(queryTitle) || queryTitle.startsWith(resultTitle)) {
-    return 0.9;
+function normalizeUrlForCache(value: string) {
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return value.trim();
   }
-
-  if (resultTitle.includes(queryTitle) || queryTitle.includes(resultTitle)) {
-    return 0.75;
-  }
-
-  const queryTokens = queryTitle.split("-").filter(Boolean);
-  if (!queryTokens.length) {
-    return 0;
-  }
-
-  const resultTokenSet = new Set(resultTitle.split("-").filter(Boolean));
-  const shared = queryTokens.filter((token) => resultTokenSet.has(token)).length;
-  return shared / queryTokens.length;
 }
 
 function parsePlayers(value: string) {

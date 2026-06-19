@@ -49,6 +49,59 @@ test("mapAmazonProductToCandidate recorta la marca en títulos tipo Cascadia", (
   assert.equal(mapped.originalTitle, "Alderac Entertainment - Cascadia - Board Game - Base Game - For 1-4 Players - from Ages 10+ - English");
 });
 
+test("mapAmazonProductToCandidate conserva el nombre real en Rummikub con título marketplace largo", () => {
+  const mapped = mapAmazonProductToCandidate({
+    product: {
+      asin: "B07TLD2M71",
+      title:
+        "Rummikub Original 6 Jugadores, Juego De Mesa A Partir De 6 Años, Juegos De Mesa Adultos Y Niños, Juego Estratégico De Fichas, Juego De Números De Estrategia Para De 2 a 6 Jugadores : Amazon.es: Juguetes y juegos",
+      imageUrl: "https://m.media-amazon.com/images/I/81CfzXQLByL._AC_SL1500_.jpg",
+      price: 40.07,
+      facts: {
+        "Número de jugadores": "2-6",
+        "Tiempo de juego": "20-40 minutos",
+        "Descripción del rango de edad": "A partir de 6 años"
+      }
+    },
+    sourceUrl: "https://www.amazon.es/dp/B07TLD2M71"
+  });
+
+  assert.equal(mapped.title, "Rummikub Original 6 Jugadores");
+  assert.equal(mapped.metadata.price, 40.07);
+  assert.equal(mapped.candidateImages[0]?.url, "https://m.media-amazon.com/images/I/81CfzXQLByL._AC_SL1500_.jpg");
+});
+
+test("mapAmazonProductToCandidate conserva Cluedo frente a cola comercial de Amazon", () => {
+  const mapped = mapAmazonProductToCandidate({
+    product: {
+      asin: "B0CLUEDO01",
+      title:
+        "Cluedo Clásico Edición Refresh, Juego de Mesa de Misterio, Para 2-6 Jugadores, A Partir de 8 Años : Amazon.es: Juguetes y juegos",
+      facts: {
+        "Número de jugadores": "2-6",
+        "Edad mínima recomendada": "8"
+      }
+    },
+    sourceUrl: "https://www.amazon.es/dp/B0CLUEDO01"
+  });
+
+  assert.equal(mapped.title, "Cluedo Clásico Edición Refresh");
+});
+
+test("mapAmazonProductToCandidate limpia Cluedo Classico Refresh con paréntesis marketplace", () => {
+  const mapped = mapAmazonProductToCandidate({
+    product: {
+      asin: "B0BQC62WHK",
+      title:
+        "Cluedo Classico Refresh (Juego en Caja, Hasbro Gaming), para niños y niñas a Partir de 8 años, Cluedo revisitado para 2-6 Jugadores",
+      facts: {}
+    },
+    sourceUrl: "https://www.amazon.es/dp/B0BQC62WHK"
+  });
+
+  assert.equal(mapped.title, "Cluedo Clásico Refresh");
+});
+
 test("mapAmazonProductToCandidate extracts table data and normalizes Amazon age months", () => {
   const mapped = mapAmazonProductToCandidate({
     product: {
