@@ -4,7 +4,14 @@ import { sanitizeImportedText, sanitizeImportedTitle } from "@/lib/importedTextS
 import { slugify } from "@/lib/slug";
 import { fetchSourcePageProduct, type SourcePageProduct } from "@/lib/import/sourceProductPage";
 
-export type StoreSourceName = "juegos_de_la_mesa_redonda" | "dungeon_marvels" | "mathom" | "dracotienda" | "zacatrus" | "amazon";
+export type StoreSourceName =
+  | "juegos_de_la_mesa_redonda"
+  | "dungeon_marvels"
+  | "mathom"
+  | "dracotienda"
+  | "zacatrus"
+  | "masqueoca"
+  | "amazon";
 
 export type StoreSourceResult = {
   sourceName: StoreSourceName;
@@ -56,7 +63,7 @@ const connectors: SourceConnector[] = [
     sourceName: "dungeon_marvels",
     sourceDisplayName: "Dungeon Marvels",
     baseUrl: "https://dungeonmarvels.com",
-    imageAllowed: false
+    imageAllowed: true
   }),
   createPrestashopSearchConnector({
     sourceName: "mathom",
@@ -78,6 +85,12 @@ const connectors: SourceConnector[] = [
     buildSearchUrl(title) {
       return `https://zacatrus.es/catalogsearch/result/?q=${encodeURIComponent(title)}`;
     }
+  }),
+  createMasqueocaConnector({
+    sourceName: "masqueoca",
+    sourceDisplayName: "MasQueOca",
+    baseUrl: "https://www.masqueoca.com/tienda",
+    imageAllowed: true
   })
 ];
 
@@ -466,6 +479,126 @@ function createPrestashopSearchConnector(input: {
 
         throw error;
       }
+    },
+    async importGameFromSourceUrl(sourceUrl) {
+      try {
+        const product = await fetchSourcePageProduct(sourceUrl);
+        return mapSourcePageProductToStoreSourceResult(product, input);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "error desconocido";
+        throw new Error(`[${input.sourceDisplayName}] No se pudo importar la ficha (${reason}).`);
+      }
+    }
+  };
+}
+
+export function extractMasqueocaSuggestionsFromHtml(
+  html: string,
+  input: {
+    sourceName: StoreSourceName;
+    sourceDisplayName: string;
+    baseUrl: string;
+    searchTitle: string;
+    imageAllowed: boolean;
+  }
+): StoreSourceSearchResult[] {
+  const queryNormalized = normalizeGameTitle(input.searchTitle);
+  const fetchedAt = new Date();
+  const results: StoreSourceSearchResult[] = [];
+  const seen = new Set<string>();
+
+  for (const match of html.matchAll(/<div class=['"]suggestion-item['"][^>]+onclick="selectSuggestion\('(\d+)'\)"[^>]*>([\s\S]*?)<\/div>/gi)) {
+    const itemId = cleanText(match[1] || "");
+    const rawTitle = cleanText(stripTags(match[2] || ""));
+    const href = `${input.baseUrl.replace(/\/+$/, "")}/producto.asp?item=${itemId}`;
+
+    if (!itemId || !rawTitle || !href || seen.has(href)) {
+      continue;
+    }
+
+    const title = sanitizeImportedTitle(rawTitle).trim() || rawTitle;
+    const normalizedTitle = normalizeGameTitle(title);
+    const confidence = scoreTitleMatch(normalizedTitle, queryNormalized);
+
+    if (confidence < 0.2) {
+      continue;
+    }
+
+    seen.add(href);
+    results.push({
+      sourceName: input.sourceName,
+      sourceDisplayName: input.sourceDisplayName,
+      sourceUrl: href,
+      title,
+      normalizedTitle,
+      price: null,
+      currency: null,
+      availability: null,
+      purchaseUrl: href,
+      publisher: null,
+      imageUrl: null,
+      imageAllowed: input.imageAllowed,
+      description: null,
+      minPlayers: null,
+      maxPlayers: null,
+      minPlayTime: null,
+      maxPlayTime: null,
+      recommendedAge: null,
+      language: null,
+      rawData: {
+        itemId,
+        suggestionHtml: match[0]
+      },
+      fetchedAt,
+      confidence
+    });
+  }
+
+  return results.sort((left, right) => right.confidence - left.confidence || left.title.localeCompare(right.title, "es"));
+}
+
+function createMasqueocaConnector(input: {
+  sourceName: StoreSourceName;
+  sourceDisplayName: string;
+  baseUrl: string;
+  imageAllowed: boolean;
+}): SourceConnector {
+  return {
+    ...input,
+    buildSearchUrl(title) {
+      return `${input.baseUrl}/get_suggestionsbpp.asp?q=${encodeURIComponent(title)}&n=1`;
+    },
+    matches(source) {
+      return normalizeHost(source.baseUrl) === normalizeHost(input.baseUrl);
+    },
+    async searchGameInSource(title) {
+      const suggestionHtml = await fetchStoreHtml(this.buildSearchUrl(title), input.sourceDisplayName);
+      const suggestionResults = extractMasqueocaSuggestionsFromHtml(suggestionHtml, {
+        ...input,
+        searchTitle: title
+      }).slice(0, 4);
+
+      if (!suggestionResults.length) {
+        return [];
+      }
+
+      const hydratedResults = await Promise.all(
+        suggestionResults.map(async (result) => {
+          try {
+            const product = await fetchSourcePageProduct(result.sourceUrl);
+            return {
+              ...mapSourcePageProductToStoreSourceResult(product, input),
+              confidence: result.confidence
+            };
+          } catch {
+            return result;
+          }
+        })
+      );
+
+      return hydratedResults.sort(
+        (left, right) => right.confidence - left.confidence || left.title.localeCompare(right.title, "es")
+      );
     },
     async importGameFromSourceUrl(sourceUrl) {
       try {

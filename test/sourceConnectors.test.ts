@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   extractSearchResultsFromHtml,
+  extractMasqueocaSuggestionsFromHtml,
   extractSearchResultsFromMarkdown,
   getStoreSourceConnector,
   mapStoreSourceResultToImportCandidate
@@ -66,15 +67,35 @@ test("extractSearchResultsFromHtml parses Dungeon Marvels search results", () =>
     sourceDisplayName: "Dungeon Marvels",
     baseUrl: "https://dungeonmarvels.com",
     searchTitle: "Catan",
-    imageAllowed: false
+    imageAllowed: true
   });
 
   assert.equal(result.title, "Catan");
   assert.equal(result.price, 41.95);
   assert.equal(result.publisher, "Devir");
   assert.equal(result.availability, "Disponible en 3-10 días laborables");
-  assert.equal(result.imageAllowed, false);
+  assert.equal(result.imageAllowed, true);
   assert.equal(result.confidence, 1);
+});
+
+test("extractMasqueocaSuggestionsFromHtml parses MasQueOca suggestions", () => {
+  const html = `
+    <div class='suggestion-item' onclick="selectSuggestion('9024')">GREAT WESTERN TRAIL ARGENTINA</div>
+    <div class='suggestion-item' onclick="selectSuggestion('10580')">GREAT WESTERN TRAIL EL PASO</div>
+    <div class='suggestion-item' onclick="selectSuggestion('10647')">GREAT WESTERN TRAIL EL PASO LOSETAS EXCLUSIVAS LOS OLVIDADOS</div>
+  `;
+
+  const results = extractMasqueocaSuggestionsFromHtml(html, {
+    sourceName: "masqueoca",
+    sourceDisplayName: "MasQueOca",
+    baseUrl: "https://www.masqueoca.com/tienda",
+    searchTitle: "Great Western Trail El Paso",
+    imageAllowed: true
+  });
+
+  assert.equal(results[0]?.title, "GREAT WESTERN TRAIL EL PASO");
+  assert.equal(results[0]?.purchaseUrl, "https://www.masqueoca.com/tienda/producto.asp?item=10580");
+  assert.equal(results[0]?.imageAllowed, true);
 });
 
 test("extractSearchResultsFromHtml parses Dracotienda search results with productName headings", () => {
@@ -164,11 +185,14 @@ test("getStoreSourceConnector supports active configured store sources", () => {
   assert.equal(getStoreSourceConnector({ name: "Mathom", baseUrl: "https://mathom.es" })?.sourceName, "mathom");
   assert.equal(getStoreSourceConnector({ name: "Dracotienda", baseUrl: "https://dracotienda.com" })?.sourceName, "dracotienda");
   assert.equal(getStoreSourceConnector({ name: "Zacatrus", baseUrl: "https://zacatrus.es" })?.sourceName, "zacatrus");
+  assert.equal(getStoreSourceConnector({ name: "MasQueOca", baseUrl: "https://www.masqueoca.com/tienda" })?.sourceName, "masqueoca");
 });
 
-test("Mathom and Dracotienda connector images are allowed for master import", async () => {
+test("Mathom, Dracotienda, Dungeon Marvels and MasQueOca connector images are allowed for master import", async () => {
   const mathom = getStoreSourceConnector({ name: "Mathom", baseUrl: "https://mathom.es" });
   const dracotienda = getStoreSourceConnector({ name: "Dracotienda", baseUrl: "https://dracotienda.com" });
+  const dungeonMarvels = getStoreSourceConnector({ name: "Dungeon Marvels", baseUrl: "https://dungeonmarvels.com" });
+  const masqueoca = getStoreSourceConnector({ name: "MasQueOca", baseUrl: "https://www.masqueoca.com/tienda" });
 
   const [mathomResult] = extractSearchResultsFromHtml(searchResultHtml("https://mathom.es/virus.html"), {
     sourceName: "mathom",
@@ -187,6 +211,8 @@ test("Mathom and Dracotienda connector images are allowed for master import", as
 
   assert.equal(mathomResult.imageAllowed, true);
   assert.equal(dracotiendaResult.imageAllowed, true);
+  assert.equal(dungeonMarvels?.imageAllowed, true);
+  assert.equal(masqueoca?.imageAllowed, true);
 });
 
 test("mapStoreSourceResultToImportCandidate preserves image metadata but marks it as not allowed", () => {

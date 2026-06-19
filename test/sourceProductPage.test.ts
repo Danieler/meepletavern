@@ -212,6 +212,85 @@ test("extractSourcePageProductFromHtml parses Mathom product pages", () => {
   assert.equal(product.facts.Editorial, "Days of Wonder");
 });
 
+test("extractSourcePageProductFromHtml parses MasQueOca product pages", () => {
+  const html = `
+    <html>
+      <head>
+        <title>Juegos de mesa MasQueOca.com. Tu Tienda de Juegos de Mesa, Cartas, Wargames y Estrategia</title>
+        <script>
+          function doPopUp(){
+            doPopUpWindow = window.open("productoimg.asp?img=%img%","MásQueOca","width=650,height=530");
+          }
+          function doPopUp2(){
+            doPopUpWindow = window.open("productoimg.asp?img=GWT-el-paso.jpg","MásQueOca","width=650,height=530");
+          }
+        </script>
+      </head>
+      <body>
+        <span>FICHA DEL JUEGO</span>
+        <div style="padding-top: 10px;">
+          <div style="float: left;">
+            <a href="javascript:doPopUp2()"><img border="0" src="imagesjuegos/GWT-el-paso_th.jpg" alt="Great Western Trail El Paso" /></a>
+          </div>
+          <div style="padding-left: 15px; float: left; width: 35%;">
+            <div style="font-size: 15px; font-weight: bolder;">
+              <a href="producto.asp?item=10580&tit=Great-Western-Trail-El-Paso">Great Western Trail El Paso</a>
+              <br>
+              <span style="font-size:13px;">de <a href="buscardo.asp?ideditor=143&ls=1&stockneg=1&vertodo=1" class="txt_4">Ediciones MasQueOca</a></span>
+            </div>
+            <div><b>Precio:</b> <img valign="bottom" src="images/oferta.gif" width="37" height="14"><br>34,99 &euro; - 20% = <b>27,99</b> &euro;</div>
+          </div>
+          <div style="float: left; background-color: #eee; width: 25%;" class="vc_hidden-xs">
+            <img src="images/leyenda_edad12.svg" alt="a partir de 12 a&ntilde;os" />
+            <img src="images/leyenda_tiempo60.svg" alt="unos 60 minutos" />
+            <img src="images/leyenda_njug1.svg" alt="1 jugadores m&iacute;nimos" />
+            <img src="images/leyenda_njug4.svg" alt="4 jugadores m&aacute;ximos" />
+          </div>
+          <div style="float: left;">
+            <div style="padding-left:15px;"><img src="images/activo1.gif" width="64" height="36"><!--DISPONIBILIDAD--></div>
+          </div>
+        </div>
+        <div class="collapse" id="estado-stock"></div>
+        <table width="100%">
+          <tr>
+            <td>
+              <div align="justify">
+                <br>
+                <div align="center">Great Western Trail El Paso<br><br><b>Edici&oacute;n &iacute;ntegra en Espa&ntilde;ol</b><br><br>&iexcl;Una versi&oacute;n reducida de los cl&aacute;sicos, con toda su profundidad estrat&eacute;gica!<br><br><i>El Paso, finales del siglo XIX. Cinco compa&ntilde;&iacute;as ferroviarias han incorporado la &laquo;Ciudad del Sol&raquo; a sus redes.</i><br><br><div align="center"><a href="https://www.masqueoca.com/tienda/productoimg.asp?img=GWT-el-paso_tb.jpg" target="_blank"><img src="imagesjuegos/GWT-el-paso_tba.jpg"></a></div><br><br>En tu turno, mover&aacute;s a tu ganadero por una ruta circular.<br><br><div align="center"><a href="https://www.masqueoca.com/tienda/productoimg.asp?img=GWT-el-paso_tb1.jpg" target="_blank"><img src="imagesjuegos/GWT-el-paso_tb1a.jpg"></a></div><br><br><b>Contenido:</b><br><br>&bull; 1 tablero de juego<br>&bull; 1 reglamento<br></div><br>
+              </div>
+              <table id="reqexprel"></table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  const product = extractSourcePageProductFromHtml(
+    html,
+    "https://www.masqueoca.com/tienda/producto.asp?item=10580&tit=Great-Western-Trail-El-Paso"
+  );
+
+  assert.equal(product.platform, "generic");
+  assert.equal(product.title, "Great Western Trail El Paso");
+  assert.equal(product.brand, "Ediciones MasQueOca");
+  assert.equal(product.publisher, "Ediciones MasQueOca");
+  assert.equal(product.price, 27.99);
+  assert.equal(product.currency, "EUR");
+  assert.equal(product.availability, "En stock");
+  assert.equal(product.imageUrl, "https://www.masqueoca.com/tienda/productoimg.asp?img=GWT-el-paso.jpg");
+  assert.deepEqual(product.additionalImageUrls, [
+    "https://www.masqueoca.com/tienda/productoimg.asp?img=GWT-el-paso.jpg",
+    "https://www.masqueoca.com/tienda/productoimg.asp?img=GWT-el-paso_tb.jpg",
+    "https://www.masqueoca.com/tienda/productoimg.asp?img=GWT-el-paso_tb1.jpg"
+  ]);
+  assert.equal(product.facts["Edad mínima"], "12 años");
+  assert.equal(product.facts["Tiempo de juego"], "60 minutos");
+  assert.equal(product.facts["Número de jugadores"], "1 - 4 jugadores");
+  assert.equal(product.sourceUrlClean, "https://www.masqueoca.com/tienda/producto.asp?item=10580&tit=Great-Western-Trail-El-Paso");
+  assert.match(product.description || "", /Ciudad del Sol/);
+});
+
 test("extractSourcePageProductFromMarkdown parses Zacatrus product pages", () => {
   const markdown = `
 # Loops (La Trampa) - Juegos de Cartas - Zacatrus

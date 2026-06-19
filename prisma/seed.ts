@@ -35,6 +35,10 @@ const defaultSources = [
   {
     name: "Zacatrus",
     baseUrl: "https://zacatrus.es"
+  },
+  {
+    name: "MasQueOca",
+    baseUrl: "https://www.masqueoca.com/tienda"
   }
 ];
 

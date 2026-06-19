@@ -1621,7 +1621,7 @@ function sourceReliabilityScore(sourceName: string) {
     return 90;
   }
 
-  if (/(juegos de la mesa redonda|dungeon marvels|dracotienda|mathom|zacatrus)/i.test(normalized)) {
+  if (/(juegos de la mesa redonda|dungeon marvels|dracotienda|mathom|zacatrus|masqueoca)/i.test(normalized)) {
     return 75;
   }
 

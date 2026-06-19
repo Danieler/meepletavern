@@ -109,6 +109,12 @@ export function extractSourcePageProductFromHtml(html: string, sourceUrl: string
     return prestashopProduct;
   }
 
+  const masqueocaProduct = extractMasqueocaProduct(html, sourceUrl);
+
+  if (masqueocaProduct) {
+    return masqueocaProduct;
+  }
+
   return extractGenericProduct(html, sourceUrl);
 }
 
@@ -228,6 +234,154 @@ function extractPrestashopFeatureFacts(
   }
 
   return facts;
+}
+
+function extractMasqueocaProduct(html: string, sourceUrl: string): SourcePageProduct | null {
+  if (!/FICHA DEL JUEGO/i.test(html) || !/productoimg\.asp\?img=/i.test(html)) {
+    return null;
+  }
+
+  const headerSection =
+    /<div style="padding-top:\s*10px;">([\s\S]*?)<div class="collapse" id="estado-stock">/i.exec(html)?.[1] || "";
+  const detailSection = /<div align="justify">([\s\S]*?)<table id=["']?reqexprel["']?/i.exec(html)?.[1] || "";
+  const linkedSourceUrl = absoluteUrl(
+    decodeHtml(/<div[^>]*font-size:\s*15px;[^>]*>\s*<a href="([^"]+)"/i.exec(headerSection)?.[1] || ""),
+    sourceUrl
+  );
+  const title = clean(
+    stripTags(
+      /<div[^>]*font-size:\s*15px;[^>]*>\s*<a[^>]*>([\s\S]*?)<\/a>/i.exec(headerSection)?.[1] ||
+      /<div align="center">\s*([^<]+?)<br/i.exec(detailSection)?.[1] ||
+      ""
+    )
+  );
+
+  if (!title) {
+    return null;
+  }
+
+  const publisher = clean(
+    stripTags(/<span[^>]*font-size:13px;[^>]*>\s*de\s*<a[^>]*>([\s\S]*?)<\/a>/i.exec(headerSection)?.[1] || "")
+  );
+  const headerPrice = /<div>\s*<b>Precio:<\/b>[\s\S]*?<\/div>/i.exec(headerSection)?.[0] || "";
+  const discountedPrice = [...headerPrice.matchAll(/<b>([\d.,]+)<\/b>/gi)].map((match) => numberLike(match[1] || "")).filter(
+    (value): value is number => typeof value === "number"
+  );
+  const price = discountedPrice.at(-1) ?? numberLike(headerPrice);
+  const availability = extractMasqueocaAvailability(headerSection);
+  const coverImageUrl = [...html.matchAll(/window\.open\("([^"]*productoimg\.asp\?img=[^"]+)"/gi)]
+    .map((match) => absoluteUrl(decodeHtml(match[1] || ""), sourceUrl))
+    .find((url) => Boolean(url) && !/%img%/i.test(url)) || "";
+  const galleryImageUrls = [...detailSection.matchAll(/<a[^>]+href="([^"]*productoimg\.asp\?img=[^"]+)"/gi)]
+    .map((match) => absoluteUrl(decodeHtml(match[1] || ""), sourceUrl))
+    .filter(Boolean);
+  const additionalImageUrls = [...new Set([coverImageUrl, ...galleryImageUrls].filter(Boolean))];
+  const imageUrl = additionalImageUrls[0] || null;
+  const facts = {
+    ...extractMasqueocaFacts(headerSection),
+    ...(publisher ? { Editorial: publisher, Marca: publisher } : {}),
+    ...(availability ? { Disponibilidad: availability } : {})
+  };
+
+  return {
+    sourceUrl,
+    sourceUrlClean: linkedSourceUrl || sourceUrl,
+    platform: "generic",
+    title,
+    description: extractMasqueocaDescription(detailSection, title) || null,
+    imageUrl,
+    additionalImageUrls,
+    brand: publisher || null,
+    publisher: publisher || null,
+    price,
+    currency: price === null ? null : "EUR",
+    availability,
+    facts,
+    features: []
+  };
+}
+
+function extractMasqueocaFacts(headerSection: string) {
+  const facts: Record<string, string> = {};
+  const age = /leyenda_edad(\d+)\.svg/i.exec(headerSection)?.[1] || "";
+  const playtime = /leyenda_tiempo(\d+)\.svg/i.exec(headerSection)?.[1] || "";
+  const players = [...headerSection.matchAll(/leyenda_njug(\d+)\.svg/gi)]
+    .map((match) => Number.parseInt(match[1] || "", 10))
+    .filter(Number.isFinite);
+
+  if (age) {
+    facts["Edad mínima"] = `${age} años`;
+  }
+
+  if (playtime) {
+    facts["Tiempo de juego"] = `${playtime} minutos`;
+  }
+
+  if (players.length >= 2) {
+    const minPlayers = Math.min(...players);
+    const maxPlayers = Math.max(...players);
+    facts["Número de jugadores"] = `${minPlayers} - ${maxPlayers} jugadores`;
+  }
+
+  return facts;
+}
+
+function extractMasqueocaAvailability(headerSection: string) {
+  const statusImage = /<img[^>]+src="images\/([^"]+)"[^>]*><!--DISPONIBILIDAD-->/i.exec(headerSection)?.[1] || "";
+  const normalizedStatus = clean(statusImage).toLowerCase();
+
+  if (!normalizedStatus) {
+    return null;
+  }
+
+  if (normalizedStatus.includes("activo")) {
+    return "En stock";
+  }
+
+  if (normalizedStatus.includes("ultima")) {
+    return "Últimas unidades";
+  }
+
+  if (normalizedStatus.includes("demanda")) {
+    return "Disponible bajo demanda";
+  }
+
+  if (normalizedStatus.includes("precompra") || normalizedStatus.includes("p500")) {
+    return "Precompra";
+  }
+
+  if (normalizedStatus.includes("agotado") || normalizedStatus.includes("descatalogado")) {
+    return "Agotado";
+  }
+
+  return null;
+}
+
+function extractMasqueocaDescription(detailSection: string, title: string) {
+  if (!detailSection) {
+    return "";
+  }
+
+  const normalized = clean(
+    stripTags(
+      detailSection
+        .replace(/<iframe[\s\S]*?<\/iframe>/gi, " ")
+        .replace(/<a[^>]+href="login\.asp\?lmc=[^"]*"[^>]*>[\s\S]*?<\/a>/gi, " ")
+        .replace(/<a[^>]+href="https?:\/\/www\.youtube\.com\/[^"]*"[^>]*>[\s\S]*?<\/a>/gi, " ")
+    )
+  );
+
+  if (!normalized) {
+    return "";
+  }
+
+  let description = normalized.replace(new RegExp(`^${escapeRegExp(title)}\\s*`, "i"), "").trim();
+  const contentIndex = description.search(/\bContenido:\b/i);
+  if (contentIndex >= 120) {
+    description = description.slice(0, contentIndex).trim();
+  }
+
+  return description;
 }
 
 function extractGenericProduct(html: string, sourceUrl: string): SourcePageProduct {
@@ -811,12 +965,37 @@ function decodeHtml(value: string) {
   return value
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
     .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
+    .replace(/&aacute;/gi, "á")
+    .replace(/&eacute;/gi, "é")
+    .replace(/&iacute;/gi, "í")
+    .replace(/&oacute;/gi, "ó")
+    .replace(/&uacute;/gi, "ú")
+    .replace(/&agrave;/gi, "à")
+    .replace(/&egrave;/gi, "è")
+    .replace(/&igrave;/gi, "ì")
+    .replace(/&ograve;/gi, "ò")
+    .replace(/&ugrave;/gi, "ù")
+    .replace(/&ntilde;/gi, "ñ")
+    .replace(/&uuml;/gi, "ü")
+    .replace(/&Aacute;/g, "Á")
+    .replace(/&Eacute;/g, "É")
+    .replace(/&Iacute;/g, "Í")
+    .replace(/&Oacute;/g, "Ó")
+    .replace(/&Uacute;/g, "Ú")
+    .replace(/&Ntilde;/g, "Ñ")
+    .replace(/&Uuml;/g, "Ü")
+    .replace(/&iexcl;/g, "¡")
+    .replace(/&iquest;/g, "¿")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#039;|&#39;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function numberLike(value: string) {
