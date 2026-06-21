@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, LogOut, Settings, UserRound } from "lucide-react";
+import { Eye, EyeOff, ListPlus, LogOut, Settings, UserRound } from "lucide-react";
 import { LibraryPanel } from "@/components/account/LibraryPanel";
 import { UserRatingsPanel } from "@/components/account/UserRatingsPanel";
 import { UserAvatar } from "@/components/account/UserAvatar";
+import { GameSuggestionForm } from "@/components/lists/GameSuggestionForm";
 import { useAuth } from "@/hooks/useAuth";
 
 type AccountProfile = {
@@ -258,8 +259,22 @@ export function ProfilePanel() {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
+          <section className="tavern-card grid gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
+            <div>
+              <p className="tavern-eyebrow">Mis listas</p>
+              <h2 className="font-display mt-2 text-2xl font-bold text-wood">Guarda tus próximas mesas</h2>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-walnut/65">
+                Organiza favoritos y listas personales sin mezclarlo con los estados de tu ludoteca.
+              </p>
+            </div>
+            <Link href="/mi-perfil/listas" className="button-primary">
+              <ListPlus size={17} aria-hidden="true" />
+              Ver mis listas
+            </Link>
+          </section>
           <LibraryPanel embedded />
           <UserRatingsPanel />
+          <GameSuggestionForm />
         </div>
 
         <aside className="tavern-card p-5 sm:p-6">

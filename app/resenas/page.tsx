@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PublicShell } from "@/components/PublicShell";
 import { ReviewCard } from "@/components/ReviewCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
+import { ReviewsResultsSkeleton } from "@/components/loading/PublicPageSkeletons";
 import { getReviews } from "@/lib/catalog";
 
 export const metadata: Metadata = {
@@ -14,8 +16,6 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function ReviewsPage() {
-  const reviews = await getReviews();
-
   return (
     <PublicShell>
       <main>
@@ -29,23 +29,9 @@ export default async function ReviewsPage() {
             </p>
           </div>
         </section>
-        <section className="container-page py-12">
-          <SectionHeader title="Últimas reseñas" />
-          {reviews.length ? (
-            <div className="grid gap-5">
-              {reviews.map((review) => (
-                <ReviewCard key={review.slug} review={review} />
-              ))}
-            </div>
-          ) : (
-            <section className="surface-muted p-6 shadow-soft">
-              <p className="text-sm font-semibold text-ink/65">
-                De momento las reseñas se publicarán manualmente. Esta sección todavía no tiene
-                contenido.
-              </p>
-            </section>
-          )}
-        </section>
+        <Suspense fallback={<ReviewsResultsSkeleton />}>
+          <ReviewsResults />
+        </Suspense>
         <section className="container-page pb-14">
           <SEOTextBlock title="Reseñas largas, fichas rápidas y recomendaciones">
             <p>
@@ -57,5 +43,26 @@ export default async function ReviewsPage() {
         </section>
       </main>
     </PublicShell>
+  );
+}
+
+async function ReviewsResults() {
+  const reviews = await getReviews();
+
+  return (
+    <section className="container-page py-12">
+      <SectionHeader title="Últimas reseñas" />
+      {reviews.length ? (
+        <div className="grid gap-5">
+          {reviews.map((review) => <ReviewCard key={review.slug} review={review} />)}
+        </div>
+      ) : (
+        <section className="surface-muted p-6 shadow-soft">
+          <p className="text-sm font-semibold text-ink/65">
+            De momento las reseñas se publicarán manualmente. Esta sección todavía no tiene contenido.
+          </p>
+        </section>
+      )}
+    </section>
   );
 }

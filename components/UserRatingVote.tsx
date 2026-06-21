@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import type { GameRatingsData } from "@/lib/ratings/types";
 
 export function UserRatingVote({
@@ -17,8 +18,13 @@ export function UserRatingVote({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [hasExistingScore, setHasExistingScore] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    if (authLoading || !user) {
+      return;
+    }
+
     let active = true;
 
     fetch(`/api/account/ratings?gameId=${encodeURIComponent(gameId)}`, { cache: "no-store" })
@@ -36,7 +42,7 @@ export function UserRatingVote({
     return () => {
       active = false;
     };
-  }, [gameId]);
+  }, [authLoading, gameId, user]);
 
   async function submit() {
     setPending(true);

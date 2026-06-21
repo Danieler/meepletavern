@@ -1,94 +1,101 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { UserProfile } from "@prisma/client";
-import { getGameCommunityUsers } from "@/lib/publicProfiles";
-import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import { getGameTavernSummary, type GameTavernSampleUser } from "@/lib/gameTavernSummary";
 
 type GameCommunitySectionProps = {
   gameId: string;
 };
 
 export async function GameCommunitySection({ gameId }: GameCommunitySectionProps) {
-  const community = await getGameCommunityUsers(gameId);
-  
-  let currentUser = null;
-  try {
-    currentUser = await requireCurrentAppUser();
-  } catch {
-    // Guest
-  }
-
-  const hasAny = community.owned.length > 0 || community.wantToPlay.length > 0 || community.wantToBuy.length > 0 || community.played.length > 0;
+  const summary = await getGameTavernSummary(gameId);
+  const hasAny = summary.ownedCount > 0 || summary.wantToPlayCount > 0 || summary.playedCount > 0 || summary.ratingCount > 0;
 
   return (
-    <section className="mt-12 lg:mt-16 border-t border-ink/5 pt-12">
-      <h2 className="text-2xl font-black text-ink">En la comunidad</h2>
-      
-      {!hasAny ? (
-        <p className="mt-6 text-ink/60 font-bold italic">Todavía nadie de la comunidad ha añadido este juego.</p>
-      ) : (
-        <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          <CommunityGroup title="Lo tienen en casa" countLabel="taberneros lo tienen" users={community.owned} />
-          <CommunityGroup title="Quieren probarlo" countLabel="taberneros quieren probarlo" users={community.wantToPlay} />
-          <CommunityGroup title="Lo tienen en la lista" countLabel="taberneros lo siguen" users={community.wantToBuy} />
-          <CommunityGroup title="Lo han jugado" countLabel="taberneros lo han jugado" users={community.played} />
+    <section className="tavern-panel p-5 sm:p-6" aria-labelledby="game-tavern-title">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="tavern-eyebrow">Comunidad</p>
+          <h2 id="game-tavern-title" className="font-display mt-2 text-2xl font-bold text-wood sm:text-3xl">
+            En la taberna
+          </h2>
         </div>
-      )}
+        {hasAny ? <p className="text-xs font-bold text-walnut/50">Última actividad pública</p> : null}
+      </div>
 
-      {!currentUser && (
-        <div className="mt-12 rounded-md bg-parchment/50 border border-ink/5 p-6 text-center">
-          <p className="text-ink/70 font-bold">Crea tu ludoteca para aparecer aquí y descubrir qué está llamando la atención a otros jugadores.</p>
-          <div className="mt-4">
-            <Link href="/auth" className="button-primary">Iniciar sesión / Crear cuenta</Link>
-          </div>
-        </div>
+      <dl className={`mt-5 grid ${summary.communityRating === null ? "grid-cols-3" : "grid-cols-2"} gap-2`}>
+        <TavernCount value={summary.ownedCount} label="lo tienen" />
+        <TavernCount value={summary.wantToPlayCount} label="quieren jugarlo" />
+        <TavernCount value={summary.playedCount} label="lo han jugado" />
+        {summary.communityRating !== null ? <TavernCount value={summary.communityRating.toFixed(1)} label="nota comunidad" /> : null}
+      </dl>
+
+      {summary.sampleUsers.length ? (
+        <ul className="mt-5 divide-y divide-walnut/10">
+          {summary.sampleUsers.map((user) => (
+            <TavernUser key={user.id} user={user} />
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-5 text-sm font-semibold text-walnut/60">Sé el primero en añadirlo a tu ludoteca.</p>
       )}
     </section>
   );
 }
 
-function CommunityGroup({ title, countLabel, users }: { title: string; countLabel: string; users: UserProfile[] }) {
-  if (users.length === 0) return null;
-
-  const displayUsers = users.slice(0, 8);
-  const remaining = users.length - displayUsers.length;
-
+export function GameCommunitySectionSkeleton() {
   return (
-    <div>
-      <h3 className="text-sm font-black text-ink/40 uppercase tracking-widest">{title}</h3>
-      <p className="mt-1 text-sm font-bold text-ink/55">{users.length} {countLabel}</p>
-      <ul className="mt-4 space-y-3">
-        {displayUsers.map((user) => (
-          <li key={user.username}>
-            <Link href={`/u/${user.username}`} className="flex items-center gap-2 group">
-              <div className="relative h-8 w-8 overflow-hidden rounded-full border border-white bg-parchment shadow-sm">
-                {user.avatarUrl ? (
-                  <Image src={user.avatarUrl} alt={user.displayName || user.username} fill className="object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[10px] font-black text-ink/20">
-                    {(user.displayName || user.username)[0].toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <span className="text-sm font-bold text-ink/70 group-hover:text-ink transition line-clamp-1">{user.displayName || user.username}</span>
-            </Link>
-          </li>
+    <section className="tavern-panel p-5 sm:p-6" aria-label="Cargando comunidad" aria-busy="true">
+      <div className="h-4 w-24 animate-pulse rounded-md bg-walnut/10" />
+      <div className="mt-3 h-8 w-44 animate-pulse rounded-md bg-walnut/10" />
+      <div className="mt-5 grid grid-cols-3 gap-2">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className="h-20 animate-pulse rounded-md bg-walnut/10" />
         ))}
-      </ul>
-      {remaining > 0 ? (
-        <details className="mt-3 pl-10">
-          <summary className="cursor-pointer text-xs font-bold text-ember">Ver todos</summary>
-          <ul className="mt-3 space-y-3">
-            {users.slice(8).map((user) => (
-              <li key={user.username}>
-                <Link href={`/u/${user.username}`} className="text-sm font-bold text-ink/65 transition hover:text-ink">
-                  {user.displayName || user.username}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
+      </div>
+      <span className="sr-only">Cargando información de la comunidad</span>
+    </section>
+  );
+}
+
+function TavernCount({ value, label }: { value: number | string; label: string }) {
+  return (
+    <div className="min-w-0 rounded-md border border-walnut/10 bg-white/65 px-2 py-3 text-center sm:px-4">
+      <dd className="font-display text-2xl font-bold leading-none text-wood">{value}</dd>
+      <dt className="mt-2 text-[11px] font-bold leading-4 text-walnut/55 sm:text-xs">{label}</dt>
     </div>
   );
+}
+
+function TavernUser({ user }: { user: GameTavernSampleUser }) {
+  return (
+    <li className="py-3 first:pt-0 last:pb-0">
+      <Link
+        href={`/u/${user.username}`}
+        prefetch={false}
+        className="group flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember"
+        aria-label={`Ver el perfil público de ${user.name}`}
+      >
+        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-walnut/15 bg-parchment text-xs font-black text-walnut/35">
+          {user.avatarUrl ? (
+            <Image src={user.avatarUrl} alt="" fill sizes="40px" className="object-cover" />
+          ) : (
+            user.name[0]?.toUpperCase() || "U"
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-black text-ink/75 transition group-hover:text-ember">{user.name}</span>
+          <span className="mt-0.5 block text-xs font-semibold text-walnut/55">{getInteractionLabel(user)}</span>
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+function getInteractionLabel(user: GameTavernSampleUser) {
+  if (user.status === "PLAYED") {
+    return user.rating !== undefined ? `Lo ha jugado y le dio ${user.rating}/10` : "Lo ha jugado";
+  }
+
+  if (user.status === "OWNED") return "Lo tiene en casa";
+  return "Quiere jugarlo";
 }

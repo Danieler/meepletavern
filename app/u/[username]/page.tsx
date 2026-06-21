@@ -1,11 +1,13 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Edit3, EyeOff, Gamepad2, LibraryBig, ShoppingCart, Trophy } from "lucide-react";
+import { Edit3, EyeOff, Gamepad2, LibraryBig, ListChecks, ShoppingCart, Trophy } from "lucide-react";
 import { ProfileVisibility } from "@prisma/client";
 import { PublicShell } from "@/components/PublicShell";
 import { GameCard } from "@/components/GameCard";
 import { UserAvatar } from "@/components/account/UserAvatar";
+import { PublicListsSection } from "@/components/lists/PublicListsSection";
+import { getPublicUserLists } from "@/lib/gameLists";
 import { getPublicProfileByUsername, getPublicUserCollection, type PublicCollectionEntry } from "@/lib/publicProfiles";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 
@@ -26,8 +28,8 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   const { username } = await params;
   const profile = await getPublicProfileByUsername(username);
 
-  if (!profile) {
-    return { title: "Usuario no encontrado" };
+  if (!profile || profile.profileVisibility !== ProfileVisibility.PUBLIC) {
+    return { title: "Perfil privado - MeepleTavern", robots: { index: false, follow: false } };
   }
 
   return {
@@ -75,9 +77,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     );
   }
 
-  const collection: CollectionMap = canSeeCollection
-    ? await getPublicUserCollection(profile.userId)
-    : { owned: [], wantToPlay: [], wantToBuy: [], played: [] };
+  const emptyCollection: CollectionMap = { owned: [], wantToPlay: [], wantToBuy: [], played: [] };
+  const [collection, publicLists] = await Promise.all([
+    canSeeCollection ? getPublicUserCollection(profile.userId) : Promise.resolve(emptyCollection),
+    getPublicUserLists(profile.username)
+  ]);
   const displayName = profile.displayName || profile.username;
   const totalGames = new Set(Object.values(collection).flat().map((entry) => entry.gameId)).size;
   const featuredGames = Object.values(collection)
@@ -114,6 +118,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                       <LibraryBig size={17} />
                       Mi ludoteca
                     </Link>
+                    <Link href="/mi-perfil/listas" className="button-secondary bg-white">
+                      <ListChecks size={17} />
+                      Mis listas
+                    </Link>
                   </div>
                 ) : null}
               </div>
@@ -127,6 +135,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
         </section>
+
+        <PublicListsSection username={profile.username} displayName={displayName} lists={publicLists} />
 
         {!canSeeCollection ? (
           <section className="container-page py-16">

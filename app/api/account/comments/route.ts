@@ -1,7 +1,8 @@
-import { GameStatus } from "@prisma/client";
+import { ActivityEventType, GameStatus } from "@prisma/client";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import { TAVERN_ACTIVITY_CACHE_TAG, tryRecordPublicActivityEvent } from "@/lib/activity/events";
 import { getGameComments, validateGameCommentBody } from "@/lib/gameComments";
 import { prisma } from "@/lib/prisma";
 
@@ -62,7 +63,9 @@ export async function POST(request: Request) {
       },
       select: {
         id: true,
-        slug: true
+        slug: true,
+        title: true,
+        name: true
       }
     });
 
@@ -86,8 +89,15 @@ export async function POST(request: Request) {
         body: validation.value
       }
     });
+    const activityChanged = await tryRecordPublicActivityEvent({
+      type: ActivityEventType.COMMENTED,
+      actor: appUser,
+      game,
+      comment: validation.value
+    });
 
     revalidateTag("public-comments");
+    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
     revalidatePath(`/juegos/${game.slug}`);
 
     const comments = await getGameComments(game.id);

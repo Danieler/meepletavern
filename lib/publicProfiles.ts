@@ -1,6 +1,9 @@
 import { Prisma, ProfileVisibility, type UserProfile } from "@prisma/client";
+import { unstable_cache } from "next/cache";
+import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { getCatalogGamesByIds, type CatalogGame } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
+import { normalizeTavernSearch } from "@/lib/tavernSearch";
 
 type LibraryFlags = {
   owned: boolean;
@@ -12,7 +15,6 @@ type LibraryFlags = {
 export type PublicProfileStats = {
   owned: number;
   wantToPlay: number;
-  wantToBuy: number;
   played: number;
 };
 
@@ -27,28 +29,33 @@ export type PublicUserCard = {
   username: string;
   displayName: string;
   avatarUrl: string | null;
-  hasPublicCollection: boolean;
   stats: PublicProfileStats | null;
 };
 
-const profileWithUser = Prisma.validator<Prisma.UserProfileDefaultArgs>()({
-  include: {
-    user: {
-      select: {
-        id: true,
-        email: true,
-        displayName: true
-      }
-    }
-  }
-});
+export type PublicUserPage = {
+  items: PublicUserCard[];
+  nextCursor: string | null;
+};
 
-export type PublicProfile = Prisma.UserProfileGetPayload<typeof profileWithUser>;
+export const PUBLIC_USER_PAGE_SIZE = 8;
+const MAX_PUBLIC_USER_PAGE_SIZE = 12;
+
+const publicProfileSelect = {
+  userId: true,
+  username: true,
+  displayName: true,
+  bio: true,
+  avatarUrl: true,
+  profileVisibility: true,
+  collectionVisibility: true
+} satisfies Prisma.UserProfileSelect;
+
+export type PublicProfile = Prisma.UserProfileGetPayload<{ select: typeof publicProfileSelect }>;
 
 export async function getPublicProfileByUsername(username: string) {
   return prisma.userProfile.findUnique({
     where: { username: username.toLowerCase() },
-    ...profileWithUser
+    select: publicProfileSelect
   });
 }
 
@@ -81,9 +88,15 @@ export async function getPublicUserCollection(userId: string) {
   };
 }
 
-export async function getPublicUsers(query?: string): Promise<PublicUserCard[]> {
-  const search = query?.trim();
-  const profiles = await prisma.userProfile.findMany({
+type PublicUsersDb = Pick<typeof prisma, "userProfile" | "userLibraryGame">;
+
+export async function queryPublicUsersPage(
+  input: { query?: string | null; cursor?: string | null; limit?: number } = {},
+  db: PublicUsersDb = prisma
+): Promise<PublicUserPage> {
+  const search = normalizeTavernSearch(input.query);
+  const limit = normalizePublicUserLimit(input.limit);
+  const profiles = await db.userProfile.findMany({
     where: {
       profileVisibility: ProfileVisibility.PUBLIC,
       ...(search
@@ -96,90 +109,82 @@ export async function getPublicUsers(query?: string): Promise<PublicUserCard[]> 
         : {})
     },
     select: {
+      id: true,
+      userId: true,
       username: true,
       displayName: true,
       avatarUrl: true,
-      collectionVisibility: true,
-      user: {
-        select: {
-          library: {
-            select: {
-              owned: true,
-              wantToPlay: true,
-              wantToBuy: true,
-              played: true
-            }
-          }
-        }
-      }
+      collectionVisibility: true
     },
-    orderBy: [{ displayName: "asc" }, { username: "asc" }]
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
+    ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {})
   });
+  const hasMore = profiles.length > limit;
+  const visibleProfiles = profiles.slice(0, limit);
+  const publicCollectionUserIds = visibleProfiles
+    .filter((profile) => profile.collectionVisibility === ProfileVisibility.PUBLIC)
+    .map((profile) => profile.userId);
+  const groupedStats = publicCollectionUserIds.length
+    ? await db.userLibraryGame.groupBy({
+        by: ["userId", "owned", "wantToPlay", "played"],
+        where: { userId: { in: publicCollectionUserIds } },
+        _count: { _all: true }
+      })
+    : [];
+  const statsByUser = new Map<string, PublicProfileStats>();
 
-  return profiles.map((profile) => {
-    const hasPublicCollection = profile.collectionVisibility === ProfileVisibility.PUBLIC;
-
-    return {
-      username: profile.username,
-      displayName: profile.displayName || profile.username,
-      avatarUrl: profile.avatarUrl,
-      hasPublicCollection,
-      stats: hasPublicCollection ? countLibraryStats(profile.user.library) : null
-    };
-  });
-}
-
-export async function getGameCommunityUsers(gameId: string) {
-  const entries = await prisma.userLibraryGame.findMany({
-    where: {
-      gameId,
-      user: {
-        profile: {
-          is: {
-            profileVisibility: ProfileVisibility.PUBLIC,
-            collectionVisibility: ProfileVisibility.PUBLIC
-          }
-        }
-      }
-    },
-    select: {
-      owned: true,
-      wantToPlay: true,
-      wantToBuy: true,
-      played: true,
-      user: {
-        select: {
-          profile: true
-        }
-      }
-    },
-    orderBy: { updatedAt: "desc" }
-  });
-  const profiles = entries.flatMap((entry) => {
-    const profile = entry.user.profile;
-    return profile ? [{ entry, profile }] : [];
-  });
+  for (const group of groupedStats) {
+    const current = statsByUser.get(group.userId) || { owned: 0, wantToPlay: 0, played: 0 };
+    const count = group._count._all;
+    statsByUser.set(group.userId, {
+      owned: current.owned + (group.owned ? count : 0),
+      wantToPlay: current.wantToPlay + (group.wantToPlay ? count : 0),
+      played: current.played + (group.played ? count : 0)
+    });
+  }
 
   return {
-    owned: profiles.filter(({ entry }) => entry.owned).map(({ profile }) => profile),
-    wantToPlay: profiles.filter(({ entry }) => entry.wantToPlay).map(({ profile }) => profile),
-    wantToBuy: profiles.filter(({ entry }) => entry.wantToBuy).map(({ profile }) => profile),
-    played: profiles.filter(({ entry }) => entry.played).map(({ profile }) => profile)
+    items: visibleProfiles.map((profile) => {
+      const hasPublicCollection = profile.collectionVisibility === ProfileVisibility.PUBLIC;
+
+      return {
+        username: profile.username,
+        displayName: profile.displayName || profile.username,
+        avatarUrl: profile.avatarUrl,
+        stats: hasPublicCollection
+          ? statsByUser.get(profile.userId) || { owned: 0, wantToPlay: 0, played: 0 }
+          : null
+      };
+    }),
+    nextCursor: hasMore ? visibleProfiles.at(-1)?.id || null : null
   };
 }
 
-function countLibraryStats(entries: LibraryFlags[]): PublicProfileStats {
-  return entries.reduce(
-    (stats, entry) => ({
-      owned: stats.owned + Number(entry.owned),
-      wantToPlay: stats.wantToPlay + Number(entry.wantToPlay),
-      wantToBuy: stats.wantToBuy + Number(entry.wantToBuy),
-      played: stats.played + Number(entry.played)
-    }),
-    { owned: 0, wantToPlay: 0, wantToBuy: 0, played: 0 }
-  );
+export function getPublicUsersPage(
+  input: { query?: string | null; cursor?: string | null; limit?: number } = {}
+) {
+  const query = normalizeTavernSearch(input.query);
+  const limit = normalizePublicUserLimit(input.limit);
+
+  if (!query && !input.cursor && limit === PUBLIC_USER_PAGE_SIZE) {
+    return getCachedPublicUsersFirstPage();
+  }
+
+  return queryPublicUsersPage(input);
 }
+
+const getCachedPublicUsersFirstPage = unstable_cache(
+  () => queryPublicUsersPage({ limit: PUBLIC_USER_PAGE_SIZE }),
+  ["public-tavern-users-first-page-v1"],
+  { revalidate: 180, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
+);
 
 export function getPublicProfileName(profile: Pick<UserProfile, "displayName" | "username">) {
   return profile.displayName || profile.username;
+}
+
+function normalizePublicUserLimit(value?: number) {
+  if (!Number.isFinite(value)) return PUBLIC_USER_PAGE_SIZE;
+  return Math.min(MAX_PUBLIC_USER_PAGE_SIZE, Math.max(1, Math.trunc(value || PUBLIC_USER_PAGE_SIZE)));
 }

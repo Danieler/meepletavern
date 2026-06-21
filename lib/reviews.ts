@@ -12,12 +12,11 @@ export type ReviewPayload = {
   createdByAdmin?: boolean;
 };
 
-const publicReviewSelect = {
+const publicReviewListSelect = {
   id: true,
   slug: true,
   title: true,
   summary: true,
-  body: true,
   authorName: true,
   publishedAt: true,
   game: {
@@ -31,6 +30,11 @@ const publicReviewSelect = {
       imageStatus: true
     }
   }
+} as const;
+
+const publicReviewSelect = {
+  ...publicReviewListSelect,
+  body: true
 } as const;
 
 const adminReviewSelect = {
@@ -72,7 +76,7 @@ export async function getPublishedReviewBySlug(slug: string) {
 const getCachedPublishedReviews = unstable_cache(
   async function getCachedPublishedReviews() {
     return prisma.review.findMany({
-      select: publicReviewSelect,
+      select: publicReviewListSelect,
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
     });
   },

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { BrandIcon } from "@/components/BrandIcon";
 import { PublicShell } from "@/components/PublicShell";
 import { RankingList } from "@/components/RankingList";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
+import { RankingsResultsSkeleton } from "@/components/loading/PublicPageSkeletons";
 import { getRankingGames, getRankings } from "@/lib/catalog";
 
 export const metadata: Metadata = {
@@ -16,14 +18,6 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function RankingsPage() {
-  const rankings = await getRankings();
-  const rankingSections = await Promise.all(
-    rankings.map(async (ranking) => ({
-      ranking,
-      games: (await getRankingGames(ranking)).slice(0, 5)
-    }))
-  );
-
   return (
     <PublicShell>
       <main>
@@ -38,20 +32,9 @@ export default async function RankingsPage() {
           </div>
         </section>
 
-        <section className="container-page grid gap-8 py-12 lg:grid-cols-2">
-          {rankingSections.map(({ ranking, games }) => (
-            <article key={ranking.slug} className="space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <SectionHeader title={ranking.title} description={ranking.description} />
-                <Link className="button-secondary shrink-0" href={`/rankings/${ranking.slug}`}>
-                  <BrandIcon name="flame" size={18} />
-                  Ver ranking
-                </Link>
-              </div>
-              <RankingList games={games} />
-            </article>
-          ))}
-        </section>
+        <Suspense fallback={<RankingsResultsSkeleton />}>
+          <RankingsResults />
+        </Suspense>
 
         <section className="container-page pb-14">
           <SEOTextBlock title="Rankings preparados para descubrir y comparar">
@@ -64,5 +47,29 @@ export default async function RankingsPage() {
         </section>
       </main>
     </PublicShell>
+  );
+}
+
+async function RankingsResults() {
+  const rankings = await getRankings();
+  const rankingSections = await Promise.all(
+    rankings.map(async (ranking) => ({ ranking, games: (await getRankingGames(ranking)).slice(0, 5) }))
+  );
+
+  return (
+    <section className="container-page grid gap-8 py-12 lg:grid-cols-2">
+      {rankingSections.map(({ ranking, games }) => (
+        <article key={ranking.slug} className="space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <SectionHeader title={ranking.title} description={ranking.description} />
+            <Link className="button-secondary shrink-0" href={`/rankings/${ranking.slug}`}>
+              <BrandIcon name="flame" size={18} />
+              Ver ranking
+            </Link>
+          </div>
+          <RankingList games={games} />
+        </article>
+      ))}
+    </section>
   );
 }

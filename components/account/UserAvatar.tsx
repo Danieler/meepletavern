@@ -14,6 +14,13 @@ const sizeClasses = {
   xl: "h-32 w-32 text-5xl"
 };
 
+const sizePixels = {
+  sm: 48,
+  md: 64,
+  lg: 96,
+  xl: 128
+};
+
 export function UserAvatar({ src, name, size = "md", className = "" }: UserAvatarProps) {
   const label = name.trim() || "Usuario";
   const isPreviewUrl = src?.startsWith("blob:") || src?.startsWith("data:");
@@ -26,7 +33,7 @@ export function UserAvatar({ src, name, size = "md", className = "" }: UserAvata
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={label} className="h-full w-full object-cover" />
       ) : src ? (
-        <Image src={src} alt={label} fill sizes="160px" className="object-cover" />
+        <Image src={src} alt={label} fill sizes={`${sizePixels[size]}px`} className="object-cover" />
       ) : (
         <span className="font-display font-bold uppercase leading-none text-walnut/35">
           {label[0]?.toUpperCase() || "U"}

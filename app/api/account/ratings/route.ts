@@ -1,6 +1,12 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
+import { ActivityEventType } from "@prisma/client";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import {
+  TAVERN_ACTIVITY_CACHE_TAG,
+  tryRecordPublicActivityEvent,
+  tryRemoveActivityEvent
+} from "@/lib/activity/events";
 import { prisma } from "@/lib/prisma";
 import {
   deleteCurrentUserGameRating,
@@ -50,7 +56,7 @@ export async function DELETE(request: Request) {
 
     const game = await prisma.game.findUnique({
       where: { id: gameId },
-      select: { id: true, slug: true }
+      select: { id: true, slug: true, title: true, name: true }
     });
 
     if (!game) {
@@ -58,8 +64,10 @@ export async function DELETE(request: Request) {
     }
 
     const result = await deleteCurrentUserGameRating(appUser.id, game.id);
+    const activityChanged = await tryRemoveActivityEvent(ActivityEventType.RATED, appUser.id, game.id);
 
     revalidateTag("public-games");
+    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
     revalidatePath("/");
     revalidatePath("/juegos");
     revalidatePath("/rankings");
@@ -91,7 +99,7 @@ async function saveRating(request: Request) {
 
     const game = await prisma.game.findUnique({
       where: { id: gameId },
-      select: { id: true, slug: true }
+      select: { id: true, slug: true, title: true, name: true }
     });
 
     if (!game) {
@@ -99,8 +107,15 @@ async function saveRating(request: Request) {
     }
 
     const result = await upsertCurrentUserGameRating(appUser.id, game.id, score);
+    const activityChanged = await tryRecordPublicActivityEvent({
+      type: ActivityEventType.RATED,
+      actor: appUser,
+      game,
+      rating: score
+    });
 
     revalidateTag("public-games");
+    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
     revalidatePath("/");
     revalidatePath("/juegos");
     revalidatePath("/rankings");

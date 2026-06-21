@@ -4,6 +4,8 @@ import { ProfileVisibility } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
+import { revalidateTag } from "next/cache";
+import { TAVERN_ACTIVITY_CACHE_TAG, trySyncActivityActorProfile } from "@/lib/activity/events";
 
 const RESERVED_USERNAMES = [
   "admin", "api", "juegos", "usuarios", "taberna", "mi-ludoteca",
@@ -119,6 +121,8 @@ export async function PATCH(request: Request) {
       }
     }
   });
+  const activityChanged = await trySyncActivityActorProfile(updatedAccount);
+  if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
 
   return NextResponse.json({ account: updatedAccount });
 }

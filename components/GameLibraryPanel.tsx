@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check, LibraryBig, Gamepad2, ShoppingCart, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +19,7 @@ type LibraryState = {
 
 export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   const { user, loading } = useAuth();
+  const router = useRouter();
   const [state, setState] = useState<LibraryState>({
     owned: false,
     wantToPlay: false,
@@ -35,23 +37,23 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
 
     let active = true;
 
-    fetch("/api/account/library", { cache: "no-store" })
+    fetch(`/api/account/library?gameId=${encodeURIComponent(gameId)}`, { cache: "no-store" })
       .then(async (response) => {
         const payload = (await response.json().catch(() => null)) as
           | {
-              entries?: Array<{
+              entry?: {
                 gameId: string;
                 owned: boolean;
                 wantToPlay: boolean;
                 wantToBuy: boolean;
                 played: boolean;
-              }>;
+              } | null;
             }
           | null;
 
         if (!active) return;
 
-        const entry = payload?.entries?.find((e) => e.gameId === gameId);
+        const entry = payload?.entry;
         if (entry) {
           setState({
             owned: entry.owned,
@@ -90,6 +92,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
 
     if (response.ok) {
       setState((current) => ({ ...current, [key]: nextValue }));
+      router.refresh();
     }
     setBusy(null);
   };

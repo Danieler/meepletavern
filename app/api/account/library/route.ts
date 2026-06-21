@@ -1,13 +1,45 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { ActivityEventType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import {
+  TAVERN_ACTIVITY_CACHE_TAG,
+  tryRecordPublicActivityEvent,
+  tryRemoveActivityEvent
+} from "@/lib/activity/events";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const appUser = await requireCurrentAppUser();
+    const gameId = new URL(request.url).searchParams.get("gameId")?.trim();
+
+    if (gameId) {
+      const entry = await prisma.userLibraryGame.findUnique({
+        where: { userId_gameId: { userId: appUser.id, gameId } },
+        select: {
+          gameId: true,
+          owned: true,
+          wantToPlay: true,
+          wantToBuy: true,
+          played: true
+        }
+      });
+
+      return NextResponse.json({ entry });
+    }
+
     const entries = await prisma.userLibraryGame.findMany({
       where: { userId: appUser.id },
-      include: {
+      select: {
+        id: true,
+        gameId: true,
+        owned: true,
+        wantToPlay: true,
+        wantToBuy: true,
+        played: true,
+        createdAt: true,
+        updatedAt: true,
         game: {
           select: {
             id: true,
@@ -64,13 +96,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Falta el juego." }, { status: 400 });
     }
 
+    const game = await prisma.game.findUnique({
+      where: { id: gameId },
+      select: { id: true, slug: true, title: true, name: true }
+    });
+
+    if (!game) {
+      return NextResponse.json({ error: "El juego no existe." }, { status: 404 });
+    }
+
     const current = await prisma.userLibraryGame.findUnique({
       where: {
         userId_gameId: {
           userId: appUser.id,
           gameId
         }
-      }
+      },
+      select: { owned: true, wantToPlay: true, wantToBuy: true, played: true }
     });
 
     const owned = body?.owned ?? current?.owned ?? false;
@@ -82,6 +124,14 @@ export async function POST(request: Request) {
       await prisma.userLibraryGame.deleteMany({
         where: { userId: appUser.id, gameId }
       });
+      const activityChanged = await syncLibraryActivityEvents({
+        actor: appUser,
+        game,
+        current,
+        next: { owned, wantToPlay, played }
+      });
+      if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+      revalidatePath(`/juegos/${game.slug}`);
       return NextResponse.json({ ok: true, entry: null });
     }
 
@@ -105,9 +155,18 @@ export async function POST(request: Request) {
         wantToPlay,
         wantToBuy,
         played
-      }
+      },
+      select: { gameId: true, owned: true, wantToPlay: true, wantToBuy: true, played: true }
     });
 
+    const activityChanged = await syncLibraryActivityEvents({
+      actor: appUser,
+      game,
+      current,
+      next: { owned, wantToPlay, played }
+    });
+    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    revalidatePath(`/juegos/${game.slug}`);
     return NextResponse.json({ ok: true, entry });
   } catch (error) {
     return NextResponse.json(
@@ -127,6 +186,19 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Falta el juego." }, { status: 400 });
     }
 
+    const game = await prisma.game.findUnique({
+      where: { id: gameId },
+      select: { id: true, slug: true, title: true, name: true }
+    });
+
+    if (!game) {
+      return NextResponse.json({ error: "El juego no existe." }, { status: 404 });
+    }
+
+    const current = await prisma.userLibraryGame.findUnique({
+      where: { userId_gameId: { userId: appUser.id, gameId } },
+      select: { owned: true, wantToPlay: true, played: true }
+    });
     await prisma.userLibraryGame.deleteMany({
       where: {
         userId: appUser.id,
@@ -134,6 +206,14 @@ export async function DELETE(request: Request) {
       }
     });
 
+    const activityChanged = await syncLibraryActivityEvents({
+      actor: appUser,
+      game,
+      current,
+      next: { owned: false, wantToPlay: false, played: false }
+    });
+    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    revalidatePath(`/juegos/${game.slug}`);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json(
@@ -141,4 +221,32 @@ export async function DELETE(request: Request) {
       { status: 401 }
     );
   }
+}
+
+async function syncLibraryActivityEvents(input: {
+  actor: Awaited<ReturnType<typeof requireCurrentAppUser>>;
+  game: { id: string; slug: string; title: string | null; name: string };
+  current: { owned: boolean; wantToPlay: boolean; played: boolean } | null;
+  next: { owned: boolean; wantToPlay: boolean; played: boolean };
+}) {
+  const changes = [
+    [ActivityEventType.COLLECTION_ADDED, input.current?.owned || false, input.next.owned],
+    [ActivityEventType.WANT_TO_PLAY, input.current?.wantToPlay || false, input.next.wantToPlay],
+    [ActivityEventType.PLAYED, input.current?.played || false, input.next.played]
+  ] as const;
+  const results = await Promise.all(
+    changes.map(async ([type, previousValue, nextValue]) => {
+      if (previousValue === nextValue) return false;
+      return nextValue
+        ? tryRecordPublicActivityEvent({
+            type,
+            actor: input.actor,
+            game: input.game,
+            requiresPublicCollection: true
+          })
+        : tryRemoveActivityEvent(type, input.actor.id, input.game.id);
+    })
+  );
+
+  return results.some(Boolean);
 }

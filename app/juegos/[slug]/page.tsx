@@ -8,7 +8,7 @@ import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
 import { GameCard } from "@/components/GameCard";
 import { GameComments } from "@/components/GameComments";
-import { GameCommunitySection } from "@/components/GameCommunitySection";
+import { GameCommunitySection, GameCommunitySectionSkeleton } from "@/components/GameCommunitySection";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameLibraryPanel } from "@/components/GameLibraryPanel";
 import { GameRatingSummary } from "@/components/GameRatingSummary";
@@ -17,7 +17,7 @@ import { MechanicTag } from "@/components/MechanicTag";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { UserRatingVote } from "@/components/UserRatingVote";
-import { getGameBySlug, getRelatedGames, termHref, type CatalogGame } from "@/lib/catalog";
+import { getGameBySlug, getRelatedGames, type CatalogGame } from "@/lib/catalog";
 import { getGameComments } from "@/lib/gameComments";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
@@ -184,9 +184,6 @@ export default async function GamePage({ params }: GamePageProps) {
                 <GameCommentsPanel gameId={game.id} gameSlug={game.slug} />
               </Suspense>
 
-              <Suspense fallback={null}>
-                <GameCommunitySection gameId={game.id} />
-              </Suspense>
             </div>
 
             <aside className="min-w-0 space-y-5">
@@ -196,6 +193,9 @@ export default async function GamePage({ params }: GamePageProps) {
                 </div>
                 <UserRatingVote gameId={game.id} initialVotesCount={game.ratings.users.votesCount} />
               </Panel>
+              <Suspense fallback={<GameCommunitySectionSkeleton />}>
+                <GameCommunitySection gameId={game.id} />
+              </Suspense>
               {game.buyLinks.length ? (
                 <Panel title="Compra rápida">
                   <BuyLinks links={game.buyLinks} />

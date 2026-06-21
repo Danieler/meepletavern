@@ -130,11 +130,15 @@ model Game {
   userRatings           UserGameRating[]
   reviews               Review[]
   comments              GameComment[]
+  activityEvents        ActivityEvent[]
+  listItems             GameListItem[]
   importProposals       GameImportProposal[]
   offers                GameOffer[]
 
   @@index([status])
   @@index([createdAt])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Game_name_trgm_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Game_title_trgm_idx")
 }
 
 model GameImportProposal {
@@ -170,6 +174,9 @@ model User {
   gameRatings UserGameRating[]
   reviews     Review[]
   comments    GameComment[]
+  activityEvents ActivityEvent[]
+  gameLists   GameList[]
+  gameSuggestions GameSuggestion[]
 }
 
 model UserProfile {
@@ -187,6 +194,120 @@ model UserProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([profileVisibility, updatedAt(sort: Desc), id(sort: Desc)])
+  @@index([username(ops: raw("gin_trgm_ops"))], type: Gin, map: "UserProfile_username_trgm_idx")
+  @@index([displayName(ops: raw("gin_trgm_ops"))], type: Gin, map: "UserProfile_displayName_trgm_idx")
+}
+
+enum ActivityEventType {
+  COLLECTION_ADDED
+  WANT_TO_PLAY
+  PLAYED
+  RATED
+  COMMENTED
+  GAME_TRENDING
+  WEEKLY_SUMMARY
+  LIST_CREATED
+  LIST_GAME_ADDED
+}
+
+enum ActivityEventVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model ActivityEvent {
+  id                     String                  @id @default(cuid())
+  type                   ActivityEventType
+  actorUserId            String?
+  actorUser              User?                   @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorNameSnapshot      String?
+  actorUsernameSnapshot  String?
+  actorAvatarUrlSnapshot String?
+  gameId                 String?
+  game                   Game?                   @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  gameTitleSnapshot      String?
+  gameSlugSnapshot       String?
+  listTitleSnapshot      String?
+  listSlugSnapshot       String?
+  rating                 Int?
+  commentSnippet         String?
+  metadata               Json?
+  visibility             ActivityEventVisibility @default(PUBLIC)
+  dedupeKey              String?                 @unique
+  createdAt              DateTime                @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([visibility, createdAt(sort: Desc)])
+  @@index([type, createdAt(sort: Desc)])
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([gameId, createdAt(sort: Desc)])
+  @@index([visibility, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([actorNameSnapshot(ops: raw("gin_trgm_ops"))], type: Gin, map: "ActivityEvent_actorNameSnapshot_trgm_idx")
+  @@index([actorUsernameSnapshot(ops: raw("gin_trgm_ops"))], type: Gin, map: "ActivityEvent_actorUsernameSnapshot_trgm_idx")
+  @@index([gameTitleSnapshot(ops: raw("gin_trgm_ops"))], type: Gin, map: "ActivityEvent_gameTitleSnapshot_trgm_idx")
+  @@index([listTitleSnapshot(ops: raw("gin_trgm_ops"))], type: Gin, map: "ActivityEvent_listTitleSnapshot_trgm_idx")
+}
+
+enum GameListVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum GameSuggestionStatus {
+  PENDING
+  REVIEWED
+  IMPORTED
+  REJECTED
+}
+
+model GameList {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  visibility  GameListVisibility @default(PRIVATE)
+  isDefault   Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  items       GameListItem[]
+
+  @@unique([userId, slug])
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([visibility, updatedAt(sort: Desc)])
+}
+
+model GameListItem {
+  id      String   @id @default(cuid())
+  listId  String
+  list    GameList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  gameId  String
+  game    Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  addedAt DateTime @default(now())
+
+  @@unique([listId, gameId])
+  @@index([listId, addedAt(sort: Desc), id(sort: Desc)])
+  @@index([gameId])
+}
+
+model GameSuggestion {
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  normalizedName String
+  url            String?
+  notes          String?
+  status         GameSuggestionStatus @default(PENDING)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([userId, normalizedName])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
 }
 
 model Review {
@@ -257,6 +378,10 @@ model UserLibraryGame {
   @@unique([userId, gameId])
   @@index([userId, createdAt])
   @@index([gameId])
+  @@index([gameId, owned])
+  @@index([gameId, wantToPlay])
+  @@index([gameId, played])
+  @@index([gameId, updatedAt])
 }
 
 model Source {

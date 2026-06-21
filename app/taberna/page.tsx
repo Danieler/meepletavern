@@ -1,9 +1,14 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { Search, UserRound } from "lucide-react";
+import { Activity, Search } from "lucide-react";
 import { PublicShell } from "@/components/PublicShell";
-import { UserAvatar } from "@/components/account/UserAvatar";
-import { getPublicUsers, type PublicUserCard } from "@/lib/publicProfiles";
+import { PublicUserDirectory } from "@/components/taberna/PublicUserDirectory";
+import { TavernActivityFeed } from "@/components/taberna/TavernActivityFeed";
+import { TavernGameOverview } from "@/components/taberna/TavernGameOverview";
+import { getTavernActivityFeed } from "@/lib/activity/feed";
+import { getPublicUsersPage } from "@/lib/publicProfiles";
+import { normalizeTavernSearch, TAVERN_SEARCH_MAX_LENGTH, TAVERN_SEARCH_MIN_LENGTH } from "@/lib/tavernSearch";
+import { getTavernOverview, type TavernActivityHighlights } from "@/lib/tavernOverview";
 
 export const metadata: Metadata = {
   title: "La taberna - MeepleTavern",
@@ -17,9 +22,12 @@ type TavernPageProps = {
 
 export default async function TavernPage({ searchParams }: TavernPageProps) {
   const { q } = (await searchParams) || {};
-  const users = await getPublicUsers(q);
-  const publicCollections = users.filter((user) => user.hasPublicCollection).length;
-  const totalOwned = users.reduce((sum, user) => sum + (user.stats?.owned || 0), 0);
+  const query = normalizeTavernSearch(q);
+  const [usersPage, activityFeed, overview] = await Promise.all([
+    getPublicUsersPage({ query }),
+    getTavernActivityFeed(),
+    getTavernOverview()
+  ]);
 
   return (
     <PublicShell>
@@ -28,17 +36,18 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
           <div className="container-page grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
             <div>
               <p className="tavern-eyebrow">La taberna</p>
-              <h1 className="page-hero-title">Jugadores, ludotecas y mesas abiertas</h1>
+              <h1 className="page-hero-title">La Taberna</h1>
               <p className="page-hero-copy">
-                Entra en la sala común para descubrir perfiles públicos, encontrar gustos parecidos y
-                llevarte ideas de otras ludotecas antes de montar la próxima partida.
+                Mira qué están jugando, probando y recomendando otros taberneros.
               </p>
               <form className="mt-7 flex max-w-xl flex-col gap-3 sm:flex-row">
                 <label className="relative flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-walnut/45" size={18} />
                   <input
                     name="q"
-                    defaultValue={q}
+                    defaultValue={query}
+                    minLength={TAVERN_SEARCH_MIN_LENGTH}
+                    maxLength={TAVERN_SEARCH_MAX_LENGTH}
                     placeholder="Buscar por nombre de tabernero..."
                     className="field-input h-12 bg-white pl-10"
                   />
@@ -48,81 +57,58 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
                 </button>
               </form>
             </div>
-            <div className="grid grid-cols-3 gap-3 rounded-md border border-white/10 bg-white/8 p-4 backdrop-blur">
-              <DirectoryStat label="Taberneros" value={users.length} />
-              <DirectoryStat label="Ludotecas" value={publicCollections} />
-              <DirectoryStat label="Juegos en casa" value={totalOwned} />
-            </div>
+            <TavernHighlights highlights={overview.highlights} />
           </div>
         </section>
 
-        <section className="container-page py-10 lg:py-14">
-          {users.length === 0 ? (
-            <div className="tavern-panel py-16 text-center">
-              <UserRound className="mx-auto text-walnut/35" size={40} />
-              <h2 className="font-display mt-5 text-3xl font-bold text-wood">No hay nadie en la barra</h2>
-              <p className="mt-2 text-sm font-semibold text-walnut/60">
-                Prueba con otro nombre o vuelve cuando se sienten más jugadores.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {users.map((user) => (
-                <UserCard key={user.username} user={user} />
-              ))}
-            </div>
-          )}
-        </section>
+        <div className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,3fr)_minmax(380px,2fr)] lg:items-start lg:py-14">
+          <TavernActivityFeed initialFeed={activityFeed} />
+          <PublicUserDirectory key={query || "all"} initialPage={usersPage} query={query} />
+          <TavernGameOverview overview={overview} />
+        </div>
       </main>
     </PublicShell>
   );
 }
 
-function DirectoryStat({ label, value }: { label: string; value: number }) {
+function TavernHighlights({ highlights }: { highlights: TavernActivityHighlights }) {
   return (
-    <div className="rounded-md border border-white/10 bg-black/12 p-3 text-center">
-      <p className="font-display text-3xl font-bold leading-none text-white">{value}</p>
-      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.1em] text-parchment/62">{label}</p>
+    <div className="rounded-md border border-white/10 bg-white/8 p-4 backdrop-blur">
+      <div className="flex items-center gap-2 text-parchment/72">
+        <Activity size={17} aria-hidden="true" />
+        <p className="text-xs font-black uppercase tracking-[0.1em]">Esta semana en la taberna</p>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <HighlightStat
+          value={highlights.weeklyActivityCount}
+          label={highlights.weeklyActivityCount === 1 ? "actividad esta semana" : "actividades esta semana"}
+        />
+        <HighlightStat
+          value={highlights.weeklyLibraryAdds}
+          label={highlights.weeklyLibraryAdds === 1 ? "juego añadido" : "juegos añadidos"}
+        />
+        <HighlightStat
+          value={highlights.topWantedGame?.count || 0}
+          label={highlights.topWantedGame?.count === 1 ? "persona quiere jugar" : "personas quieren jugar"}
+        />
+      </div>
+      {highlights.topWantedGame ? (
+        <p className="mt-3 truncate text-xs font-semibold text-parchment/65">
+          El juego que más apetece: {" "}
+          <Link href={`/juegos/${encodeURIComponent(highlights.topWantedGame.slug)}`} prefetch={false} className="font-black text-white hover:text-ember">
+            {highlights.topWantedGame.title}
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }
 
-function UserCard({ user }: { user: PublicUserCard }) {
+function HighlightStat({ label, value }: { label: string; value: number }) {
   return (
-    <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45">
-      <Link href={`/u/${user.username}`} className="block p-5">
-        <div className="flex items-start gap-4">
-          <UserAvatar src={user.avatarUrl} name={user.displayName} size="md" />
-          <div className="min-w-0 flex-1">
-            <h3 className="font-display truncate text-2xl font-bold leading-tight text-wood">{user.displayName}</h3>
-            <p className="mt-1 truncate text-sm font-extrabold text-walnut/50">@{user.username}</p>
-          </div>
-        </div>
-
-        {user.stats ? (
-          <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
-            <MiniStat label="En casa" value={user.stats.owned} />
-            <MiniStat label="Jugados" value={user.stats.played} />
-            <MiniStat label="Quiere probar" value={user.stats.wantToPlay} />
-            <MiniStat label="En la lista" value={user.stats.wantToBuy} />
-          </div>
-        ) : (
-          <div className="mt-6 rounded-md border border-walnut/10 bg-white/60 px-3 py-4 text-center text-sm font-extrabold text-walnut/55">
-            Ludoteca privada
-          </div>
-        )}
-
-        <span className="button-secondary mt-6 w-full">Ver rincón</span>
-      </Link>
-    </article>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-md border border-walnut/10 bg-white/65 p-3">
-      <p className="font-display text-2xl font-bold leading-none text-wood">{value}</p>
-      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.1em] text-walnut/45">{label}</p>
+    <div className="min-w-0 rounded-md border border-white/10 bg-black/12 p-2.5 text-center">
+      <p className="font-display text-2xl font-bold leading-none text-white">{value}</p>
+      <p className="mt-2 text-[10px] font-black leading-4 text-parchment/62">{label}</p>
     </div>
   );
 }

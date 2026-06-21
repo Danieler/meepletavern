@@ -170,11 +170,18 @@ const catalogGameSelect = {
       sourceUrl: true,
       fetchedAt: true
     },
-    orderBy: [{ fetchedAt: "desc" }]
+    orderBy: [{ fetchedAt: "desc" }],
+    take: 12
   },
   howToPlayVideos: true,
   mediaAssets: {
-    select: publicMediaAssetSelect
+    where: {
+      status: MediaAssetStatus.approved,
+      usage: MediaAssetUsage.public
+    },
+    select: publicMediaAssetSelect,
+    orderBy: [{ updatedAt: "desc" }],
+    take: 8
   }
 } satisfies Prisma.GameSelect;
 
@@ -752,7 +759,11 @@ function dedupeBuyLinks(links: BuyLink[]) {
   });
 }
 
-function toPublishedReview(review: Awaited<ReturnType<typeof getPublishedReviewBySlug>>): Review | null {
+type PublicReviewSource =
+  | Awaited<ReturnType<typeof getPublishedReviewBySlug>>
+  | Awaited<ReturnType<typeof getPublishedReviews>>[number];
+
+function toPublishedReview(review: PublicReviewSource): Review | null {
   if (!review) {
     return null;
   }
@@ -777,7 +788,7 @@ function toPublishedReview(review: Awaited<ReturnType<typeof getPublishedReviewB
     imageStatus: imageUrl ? "verified" : "placeholder",
     placeholderKind: "board-game",
     summary: review.summary,
-    body: splitParagraphs(review.body),
+    body: "body" in review ? splitParagraphs(review.body) : [],
     authorName: review.authorName,
     publishedAt: toIsoString(review.publishedAt) || new Date().toISOString()
   };
