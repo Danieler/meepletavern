@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ReviewBodyEditor } from "@/components/reviews/ReviewBodyEditor";
 import { useAuth } from "@/hooks/useAuth";
+import { REVIEW_SUMMARY_MAX_LENGTH, REVIEW_TITLE_MAX_LENGTH } from "@/lib/reviewContent";
 
 export function CreateReviewForm({
   gameId,
@@ -118,6 +120,7 @@ export function CreateReviewForm({
             className="focus-ring mt-2 min-h-11 w-full rounded-md border border-ink/10 bg-white px-3 text-sm text-ink"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
+            maxLength={REVIEW_TITLE_MAX_LENGTH}
             required
           />
         </label>
@@ -128,19 +131,17 @@ export function CreateReviewForm({
             className="focus-ring mt-2 min-h-24 w-full rounded-md border border-ink/10 bg-white px-3 py-3 text-sm text-ink"
             value={summary}
             onChange={(event) => setSummary(event.target.value)}
+            maxLength={REVIEW_SUMMARY_MAX_LENGTH}
             required
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm font-bold text-ink">Reseña</span>
-          <textarea
-            className="focus-ring mt-2 min-h-56 w-full rounded-md border border-ink/10 bg-white px-3 py-3 text-sm text-ink"
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            required
-          />
-        </label>
+        <div>
+          <p className="text-sm font-bold text-ink">Reseña</p>
+          <div className="mt-2">
+            <ReviewBodyEditor value={body} onChange={setBody} required />
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-3">
           <button className="button-primary" disabled={saving} type="submit">

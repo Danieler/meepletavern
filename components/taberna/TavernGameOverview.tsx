@@ -17,7 +17,7 @@ export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
 
       {hasAny ? (
         <div className="mt-5 grid gap-6 lg:grid-cols-[1.4fr_0.8fr_0.8fr]">
-          <div>
+          <div id="ultimos-juegos" className="scroll-mt-24">
             <SectionTitle icon={Flame}>Últimos juegos añadidos</SectionTitle>
             {overview.recentGames.length ? (
               <ul className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -28,8 +28,8 @@ export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
             )}
           </div>
 
-          <Ranking title="Juegos más queridos" icon={Heart} games={overview.mostWanted} label={(count) => `${count} ${count === 1 ? "quiere" : "quieren"} probarlo`} />
-          <Ranking title="Más jugados" icon={Gamepad2} games={overview.mostPlayed} label={(count) => `${count} ${count === 1 ? "lo ha" : "lo han"} jugado`} />
+          <Ranking id="juegos-mas-queridos" title="Juegos más queridos" icon={Heart} games={overview.mostWanted} label={(count) => `${count} ${count === 1 ? "quiere" : "quieren"} probarlo`} />
+          <Ranking id="juegos-mas-jugados" title="Más jugados" icon={Gamepad2} games={overview.mostPlayed} label={(count) => `${count} ${count === 1 ? "lo ha" : "lo han"} jugado`} />
         </div>
       ) : (
         <EmptyState>Aún no hay suficientes movimientos en la taberna.</EmptyState>
@@ -58,17 +58,19 @@ function RecentGameRow({ game }: { game: TavernRecentGame }) {
 
 function Ranking({
   title,
+  id,
   icon: Icon,
   games,
   label
 }: {
   title: string;
+  id: string;
   icon: typeof Heart;
   games: TavernRankedGame[];
   label: (count: number) => string;
 }) {
   return (
-    <div>
+    <div id={id} className="scroll-mt-24">
       <SectionTitle icon={Icon}>{title}</SectionTitle>
       {games.length ? (
         <ol className="mt-3 space-y-2">

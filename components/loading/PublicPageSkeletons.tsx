@@ -97,6 +97,23 @@ export function TavernPageSkeleton() {
   return (
     <LoadingShell label="Cargando la taberna">
       <PageHeroSkeleton split />
+      <section className="container-page pt-8 sm:pt-10" aria-hidden="true">
+        <div className="tavern-panel p-5 sm:p-6">
+          <Bone className="h-4 w-32" />
+          <Bone className="mt-3 h-9 w-72 max-w-full" />
+          <Bone className="mt-3 h-4 w-80 max-w-full" />
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div key={index} className="rounded-md border border-walnut/10 bg-white/55 p-4">
+                <Bone className="h-4 w-32" />
+                <Bone className="mt-5 h-7 w-4/5" />
+                <Bone className="mt-3 h-4 w-full" />
+                <Bone className="mt-2 h-4 w-2/3" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,3fr)_minmax(380px,2fr)] lg:items-start lg:py-14">
         <section className="tavern-panel p-5 sm:p-6" aria-hidden="true">
           <Bone className="h-4 w-36" />

@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Save } from "lucide-react";
+import { ReviewBodyEditor } from "@/components/reviews/ReviewBodyEditor";
+import { REVIEW_SUMMARY_MAX_LENGTH, REVIEW_TITLE_MAX_LENGTH } from "@/lib/reviewContent";
 import {
   createAdminReviewAction,
   updateAdminReviewAction,
@@ -85,6 +87,8 @@ function AdminReviewFields({
   initialValue: ReviewFormValue;
   gameOptions: ReviewGameOption[];
 }) {
+  const [body, setBody] = useState(initialValue.body);
+
   return (
     <>
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
@@ -104,7 +108,7 @@ function AdminReviewFields({
             <input className="field-input" name="authorName" defaultValue={initialValue.authorName} required />
           </Field>
           <Field label="Título">
-            <input className="field-input" name="title" defaultValue={initialValue.title} required />
+            <input className="field-input" name="title" defaultValue={initialValue.title} maxLength={REVIEW_TITLE_MAX_LENGTH} required />
           </Field>
         </div>
       </section>
@@ -117,17 +121,16 @@ function AdminReviewFields({
               className="field-input min-h-28 py-3"
               name="summary"
               defaultValue={initialValue.summary}
+              maxLength={REVIEW_SUMMARY_MAX_LENGTH}
               required
             />
           </Field>
-          <Field label="Reseña">
-            <textarea
-              className="field-input min-h-72 py-3"
-              name="body"
-              defaultValue={initialValue.body}
-              required
-            />
-          </Field>
+          <div>
+            <p className="text-sm font-bold text-ink/60">Reseña</p>
+            <div className="mt-1">
+              <ReviewBodyEditor value={body} onChange={setBody} required />
+            </div>
+          </div>
         </div>
       </section>
     </>

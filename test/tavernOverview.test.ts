@@ -33,9 +33,9 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
       async groupBy(args: Record<string, unknown>) {
         groupArgs.push(args);
         const where = args.where as { wantToPlay?: boolean; played?: boolean };
-        return where.wantToPlay
-          ? [{ gameId: "game-1", _count: { gameId: 3 } }]
-          : [{ gameId: "game-2", _count: { gameId: 2 } }];
+        if (where.wantToPlay) return [{ gameId: "game-1", _count: { gameId: 3 } }];
+        if ((where as { owned?: boolean }).owned) return [{ gameId: "game-2", _count: { gameId: 4 } }];
+        return [{ gameId: "game-2", _count: { gameId: 2 } }];
       }
     },
     game: {
@@ -51,13 +51,14 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
   assert.equal(overview.recentGames.length, 2);
   assert.equal(overview.recentGames[0]?.title, "Ark Nova");
   assert.equal(overview.mostWanted[0]?.count, 3);
+  assert.equal(overview.mostOwned[0]?.count, 4);
   assert.equal(overview.mostPlayed[0]?.count, 2);
   assert.equal(overview.highlights.weeklyLibraryAdds, 4);
   assert.equal(overview.highlights.weeklyActivityCount, 9);
   assert.deepEqual(overview.highlights.topWantedGame, { title: "Ark Nova", slug: "ark-nova", count: 3 });
   assert.equal(activityArgs?.take, 18);
   assert.deepEqual((activityArgs?.where as { visibility?: string }).visibility, ActivityEventVisibility.PUBLIC);
-  assert.equal(groupArgs.length, 2);
+  assert.equal(groupArgs.length, 3);
   assert.equal(countArgs.length, 2);
   assert.equal(groupArgs[0]?.take, TAVERN_RANKING_LIMIT);
 

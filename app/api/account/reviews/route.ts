@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { prisma } from "@/lib/prisma";
 import { createReview } from "@/lib/reviews";
+import { validateReviewContent } from "@/lib/reviewContent";
 
 export async function POST(request: Request) {
   try {
@@ -23,6 +24,15 @@ export async function POST(request: Request) {
 
     if (!gameId || !title || !summary || !content) {
       return NextResponse.json({ error: "Completa todos los campos de la reseña." }, { status: 400 });
+    }
+
+    try {
+      validateReviewContent({ title, summary, body: content });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "La reseña es demasiado larga." },
+        { status: 400 }
+      );
     }
 
     const game = await prisma.game.findUnique({

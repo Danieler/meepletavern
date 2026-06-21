@@ -69,7 +69,7 @@ export type Review = GameImageFields & {
   gameSlug: string;
   gameTitle: string;
   summary: string;
-  body: string[];
+  body: string;
   authorName: string;
   publishedAt: string;
 };
@@ -788,7 +788,7 @@ function toPublishedReview(review: PublicReviewSource): Review | null {
     imageStatus: imageUrl ? "verified" : "placeholder",
     placeholderKind: "board-game",
     summary: review.summary,
-    body: "body" in review ? splitParagraphs(review.body) : [],
+    body: "body" in review ? review.body : "",
     authorName: review.authorName,
     publishedAt: toIsoString(review.publishedAt) || new Date().toISOString()
   };
@@ -939,13 +939,6 @@ function getGameMechanics(game: CatalogGame) {
 
 function normalizeIdentifier(value: string) {
   return slugify(value);
-}
-
-function splitParagraphs(value: string) {
-  return value
-    .split(/\n{2,}|\r?\n/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
 }
 
 function formatPlayers(game: CatalogGamePlayerFields) {

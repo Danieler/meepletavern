@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
+import { ReviewContent } from "@/components/reviews/ReviewContent";
 import { getReviewBySlug } from "@/lib/catalog";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
@@ -111,11 +112,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
             </div>
           </section>
           <section className="container-page grid gap-8 py-12 lg:grid-cols-[minmax(0,760px)_240px]">
-            <div className="space-y-6 text-lg leading-9 text-ink/80">
-              {review.body.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
+            <ReviewContent body={review.body} className="text-lg leading-9" />
             <aside />
           </section>
         </article>

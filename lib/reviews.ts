@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { validateReviewContent } from "@/lib/reviewContent";
 import { slugify } from "@/lib/slug";
 
 export type ReviewPayload = {
@@ -110,17 +111,21 @@ export async function getAdminReviewById(id: string) {
 }
 
 export async function createReview(input: ReviewPayload) {
-  const slug = await ensureUniqueReviewSlug(slugify(input.title) || slugify(`resena-${input.gameId}`));
+  const title = input.title.trim();
+  const summary = input.summary.trim();
+  const body = input.body.trim();
+  validateReviewContent({ title, summary, body });
+  const slug = await ensureUniqueReviewSlug(slugify(title) || slugify(`resena-${input.gameId}`));
 
   return prisma.review.create({
     data: {
       gameId: input.gameId,
       userId: input.userId || null,
       authorName: input.authorName.trim(),
-      title: input.title.trim(),
+      title,
       slug,
-      summary: input.summary.trim(),
-      body: input.body.trim(),
+      summary,
+      body,
       createdByAdmin: input.createdByAdmin ?? false,
       publishedAt: new Date()
     },
@@ -157,6 +162,9 @@ export async function updateReview(
   }
 
   const nextTitle = input.title.trim();
+  const summary = input.summary.trim();
+  const body = input.body.trim();
+  validateReviewContent({ title: nextTitle, summary, body });
   const nextSlug =
     current.title.trim() === nextTitle
       ? current.slug
@@ -169,8 +177,8 @@ export async function updateReview(
       authorName: input.authorName.trim(),
       title: nextTitle,
       slug: nextSlug,
-      summary: input.summary.trim(),
-      body: input.body.trim(),
+      summary,
+      body,
       publishedAt: input.publishedAt ?? currentDate()
     },
     select: {

@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 const RECENT_ACTIVITY_SCAN_LIMIT = 18;
 export const TAVERN_RECENT_GAMES_LIMIT = 6;
 export const TAVERN_RANKING_LIMIT = 5;
-const TAVERN_OVERVIEW_REVALIDATE_SECONDS = 180;
+const TAVERN_OVERVIEW_REVALIDATE_SECONDS = 600;
 
 export type TavernOverviewGame = {
   gameId: string;
@@ -35,6 +35,7 @@ export type TavernRankedGame = TavernOverviewGame & {
 export type TavernOverview = {
   recentGames: TavernRecentGame[];
   mostWanted: TavernRankedGame[];
+  mostOwned: TavernRankedGame[];
   mostPlayed: TavernRankedGame[];
   highlights: TavernActivityHighlights;
 };
@@ -64,7 +65,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
     }
   } as const;
 
-  const [recentEvents, wantedGroups, playedGroups, weeklyLibraryAdds, weeklyActivityCount] = await Promise.all([
+  const [recentEvents, wantedGroups, ownedGroups, playedGroups, weeklyLibraryAdds, weeklyActivityCount] = await Promise.all([
     db.activityEvent.findMany({
       where: {
         visibility: ActivityEventVisibility.PUBLIC,
@@ -89,6 +90,13 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
     }),
     db.userLibraryGame.groupBy({
       by: ["gameId"],
+      where: { owned: true, ...publicCollectionWhere },
+      _count: { gameId: true },
+      orderBy: { _count: { gameId: "desc" } },
+      take: TAVERN_RANKING_LIMIT
+    }),
+    db.userLibraryGame.groupBy({
+      by: ["gameId"],
       where: { played: true, ...publicCollectionWhere },
       _count: { gameId: true },
       orderBy: { _count: { gameId: "desc" } },
@@ -106,6 +114,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
   const gameIds = [...new Set([
     ...recentEvents.flatMap((event) => event.gameId ? [event.gameId] : []),
     ...wantedGroups.map((group) => group.gameId),
+    ...ownedGroups.map((group) => group.gameId),
     ...playedGroups.map((group) => group.gameId)
   ])];
   const games = gameIds.length
@@ -139,12 +148,14 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
     }];
   }).slice(0, TAVERN_RECENT_GAMES_LIMIT);
   const mostWanted = toRanking(wantedGroups, gamesById);
+  const mostOwned = toRanking(ownedGroups, gamesById);
   const mostPlayed = toRanking(playedGroups, gamesById);
   const topWanted = mostWanted[0];
 
   return {
     recentGames,
     mostWanted,
+    mostOwned,
     mostPlayed,
     highlights: {
       weeklyLibraryAdds,
@@ -158,8 +169,8 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
 
 const getCachedTavernOverview = unstable_cache(
   () => queryTavernOverview(),
-  ["tavern-overview-v2"],
-  { revalidate: TAVERN_OVERVIEW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
+  ["tavern-overview-v3"],
+  { revalidate: TAVERN_OVERVIEW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
 );
 
 export function getTavernOverview() {

@@ -96,7 +96,7 @@ export function TavernActivityFeed({ initialFeed }: TavernActivityFeedProps) {
   };
 
   return (
-    <section className="tavern-panel p-5 sm:p-6" aria-labelledby="tavern-activity-title">
+    <section id="actividad" className="tavern-panel scroll-mt-24 p-5 sm:p-6" aria-labelledby="tavern-activity-title">
       <div className="border-b border-walnut/10 pb-4">
         <p className="tavern-eyebrow">Ahora mismo</p>
         <h2 id="tavern-activity-title" className="font-display mt-2 text-3xl font-bold text-wood">
