@@ -22,6 +22,7 @@ import {
 } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
+import { rotateDaily } from "@/lib/dailyRotation";
 
 export const metadata: Metadata = {
   title: "MeepleTavern - Juegos de mesa, reseñas y recomendaciones",
@@ -62,26 +63,28 @@ export default async function Home() {
   const ratedGames = popularGames.filter((game) => typeof getEffectiveRatingScore(game) === "number");
   const showRatingsSection = ratedGames.length >= 3;
   const editorsPick = ratedGames[0] || popularGames[0] || beginnerGames[0] || null;
-  const heroGamePool = dedupeGames([
-    ...(ratedGames[0] ? [ratedGames[0]] : []),
-    ...(beginnerGames[0] ? [beginnerGames[0]] : []),
-    ...(newGames[0] ? [newGames[0]] : []),
-    ...newGames,
-    ...beginnerGames,
-    ...popularGames
-  ])
-    .slice(0, 9)
-    .map((game) => ({
-      slug: game.slug,
-      title: game.title,
-      coverImageUrl: game.coverImageUrl,
-      coverImageAlt: game.coverImageAlt,
-      reviewSummary: game.reviewSummary,
-      playersLabel: game.playersLabel,
-      playtime: game.playtime,
-      complexity: game.complexity,
-      ratingScore: getEffectiveRatingScore(game)
-    }));
+  const heroGamePool = rotateDaily(
+    dedupeGames([
+      ...(ratedGames[0] ? [ratedGames[0]] : []),
+      ...(beginnerGames[0] ? [beginnerGames[0]] : []),
+      ...(newGames[0] ? [newGames[0]] : []),
+      ...newGames,
+      ...beginnerGames,
+      ...popularGames
+    ])
+      .slice(0, 9)
+      .map((game) => ({
+        slug: game.slug,
+        title: game.title,
+        coverImageUrl: game.coverImageUrl,
+        coverImageAlt: game.coverImageAlt,
+        reviewSummary: game.reviewSummary,
+        playersLabel: game.playersLabel,
+        playtime: game.playtime,
+        complexity: game.complexity,
+        ratingScore: getEffectiveRatingScore(game)
+      }))
+  );
   const featuredGames = dedupeGames([
     ...(editorsPick ? [editorsPick] : []),
     ...beginnerGames,
