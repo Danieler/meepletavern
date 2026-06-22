@@ -4,7 +4,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import type { LucideIcon } from "lucide-react";
 import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User } from "lucide-react";
-import { BrandIcon } from "@/components/BrandIcon";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
 import { HeroDiscoveryBoard } from "@/components/home/HeroDiscoveryBoard";
@@ -50,7 +49,8 @@ export default async function Home() {
   const {
     data: { user }
   } = await supabase.auth.getUser();
-  const profileHref = user ? "/mi-perfil" : "/auth";
+  const profileHref = user ? "/mi-perfil" : "/auth?mode=register";
+  const profileLabel = user ? "Ir a mi rincón" : "Crear cuenta gratis";
 
   const [popularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
     getPopularGames(6),
@@ -140,10 +140,15 @@ export default async function Home() {
                   <Link href="/juegos" className="button-primary px-8 py-3 text-base">
                     Explorar juegos
                   </Link>
-                  <Link href="/taberna" className="button-secondary px-8 py-3 text-base">
-                    Entrar en la taberna
+                  <Link href={profileHref} className="button-secondary px-8 py-3 text-base">
+                    {profileLabel}
                   </Link>
                 </div>
+                {!user ? (
+                  <p className="mt-3 text-sm font-bold text-walnut/65">
+                    Gratis · Guarda tu ludoteca · Crea listas y valora partidas
+                  </p>
+                ) : null}
 
                 <div className="mt-10">
                   <div className="flex items-center gap-4">
@@ -197,14 +202,16 @@ export default async function Home() {
               <aside className="border-t border-walnut/10 bg-[#3a2118] p-5 text-white lg:border-l lg:border-t-0 sm:p-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-ember">Rincón de jugador</p>
                 <h3 className="font-display mt-3 text-3xl font-bold leading-tight">
-                  Entra y pon tu mesa en marcha
+                  {user ? "Tu rincón te está esperando" : "Haz tuya la taberna"}
                 </h3>
                 <p className="mt-3 text-sm font-semibold leading-6 text-parchment/78">
-                  Guarda tu colección, descubre otras ludotecas y encuentra ideas para la próxima noche de juegos.
+                  {user
+                    ? "Vuelve a tu colección, tus listas y tus valoraciones para preparar la próxima partida."
+                    : "Crea una cuenta gratis para guardar tus juegos, puntuar partidas y preparar listas para cada grupo."}
                 </p>
                 <div className="mt-5 grid gap-3">
                   <Link href={profileHref} className="button-primary justify-center">
-                    Crear mi rincón
+                    {profileLabel}
                   </Link>
                   <Link href="/taberna" className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
                     Ver la taberna
@@ -283,6 +290,38 @@ export default async function Home() {
             </div>
           </div>
         </section>
+
+        {!user ? (
+          <section className="container-page py-8 lg:py-10">
+            <div className="overflow-hidden rounded-lg border border-walnut/15 bg-[#3a2118] text-white shadow-soft">
+              <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
+                <div>
+                  <p className="tavern-eyebrow text-ember">Tu mesa, siempre a mano</p>
+                  <h2 className="font-display mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
+                    Guarda los juegos que quieres probar antes de olvidarlos
+                  </h2>
+                  <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-parchment/78">
+                    Convierte cada descubrimiento en tu ludoteca, una valoración o una lista para la
+                    próxima partida. Todo queda reunido en tu rincón de MeepleTavern.
+                  </p>
+                  <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold text-parchment/88">
+                    <li>✓ Tu ludoteca en un sitio</li>
+                    <li>✓ Listas para cada grupo</li>
+                    <li>✓ Valoraciones con contexto</li>
+                  </ul>
+                </div>
+                <aside className="rounded-md border border-white/10 bg-white/8 p-5 text-center">
+                  <Link href="/auth?mode=register" className="button-primary w-full justify-center px-6 py-3 text-base">
+                    Crear mi cuenta gratis
+                  </Link>
+                  <p className="mt-3 text-xs font-bold text-parchment/65">
+                    Crear la cuenta es gratis.
+                  </p>
+                </aside>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="container-page py-8 lg:py-10">
           <SEOTextBlock title="Recomendaciones de juegos de mesa en español">
