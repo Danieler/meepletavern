@@ -89,6 +89,8 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
   const [manualImageError, setManualImageError] = useState<string | null>(null);
   const [manualImageStatus, setManualImageStatus] = useState<string | null>(null);
   const [isImportingManualImage, setIsImportingManualImage] = useState(false);
+  const [removingMediaAssetId, setRemovingMediaAssetId] = useState<string | null>(null);
+  const [mediaAssetError, setMediaAssetError] = useState<string | null>(null);
   const [selectedAiWebFields, setSelectedAiWebFields] = useState<string[]>([]);
   const ratings = useMemo(() => normalizeGameRatings(game.ratings), [game.ratings]);
   const externalRating = ratings.external;
@@ -446,6 +448,43 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
       setManualImageError(error instanceof Error ? error.message : "No se pudieron importar las imágenes.");
     } finally {
       setIsImportingManualImage(false);
+    }
+  }
+
+  async function handleRemoveMediaAsset(assetId: string) {
+    const asset = mediaAssets.find((item) => item.id === assetId);
+    if (!asset) {
+      return;
+    }
+
+    const confirmMessage = draftValues.primaryImageId.trim() === asset.id || game.primaryImageId === asset.id
+      ? "¿Quitar esta imagen? Si era la portada principal, intentaremos dejar otra o vaciarla."
+      : "¿Quitar esta imagen de la ficha?";
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setMediaAssetError(null);
+    setRemovingMediaAssetId(assetId);
+
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}/images/remove`, {
+        method: "DELETE",
+        headers: getAdminApiFetchHeaders(),
+        body: JSON.stringify({ assetId })
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "No se pudo quitar la imagen.");
+      }
+
+      router.refresh();
+    } catch (error) {
+      setMediaAssetError(error instanceof Error ? error.message : "No se pudo quitar la imagen.");
+    } finally {
+      setRemovingMediaAssetId(null);
     }
   }
 
@@ -1143,33 +1182,58 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           {orderedMediaAssets.length ? (
             <div className="mt-5">
               <p className="text-xs font-bold uppercase tracking-wide text-ink/45">Assets disponibles</p>
+              <p className="mt-1 text-xs leading-5 text-ink/55">
+                Toca una tarjeta para usarla como portada. La papelera la quita de esta ficha.
+              </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {orderedMediaAssets.map((asset) => {
                   const isSelected = draftValues.primaryImageId.trim() === asset.id;
                   return (
-                    <button
+                    <div
                       key={asset.id}
-                      type="button"
-                      onClick={() => updateDraftField("primaryImageId", asset.id)}
-                      className={`overflow-hidden rounded-md border text-left transition ${
+                      className={`relative overflow-hidden rounded-md border text-left transition ${
                         isSelected ? "border-moss ring-2 ring-moss/20" : "border-ink/10 hover:border-moss/40"
                       }`}
                     >
-                      <img src={asset.url} alt={asset.url} className="aspect-[4/3] w-full object-cover" />
-                      <div className="space-y-1 bg-white p-3">
-                        <p className="truncate text-xs font-bold uppercase tracking-wide text-ink/45">
-                          {asset.type} · {asset.status}
-                        </p>
-                        <p className="line-clamp-2 text-xs text-ink/70">{asset.url}</p>
-                        <p className="text-sm font-semibold text-moss">
-                          {isSelected ? "Imagen principal seleccionada" : "Usar como imagen principal"}
-                        </p>
-                      </div>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => updateDraftField("primaryImageId", asset.id)}
+                        className="block w-full text-left"
+                      >
+                        <img src={asset.url} alt={asset.url} className="aspect-[4/3] w-full object-cover" />
+                        <div className="space-y-1 bg-white p-3 pr-12">
+                          <p className="truncate text-xs font-bold uppercase tracking-wide text-ink/45">
+                            {asset.type} · {asset.status}
+                          </p>
+                          <p className="line-clamp-2 text-xs text-ink/70">{asset.url}</p>
+                          <p className="text-sm font-semibold text-moss">
+                            {isSelected ? "Imagen principal seleccionada" : "Usar como imagen principal"}
+                          </p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Quitar imagen ${asset.url}`}
+                        className="absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-ruby/20 bg-white/95 text-ruby shadow-sm transition hover:bg-ruby/5 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => void handleRemoveMediaAsset(asset.id)}
+                        disabled={isBusy || removingMediaAssetId === asset.id}
+                      >
+                        {removingMediaAssetId === asset.id ? (
+                          <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Trash2 size={16} aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                   );
                 })}
               </div>
             </div>
+          ) : null}
+          {mediaAssetError ? (
+            <p className="mt-4 rounded-md border border-ruby/20 bg-ruby/10 px-3 py-2 text-sm font-semibold text-ruby">
+              {mediaAssetError}
+            </p>
           ) : null}
         </section>
 

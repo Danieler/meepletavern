@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getGameTavernSummary, type GameTavernSampleUser } from "@/lib/gameTavernSummary";
+import { UserAvatarFallbackArt } from "@/components/account/UserAvatar";
 
 type GameCommunitySectionProps = {
   gameId: string;
@@ -67,23 +68,25 @@ function TavernCount({ value, label }: { value: number | string; label: string }
 }
 
 function TavernUser({ user }: { user: GameTavernSampleUser }) {
+  const handle = user.username.trim() || "tabernero";
+
   return (
     <li className="py-3 first:pt-0 last:pb-0">
       <Link
-        href={`/u/${user.username}`}
+        href={`/u/${handle}`}
         prefetch={false}
         className="group flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember"
-        aria-label={`Ver el perfil público de ${user.name}`}
+        aria-label={`Ver el perfil público de ${handle}`}
       >
         <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-walnut/15 bg-parchment text-xs font-black text-walnut/35">
           {user.avatarUrl ? (
             <Image src={user.avatarUrl} alt="" fill sizes="40px" className="object-cover" />
           ) : (
-            user.name[0]?.toUpperCase() || "U"
+            <UserAvatarFallbackArt seed={handle} className="h-full w-full" />
           )}
         </span>
         <span className="min-w-0">
-          <span className="block break-words text-sm font-black leading-5 text-ink/75 transition group-hover:text-ember">{user.name}</span>
+          <span className="block break-words text-sm font-black leading-5 text-ink/75 transition group-hover:text-ember">@{handle}</span>
           <span className="mt-0.5 block text-xs font-semibold text-walnut/55">{getInteractionLabel(user)}</span>
         </span>
       </Link>

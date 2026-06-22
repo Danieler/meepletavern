@@ -129,19 +129,20 @@ export function PublicUserDirectory({ initialPage, query }: PublicUserDirectoryP
 }
 
 function UserCard({ user }: { user: PublicUserCard }) {
+  const handle = user.username.trim() || "tabernero";
+
   return (
     <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45">
       <Link
-        href={`/u/${encodeURIComponent(user.username)}`}
+        href={`/u/${encodeURIComponent(handle)}`}
         prefetch={false}
         className="group flex min-h-24 items-center gap-3 p-4"
       >
-        <UserAvatar src={user.avatarUrl} name={user.displayName} size="sm" />
+        <UserAvatar src={user.avatarUrl} name={handle} size="sm" />
         <div className="min-w-0 flex-1">
           <h3 className="font-display break-words text-xl font-bold leading-tight text-wood group-hover:text-ember">
-            {user.displayName}
+            @{handle}
           </h3>
-          <p className="mt-0.5 break-words text-xs font-extrabold text-walnut/50">@{user.username}</p>
           {user.stats ? (
             <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-walnut/60">
               <span><strong className="text-wood">{user.stats.owned}</strong> en casa</span>

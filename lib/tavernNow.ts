@@ -47,7 +47,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
         game: { select: { title: true, name: true, slug: true } },
         user: {
           select: {
-            profile: { select: { username: true, displayName: true } }
+            profile: { select: { username: true } }
           }
         }
       }
@@ -64,7 +64,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
         _count: { select: { items: true } },
         user: {
           select: {
-            profile: { select: { username: true, displayName: true } }
+            profile: { select: { username: true } }
           }
         }
       }
@@ -79,16 +79,16 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
           gameTitle: rating.game.title.trim() || rating.game.name,
           gameSlug: rating.game.slug,
           rating: rating.score,
-          userName: ratingProfile.displayName?.trim() || ratingProfile.username,
-          userSlug: ratingProfile.username
+          userName: ratingProfile.username || "tabernero",
+          userSlug: ratingProfile.username || "tabernero"
         }
       : null,
     latestList: list && listProfile
       ? {
           listTitle: list.name,
           listSlug: list.slug,
-          userName: listProfile.displayName?.trim() || listProfile.username,
-          userSlug: listProfile.username,
+          userName: listProfile.username || "tabernero",
+          userSlug: listProfile.username || "tabernero",
           gameCount: list._count.items
         }
       : null

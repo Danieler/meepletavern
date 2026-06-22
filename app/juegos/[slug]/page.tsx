@@ -17,12 +17,17 @@ import { MechanicTag } from "@/components/MechanicTag";
 import { PrivacyFriendlyYouTubeEmbed } from "@/components/PrivacyFriendlyYouTubeEmbed";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
+import { UserGamePlayCount } from "@/components/UserGamePlayCount";
 import { UserRatingVote } from "@/components/UserRatingVote";
 import { getGameBySlug, getRelatedGames, type CatalogGame } from "@/lib/catalog";
 import { getGameComments } from "@/lib/gameComments";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
+import { createClient } from "@/lib/supabase/server";
+import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
+import { getCurrentUserGamePlayCount } from "@/lib/userGamePlayCounts";
 import { toYouTubeEmbedUrl } from "@/lib/videos/youtube";
+import { cookies } from "next/headers";
 
 type GamePageProps = {
   params: Promise<{
@@ -76,6 +81,14 @@ export default async function GamePage({ params }: GamePageProps) {
   if (!game) {
     notFound();
   }
+
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  const appUser = user ? await upsertAppUserFromAuthUser(user) : null;
+  const playCount = appUser ? await getCurrentUserGamePlayCount(appUser.id, game.id) : 0;
 
   const jsonLd = buildJsonLd(game);
   const hasRichEditorialTags = game.mechanics.length > 0;
@@ -194,6 +207,12 @@ export default async function GamePage({ params }: GamePageProps) {
                 </div>
                 <UserRatingVote gameId={game.id} initialVotesCount={game.ratings.users.votesCount} />
               </Panel>
+              <UserGamePlayCount
+                gameId={game.id}
+                gameSlug={game.slug}
+                initialCount={playCount}
+                isAuthenticated={Boolean(appUser)}
+              />
               <Suspense fallback={<GameCommunitySectionSkeleton />}>
                 <GameCommunitySection gameId={game.id} />
               </Suspense>

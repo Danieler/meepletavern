@@ -27,7 +27,6 @@ export type PublicCollectionEntry = LibraryFlags & {
 
 export type PublicUserCard = {
   username: string;
-  displayName: string;
   avatarUrl: string | null;
   stats: PublicProfileStats | null;
 };
@@ -112,7 +111,6 @@ export async function queryPublicUsersPage(
       id: true,
       userId: true,
       username: true,
-      displayName: true,
       avatarUrl: true,
       collectionVisibility: true
     },
@@ -149,8 +147,7 @@ export async function queryPublicUsersPage(
       const hasPublicCollection = profile.collectionVisibility === ProfileVisibility.PUBLIC;
 
       return {
-        username: profile.username,
-        displayName: profile.displayName || profile.username,
+        username: profile.username || "tabernero",
         avatarUrl: profile.avatarUrl,
         stats: hasPublicCollection
           ? statsByUser.get(profile.userId) || { owned: 0, wantToPlay: 0, played: 0 }

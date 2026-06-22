@@ -57,7 +57,7 @@ function isPlaceholderText(value: string | null | undefined) {
 function firstSafeText(values: Array<string | null | undefined>) {
   for (const value of values) {
     if (typeof value === "string") {
-      const trimmed = value.trim();
+      const trimmed = sanitizePublicText(value);
       if (trimmed && !PLACEHOLDER_TEXT_PATTERN.test(trimmed)) {
         return trimmed;
       }
@@ -65,6 +65,13 @@ function firstSafeText(values: Array<string | null | undefined>) {
   }
 
   return null;
+}
+
+function sanitizePublicText(value: string) {
+  return value
+    .replace(/\s+/g, " ")
+    .replace(/\s+(?:p[aá]gina del juego en la bgg|p[aá]gina en bgg|boardgamegeek)\.?\s*$/i, "")
+    .trim();
 }
 
 function buildNeutralSummary(input: PublicGameCopyInput) {

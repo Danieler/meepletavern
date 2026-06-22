@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { UserAvatarFallbackArt } from "@/components/account/UserAvatar";
 import type { TavernActivityFeed, TavernActivityFeedItem } from "@/lib/activity/feed";
 import { TAVERN_SEARCH_MAX_LENGTH, TAVERN_SEARCH_MIN_LENGTH } from "@/lib/tavernSearch";
 
@@ -168,7 +169,7 @@ export function TavernActivityFeed({ initialFeed }: TavernActivityFeedProps) {
 }
 
 function ActivityItem({ item }: { item: TavernActivityFeedItem }) {
-  const actorName = item.actorName || item.actorUsername || "Un tabernero";
+  const actorName = item.actorUsername || "tabernero";
 
   return (
     <li className="flex gap-3 py-4 first:pt-5">
@@ -191,7 +192,7 @@ function ActorAvatar({ item, name }: { item: TavernActivityFeedItem; name: strin
       {item.actorAvatarUrl ? (
         <Image src={item.actorAvatarUrl} alt="" fill sizes="40px" className="object-cover" />
       ) : (
-        name[0]?.toUpperCase() || "T"
+        <UserAvatarFallbackArt seed={name} className="h-full w-full" />
       )}
     </span>
   );

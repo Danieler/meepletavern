@@ -128,6 +128,7 @@ model Game {
   candidates            GameCandidate[]
   libraryEntries        UserLibraryGame[]
   userRatings           UserGameRating[]
+  userPlayCounts        UserGamePlayCount[]
   reviews               Review[]
   comments              GameComment[]
   activityEvents        ActivityEvent[]
@@ -172,6 +173,7 @@ model User {
   profile     UserProfile?
   library     UserLibraryGame[]
   gameRatings UserGameRating[]
+  gamePlayCounts UserGamePlayCount[]
   reviews     Review[]
   comments    GameComment[]
   activityEvents ActivityEvent[]
@@ -382,6 +384,21 @@ model UserLibraryGame {
   @@index([gameId, wantToPlay])
   @@index([gameId, played])
   @@index([gameId, updatedAt])
+}
+
+model UserGamePlayCount {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId], map: "UserGamePlayCount_userId_gameId_key")
+  @@index([userId], map: "UserGamePlayCount_userId_idx")
+  @@index([gameId], map: "UserGamePlayCount_gameId_idx")
 }
 
 model Source {

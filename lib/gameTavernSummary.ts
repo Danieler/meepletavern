@@ -9,7 +9,6 @@ export type GameTavernStatus = "OWNED" | "WANT_TO_PLAY" | "PLAYED";
 
 export type GameTavernSampleUser = {
   id: string;
-  name: string;
   username: string;
   avatarUrl: string | null;
   status: GameTavernStatus;
@@ -42,7 +41,6 @@ type TavernEntry = {
   user: {
     profile: {
       username: string;
-      displayName: string | null;
       avatarUrl: string | null;
     } | null;
     gameRatings: Array<{ score: number }>;
@@ -86,7 +84,6 @@ export async function queryGameTavernSummary(
             profile: {
               select: {
                 username: true,
-                displayName: true,
                 avatarUrl: true
               }
             },
@@ -137,8 +134,7 @@ export async function queryGameTavernSummary(
     return [
       {
         id: entry.userId,
-        name: profile.displayName || profile.username,
-        username: profile.username,
+        username: profile.username || "tabernero",
         avatarUrl: profile.avatarUrl,
         status,
         ...(rating !== undefined ? { rating } : {})
