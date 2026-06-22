@@ -79,6 +79,31 @@ img {
   max-width: 100%;
 }
 
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+p,
+li,
+dt,
+dd {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @layer components {
   .container-page {
     @apply mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-8;
@@ -89,15 +114,15 @@ img {
   }
 
   .button-primary {
-    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-amber-950/20 bg-ember px-4 py-2.5 text-sm font-extrabold leading-none text-white shadow-soft transition hover:-translate-y-px hover:bg-[#b9781d] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-amber-950/20 bg-ember px-4 py-2.5 text-center text-sm font-extrabold leading-snug text-white shadow-soft transition hover:-translate-y-px hover:bg-[#b9781d] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-secondary {
-    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-walnut/25 bg-paper px-4 py-2.5 text-sm font-extrabold leading-none text-walnut shadow-sm transition hover:-translate-y-px hover:border-ember hover:bg-white hover:text-wood disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-walnut/25 bg-paper px-4 py-2.5 text-center text-sm font-extrabold leading-snug text-walnut shadow-sm transition hover:-translate-y-px hover:border-ember hover:bg-white hover:text-wood disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-danger {
-    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-ruby/25 bg-paper px-4 py-2.5 text-sm font-extrabold leading-none text-ruby transition hover:-translate-y-px hover:bg-ruby hover:text-white disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-ruby/25 bg-paper px-4 py-2.5 text-center text-sm font-extrabold leading-snug text-ruby transition hover:-translate-y-px hover:bg-ruby hover:text-white disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .field-label {
@@ -366,7 +391,7 @@ img {
   }
 
   .tavern-eyebrow {
-    @apply text-[11px] font-black uppercase tracking-[0.14em] text-ember;
+    @apply break-words text-[11px] font-black uppercase leading-4 tracking-[0.14em] text-ember;
   }
 
   .tavern-copy {
@@ -374,11 +399,11 @@ img {
   }
 
   .tavern-meta {
-    @apply text-xs font-extrabold uppercase tracking-[0.12em] text-walnut/60;
+    @apply break-words text-xs font-extrabold uppercase leading-4 tracking-[0.12em] text-walnut/60;
   }
 
   .tavern-pill {
-    @apply inline-flex min-h-7 items-center gap-1.5 rounded-md border border-walnut/15 bg-[#f0e2cc] px-2.5 py-1 text-xs font-extrabold leading-none text-walnut;
+    @apply inline-flex min-h-7 max-w-full items-center gap-1.5 break-words rounded-md border border-walnut/15 bg-[#f0e2cc] px-2.5 py-1 text-center text-xs font-extrabold leading-tight text-walnut;
   }
 
   .rating-chip {
@@ -471,4 +496,3 @@ img {
     color: var(--amber-strong);
   }
 }
-

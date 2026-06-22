@@ -15,7 +15,7 @@ export function GameSearch({
 }: GameSearchProps) {
   const isHero = variant === "hero";
   const resolvedSubmitLabel = submitLabel || (isHero ? "Buscar juegos" : "Buscar");
-  const resolvedPlaceholder = placeholder || (isHero ? "Busca por título, categoría o mecánica" : "Buscar...");
+  const resolvedPlaceholder = placeholder || (isHero ? "Título, categoría o mecánica" : "Buscar...");
 
   return (
     <form action="/juegos" className={isHero ? "flex w-full flex-col gap-3 sm:flex-row" : "flex w-full flex-col gap-2 sm:flex-row"}>
@@ -29,7 +29,7 @@ export function GameSearch({
           name="q"
           defaultValue={query}
           placeholder={resolvedPlaceholder}
-          className={`${isHero ? "min-h-14 text-base" : "min-h-11 text-sm"} focus-ring w-full rounded-md border border-walnut/25 bg-[#fffaf0] pl-11 pr-3 font-semibold text-ink shadow-sm placeholder:text-walnut/45`}
+          className={`${isHero ? "min-h-14 text-base" : "min-h-11 text-sm"} focus-ring w-full rounded-md border border-walnut/25 bg-[#fffaf0] pl-11 pr-3 font-semibold text-ink shadow-sm placeholder:text-sm placeholder:text-walnut/45`}
         />
       </div>
       <button className={`button-primary ${isHero ? "min-h-14 px-6" : ""}`} type="submit">

@@ -138,10 +138,10 @@ function UserCard({ user }: { user: PublicUserCard }) {
       >
         <UserAvatar src={user.avatarUrl} name={user.displayName} size="sm" />
         <div className="min-w-0 flex-1">
-          <h3 className="font-display truncate text-xl font-bold leading-tight text-wood group-hover:text-ember">
+          <h3 className="font-display break-words text-xl font-bold leading-tight text-wood group-hover:text-ember">
             {user.displayName}
           </h3>
-          <p className="mt-0.5 truncate text-xs font-extrabold text-walnut/50">@{user.username}</p>
+          <p className="mt-0.5 break-words text-xs font-extrabold text-walnut/50">@{user.username}</p>
           {user.stats ? (
             <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-walnut/60">
               <span><strong className="text-wood">{user.stats.owned}</strong> en casa</span>

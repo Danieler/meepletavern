@@ -52,7 +52,7 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
                     defaultValue={query}
                     minLength={TAVERN_SEARCH_MIN_LENGTH}
                     maxLength={TAVERN_SEARCH_MAX_LENGTH}
-                    placeholder="Buscar por nombre de tabernero..."
+                    placeholder="Nombre de tabernero"
                     className="field-input h-12 bg-white pl-10"
                   />
                 </label>
@@ -102,7 +102,7 @@ function TavernHighlights({ highlights }: { highlights: TavernActivityHighlights
         />
       </div>
       {highlights.topWantedGame ? (
-        <p className="mt-3 truncate text-xs font-semibold text-parchment/65">
+        <p className="mt-3 break-words text-xs font-semibold leading-5 text-parchment/65">
           El juego que más apetece: {" "}
           <Link href={`/juegos/${encodeURIComponent(highlights.topWantedGame.slug)}`} prefetch={false} className="font-black text-white hover:text-ember">
             {highlights.topWantedGame.title}

@@ -60,9 +60,9 @@ async function RankingsResults() {
     <section className="container-page grid gap-8 py-12 lg:grid-cols-2">
       {rankingSections.map(({ ranking, games }) => (
         <article key={ranking.slug} className="space-y-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between sm:gap-4">
             <SectionHeader title={ranking.title} description={ranking.description} />
-            <Link className="button-secondary shrink-0" href={`/rankings/${ranking.slug}`}>
+            <Link className="button-secondary w-full shrink-0 sm:w-auto" href={`/rankings/${ranking.slug}`}>
               <BrandIcon name="flame" size={18} />
               Ver ranking
             </Link>

@@ -142,7 +142,7 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-display truncate text-2xl font-bold leading-tight text-wood">{game.title}</h3>
+        <h3 className="font-display break-words text-2xl font-bold leading-tight text-wood">{game.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-walnut/78">
           {game.reviewSummary}
         </p>
@@ -172,9 +172,9 @@ function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
   return (
     <Link
       href={`/juegos/${game.slug}`}
-      className="group grid grid-cols-[62px_minmax(0,1fr)] overflow-hidden rounded-md border border-walnut/12 bg-white transition hover:-translate-y-0.5 hover:border-ember/45 hover:shadow-soft"
+      className="group grid min-h-[84px] grid-cols-[68px_minmax(0,1fr)] overflow-hidden rounded-md border border-walnut/12 bg-white transition hover:-translate-y-0.5 hover:border-ember/45 hover:shadow-soft"
     >
-      <div className="relative h-[68px]">
+      <div className="relative h-full min-h-[84px]">
         <Image
           src={coverUrl}
           alt={game.coverImageAlt || game.title}
@@ -186,8 +186,8 @@ function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
       </div>
       <div className="min-w-0 p-2.5">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-ember">{label}</p>
-        <h3 className="font-display mt-1 truncate text-base font-bold text-wood">{game.title}</h3>
-        <p className="mt-0.5 line-clamp-1 text-xs font-semibold leading-5 text-walnut/74">
+        <h3 className="font-display mt-1 break-words text-base font-bold leading-tight text-wood">{game.title}</h3>
+        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-4 text-walnut/74">
           {game.reviewSummary}
         </p>
       </div>
@@ -205,12 +205,12 @@ function HeroMiniStat({
   icon: "users" | "clock" | "gauge";
 }) {
   return (
-    <div className="rounded-md border border-walnut/10 bg-white/72 p-2">
-      <p className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.12em] text-walnut/52">
+    <div className="min-w-0 rounded-md border border-walnut/10 bg-white/72 p-2 text-center">
+      <p className="flex min-w-0 flex-col items-center gap-0.5 text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-walnut/52 min-[380px]:text-[10px]">
         <BrandIcon name={icon} size={12} />
         {label}
       </p>
-      <p className="mt-1 truncate font-display text-sm font-bold leading-none text-wood">{value}</p>
+      <p className="mt-1 break-words font-display text-xs font-bold leading-tight text-wood min-[380px]:text-sm">{value}</p>
     </div>
   );
 }

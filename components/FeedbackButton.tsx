@@ -116,11 +116,12 @@ export function FeedbackButton() {
     <button
       aria-haspopup="dialog"
       aria-label="Enviar feedback sobre MeepleTavern"
-      className="fixed bottom-4 right-4 z-40 inline-flex min-h-10 max-w-[calc(100vw-2rem)] items-center justify-center rounded-full border border-walnut/20 bg-parchment/95 px-4 py-2 text-sm font-bold text-walnut shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-ember hover:text-wood focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember focus-visible:ring-offset-2 motion-reduce:transform-none sm:bottom-5 sm:right-5"
+      className="fixed bottom-3 right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-walnut/20 bg-parchment/95 p-0 text-sm font-bold text-walnut shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-ember hover:text-wood focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember focus-visible:ring-offset-2 motion-reduce:transform-none sm:bottom-5 sm:right-5 sm:h-auto sm:w-auto sm:max-w-[calc(100vw-2.5rem)] sm:px-4 sm:py-2"
       onClick={openFeedback}
       type="button"
     >
-      💬 Ayúdanos a mejorar
+      <span className="sm:hidden" aria-hidden="true">💬</span>
+      <span className="hidden sm:inline">💬 Ayúdanos a mejorar</span>
     </button>
   );
 }

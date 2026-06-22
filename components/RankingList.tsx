@@ -69,7 +69,7 @@ export function RankingList({ games, variant = "default" }: RankingListProps) {
                 />
                 <span className="flex min-w-0 flex-col justify-center">
                   <span className="flex items-start justify-between gap-2">
-                    <span className="font-display block min-w-0 truncate pr-14 text-[1.2rem] font-bold leading-tight text-wood">
+                    <span className="font-display block min-w-0 break-words pr-14 text-[1.2rem] font-bold leading-tight text-wood">
                       {game.title}
                     </span>
                   </span>
@@ -108,7 +108,7 @@ export function RankingList({ games, variant = "default" }: RankingListProps) {
               <GameCoverImage {...game} gameTitle={game.title} variant="ranking" showPlaceholderLabel={false} />
               <span className="min-w-0">
                 <span className="flex items-start justify-between gap-2">
-                  <span className="font-display block min-w-0 truncate text-lg font-bold leading-tight text-wood">
+                  <span className="font-display block min-w-0 break-words text-lg font-bold leading-tight text-wood">
                     {game.title}
                   </span>
                   {typeof ratingScore === "number" ? (

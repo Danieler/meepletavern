@@ -17,8 +17,8 @@ export function BuyLinks({ links }: { links: BuyLink[] }) {
             rel="nofollow noopener noreferrer"
             target="_blank"
           >
-            <span className="min-w-0">
-              <span className="block truncate">{link.store}</span>
+            <span className="min-w-0 text-left">
+              <span className="block break-words leading-tight">{link.store}</span>
               {link.availability ? <span className="block text-xs font-semibold opacity-70">{link.availability}</span> : null}
             </span>
             <span className="inline-flex shrink-0 items-center gap-2">

@@ -160,7 +160,7 @@ export default async function Home() {
                   <p className="mt-2 text-sm font-semibold leading-6 text-walnut/76">
                     Menos filtros, más partida.
                   </p>
-                  <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
+                  <div className="mt-4 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-3">
                     {intentCards.map((card) => (
                       <IntentCard key={card.title} {...card} />
                     ))}
@@ -386,7 +386,7 @@ function IntentCard({
         <h3 className="font-display text-[15px] font-bold text-wood leading-tight group-hover:text-ember transition">
           {title}
         </h3>
-        <p className="mt-1 line-clamp-1 text-[11px] font-medium leading-tight text-walnut/70">
+        <p className="mt-1 text-[11px] font-medium leading-4 text-walnut/70">
           {description}
         </p>
       </div>

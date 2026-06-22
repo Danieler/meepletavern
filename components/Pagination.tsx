@@ -31,37 +31,40 @@ export function Pagination({ active, totalPages, currentPage }: PaginationProps)
   };
 
   return (
-    <nav className="mt-10 flex items-center justify-center gap-2 border-t border-ink/5 pt-8" aria-label="Paginación">
+    <nav className="mt-10 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center justify-center gap-2 border-t border-ink/5 pt-8 sm:flex" aria-label="Paginación">
       {currentPage > 1 ? (
         <Link
           href={buildUrl(currentPage - 1)}
-          className="inline-flex h-10 items-center gap-1 rounded-md border border-ink/10 bg-white px-3 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment"
+          aria-label="Página anterior"
+          className="inline-flex h-11 w-11 items-center justify-center gap-1 rounded-md border border-ink/10 bg-white p-0 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment sm:h-10 sm:w-auto sm:px-3"
         >
           <BrandIcon name="chevron-left" size={16} />
-          Anterior
+          <span className="sr-only sm:not-sr-only">Anterior</span>
         </Link>
       ) : (
-        <span className="inline-flex h-10 cursor-not-allowed items-center gap-1 rounded-md border border-ink/5 bg-ink/5 px-3 text-sm font-bold text-ink/30">
+        <span aria-label="No hay página anterior" className="inline-flex h-11 w-11 cursor-not-allowed items-center justify-center gap-1 rounded-md border border-ink/5 bg-ink/5 p-0 text-sm font-bold text-ink/30 sm:h-10 sm:w-auto sm:px-3">
           <BrandIcon name="chevron-left" size={16} />
-          Anterior
+          <span className="sr-only sm:not-sr-only">Anterior</span>
         </span>
       )}
 
-      <div className="flex h-10 items-center px-4 text-sm font-bold text-ink/60">
-        Página {currentPage} de {totalPages}
+      <div className="flex h-11 min-w-0 items-center justify-center px-2 text-center text-sm font-bold text-ink/60 sm:h-10 sm:px-4">
+        <span className="sm:hidden">{currentPage} / {totalPages}</span>
+        <span className="hidden sm:inline">Página {currentPage} de {totalPages}</span>
       </div>
 
       {currentPage < totalPages ? (
         <Link
           href={buildUrl(currentPage + 1)}
-          className="inline-flex h-10 items-center gap-1 rounded-md border border-ink/10 bg-white px-3 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment"
+          aria-label="Página siguiente"
+          className="inline-flex h-11 w-11 items-center justify-center gap-1 rounded-md border border-ink/10 bg-white p-0 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment sm:h-10 sm:w-auto sm:px-3"
         >
-          Siguiente
+          <span className="sr-only sm:not-sr-only">Siguiente</span>
           <BrandIcon name="chevron-right" size={16} />
         </Link>
       ) : (
-        <span className="inline-flex h-10 cursor-not-allowed items-center gap-1 rounded-md border border-ink/5 bg-ink/5 px-3 text-sm font-bold text-ink/30">
-          Siguiente
+        <span aria-label="No hay página siguiente" className="inline-flex h-11 w-11 cursor-not-allowed items-center justify-center gap-1 rounded-md border border-ink/5 bg-ink/5 p-0 text-sm font-bold text-ink/30 sm:h-10 sm:w-auto sm:px-3">
+          <span className="sr-only sm:not-sr-only">Siguiente</span>
           <BrandIcon name="chevron-right" size={16} />
         </span>
       )}

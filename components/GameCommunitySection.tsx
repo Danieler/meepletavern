@@ -83,7 +83,7 @@ function TavernUser({ user }: { user: GameTavernSampleUser }) {
           )}
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-sm font-black text-ink/75 transition group-hover:text-ember">{user.name}</span>
+          <span className="block break-words text-sm font-black leading-5 text-ink/75 transition group-hover:text-ember">{user.name}</span>
           <span className="mt-0.5 block text-xs font-semibold text-walnut/55">{getInteractionLabel(user)}</span>
         </span>
       </Link>
