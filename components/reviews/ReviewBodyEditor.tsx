@@ -46,20 +46,24 @@ export function ReviewBodyEditor({ value, onChange, name = "body", required = fa
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-walnut/20 bg-paper shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-walnut/15 bg-parchment/70 p-2">
-        <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Formato de la reseña">
-          <ToolButton label="Título" icon={<Heading2 size={16} />} onClick={() => prefixLines("## ", "Título de sección")} />
-          <ToolButton label="Negrita" icon={<Bold size={16} />} onClick={() => replaceSelection("**", "**", "texto importante")} />
-          <ToolButton label="Cursiva" icon={<Italic size={16} />} onClick={() => replaceSelection("_", "_", "texto en cursiva")} />
-          <ToolButton label="Lista" icon={<List size={16} />} onClick={() => prefixLines("- ", "Elemento de la lista")} />
-          <ToolButton label="Lista numerada" icon={<ListOrdered size={16} />} onClick={() => prefixLines("1. ", "Elemento de la lista")} />
-          <ToolButton label="Enlace" icon={<Link2 size={16} />} onClick={() => replaceSelection("[", "](https://ejemplo.com)", "texto del enlace")} />
-          <ToolButton label="Imagen por URL" icon={<ImagePlus size={16} />} onClick={() => replaceSelection("\n\n![", "](https://ejemplo.com/imagen.jpg)\n\n", "Descripción de la imagen")} />
+    <div className="overflow-hidden rounded-lg border border-walnut/20 bg-paper shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-walnut/15 bg-parchment/60 px-3 py-2.5">
+        <div className="flex flex-wrap gap-1.5" role="toolbar" aria-label="Formato de la reseña">
+          <ToolButton label="Título" icon={<Heading2 size={15} />} onClick={() => prefixLines("## ", "Título de sección")} />
+          <ToolButton label="Negrita" icon={<Bold size={15} />} onClick={() => replaceSelection("**", "**", "texto importante")} />
+          <ToolButton label="Cursiva" icon={<Italic size={15} />} onClick={() => replaceSelection("_", "_", "texto en cursiva")} />
+          <ToolButton label="Lista" icon={<List size={15} />} onClick={() => prefixLines("- ", "Elemento de la lista")} />
+          <ToolButton label="Lista numerada" icon={<ListOrdered size={15} />} onClick={() => prefixLines("1. ", "Elemento de la lista")} />
+          <ToolButton label="Enlace" icon={<Link2 size={15} />} onClick={() => replaceSelection("[", "](https://ejemplo.com)", "texto del enlace")} />
+          <ToolButton label="Imagen" icon={<ImagePlus size={15} />} onClick={() => replaceSelection("\n\n![", "](https://ejemplo.com/imagen.jpg)\n\n", "Descripción de la imagen")} />
         </div>
-        <button type="button" className="button-secondary min-h-9 px-3 py-1.5 text-xs" onClick={() => setPreview((current) => !current)}>
-          {preview ? <Pencil size={15} /> : <Eye size={15} />}
-          {preview ? "Editar" : "Vista previa"}
+        <button
+          type="button"
+          className="button-secondary min-h-9 px-3 py-1.5 text-xs flex items-center gap-1.5 border-walnut/20 shadow-xs hover:border-ember"
+          onClick={() => setPreview((current) => !current)}
+        >
+          {preview ? <Pencil size={14} /> : <Eye size={14} />}
+          <span>{preview ? "Editar" : "Vista previa"}</span>
         </button>
       </div>
 
@@ -73,12 +77,16 @@ export function ReviewBodyEditor({ value, onChange, name = "body", required = fa
         required={required && !preview}
         maxLength={REVIEW_BODY_MAX_LENGTH}
         hidden={preview}
-        className="min-h-80 w-full resize-y bg-white/80 px-4 py-4 font-mono text-sm leading-6 text-ink outline-none focus:bg-white"
-        placeholder="Cuenta cómo se juega, qué sensaciones deja y para qué tipo de mesa lo recomendarías."
+        className="min-h-[460px] md:min-h-[520px] w-full resize-y bg-white/50 px-4 py-4 font-mono text-sm leading-6 text-ink outline-none transition focus:bg-white focus:ring-2 focus:ring-moss/20 focus:ring-inset"
+        placeholder="Escribe tu análisis detallado aquí. Cuenta cómo se juega, qué sensaciones deja en mesa, para qué tipo de jugadores lo recomendarías y cuáles son tus conclusiones tras probarlo."
       />
-      {preview ? <div className="min-h-80 bg-white/80 p-5"><ReviewContent body={value} /></div> : null}
+      {preview ? (
+        <div className="min-h-[460px] md:min-h-[520px] bg-white/50 p-6 overflow-y-auto border-b border-walnut/10">
+          <ReviewContent body={value} />
+        </div>
+      ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-walnut/10 px-3 py-2 text-xs font-semibold text-walnut/55">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-walnut/10 px-4 py-2.5 text-xs font-semibold text-walnut/55">
         <span>Admite títulos, negrita, cursiva, listas, enlaces e imágenes HTTPS.</span>
         <span>{value.length.toLocaleString("es-ES")} / {REVIEW_BODY_MAX_LENGTH.toLocaleString("es-ES")}</span>
       </div>
@@ -90,13 +98,14 @@ function ToolButton({ label, icon, onClick }: { label: string; icon: React.React
   return (
     <button
       type="button"
-      className="focus-ring inline-flex min-h-9 items-center gap-1.5 rounded px-2.5 text-xs font-bold text-walnut transition hover:bg-white hover:text-wood"
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-walnut/10 bg-white/40 px-2.5 text-xs font-bold text-walnut shadow-sm transition hover:bg-white hover:text-wood hover:border-walnut/30 focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-1 focus:ring-offset-parchment"
       onClick={onClick}
       title={label}
       aria-label={label}
     >
-      {icon}
+      <span className="text-walnut/70 group-hover:text-wood">{icon}</span>
       <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }
+

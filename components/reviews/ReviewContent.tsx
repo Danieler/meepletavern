@@ -13,7 +13,7 @@ export function ReviewContent({ body, className = "" }: { body: string; classNam
   }
 
   return (
-    <div className={`space-y-6 text-base leading-8 text-ink/80 ${className}`}>
+    <div className={`review-prose ${className}`}>
       {blocks.map((block, index) => <ReviewBlock key={`${block.type}-${index}`} block={block} />)}
     </div>
   );
@@ -22,15 +22,19 @@ export function ReviewContent({ body, className = "" }: { body: string; classNam
 function ReviewBlock({ block }: { block: ReviewContentBlock }) {
   if (block.type === "heading") {
     return block.level === 2 ? (
-      <h2 className="font-display pt-2 text-3xl font-bold leading-tight text-wood">{renderInlineReviewText(block.text)}</h2>
+      <div className="mt-12 mb-5 pt-6 border-t border-walnut/10 first:mt-0 first:border-0 first:pt-0">
+        <h2 className="text-2xl sm:text-3xl leading-tight">{renderInlineReviewText(block.text)}</h2>
+      </div>
     ) : (
-      <h3 className="font-display pt-1 text-2xl font-bold leading-tight text-wood">{renderInlineReviewText(block.text)}</h3>
+      <div className="mt-8 mb-4">
+        <h3 className="text-xl sm:text-2xl leading-tight">{renderInlineReviewText(block.text)}</h3>
+      </div>
     );
   }
 
   if (block.type === "image") {
     return (
-      <figure className="overflow-hidden rounded-md border border-walnut/15 bg-white/65 p-2 shadow-soft">
+      <figure className="my-8 overflow-hidden rounded-xl border border-walnut/15 bg-white/65 p-2 shadow-soft">
         {/* User-authored remote images stay browser-direct to avoid proxying them through Vercel/Supabase. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -39,9 +43,9 @@ function ReviewBlock({ block }: { block: ReviewContentBlock }) {
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          className="mx-auto max-h-[620px] w-auto rounded object-contain"
+          className="mx-auto max-h-[620px] w-auto rounded-lg object-contain"
         />
-        {block.alt ? <figcaption className="px-2 pb-1 pt-3 text-center text-xs font-semibold text-walnut/55">{block.alt}</figcaption> : null}
+        {block.alt ? <figcaption className="px-2 pb-1 pt-3 text-center text-sm italic text-walnut/60">{block.alt}</figcaption> : null}
       </figure>
     );
   }
@@ -49,14 +53,14 @@ function ReviewBlock({ block }: { block: ReviewContentBlock }) {
   if (block.type === "unordered-list" || block.type === "ordered-list") {
     const List = block.type === "ordered-list" ? "ol" : "ul";
     return (
-      <List className={`space-y-2 pl-6 ${block.type === "ordered-list" ? "list-decimal" : "list-disc"}`}>
+      <List>
         {block.items.map((item, index) => <li key={index}>{renderInlineReviewText(item)}</li>)}
       </List>
     );
   }
 
   if (block.type === "quote") {
-    return <blockquote className="border-l-4 border-ember/45 bg-ember/5 px-5 py-3 font-semibold italic text-walnut">{renderInlineReviewText(block.text)}</blockquote>;
+    return <blockquote>{renderInlineReviewText(block.text)}</blockquote>;
   }
 
   return <p>{renderInlineReviewText(block.text)}</p>;
@@ -73,14 +77,14 @@ function renderInlineReviewText(value: string) {
     const token = match[0];
 
     if (token.startsWith("**")) {
-      nodes.push(<strong key={start} className="font-black text-wood">{token.slice(2, -2)}</strong>);
+      nodes.push(<strong key={start}>{token.slice(2, -2)}</strong>);
     } else if (token.startsWith("_")) {
       nodes.push(<em key={start}>{token.slice(1, -1)}</em>);
     } else {
       const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
       const href = link ? getSafeReviewLink(link[2]) : null;
       nodes.push(href ? (
-        <a key={start} href={href} className="font-bold text-ember underline decoration-ember/35 underline-offset-4 hover:text-wood" {...(href.startsWith("http") ? { target: "_blank", rel: "noreferrer noopener" } : {})}>
+        <a key={start} href={href} {...(href.startsWith("http") ? { target: "_blank", rel: "noreferrer noopener" } : {})}>
           {link?.[1]}
         </a>
       ) : link?.[1] || token);
@@ -91,3 +95,4 @@ function renderInlineReviewText(value: string) {
   if (cursor < value.length) nodes.push(value.slice(cursor));
   return nodes;
 }
+

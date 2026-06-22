@@ -75,7 +75,7 @@ export function CreateReviewForm({
       ) : null}
 
       <form
-        className="mt-6 space-y-4"
+        className="mt-6 space-y-6"
         onSubmit={async (event) => {
           event.preventDefault();
           setSaving(true);
@@ -115,33 +115,36 @@ export function CreateReviewForm({
         }}
       >
         <label className="block">
-          <span className="text-sm font-bold text-ink">Título</span>
+          <span className="field-label">Título</span>
           <input
-            className="focus-ring mt-2 min-h-11 w-full rounded-md border border-ink/10 bg-white px-3 text-sm text-ink"
+            className="field-input mt-2"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={REVIEW_TITLE_MAX_LENGTH}
             required
+            placeholder="Ej. Mi opinión sobre Aventureros al Tren: un clásico imprescindible"
           />
         </label>
 
         <label className="block">
-          <span className="text-sm font-bold text-ink">Resumen</span>
+          <span className="field-label">Resumen</span>
           <textarea
-            className="focus-ring mt-2 min-h-24 w-full rounded-md border border-ink/10 bg-white px-3 py-3 text-sm text-ink"
+            className="field-input mt-2 min-h-24 py-3"
             value={summary}
             onChange={(event) => setSummary(event.target.value)}
             maxLength={REVIEW_SUMMARY_MAX_LENGTH}
             required
+            placeholder="Un breve resumen o veredicto rápido que llame la atención de los lectores (máx. 600 caracteres)."
           />
         </label>
 
         <div>
-          <p className="text-sm font-bold text-ink">Reseña</p>
+          <p className="field-label">Reseña</p>
           <div className="mt-2">
             <ReviewBodyEditor value={body} onChange={setBody} required />
           </div>
         </div>
+
 
         <div className="flex flex-wrap gap-3">
           <button className="button-primary" disabled={saving} type="submit">

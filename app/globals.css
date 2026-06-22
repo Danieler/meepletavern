@@ -417,4 +417,58 @@ img {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  .review-prose {
+    @apply text-base sm:text-[17px] md:text-lg text-walnut/90 font-normal leading-relaxed;
+  }
+
+  .review-prose p {
+    @apply mb-6 leading-relaxed text-[#1f1f1f]/90;
+  }
+
+  .review-prose h2,
+  .review-prose h3 {
+    @apply font-display font-black text-wood tracking-tight;
+  }
+
+  .review-prose strong {
+    @apply font-black text-wood;
+  }
+
+  .review-prose em {
+    @apply italic;
+  }
+
+  .review-prose a {
+    color: var(--amber-strong);
+    @apply font-bold hover:text-wood transition underline decoration-ember/30 hover:decoration-wood underline-offset-4;
+  }
+
+  .review-prose blockquote {
+    border-left-color: var(--amber-strong);
+    background-color: rgba(255, 247, 231, 0.6);
+    @apply my-8 border-l-4 px-6 py-4 rounded-r-md shadow-sm italic text-walnut/90 font-medium;
+  }
+
+  .review-prose ul,
+  .review-prose ol {
+    @apply my-6 pl-6 space-y-3;
+  }
+
+  .review-prose ul {
+    @apply list-disc;
+  }
+
+  .review-prose ol {
+    @apply list-decimal font-medium;
+  }
+
+  .review-prose li {
+    @apply pl-1 text-[#1f1f1f]/90;
+  }
+
+  .review-prose li::marker {
+    color: var(--amber-strong);
+  }
 }
+
