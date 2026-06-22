@@ -43,6 +43,23 @@ function getEmailRedirectTo() {
   return undefined;
 }
 
+function normalizeNextPath(value?: string | null) {
+  if (!value || !value.startsWith("/")) {
+    return "/mi-perfil";
+  }
+
+  return value;
+}
+
+function getOAuthRedirectTo(nextPath?: string) {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const next = normalizeNextPath(nextPath);
+  return `${toBaseUrl(window.location.origin)}/auth/callback?next=${encodeURIComponent(next)}`;
+}
+
 function getAuthErrorCode(message: string): AuthActionResult["code"] | undefined {
   const normalized = message.toLowerCase();
 
@@ -287,6 +304,33 @@ export function useAuth() {
     }
   }
 
+  async function signInWithGoogle(nextPath?: string): Promise<AuthActionResult> {
+    if (!isSupabaseConfigured) {
+      return { ok: false, message: missingConfigMessage };
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: getOAuthRedirectTo(nextPath)
+        }
+      });
+
+      if (error) {
+        return {
+          ok: false,
+          code: getAuthErrorCode(error.message),
+          message: getReadableAuthMessage(error.message)
+        };
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return getUnknownAuthError(error);
+    }
+  }
+
   async function signOut(): Promise<AuthActionResult> {
     if (!isSupabaseConfigured) {
       return { ok: false, message: missingConfigMessage };
@@ -341,6 +385,7 @@ export function useAuth() {
     isConfigured: isSupabaseConfigured,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     updateProfile
   };

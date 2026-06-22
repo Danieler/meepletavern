@@ -12,6 +12,7 @@ type AuthScreenProps = {
   isConfigured: boolean;
   onSignIn: (email: string, password: string) => Promise<AuthActionResult>;
   onSignUp: (email: string, password: string, name?: string) => Promise<AuthActionResult>;
+  onGoogleSignIn: () => Promise<AuthActionResult>;
   initialMode?: AuthMode;
   introMessage?: string;
 };
@@ -68,6 +69,7 @@ export function AuthScreen({
   isConfigured,
   onSignIn,
   onSignUp,
+  onGoogleSignIn,
   initialMode = "login",
   introMessage
 }: AuthScreenProps) {
@@ -156,6 +158,25 @@ export function AuthScreen({
     }
   }
 
+  async function handleGoogleSignIn() {
+    if (submitting || cooldownSeconds > 0 || !isConfigured) {
+      return;
+    }
+
+    setSubmitting(true);
+    setFeedback(null);
+    setFieldErrors({});
+
+    const result = await onGoogleSignIn();
+
+    setSubmitting(false);
+
+    if (!result.ok) {
+      setFeedbackTone("error");
+      setFeedback(result.message ?? "No hemos podido iniciar sesión con Google.");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_420px] md:items-center">
@@ -202,6 +223,21 @@ export function AuthScreen({
                 </button>
               );
             })}
+          </div>
+
+          <button
+            type="button"
+            className="button-secondary mb-4 w-full justify-center"
+            disabled={submitting || cooldownSeconds > 0 || !isConfigured}
+            onClick={() => void handleGoogleSignIn()}
+          >
+            Continuar con Google
+          </button>
+
+          <div className="mb-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-ink/10" />
+            <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">o con email</span>
+            <div className="h-px flex-1 bg-ink/10" />
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>

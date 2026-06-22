@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Check, LibraryBig, Gamepad2, ShoppingCart, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +20,7 @@ type LibraryState = {
 export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [state, setState] = useState<LibraryState>({
     owned: false,
     wantToPlay: false,
@@ -73,11 +74,12 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
     };
   }, [gameId, user]);
 
-  if (loading || !ready || !user) {
-    return null;
-  }
-
   const toggleStatus = async (key: keyof LibraryState) => {
+    if (!user) {
+      router.push(`/auth?next=${encodeURIComponent(pathname || "/auth")}`);
+      return;
+    }
+
     setBusy(key);
     const nextValue = !state[key];
     
@@ -98,6 +100,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   };
 
   const hasAny = state.owned || state.wantToPlay || state.wantToBuy || state.played;
+  const showNeutralState = !user;
 
   return (
     <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
@@ -105,34 +108,38 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
       <div className="mt-4 grid gap-2">
         <ToggleButton
           label="Lo tengo en casa"
-          active={state.owned}
-          loading={busy === "owned"}
+          active={showNeutralState ? false : state.owned}
+          loading={!showNeutralState && busy === "owned"}
+          disabled={loading || !ready}
           icon={<Check size={18} />}
           onClick={() => toggleStatus("owned")}
         />
         <ToggleButton
           label="Quiero probarlo"
-          active={state.wantToPlay}
-          loading={busy === "wantToPlay"}
+          active={showNeutralState ? false : state.wantToPlay}
+          loading={!showNeutralState && busy === "wantToPlay"}
+          disabled={loading || !ready}
           icon={<Gamepad2 size={18} />}
           onClick={() => toggleStatus("wantToPlay")}
         />
         <ToggleButton
           label="Lo tengo en la lista"
-          active={state.wantToBuy}
-          loading={busy === "wantToBuy"}
+          active={showNeutralState ? false : state.wantToBuy}
+          loading={!showNeutralState && busy === "wantToBuy"}
+          disabled={loading || !ready}
           icon={<ShoppingCart size={18} />}
           onClick={() => toggleStatus("wantToBuy")}
         />
         <ToggleButton
           label="Lo he jugado"
-          active={state.played}
-          loading={busy === "played"}
+          active={showNeutralState ? false : state.played}
+          loading={!showNeutralState && busy === "played"}
+          disabled={loading || !ready}
           icon={<Trophy size={18} />}
           onClick={() => toggleStatus("played")}
         />
 
-        {hasAny ? (
+        {user && hasAny ? (
           <Link className="button-secondary justify-start mt-2" href="/mi-perfil">
             <LibraryBig size={18} aria-hidden="true" />
             Ver mi ludoteca
@@ -147,12 +154,14 @@ function ToggleButton({
   label,
   active,
   loading,
+  disabled,
   icon,
   onClick
 }: {
   label: string;
   active: boolean;
   loading: boolean;
+  disabled?: boolean;
   icon: React.ReactNode;
   onClick: () => void;
 }) {
@@ -160,7 +169,7 @@ function ToggleButton({
     <button
       type="button"
       className={active ? "button-primary justify-start" : "button-secondary justify-start"}
-      disabled={loading}
+      disabled={disabled || loading}
       onClick={onClick}
     >
       <span className="shrink-0">{icon}</span>

@@ -3,10 +3,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
 
+function getSafeNextPath(value: string | null) {
+  return value && value.startsWith("/") ? value : "/mi-perfil";
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") ?? "/mi-perfil";
+  const next = getSafeNextPath(url.searchParams.get("next"));
 
   if (code) {
     const cookieStore = await cookies();
@@ -17,7 +21,11 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser();
 
     if (user) {
-      await upsertAppUserFromAuthUser(user);
+      const account = await upsertAppUserFromAuthUser(user);
+
+      if (!account.profile?.username) {
+        return NextResponse.redirect(new URL("/mi-perfil/ajustes", url.origin));
+      }
     }
   }
 

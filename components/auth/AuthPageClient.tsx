@@ -12,7 +12,7 @@ type AuthPageClientProps = {
 
 export function AuthPageClient({ nextPath, initialMode }: AuthPageClientProps) {
   const router = useRouter();
-  const { user, loading, isConfigured, signIn, signUp } = useAuth();
+  const { user, loading, isConfigured, signIn, signInWithGoogle, signUp } = useAuth();
 
   useEffect(() => {
     if (!loading && user) {
@@ -38,6 +38,7 @@ export function AuthPageClient({ nextPath, initialMode }: AuthPageClientProps) {
         }
         return result;
       }}
+      onGoogleSignIn={async () => signInWithGoogle(nextPath)}
     />
   );
 }

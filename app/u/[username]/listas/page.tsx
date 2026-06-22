@@ -26,7 +26,7 @@ export default async function PublicUserListsPage({
   const rawCursor = query.cursor?.trim() || null;
   const cursor = rawCursor && rawCursor.length <= 64 && /^[a-zA-Z0-9_-]+$/.test(rawCursor) ? rawCursor : null;
   const page = await getPublicUserListsPage({ username: profile.username, cursor });
-  const displayName = profile.displayName || profile.username;
+  const displayName = profile.username;
 
   return (
     <PublicShell>

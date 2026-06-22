@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   }
 
   return {
-    title: `${profile.displayName || profile.username} (@${profile.username}) - MeepleTavern`,
-    description: profile.bio || `Perfil de ${profile.displayName || profile.username} en MeepleTavern`
+    title: `@${profile.username} - MeepleTavern`,
+    description: profile.bio || `Perfil de @${profile.username} en MeepleTavern`
   };
 }
 
@@ -82,7 +82,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     canSeeCollection ? getPublicUserCollection(profile.userId) : Promise.resolve(emptyCollection),
     getPublicUserLists(profile.username)
   ]);
-  const displayName = profile.displayName || profile.username;
+  const displayName = profile.username;
   const totalGames = new Set(Object.values(collection).flat().map((entry) => entry.gameId)).size;
   const featuredGames = Object.values(collection)
     .flat()

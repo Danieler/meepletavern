@@ -309,7 +309,7 @@ export async function getPublicListDetail(input: {
       gameCount: list._count.items,
       owner: {
         username: profile.username,
-        displayName: profile.displayName?.trim() || list.user.displayName?.trim() || profile.username,
+        displayName: profile.username,
         avatarUrl: profile.avatarUrl
       }
     },
