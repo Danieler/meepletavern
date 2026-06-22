@@ -21,7 +21,7 @@ export function PrivacyFriendlyYouTubeEmbed({
         title={title}
         loading="lazy"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        referrerPolicy="no-referrer"
+        referrerPolicy="strict-origin-when-cross-origin"
         allowFullScreen
       />
     );
