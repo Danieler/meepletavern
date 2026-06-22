@@ -15,6 +15,7 @@ type GameCoverImageProps = GameImageFields & {
   priority?: boolean;
   className?: string;
   showPlaceholderLabel?: boolean;
+  imageSizes?: string;
 };
 
 const variantClasses = {
@@ -36,7 +37,8 @@ export function GameCoverImage({
   variant = "card",
   priority = false,
   className = "",
-  showPlaceholderLabel = true
+  showPlaceholderLabel = true,
+  imageSizes
 }: GameCoverImageProps) {
   const [failed, setFailed] = useState(false);
   const image = {
@@ -74,7 +76,7 @@ export function GameCoverImage({
           alt={getGameCoverAlt(image, gameTitle)}
           priority={priority}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          sizes={imageSizes || "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"}
           className="object-cover"
           onError={() => setFailed(true)}
           unoptimized={!isOptimizable}

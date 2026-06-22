@@ -8,7 +8,7 @@ import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
 import { HeroDiscoveryBoard } from "@/components/home/HeroDiscoveryBoard";
 import { PublicShell } from "@/components/PublicShell";
-import { RankingList } from "@/components/RankingList";
+import { FeaturedRankingCarousel } from "@/components/FeaturedRankingCarousel";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import {
@@ -259,13 +259,13 @@ export default async function Home() {
           <div className="container-page">
             <div className={`grid gap-6 ${showRatingsSection ? "xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]" : ""}`}>
               {showRatingsSection ? (
-                <div>
+                <div className="min-w-0">
                   <SectionHeader
                     eyebrow="Valoraciones con contexto"
                     title="Juegos mejor valorados por ahora"
                     description="Una lectura rápida de lo que mejor está funcionando ahora mismo en la taberna."
                   />
-                  <RankingList games={ratedGames.slice(0, 6)} variant="featured" />
+                  <FeaturedRankingCarousel games={ratedGames.slice(0, 6)} />
                 </div>
               ) : null}
 
