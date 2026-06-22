@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LegalDocument, LegalIdentityBlock } from "@/components/LegalDocument";
+import { LegalDocument } from "@/components/LegalDocument";
 import { getLegalIdentity } from "@/lib/legal";
 
 export const metadata: Metadata = {
@@ -16,17 +16,6 @@ export default function LegalNoticePage() {
       title="Aviso legal y condiciones de uso"
       intro="Las reglas básicas para usar MeepleTavern y saber quién está detrás del servicio."
     >
-      <section id="titular">
-        <h2>Titular del sitio</h2>
-        <p className="mt-3">
-          En cumplimiento de la normativa aplicable a los servicios de la sociedad de la
-          información, estos son los datos del responsable de MeepleTavern:
-        </p>
-        <div className="mt-4">
-          <LegalIdentityBlock />
-        </div>
-      </section>
-
       <section>
         <h2>Qué ofrece MeepleTavern</h2>
         <p className="mt-3">

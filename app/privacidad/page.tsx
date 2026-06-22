@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LegalDocument, LegalIdentityBlock } from "@/components/LegalDocument";
+import { LegalDocument } from "@/components/LegalDocument";
 import { getLegalIdentity } from "@/lib/legal";
 
 export const metadata: Metadata = {
@@ -16,13 +16,6 @@ export default function PrivacyPage() {
       title="Política de privacidad"
       intro="Qué datos usamos, para qué, durante cuánto tiempo y cómo puedes ejercer tus derechos."
     >
-      <section>
-        <h2>Responsable del tratamiento</h2>
-        <div className="mt-4">
-          <LegalIdentityBlock />
-        </div>
-      </section>
-
       <section>
         <h2>Datos que tratamos</h2>
         <ul className="mt-3">

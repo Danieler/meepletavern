@@ -10,7 +10,7 @@ export function BuyButton({ url }: BuyButtonProps) {
   }
 
   return (
-    <a className="button-primary" href={url} rel="nofollow sponsored noopener noreferrer" target="_blank">
+    <a className="button-primary" href={url} rel="nofollow noopener noreferrer" target="_blank">
       <BrandIcon name="tag" size={20} />
       Ver oferta
     </a>

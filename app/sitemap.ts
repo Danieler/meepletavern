@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/categorias",
     "/mecanicas"
   ];
-  const legalRoutes = ["/aviso-legal", "/privacidad", "/cookies", "/afiliados"];
+  const legalRoutes = ["/aviso-legal", "/privacidad", "/cookies"];
 
   return [
     ...staticRoutes.map((route) => ({

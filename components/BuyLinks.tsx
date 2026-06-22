@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { BrandIcon } from "@/components/BrandIcon";
 import type { BuyLink } from "@/lib/catalog";
 
@@ -15,7 +14,7 @@ export function BuyLinks({ links }: { links: BuyLink[] }) {
             key={`${link.store}-${link.url}`}
             className="button-secondary min-h-12 justify-between gap-4"
             href={link.url}
-            rel="nofollow sponsored noopener noreferrer"
+            rel="nofollow noopener noreferrer"
             target="_blank"
           >
             <span className="min-w-0">
@@ -29,9 +28,6 @@ export function BuyLinks({ links }: { links: BuyLink[] }) {
           </a>
         ))}
       </div>
-      <p className="mt-3 text-xs font-semibold leading-5 text-ink/50">
-        Algunos enlaces pueden generar una comisión sin coste adicional para ti. <Link className="underline underline-offset-2 hover:text-wood" href="/afiliados">Más información</Link>.
-      </p>
     </div>
   );
 }

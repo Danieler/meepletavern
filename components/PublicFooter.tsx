@@ -32,8 +32,7 @@ export async function PublicFooter() {
             { href: "/aviso-legal", label: "Aviso legal" },
             { href: "/aviso-legal#contacto", label: "Contacto" },
             { href: "/privacidad", label: "Privacidad" },
-            { href: "/cookies", label: "Cookies" },
-            { href: "/afiliados", label: "Afiliados" }
+            { href: "/cookies", label: "Cookies" }
           ]}
         />
         <FooterColumn
