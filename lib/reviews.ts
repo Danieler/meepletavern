@@ -30,6 +30,15 @@ const publicReviewListSelect = {
       coverImageAlt: true,
       imageStatus: true
     }
+  },
+  user: {
+    select: {
+      profile: {
+        select: {
+          username: true
+        }
+      }
+    }
   }
 } as const;
 

@@ -104,7 +104,19 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
 
             {/* Metadata Row */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-bold uppercase tracking-wider text-walnut/60 mb-6">
-              <span>Por {review.authorName}</span>
+              <span>
+                Por{" "}
+                {review.authorUsername ? (
+                  <Link
+                    href={`/u/${review.authorUsername}`}
+                    className="text-moss hover:text-wood font-black transition underline decoration-moss/30 hover:decoration-wood underline-offset-2"
+                  >
+                    {review.authorName}
+                  </Link>
+                ) : (
+                  <span>{review.authorName}</span>
+                )}
+              </span>
               <span className="w-1.5 h-1.5 rounded-full bg-walnut/20" />
               <span>{formatDate(review.publishedAt)}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-walnut/20" />

@@ -71,6 +71,7 @@ export type Review = GameImageFields & {
   summary: string;
   body: string;
   authorName: string;
+  authorUsername?: string | null;
   publishedAt: string;
 };
 
@@ -790,6 +791,7 @@ function toPublishedReview(review: PublicReviewSource): Review | null {
     summary: review.summary,
     body: "body" in review ? review.body : "",
     authorName: review.authorName,
+    authorUsername: review.user?.profile?.username || null,
     publishedAt: toIsoString(review.publishedAt) || new Date().toISOString()
   };
 }
