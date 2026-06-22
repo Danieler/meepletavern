@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { Play } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  COOKIE_CONSENT_CHANGED_EVENT,
+  hasAnalyticsConsent,
+  type CookieConsent
+} from "@/lib/cookieConsent";
 
 export function PrivacyFriendlyYouTubeEmbed({
   embedUrl,
@@ -12,6 +17,20 @@ export function PrivacyFriendlyYouTubeEmbed({
   title: string;
 }) {
   const [hasAccepted, setHasAccepted] = useState(false);
+
+  useEffect(() => {
+    setHasAccepted(hasAnalyticsConsent());
+
+    const handleConsentChange = (event: Event) => {
+      const consent = (event as CustomEvent<CookieConsent>).detail;
+      setHasAccepted(consent.analytics);
+    };
+
+    window.addEventListener(COOKIE_CONSENT_CHANGED_EVENT, handleConsentChange);
+    return () => {
+      window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, handleConsentChange);
+    };
+  }, []);
 
   if (hasAccepted) {
     return (
