@@ -22,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/categorias",
     "/mecanicas"
   ];
+  const legalRoutes = ["/aviso-legal", "/privacidad", "/cookies", "/afiliados"];
 
   return [
     ...staticRoutes.map((route) => ({
@@ -29,6 +30,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: route === "" ? 1 : 0.85
+    })),
+    ...legalRoutes.map((route) => ({
+      url: `${siteConfig.url}${route}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.35
     })),
     ...catalogGames.map((game) => ({
       url: `${siteConfig.url}/juegos/${game.slug}`,

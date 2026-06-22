@@ -34,5 +34,5 @@ export function getYouTubeVideoId(url: string) {
 
 export function toYouTubeEmbedUrl(url: string) {
   const id = getYouTubeVideoId(url);
-  return id ? `https://www.youtube.com/embed/${id}` : null;
+  return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }

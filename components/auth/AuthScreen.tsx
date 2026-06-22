@@ -2,10 +2,11 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
+import Link from "next/link";
 import type { AuthActionResult } from "@/hooks/useAuth";
 
 type AuthMode = "login" | "register";
-type FieldErrors = Partial<Record<"name" | "email" | "password", string>>;
+type FieldErrors = Partial<Record<"name" | "email" | "password" | "terms", string>>;
 
 type AuthScreenProps = {
   isConfigured: boolean;
@@ -35,6 +36,7 @@ function getFieldErrors(input: {
   name: string;
   email: string;
   password: string;
+  acceptedTerms: boolean;
 }) {
   const errors: FieldErrors = {};
   const normalizedEmail = normalizeEmail(input.email);
@@ -55,6 +57,10 @@ function getFieldErrors(input: {
     errors.password = "Debe tener al menos 6 caracteres.";
   }
 
+  if (input.mode === "register" && !input.acceptedTerms) {
+    errors.terms = "Debes aceptar las condiciones para crear una cuenta.";
+  }
+
   return errors;
 }
 
@@ -70,6 +76,7 @@ export function AuthScreen({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackTone, setFeedbackTone] = useState<"error" | "success">("success");
@@ -98,9 +105,9 @@ export function AuthScreen({
     }
 
     setFeedback(null);
-    const errors = getFieldErrors({ mode, name, email, password });
+    const errors = getFieldErrors({ mode, name, email, password, acceptedTerms });
 
-    if (errors.name || errors.email || errors.password) {
+    if (errors.name || errors.email || errors.password || errors.terms) {
       setFieldErrors(errors);
       setFeedbackTone("error");
       setFeedback("Revisa los campos marcados antes de continuar.");
@@ -186,6 +193,9 @@ export function AuthScreen({
                     setMode(value);
                     setFeedback(null);
                     setFieldErrors({});
+                    if (value === "register") {
+                      setAcceptedTerms(false);
+                    }
                   }}
                 >
                   {value === "login" ? "Entrar" : "Crear cuenta"}
@@ -250,6 +260,26 @@ export function AuthScreen({
               </span>
               {fieldErrors.password ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.password}</span> : null}
             </label>
+
+            {isRegister ? (
+              <div>
+                <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-6 text-ink/70">
+                  <input
+                    checked={acceptedTerms}
+                    className="focus-ring mt-1 h-4 w-4 shrink-0 accent-ember"
+                    onChange={(event) => {
+                      setAcceptedTerms(event.target.checked);
+                      setFieldErrors((current) => ({ ...current, terms: undefined }));
+                    }}
+                    type="checkbox"
+                  />
+                  <span>
+                    Acepto las <Link className="font-bold text-wood underline underline-offset-2" href="/aviso-legal" target="_blank">condiciones de uso</Link> y confirmo que he leído la <Link className="font-bold text-wood underline underline-offset-2" href="/privacidad" target="_blank">política de privacidad</Link>.
+                  </span>
+                </label>
+                {fieldErrors.terms ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.terms}</span> : null}
+              </div>
+            ) : null}
 
             {feedback ? (
               <div className={feedbackTone === "error" ? "rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby" : "rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm font-semibold text-moss"}>

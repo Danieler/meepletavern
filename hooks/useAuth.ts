@@ -2,6 +2,7 @@
 
 import type { Session, User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import { LEGAL_VERSION } from "@/lib/legalConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
 export type AuthActionResult = {
@@ -234,7 +235,9 @@ export function useAuth() {
           emailRedirectTo: getEmailRedirectTo(),
           data: {
             name: name || "",
-            display_name: name || ""
+            display_name: name || "",
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: LEGAL_VERSION
           }
         }
       });

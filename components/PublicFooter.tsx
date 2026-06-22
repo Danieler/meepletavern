@@ -29,10 +29,11 @@ export async function PublicFooter() {
         <FooterColumn
           title="MeepleTavern"
           links={[
-            { href: "/categorias", label: "Sobre MeepleTavern" },
-            { href: "/resenas", label: "Contacto" },
-            { href: "/rankings", label: "Privacidad" },
-            { href: "/juegos", label: "Afiliados" }
+            { href: "/aviso-legal", label: "Aviso legal" },
+            { href: "/aviso-legal#contacto", label: "Contacto" },
+            { href: "/privacidad", label: "Privacidad" },
+            { href: "/cookies", label: "Cookies" },
+            { href: "/afiliados", label: "Afiliados" }
           ]}
         />
         <FooterColumn

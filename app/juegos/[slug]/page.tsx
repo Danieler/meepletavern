@@ -14,6 +14,7 @@ import { GameLibraryPanel } from "@/components/GameLibraryPanel";
 import { GameRatingSummary } from "@/components/GameRatingSummary";
 import { GameStats } from "@/components/GameStats";
 import { MechanicTag } from "@/components/MechanicTag";
+import { PrivacyFriendlyYouTubeEmbed } from "@/components/PrivacyFriendlyYouTubeEmbed";
 import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { UserRatingVote } from "@/components/UserRatingVote";
@@ -268,15 +269,7 @@ function HowToPlayVideos({ game }: { game: CatalogGame }) {
       />
       {embedUrl ? (
         <div className="overflow-hidden rounded-md border border-walnut/15 bg-ink shadow-soft">
-          <iframe
-            className="aspect-video w-full"
-            src={embedUrl}
-            title={primaryVideo.title}
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-          />
+          <PrivacyFriendlyYouTubeEmbed embedUrl={embedUrl} title={primaryVideo.title} />
         </div>
       ) : (
         <a className="button-secondary w-fit" href={primaryVideo.url} target="_blank" rel="noreferrer">
