@@ -21,7 +21,7 @@ export function UserGamePlayCount({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function increment() {
+  async function mutate(direction: "increment" | "decrement") {
     if (!isAuthenticated) {
       router.push(`/auth?next=${encodeURIComponent(`/juegos/${gameSlug}`)}`);
       return;
@@ -32,9 +32,9 @@ export function UserGamePlayCount({
 
     try {
       const response = await fetch("/api/account/play-count", {
-        method: "POST",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameId })
+        body: JSON.stringify({ gameId, direction })
       });
       const payload = (await response.json().catch(() => null)) as { error?: string; count?: number } | null;
 
@@ -54,17 +54,27 @@ export function UserGamePlayCount({
   return (
     <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-ember">Partidas jugadas</p>
-      <p className="mt-3 text-2xl font-black text-wood">
-        {isAuthenticated ? count : "Partidas jugadas"}
-      </p>
-      <button
-        className="button-primary mt-4 min-h-10 w-full justify-center px-4 py-2 text-sm"
-        type="button"
-        onClick={() => void increment()}
-        disabled={pending}
-      >
-        {pending ? "Guardando..." : "+1 partida"}
-      </button>
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          className="focus-ring flex h-9 w-9 items-center justify-center rounded-full border border-walnut/15 bg-cream text-lg font-black text-wood transition hover:border-walnut/30 hover:bg-vanilla disabled:cursor-not-allowed disabled:opacity-45"
+          type="button"
+          onClick={() => void mutate("decrement")}
+          disabled={pending || count <= 0}
+          aria-label="Restar una partida"
+        >
+          −
+        </button>
+        <p className="min-w-10 text-center text-2xl font-black text-wood">{isAuthenticated ? count : "—"}</p>
+        <button
+          className="focus-ring flex h-9 w-9 items-center justify-center rounded-full border border-walnut/15 bg-cream text-lg font-black text-wood transition hover:border-walnut/30 hover:bg-vanilla disabled:cursor-not-allowed disabled:opacity-45"
+          type="button"
+          onClick={() => void mutate("increment")}
+          disabled={pending}
+          aria-label="Sumar una partida"
+        >
+          +
+        </button>
+      </div>
       <p className="mt-2 text-xs font-semibold text-walnut/60">
         {isAuthenticated
           ? `Tu contador actual para este juego es ${count}.`

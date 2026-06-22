@@ -52,6 +52,20 @@ export async function GET(request: Request) {
       },
       orderBy: { updatedAt: "desc" }
     });
+    const gameIds = entries.map((entry) => entry.gameId);
+    const playCounts = gameIds.length
+      ? await prisma.userGamePlayCount.findMany({
+          where: {
+            userId: appUser.id,
+            gameId: { in: gameIds }
+          },
+          select: {
+            gameId: true,
+            count: true
+          }
+        })
+      : [];
+    const playCountsByGameId = new Map(playCounts.map((entry) => [entry.gameId, entry.count]));
 
     return NextResponse.json({
       entries: entries.map((entry) => ({
@@ -61,6 +75,7 @@ export async function GET(request: Request) {
         wantToPlay: entry.wantToPlay,
         wantToBuy: entry.wantToBuy,
         played: entry.played,
+        playCount: playCountsByGameId.get(entry.gameId) || 0,
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt,
         game: {

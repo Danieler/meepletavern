@@ -12,6 +12,7 @@ type LibraryEntry = {
   wantToPlay: boolean;
   wantToBuy: boolean;
   played: boolean;
+  playCount: number;
   createdAt: string;
   game: {
     id: string;
@@ -197,7 +198,17 @@ export function LibraryPanel({ embedded = false }: LibraryPanelProps) {
         filteredEntries.length ? (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filteredEntries.map((entry) => (
-              <LibraryGameCard key={entry.id} entry={entry} />
+              <LibraryGameCard
+                key={entry.id}
+                entry={entry}
+                onPlayCountChange={(nextCount) =>
+                  setEntries((current) =>
+                    current.map((currentEntry) =>
+                      currentEntry.id === entry.id ? { ...currentEntry, playCount: nextCount } : currentEntry
+                    )
+                  )
+                }
+              />
             ))}
           </div>
         ) : (
@@ -253,7 +264,13 @@ function MetricButton({
   );
 }
 
-function LibraryGameCard({ entry }: { entry: LibraryEntry }) {
+function LibraryGameCard({
+  entry,
+  onPlayCountChange
+}: {
+  entry: LibraryEntry;
+  onPlayCountChange: (nextCount: number) => void;
+}) {
   const badges = [
     entry.owned ? "En casa" : null,
     entry.wantToPlay ? "Quiero probar" : null,
@@ -289,7 +306,86 @@ function LibraryGameCard({ entry }: { entry: LibraryEntry }) {
           <h3 className="font-display mt-3 line-clamp-2 text-xl font-bold leading-tight text-wood">{entry.game.title}</h3>
         </div>
       </Link>
+      {entry.played ? (
+        <div className="border-t border-walnut/10 px-4 pb-4 pt-3">
+          <LibraryPlayCountControl
+            gameId={entry.gameId}
+            count={entry.playCount}
+            onChange={onPlayCountChange}
+          />
+        </div>
+      ) : null}
     </article>
+  );
+}
+
+function LibraryPlayCountControl({
+  gameId,
+  count,
+  onChange
+}: {
+  gameId: string;
+  count: number;
+  onChange: (nextCount: number) => void;
+}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function mutate(direction: "increment" | "decrement") {
+    if (pending || (direction === "decrement" && count <= 0)) {
+      return;
+    }
+
+    setPending(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/account/play-count", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId, direction })
+      });
+      const payload = (await response.json().catch(() => null)) as { error?: string; count?: number } | null;
+
+      if (!response.ok || typeof payload?.count !== "number") {
+        setError(payload?.error || "No se pudo guardar.");
+        return;
+      }
+
+      onChange(payload.count);
+    } catch {
+      setError("No se pudo guardar.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ember">Partidas</p>
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void mutate("decrement")}
+          disabled={pending || count <= 0}
+          className="focus-ring flex h-8 w-8 items-center justify-center rounded-full border border-walnut/15 bg-cream text-base font-black text-wood transition hover:border-walnut/30 hover:bg-vanilla disabled:cursor-not-allowed disabled:opacity-45"
+          aria-label="Restar una partida"
+        >
+          −
+        </button>
+        <span className="min-w-6 text-center text-sm font-black text-wood">{count}</span>
+        <button
+          type="button"
+          onClick={() => void mutate("increment")}
+          disabled={pending}
+          className="focus-ring flex h-8 w-8 items-center justify-center rounded-full border border-walnut/15 bg-cream text-base font-black text-wood transition hover:border-walnut/30 hover:bg-vanilla disabled:cursor-not-allowed disabled:opacity-45"
+          aria-label="Sumar una partida"
+        >
+          +
+        </button>
+      </div>
+      {error ? <p className="mt-2 text-xs font-semibold text-ruby">{error}</p> : null}
+    </div>
   );
 }
 

@@ -39,3 +39,36 @@ export async function incrementCurrentUserGamePlayCount(userId: string, gameId: 
     }
   });
 }
+
+export async function decrementCurrentUserGamePlayCount(userId: string, gameId: string) {
+  await prisma.userGamePlayCount.updateMany({
+    where: {
+      userId,
+      gameId,
+      count: {
+        gt: 0
+      }
+    },
+    data: {
+      count: {
+        decrement: 1
+      }
+    }
+  });
+
+  const entry = await prisma.userGamePlayCount.findUnique({
+    where: {
+      userId_gameId: {
+        userId,
+        gameId
+      }
+    },
+    select: {
+      count: true
+    }
+  });
+
+  return {
+    count: Math.max(0, entry?.count ?? 0)
+  };
+}
