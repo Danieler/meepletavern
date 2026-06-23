@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
-import { currentPathWithSearch } from "@/components/auth-cta/authCtaUrl";
 import { useAuth } from "@/hooks/useAuth";
 
 type MobileBarCopy = {
@@ -16,7 +15,6 @@ const hiddenPrefixes = ["/auth", "/admin", "/mi-perfil", "/api"];
 
 export function MobileSignupBar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
@@ -54,7 +52,7 @@ export function MobileSignupBar() {
   }, []);
 
   const copy = useMemo(() => getMobileBarCopy(pathname || "/"), [pathname]);
-  const next = currentPathWithSearch(pathname, searchParams);
+  const next = pathname || "/";
   const hidden =
     loading ||
     Boolean(user) ||

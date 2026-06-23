@@ -1,17 +1,15 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
-import { currentPathWithSearch } from "@/components/auth-cta/authCtaUrl";
 import { useAuth } from "@/hooks/useAuth";
 
 export function GameCardSaveButton({ gameTitle }: { gameTitle: string }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
-  const next = currentPathWithSearch(pathname, searchParams);
+  const next = pathname || "/";
 
   if (loading || user) {
     return null;

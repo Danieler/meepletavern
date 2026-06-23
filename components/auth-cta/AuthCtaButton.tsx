@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { buildAuthHref, currentPathWithSearch, type AuthMode } from "@/components/auth-cta/authCtaUrl";
+import { usePathname } from "next/navigation";
+import { buildAuthHref, type AuthMode } from "@/components/auth-cta/authCtaUrl";
 
 type AuthCtaButtonProps = {
   variant?: "primary" | "secondary" | "subtle";
@@ -35,8 +35,7 @@ export function AuthCtaButton({
   "aria-label": ariaLabel
 }: AuthCtaButtonProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const resolvedNext = next || currentPathWithSearch(pathname, searchParams);
+  const resolvedNext = next || pathname || "/";
   const href = buildAuthHref({ mode, next: resolvedNext, intent });
   const baseClass =
     variant === "primary"

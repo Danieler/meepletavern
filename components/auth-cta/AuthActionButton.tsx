@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
-import { currentPathWithSearch } from "@/components/auth-cta/authCtaUrl";
 import { useAuth } from "@/hooks/useAuth";
 
 type AuthActionButtonProps = {
@@ -28,9 +27,8 @@ export function AuthActionButton({
 }: AuthActionButtonProps) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
-  const next = currentPathWithSearch(pathname, searchParams);
+  const next = pathname || "/";
   const isAuthenticated = authenticated ?? Boolean(user);
 
   if (!loading && isAuthenticated && href) {

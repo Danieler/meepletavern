@@ -2,9 +2,8 @@
 
 import { useEffect } from "react";
 import { useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
-import { currentPathWithSearch } from "@/components/auth-cta/authCtaUrl";
 import { useAuth } from "@/hooks/useAuth";
 import type { GameRatingsData } from "@/lib/ratings/types";
 
@@ -24,8 +23,7 @@ export function UserRatingVote({
   const [authOpen, setAuthOpen] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const next = currentPathWithSearch(pathname, searchParams);
+  const next = pathname || "/";
 
   useEffect(() => {
     if (authLoading || !user) {
