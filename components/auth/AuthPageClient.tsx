@@ -12,7 +12,15 @@ type AuthPageClientProps = {
 
 export function AuthPageClient({ nextPath, initialMode }: AuthPageClientProps) {
   const router = useRouter();
-  const { user, loading, isConfigured, signIn, signInWithGoogle, signUp } = useAuth();
+  const {
+    user,
+    loading,
+    isConfigured,
+    signIn,
+    signInWithGoogle,
+    signInWithGoogleIdToken,
+    signUp
+  } = useAuth();
 
   useEffect(() => {
     if (!loading && user) {
@@ -34,6 +42,13 @@ export function AuthPageClient({ nextPath, initialMode }: AuthPageClientProps) {
       onSignUp={async (email, password, name) => {
         const result = await signUp(email, password, name);
         if (result.ok && !result.requiresEmailConfirmation) {
+          router.replace(nextPath);
+        }
+        return result;
+      }}
+      onGoogleIdTokenSignIn={async (credential) => {
+        const result = await signInWithGoogleIdToken(credential);
+        if (result.ok) {
           router.replace(nextPath);
         }
         return result;

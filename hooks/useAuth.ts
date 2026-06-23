@@ -52,12 +52,22 @@ function normalizeNextPath(value?: string | null) {
 }
 
 function getOAuthRedirectTo(nextPath?: string) {
-  if (typeof window === "undefined") {
+  const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl =
+    process.env.NODE_ENV === "production"
+      ? "https://www.meepletavern.com"
+      : envSiteUrl && /^https?:\/\//.test(envSiteUrl.trim())
+        ? toBaseUrl(envSiteUrl)
+        : typeof window !== "undefined"
+          ? toBaseUrl(window.location.origin)
+          : undefined;
+
+  if (!siteUrl) {
     return undefined;
   }
 
   const next = normalizeNextPath(nextPath);
-  return `${toBaseUrl(window.location.origin)}/auth/callback?next=${encodeURIComponent(next)}`;
+  return `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
 function getAuthErrorCode(message: string): AuthActionResult["code"] | undefined {
@@ -331,6 +341,50 @@ export function useAuth() {
     }
   }
 
+  async function signInWithGoogleIdToken(credential: string): Promise<AuthActionResult> {
+    if (!isSupabaseConfigured) {
+      return { ok: false, message: missingConfigMessage };
+    }
+
+    const token = credential.trim();
+
+    if (!token) {
+      return { ok: false, message: "Google no ha devuelto una credencial válida." };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token
+      });
+
+      if (error) {
+        console.error("Error al iniciar sesión con Google mediante ID token:", error);
+        return {
+          ok: false,
+          code: getAuthErrorCode(error.message),
+          message: "No hemos podido iniciar sesión con Google. Inténtalo otra vez."
+        };
+      }
+
+      if (!data.session) {
+        console.error("Google ID token aceptado sin una sesión de Supabase.");
+        return {
+          ok: false,
+          message: "No hemos podido completar la sesión con Google. Inténtalo otra vez."
+        };
+      }
+
+      return { ok: true };
+    } catch (error) {
+      console.error("Error inesperado al iniciar sesión con Google mediante ID token:", error);
+      return {
+        ok: false,
+        message: "No hemos podido iniciar sesión con Google. Inténtalo otra vez."
+      };
+    }
+  }
+
   async function signOut(): Promise<AuthActionResult> {
     if (!isSupabaseConfigured) {
       return { ok: false, message: missingConfigMessage };
@@ -386,6 +440,7 @@ export function useAuth() {
     signUp,
     signIn,
     signInWithGoogle,
+    signInWithGoogleIdToken,
     signOut,
     updateProfile
   };

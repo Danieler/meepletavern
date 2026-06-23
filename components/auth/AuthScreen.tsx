@@ -1,9 +1,44 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import Link from "next/link";
+import Script from "next/script";
 import type { AuthActionResult } from "@/hooks/useAuth";
+
+type GoogleCredentialResponse = {
+  credential?: string;
+  select_by?: string;
+};
+
+type GoogleIdentityServices = {
+  initialize: (config: {
+    client_id: string;
+    callback: (response: GoogleCredentialResponse) => void;
+  }) => void;
+  renderButton: (
+    parent: HTMLElement,
+    options: {
+      type: "standard";
+      theme: "outline";
+      size: "large";
+      text: "continue_with";
+      shape: "rectangular";
+      logo_alignment: "left";
+      width: number;
+    }
+  ) => void;
+};
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: GoogleIdentityServices;
+      };
+    };
+  }
+}
 
 type AuthMode = "login" | "register";
 type FieldErrors = Partial<Record<"name" | "email" | "password" | "terms", string>>;
@@ -12,6 +47,7 @@ type AuthScreenProps = {
   isConfigured: boolean;
   onSignIn: (email: string, password: string) => Promise<AuthActionResult>;
   onSignUp: (email: string, password: string, name?: string) => Promise<AuthActionResult>;
+  onGoogleIdTokenSignIn: (credential: string) => Promise<AuthActionResult>;
   onGoogleSignIn: () => Promise<AuthActionResult>;
   initialMode?: AuthMode;
   introMessage?: string;
@@ -69,6 +105,7 @@ export function AuthScreen({
   isConfigured,
   onSignIn,
   onSignUp,
+  onGoogleIdTokenSignIn,
   onGoogleSignIn,
   initialMode = "login",
   introMessage
@@ -84,8 +121,72 @@ export function AuthScreen({
   const [feedbackTone, setFeedbackTone] = useState<"error" | "success">("success");
   const [submitting, setSubmitting] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [googleScriptStatus, setGoogleScriptStatus] = useState<"loading" | "ready" | "failed">("loading");
+  const [googleButtonReady, setGoogleButtonReady] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const googleInitializedRef = useRef(false);
+  const googleIdTokenSignInRef = useRef(onGoogleIdTokenSignIn);
 
   const isRegister = mode === "register";
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+  const useGoogleOAuthFallback =
+    !isConfigured || !googleClientId || googleScriptStatus === "failed";
+
+  useEffect(() => {
+    googleIdTokenSignInRef.current = onGoogleIdTokenSignIn;
+  }, [onGoogleIdTokenSignIn]);
+
+  useEffect(() => {
+    if (!googleClientId || googleScriptStatus !== "loading") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setGoogleScriptStatus("failed"), 8000);
+    return () => window.clearTimeout(timeoutId);
+  }, [googleClientId, googleScriptStatus]);
+
+  useEffect(() => {
+    if (googleScriptStatus !== "ready" || !googleClientId || !googleButtonRef.current) {
+      return;
+    }
+
+    const googleIdentity = window.google?.accounts.id;
+
+    if (!googleIdentity) {
+      console.error("Google Identity Services no está disponible después de cargar el script.");
+      setGoogleScriptStatus("failed");
+      return;
+    }
+
+    const buttonContainer = googleButtonRef.current;
+
+    try {
+      if (!googleInitializedRef.current) {
+        googleIdentity.initialize({
+          client_id: googleClientId,
+          callback: (response) => {
+            void handleGoogleCredentialResponse(response);
+          }
+        });
+        googleInitializedRef.current = true;
+      }
+
+      buttonContainer.replaceChildren();
+      googleIdentity.renderButton(buttonContainer, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        logo_alignment: "left",
+        width: Math.min(Math.floor(buttonContainer.clientWidth) || 320, 400)
+      });
+      setGoogleButtonReady(true);
+    } catch (error) {
+      console.error("No se ha podido inicializar Google Identity Services:", error);
+      setGoogleScriptStatus("failed");
+    }
+  }, [googleClientId, googleScriptStatus]);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) {
@@ -177,8 +278,41 @@ export function AuthScreen({
     }
   }
 
+  async function handleGoogleCredentialResponse(response: GoogleCredentialResponse) {
+    const credential = response.credential?.trim();
+
+    if (!credential) {
+      console.error("Google Identity Services no ha devuelto una credencial.");
+      setFeedbackTone("error");
+      setFeedback("Google no ha devuelto una credencial válida. Inténtalo otra vez.");
+      return;
+    }
+
+    setSubmitting(true);
+    setFeedback(null);
+    setFieldErrors({});
+
+    const result = await googleIdTokenSignInRef.current(credential);
+
+    setSubmitting(false);
+
+    if (!result.ok) {
+      setFeedbackTone("error");
+      setFeedback(result.message ?? "No hemos podido iniciar sesión con Google.");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl">
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onReady={() => setGoogleScriptStatus("ready")}
+        onError={() => {
+          console.error("No se ha podido cargar Google Identity Services.");
+          setGoogleScriptStatus("failed");
+        }}
+      />
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_420px] md:items-center">
         <section>
           <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">
@@ -225,14 +359,38 @@ export function AuthScreen({
             })}
           </div>
 
-          <button
-            type="button"
-            className="button-secondary mb-4 w-full justify-center"
-            disabled={submitting || cooldownSeconds > 0 || !isConfigured}
-            onClick={() => void handleGoogleSignIn()}
-          >
-            Continuar con Google
-          </button>
+          {useGoogleOAuthFallback ? (
+            <button
+              type="button"
+              className="button-secondary mb-4 w-full justify-center"
+              disabled={submitting || cooldownSeconds > 0 || !isConfigured}
+              onClick={() => void handleGoogleSignIn()}
+            >
+              Continuar con Google
+            </button>
+          ) : (
+            <div
+              className={`relative mb-4 min-h-10 w-full ${
+                submitting || cooldownSeconds > 0 || !isConfigured
+                  ? "pointer-events-none opacity-60"
+                  : ""
+              }`}
+            >
+              <div
+                ref={googleButtonRef}
+                className={`flex w-full justify-center ${googleButtonReady ? "" : "invisible"}`}
+              />
+              {!googleButtonReady ? (
+                <button
+                  className="button-secondary absolute inset-0 w-full justify-center"
+                  disabled
+                  type="button"
+                >
+                  Cargando Google...
+                </button>
+              ) : null}
+            </div>
+          )}
 
           <div className="mb-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-ink/10" />
