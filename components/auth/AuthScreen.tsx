@@ -319,14 +319,19 @@ export function AuthScreen({
             Área personal
           </span>
           <h1 className="mt-4 text-4xl font-black leading-tight text-ink md:text-5xl">
-            {isRegister ? "Crea tu cuenta" : "Entra en tu cuenta"}
+            {isRegister ? "Crea tu ludoteca gratis" : "Entra en tu cuenta"}
           </h1>
           <p className="mt-3 max-w-xl text-base font-semibold leading-7 text-ink/65">
             {introMessage ??
               (isRegister
-                ? "Guarda tus juegos, crea tu perfil y empieza a montar tu ludoteca personal."
+                ? "Guarda juegos, puntúa partidas, crea listas y descubre qué tienen otros taberneros."
                 : "Accede para gestionar tu perfil, tu ludoteca y tus aportes en MeepleTavern.")}
           </p>
+          {isRegister ? (
+            <p className="mt-3 text-sm font-black text-ember">
+              Gratis. Sin spam. Puedes borrar tu cuenta cuando quieras.
+            </p>
+          ) : null}
         </section>
 
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft md:p-6">
@@ -353,7 +358,7 @@ export function AuthScreen({
                     }
                   }}
                 >
-                  {value === "login" ? "Entrar" : "Crear cuenta"}
+                  {value === "login" ? "Entrar" : "Crear ludoteca"}
                 </button>
               );
             })}
@@ -487,7 +492,7 @@ export function AuthScreen({
                 : cooldownSeconds > 0
                   ? `Espera ${cooldownSeconds}s`
                   : isRegister
-                    ? "Crear cuenta"
+                    ? "Crear mi ludoteca"
                     : "Entrar"}
             </button>
           </form>

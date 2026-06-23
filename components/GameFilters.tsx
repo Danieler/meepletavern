@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
@@ -73,6 +73,13 @@ export function GameFilters({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showAllMechanics, setShowAllMechanics] = useState(false);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("meepletavern:filters-panel", { detail: { open: isExpanded } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("meepletavern:filters-panel", { detail: { open: false } }));
+    };
+  }, [isExpanded]);
 
   const activeCount = Object.entries(active).reduce((acc, [key, value]) => {
     if (key === "page" || key === "sort" || !value) return acc;

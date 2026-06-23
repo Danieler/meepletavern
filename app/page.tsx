@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User } from "lucide-react";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
+import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { HeroDiscoveryBoard } from "@/components/home/HeroDiscoveryBoard";
 import { PublicShell } from "@/components/PublicShell";
 import { FeaturedRankingCarousel } from "@/components/FeaturedRankingCarousel";
@@ -50,8 +51,8 @@ export default async function Home() {
   const {
     data: { user }
   } = await supabase.auth.getUser();
-  const profileHref = user ? "/mi-perfil" : "/auth?mode=register";
-  const profileLabel = user ? "Ir a mi rincón" : "Crear cuenta gratis";
+  const profileHref = user ? "/mi-perfil" : "/auth?mode=register&next=%2F";
+  const profileLabel = user ? "Ir a mi rincón" : "Crear mi ludoteca gratis";
 
   const [popularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
     getPopularGames(6),
@@ -140,16 +141,22 @@ export default async function Home() {
                   <GameSearch variant="hero" submitLabel="Buscar juegos" />
                 </div>
                 <div className="mt-5 flex flex-wrap gap-4">
-                  <Link href="/juegos" className="button-primary px-8 py-3 text-base">
+                  {user ? (
+                    <Link href={profileHref} className="button-primary px-8 py-3 text-base">
+                      {profileLabel}
+                    </Link>
+                  ) : (
+                    <AuthCtaButton context="home" className="px-8 py-3 text-base" next="/">
+                      Crear mi ludoteca gratis
+                    </AuthCtaButton>
+                  )}
+                  <Link href="/juegos" className="button-secondary px-8 py-3 text-base">
                     Explorar juegos
-                  </Link>
-                  <Link href={profileHref} className="button-secondary px-8 py-3 text-base">
-                    {profileLabel}
                   </Link>
                 </div>
                 {!user ? (
                   <p className="mt-3 text-sm font-bold text-walnut/65">
-                    Gratis · Guarda tu ludoteca · Crea listas y valora partidas
+                    Gratis · Guarda juegos · Crea listas · Puntúa partidas
                   </p>
                 ) : null}
 
@@ -314,9 +321,9 @@ export default async function Home() {
                   </ul>
                 </div>
                 <aside className="rounded-md border border-white/10 bg-white/8 p-5 text-center">
-                  <Link href="/auth?mode=register" className="button-primary w-full justify-center px-6 py-3 text-base">
-                    Crear mi cuenta gratis
-                  </Link>
+                  <AuthCtaButton context="home" className="w-full justify-center px-6 py-3 text-base" next="/">
+                    Crear mi ludoteca gratis
+                  </AuthCtaButton>
                   <p className="mt-3 text-xs font-bold text-parchment/65">
                     Crear la cuenta es gratis.
                   </p>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { useAuth } from "@/hooks/useAuth";
 
 function getDisplayName(email: string | undefined, displayName: unknown, name: unknown) {
@@ -30,9 +31,14 @@ export function PublicAuthControls({ profileLabel }: { profileLabel?: string } =
 
   if (!user) {
     return (
-      <Link className="header-action" href="/auth">
-        Mi cuenta
-      </Link>
+      <div className="flex items-center gap-2">
+        <AuthCtaButton variant="subtle" mode="login" className="hidden lg:inline-flex">
+          Entrar
+        </AuthCtaButton>
+        <AuthCtaButton context="header" className="min-h-10 px-3 py-2 text-sm">
+          Crear mi ludoteca
+        </AuthCtaButton>
+      </div>
     );
   }
 

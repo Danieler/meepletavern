@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Check, LibraryBig, Gamepad2, ShoppingCart, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 
 type GameLibraryPanelProps = {
@@ -29,6 +30,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   });
   const [busy, setBusy] = useState<keyof LibraryState | null>(null);
   const [ready, setReady] = useState(false);
+  const [authIntent, setAuthIntent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -76,7 +78,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
 
   const toggleStatus = async (key: keyof LibraryState) => {
     if (!user) {
-      router.push(`/auth?next=${encodeURIComponent(pathname || "/auth")}`);
+      setAuthIntent(getIntentForStatus(key));
       return;
     }
 
@@ -103,51 +105,67 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   const showNeutralState = !user;
 
   return (
-    <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-      <h2 className="text-lg font-black text-ink">Mi ludoteca</h2>
-      <div className="mt-4 grid gap-2">
-        <ToggleButton
-          label="Lo tengo en casa"
-          active={showNeutralState ? false : state.owned}
-          loading={!showNeutralState && busy === "owned"}
-          disabled={loading || !ready}
-          icon={<Check size={18} />}
-          onClick={() => toggleStatus("owned")}
-        />
-        <ToggleButton
-          label="Quiero probarlo"
-          active={showNeutralState ? false : state.wantToPlay}
-          loading={!showNeutralState && busy === "wantToPlay"}
-          disabled={loading || !ready}
-          icon={<Gamepad2 size={18} />}
-          onClick={() => toggleStatus("wantToPlay")}
-        />
-        <ToggleButton
-          label="Lo tengo en la lista"
-          active={showNeutralState ? false : state.wantToBuy}
-          loading={!showNeutralState && busy === "wantToBuy"}
-          disabled={loading || !ready}
-          icon={<ShoppingCart size={18} />}
-          onClick={() => toggleStatus("wantToBuy")}
-        />
-        <ToggleButton
-          label="Lo he jugado"
-          active={showNeutralState ? false : state.played}
-          loading={!showNeutralState && busy === "played"}
-          disabled={loading || !ready}
-          icon={<Trophy size={18} />}
-          onClick={() => toggleStatus("played")}
-        />
+    <>
+      <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <p className="tavern-eyebrow">Mi ludoteca</p>
+        <h2 className="mt-2 text-lg font-black text-ink">Añade este juego a tu ludoteca</h2>
+        <div className="mt-4 grid gap-2">
+          <ToggleButton
+            label="Lo tengo en casa"
+            active={showNeutralState ? false : state.owned}
+            loading={!showNeutralState && busy === "owned"}
+            disabled={loading || !ready}
+            icon={<Check size={18} />}
+            onClick={() => toggleStatus("owned")}
+          />
+          <ToggleButton
+            label="Quiero probarlo"
+            active={showNeutralState ? false : state.wantToPlay}
+            loading={!showNeutralState && busy === "wantToPlay"}
+            disabled={loading || !ready}
+            icon={<Gamepad2 size={18} />}
+            onClick={() => toggleStatus("wantToPlay")}
+          />
+          <ToggleButton
+            label="Lo tengo en la lista"
+            active={showNeutralState ? false : state.wantToBuy}
+            loading={!showNeutralState && busy === "wantToBuy"}
+            disabled={loading || !ready}
+            icon={<ShoppingCart size={18} />}
+            onClick={() => toggleStatus("wantToBuy")}
+          />
+          <ToggleButton
+            label="Lo he jugado"
+            active={showNeutralState ? false : state.played}
+            loading={!showNeutralState && busy === "played"}
+            disabled={loading || !ready}
+            icon={<Trophy size={18} />}
+            onClick={() => toggleStatus("played")}
+          />
 
-        {user && hasAny ? (
-          <Link className="button-secondary justify-start mt-2" href="/mi-perfil">
-            <LibraryBig size={18} aria-hidden="true" />
-            Ver mi ludoteca
-          </Link>
-        ) : null}
-      </div>
-    </section>
+          {user && hasAny ? (
+            <Link className="button-secondary justify-start mt-2" href="/mi-perfil">
+              <LibraryBig size={18} aria-hidden="true" />
+              Ver mi ludoteca
+            </Link>
+          ) : null}
+        </div>
+      </section>
+      <AuthPromptModal
+        isOpen={Boolean(authIntent)}
+        onClose={() => setAuthIntent(null)}
+        next={pathname || "/"}
+        intent={authIntent || undefined}
+      />
+    </>
   );
+}
+
+function getIntentForStatus(key: keyof LibraryState) {
+  if (key === "owned") return "have_game";
+  if (key === "wantToPlay") return "want_to_play";
+  if (key === "played") return "played_game";
+  return "add_to_list";
 }
 
 function ToggleButton({

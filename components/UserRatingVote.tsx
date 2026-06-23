@@ -2,6 +2,9 @@
 
 import { useEffect } from "react";
 import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
+import { currentPathWithSearch } from "@/components/auth-cta/authCtaUrl";
 import { useAuth } from "@/hooks/useAuth";
 import type { GameRatingsData } from "@/lib/ratings/types";
 
@@ -18,7 +21,11 @@ export function UserRatingVote({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [hasExistingScore, setHasExistingScore] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const { user, loading: authLoading } = useAuth();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const next = currentPathWithSearch(pathname, searchParams);
 
   useEffect(() => {
     if (authLoading || !user) {
@@ -45,6 +52,11 @@ export function UserRatingVote({
   }, [authLoading, gameId, user]);
 
   async function submit() {
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
+
     setPending(true);
     setMessage(null);
 
@@ -100,6 +112,14 @@ export function UserRatingVote({
             : "Tu nota estrenará la media de jugadores."}
       </p>
       {message ? <p className="mt-2 text-xs font-bold text-wood">{message}</p> : null}
+      <AuthPromptModal
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        title="Guarda este juego en tu ludoteca"
+        description="Crea tu cuenta gratis para guardar juegos, puntuarlos y preparar tu próxima partida."
+        next={next}
+        intent="rate_game"
+      />
     </div>
   );
 }

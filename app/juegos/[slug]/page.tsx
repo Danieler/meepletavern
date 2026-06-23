@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
+import { AuthActionButton } from "@/components/auth-cta/AuthActionButton";
 import { BuyLinks } from "@/components/BuyLinks";
 import { CategoryTag } from "@/components/CategoryTag";
 import { GameCard } from "@/components/GameCard";
@@ -166,14 +167,28 @@ export default async function GamePage({ params }: GamePageProps) {
                     <GameStats game={game} />
 
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <Link className="button-secondary justify-start" href={`/juegos/${game.slug}/resena`}>
+                      <AuthActionButton
+                        authenticated={Boolean(appUser)}
+                        href={`/juegos/${game.slug}/resena`}
+                        intent="review_game"
+                        className="button-secondary justify-start"
+                        modalTitle="Comparte tu opinión en la taberna"
+                        modalDescription="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
+                      >
                         <BrandIcon name="document" size={20} />
                         Escribir reseña
-                      </Link>
-                      <Link className="button-secondary justify-start" href="#comentarios">
+                      </AuthActionButton>
+                      <AuthActionButton
+                        authenticated={Boolean(appUser)}
+                        href="#comentarios"
+                        intent="comment_game"
+                        className="button-secondary justify-start"
+                        modalTitle="Comparte tu opinión en la taberna"
+                        modalDescription="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
+                      >
                         <BrandIcon name="chat" size={20} />
                         Comentar
-                      </Link>
+                      </AuthActionButton>
                     </div>
 
                     <QuickDecision game={game} />

@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Activity, Search } from "lucide-react";
 import { PublicShell } from "@/components/PublicShell";
+import { GuestOnlyCta } from "@/components/auth-cta/GuestOnlyCta";
 import { PublicUserDirectory } from "@/components/taberna/PublicUserDirectory";
 import { TavernActivityFeed } from "@/components/taberna/TavernActivityFeed";
 import { TavernGameOverview } from "@/components/taberna/TavernGameOverview";
@@ -64,6 +65,16 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
             <TavernHighlights highlights={overview.highlights} />
           </div>
         </section>
+
+        <div className="container-page pt-7">
+          <GuestOnlyCta
+            title="Crea tu rincón en la taberna"
+            description="Guarda tus juegos, crea listas y aparece en la actividad de la comunidad."
+            buttonLabel="Unirme gratis"
+            next="/taberna"
+            context="tavern"
+          />
+        </div>
 
         <TavernNowSection summary={nowSummary} />
 

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { BrandIcon } from "@/components/BrandIcon";
 import { useAuth } from "@/hooks/useAuth";
 import type { PublicGameComment } from "@/lib/gameComments";
@@ -30,6 +30,8 @@ export function GameComments({
   const [saving, setSaving] = useState(false);
   const [loadingOwnComment, setLoadingOwnComment] = useState(false);
   const [ownComment, setOwnComment] = useState<OwnComment>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const next = `/juegos/${gameSlug}#comentarios`;
 
   useEffect(() => {
     setComments(initialComments);
@@ -161,14 +163,23 @@ export function GameComments({
           ) : !user ? (
             <>
               <p className="mt-4 text-sm leading-6 text-walnut/70">
-                Entra con tu cuenta para dejar una impresión rápida de este juego y ayudar a otros jugadores.
+                Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos.
               </p>
-              <Link
+              <button
+                type="button"
                 className="button-primary mt-5 inline-flex"
-                href={`/auth?next=${encodeURIComponent(`/juegos/${gameSlug}#comentarios`)}`}
+                onClick={() => setAuthOpen(true)}
               >
-                Entrar para comentar
-              </Link>
+                Crear cuenta gratis
+              </button>
+              <AuthPromptModal
+                isOpen={authOpen}
+                onClose={() => setAuthOpen(false)}
+                title="Comparte tu opinión en la taberna"
+                description="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
+                next={next}
+                intent="comment_game"
+              />
             </>
           ) : (
             <>

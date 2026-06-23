@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { BrandIcon } from "@/components/BrandIcon";
 import { GameCoverImage } from "@/components/GameCoverImage";
+import { GameCardSaveButton } from "@/components/auth-cta/GameCardSaveButton";
 import { getPrimaryGameTags } from "@/lib/gameDisplayTags";
 import { getEffectiveRatingScore, type CatalogGame } from "@/lib/catalog";
 
@@ -143,6 +144,9 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
           </div>
         </div>
       </Link>
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+        <GameCardSaveButton gameTitle={game.title} />
+      </div>
     </article>
   );
 }

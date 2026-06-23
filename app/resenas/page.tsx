@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PublicShell } from "@/components/PublicShell";
+import { GuestOnlyCta } from "@/components/auth-cta/GuestOnlyCta";
 import { ReviewCard } from "@/components/ReviewCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
@@ -29,6 +30,16 @@ export default async function ReviewsPage() {
             </p>
           </div>
         </section>
+        <div className="container-page pt-7">
+          <GuestOnlyCta
+            title="Comparte tu opinión en la taberna"
+            description="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
+            buttonLabel="Crear cuenta gratis"
+            next="/resenas"
+            context="review"
+            intent="review_game"
+          />
+        </div>
         <Suspense fallback={<ReviewsResultsSkeleton />}>
           <ReviewsResults />
         </Suspense>

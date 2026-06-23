@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 
 type UserGamePlayCountProps = {
   gameId: string;
@@ -16,14 +16,14 @@ export function UserGamePlayCount({
   initialCount,
   isAuthenticated
 }: UserGamePlayCountProps) {
-  const router = useRouter();
   const [count, setCount] = useState(initialCount);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
 
   async function mutate(direction: "increment" | "decrement") {
     if (!isAuthenticated) {
-      router.push(`/auth?next=${encodeURIComponent(`/juegos/${gameSlug}`)}`);
+      setAuthOpen(true);
       return;
     }
 
@@ -81,6 +81,12 @@ export function UserGamePlayCount({
           : "Inicia sesión para guardar cuántas veces lo has jugado."}
       </p>
       {error ? <p className="mt-2 text-xs font-bold text-ruby">{error}</p> : null}
+      <AuthPromptModal
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        next={`/juegos/${gameSlug}`}
+        intent="played_game"
+      />
     </section>
   );
 }

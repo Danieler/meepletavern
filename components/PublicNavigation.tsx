@@ -94,6 +94,13 @@ export function PublicMobileMenu() {
   }, [pathname]);
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent("meepletavern:mobile-menu", { detail: { open } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("meepletavern:mobile-menu", { detail: { open: false } }));
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (!open) {
       return;
     }

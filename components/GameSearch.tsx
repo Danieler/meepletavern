@@ -1,3 +1,5 @@
+"use client";
+
 import { BrandIcon } from "@/components/BrandIcon";
 
 type GameSearchProps = {
@@ -30,6 +32,8 @@ export function GameSearch({
           defaultValue={query}
           placeholder={resolvedPlaceholder}
           className={`${isHero ? "min-h-14 text-base" : "min-h-11 text-sm"} focus-ring w-full rounded-md border border-walnut/25 bg-[#fffaf0] pl-11 pr-3 font-semibold text-ink shadow-sm placeholder:text-sm placeholder:text-walnut/45`}
+          onFocus={() => window.dispatchEvent(new CustomEvent("meepletavern:search-focus", { detail: { open: true } }))}
+          onBlur={() => window.dispatchEvent(new CustomEvent("meepletavern:search-focus", { detail: { open: false } }))}
         />
       </div>
       <button className={`button-primary ${isHero ? "min-h-14 px-6" : ""}`} type="submit">

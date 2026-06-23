@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { GameCard } from "@/components/GameCard";
 import { GameFilters } from "@/components/GameFilters";
 import { GameSearch } from "@/components/GameSearch";
@@ -8,6 +8,7 @@ import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { CatalogResultsSkeleton } from "@/components/loading/PublicPageSkeletons";
+import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { filterGames, getCategoryTerms, getMechanicTerms, type GameFilterInput } from "@/lib/catalog";
 
 export const metadata: Metadata = {
@@ -76,7 +77,12 @@ async function CatalogResults({ filters }: { filters: GameFilterInput }) {
           description="Fichas con puntuación, ranking, duración, jugadores y dificultad para comparar de un vistazo."
         />
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {games.map((game) => <GameCard key={game.slug} game={game} />)}
+          {games.map((game, index) => (
+            <Fragment key={game.slug}>
+              {index === 6 ? <CatalogSignupCta /> : null}
+              <GameCard game={game} />
+            </Fragment>
+          ))}
         </div>
         <Pagination active={filters} totalPages={totalPages} currentPage={page} />
         {!games.length ? (
@@ -86,5 +92,26 @@ async function CatalogResults({ filters }: { filters: GameFilterInput }) {
         ) : null}
       </div>
     </section>
+  );
+}
+
+function CatalogSignupCta() {
+  return (
+    <article className="rounded-lg border border-ember/20 bg-[#3a2118] p-5 text-white shadow-soft md:col-span-2 xl:col-span-3">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px] md:items-center">
+        <div>
+          <p className="tavern-eyebrow text-ember">Tu ludoteca</p>
+          <h2 className="font-display mt-2 text-2xl font-bold leading-tight">
+            ¿Has encontrado juegos que quieres probar?
+          </h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-parchment/78">
+            Guárdalos en tu ludoteca y crea listas para tu próxima partida.
+          </p>
+        </div>
+        <AuthCtaButton context="catalog" className="justify-center" next="/juegos">
+          Crear ludoteca gratis
+        </AuthCtaButton>
+      </div>
+    </article>
   );
 }
