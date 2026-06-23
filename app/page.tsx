@@ -217,7 +217,7 @@ export default async function Home() {
                 <p className="mt-3 text-sm font-semibold leading-6 text-parchment/78">
                   {user
                     ? "Vuelve a tu colección, tus listas y tus valoraciones para preparar la próxima partida."
-                    : "Crea una cuenta gratis para guardar tus juegos, puntuar partidas y preparar listas para cada grupo."}
+                    : "Crea tu ludoteca gratis para guardar tus juegos, puntuar partidas y preparar listas para cada grupo."}
                 </p>
                 <div className="mt-5 grid gap-3">
                   <Link href={profileHref} className="button-primary justify-center">
@@ -355,7 +355,7 @@ const TAVERN_FEATURES = [
     description: "Guarda los juegos que tienes, los que quieres, los que has jugado y los que quieres jugar.",
     icon: User,
     href: "/mi-perfil",
-    action: "Abrir rincón"
+    action: "Ver mi rincón"
   },
   {
     title: "Otros taberneros",

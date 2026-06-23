@@ -18,10 +18,10 @@ export function AuthPromptModal({
   isOpen,
   onClose,
   title = "Guarda este juego en tu ludoteca",
-  description = "Crea tu cuenta gratis para guardar juegos, puntuarlos y preparar tu próxima partida.",
+  description = "Guarda tus juegos y descubre qué jugar con otros taberneros.",
   next,
   intent,
-  primaryLabel = "Crear cuenta gratis",
+  primaryLabel = "Crear mi ludoteca gratis",
   secondaryLabel = "Entrar"
 }: AuthPromptModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);

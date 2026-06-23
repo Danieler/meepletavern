@@ -43,6 +43,17 @@ declare global {
 type AuthMode = "login" | "register";
 type FieldErrors = Partial<Record<"name" | "email" | "password" | "terms", string>>;
 
+type AuthContext = "owned" | "wishlist" | "rating" | "list" | "comment" | "table";
+
+const AUTH_CONTEXT_TITLES: Record<AuthContext, string> = {
+  owned: "Crea tu ludoteca para guardar este juego",
+  wishlist: "Crea tu ludoteca para marcar este juego como pendiente",
+  rating: "Crea tu ludoteca para puntuar este juego",
+  list: "Crea tu ludoteca para añadir este juego a una lista",
+  comment: "Crea tu ludoteca para comentar este juego",
+  table: "Crea tu ludoteca para añadir este juego a tu mesa"
+};
+
 type AuthScreenProps = {
   isConfigured: boolean;
   onSignIn: (email: string, password: string) => Promise<AuthActionResult>;
@@ -50,6 +61,7 @@ type AuthScreenProps = {
   onGoogleIdTokenSignIn: (credential: string) => Promise<AuthActionResult>;
   onGoogleSignIn: () => Promise<AuthActionResult>;
   initialMode?: AuthMode;
+  authContext?: AuthContext;
   introMessage?: string;
 };
 
@@ -107,7 +119,8 @@ export function AuthScreen({
   onSignUp,
   onGoogleIdTokenSignIn,
   onGoogleSignIn,
-  initialMode = "login",
+  initialMode = "register",
+  authContext,
   introMessage
 }: AuthScreenProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -315,16 +328,15 @@ export function AuthScreen({
       />
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_420px] md:items-center">
         <section>
-          <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">
-            Área personal
-          </span>
-          <h1 className="mt-4 text-4xl font-black leading-tight text-ink md:text-5xl">
-            {isRegister ? "Crea tu ludoteca gratis" : "Entra en tu cuenta"}
+          <h1 className="text-4xl font-black leading-tight text-ink md:text-5xl">
+            {isRegister
+              ? (authContext ? AUTH_CONTEXT_TITLES[authContext] : "Crea tu ludoteca gratis")
+              : "Entra en tu cuenta"}
           </h1>
           <p className="mt-3 max-w-xl text-base font-semibold leading-7 text-ink/65">
             {introMessage ??
               (isRegister
-                ? "Guarda juegos, puntúa partidas, crea listas y descubre qué tienen otros taberneros."
+                ? "Guarda juegos, crea listas y descubre qué tienen otros taberneros."
                 : "Accede para gestionar tu perfil, tu ludoteca y tus aportes en MeepleTavern.")}
           </p>
           {isRegister ? (
@@ -342,7 +354,7 @@ export function AuthScreen({
           ) : null}
 
           <div className="mb-5 flex rounded-md bg-ink/5 p-1">
-            {(["login", "register"] as const).map((value) => {
+            {(["register", "login"] as const).map((value) => {
               const active = mode === value;
               return (
                 <button

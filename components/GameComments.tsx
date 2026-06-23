@@ -163,20 +163,19 @@ export function GameComments({
           ) : !user ? (
             <>
               <p className="mt-4 text-sm leading-6 text-walnut/70">
-                Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos.
+                Crea tu ludoteca gratis para comentar y guardar tus juegos favoritos.
               </p>
               <button
                 type="button"
                 className="button-primary mt-5 inline-flex"
                 onClick={() => setAuthOpen(true)}
               >
-                Crear cuenta gratis
+                Crear mi ludoteca gratis
               </button>
               <AuthPromptModal
                 isOpen={authOpen}
                 onClose={() => setAuthOpen(false)}
-                title="Comparte tu opinión en la taberna"
-                description="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
+                title="Crea tu ludoteca para comentar este juego"
                 next={next}
                 intent="comment_game"
               />

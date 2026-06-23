@@ -1,13 +1,23 @@
 export type AuthMode = "login" | "register";
 
+export type AuthContext =
+  | "owned"
+  | "wishlist"
+  | "rating"
+  | "list"
+  | "comment"
+  | "table";
+
 export function buildAuthHref({
   mode = "register",
   next = "/",
-  intent
+  intent,
+  authContext
 }: {
   mode?: AuthMode;
   next?: string;
   intent?: string;
+  authContext?: AuthContext;
 }) {
   const params = new URLSearchParams();
   params.set("mode", mode);
@@ -15,6 +25,10 @@ export function buildAuthHref({
 
   if (intent) {
     params.set("intent", intent);
+  }
+
+  if (authContext) {
+    params.set("authContext", authContext);
   }
 
   return `/auth?${params.toString()}`;

@@ -143,9 +143,9 @@ export function PublicMobileMenu() {
             aria-label="Navegación principal"
           >
             <section className="mobile-nav-account mb-3">
-              <p className="mobile-nav-label">Tu rincón</p>
+              <p className="mobile-nav-label">Tu cuenta</p>
               <div className="mt-2">
-                <PublicAuthControls profileLabel="Mi rincón" />
+                <PublicAuthControls profileLabel="Mi rincón" vertical={true} />
               </div>
             </section>
 

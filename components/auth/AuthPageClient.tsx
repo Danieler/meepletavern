@@ -4,13 +4,15 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { useAuth } from "@/hooks/useAuth";
+import type { AuthContext } from "@/components/auth-cta/authCtaUrl";
 
 type AuthPageClientProps = {
   nextPath: string;
   initialMode: "login" | "register";
+  authContext?: AuthContext;
 };
 
-export function AuthPageClient({ nextPath, initialMode }: AuthPageClientProps) {
+export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageClientProps) {
   const router = useRouter();
   const {
     user,
@@ -31,6 +33,7 @@ export function AuthPageClient({ nextPath, initialMode }: AuthPageClientProps) {
   return (
     <AuthScreen
       initialMode={initialMode}
+      authContext={authContext}
       isConfigured={isConfigured}
       onSignIn={async (email, password) => {
         const result = await signIn(email, password);

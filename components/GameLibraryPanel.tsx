@@ -30,7 +30,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   });
   const [busy, setBusy] = useState<keyof LibraryState | null>(null);
   const [ready, setReady] = useState(false);
-  const [authIntent, setAuthIntent] = useState<string | null>(null);
+  const [authModalTitle, setAuthModalTitle] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -78,7 +78,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
 
   const toggleStatus = async (key: keyof LibraryState) => {
     if (!user) {
-      setAuthIntent(getIntentForStatus(key));
+      setAuthModalTitle(getModalTitleForStatus(key));
       return;
     }
 
@@ -152,20 +152,20 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
         </div>
       </section>
       <AuthPromptModal
-        isOpen={Boolean(authIntent)}
-        onClose={() => setAuthIntent(null)}
+        isOpen={Boolean(authModalTitle)}
+        onClose={() => setAuthModalTitle(null)}
+        title={authModalTitle || "Guarda este juego en tu ludoteca"}
         next={pathname || "/"}
-        intent={authIntent || undefined}
       />
     </>
   );
 }
 
-function getIntentForStatus(key: keyof LibraryState) {
-  if (key === "owned") return "have_game";
-  if (key === "wantToPlay") return "want_to_play";
-  if (key === "played") return "played_game";
-  return "add_to_list";
+function getModalTitleForStatus(key: keyof LibraryState) {
+  if (key === "owned") return "Crea tu ludoteca para guardar este juego";
+  if (key === "wantToPlay") return "Crea tu ludoteca para marcar este juego como pendiente";
+  if (key === "played") return "Crea tu ludoteca para puntuar este juego";
+  return "Crea tu ludoteca para añadir este juego a una lista";
 }
 
 function ToggleButton({

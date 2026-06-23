@@ -81,25 +81,25 @@ export function MobileSignupBar() {
 
 function getMobileBarCopy(pathname: string): MobileBarCopy | null {
   if (pathname === "/") {
-    return { text: "Crea tu ludoteca gratis", button: "Empezar" };
+    return { text: "Guarda tus juegos y descubre qué jugar.", button: "Crear gratis" };
   }
   if (pathname === "/juegos") {
-    return { text: "Guarda juegos mientras exploras", button: "Crear ludoteca" };
+    return { text: "Guarda juegos mientras exploras", button: "Crear gratis" };
   }
   if (pathname.startsWith("/juegos/")) {
-    return { text: "Guarda este juego en tu ludoteca", button: "Guardar gratis", intent: "save_game" };
+    return { text: "Guarda tus juegos gratis", button: "Crear gratis", intent: "save_game" };
   }
   if (pathname === "/taberna") {
-    return { text: "Únete a la taberna", button: "Crear rincón" };
+    return { text: "Únete a la taberna", button: "Crear gratis" };
   }
   if (pathname === "/resenas") {
-    return { text: "Comparte tus partidas", button: "Crear cuenta" };
+    return { text: "Comparte tus partidas", button: "Crear gratis" };
   }
   if (pathname === "/rankings") {
-    return { text: "Guarda tus favoritos", button: "Crear ludoteca" };
+    return { text: "Guarda tus favoritos", button: "Crear gratis" };
   }
   if (pathname === "/categorias" || pathname === "/mecanicas") {
-    return { text: "Guarda juegos por tipo de mesa", button: "Crear ludoteca" };
+    return { text: "Guarda juegos por tipo de mesa", button: "Crear gratis" };
   }
 
   return null;

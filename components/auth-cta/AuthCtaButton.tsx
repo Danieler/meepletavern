@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { buildAuthHref, type AuthMode } from "@/components/auth-cta/authCtaUrl";
+import { buildAuthHref, type AuthMode, type AuthContext } from "@/components/auth-cta/authCtaUrl";
 
 type AuthCtaButtonProps = {
   variant?: "primary" | "secondary" | "subtle";
@@ -10,6 +10,7 @@ type AuthCtaButtonProps = {
   mode?: AuthMode;
   next?: string;
   intent?: string;
+  authContext?: AuthContext;
   children?: React.ReactNode;
   className?: string;
   "aria-label"?: string;
@@ -17,11 +18,11 @@ type AuthCtaButtonProps = {
 
 const defaultLabels: Record<NonNullable<AuthCtaButtonProps["context"]>, string> = {
   home: "Crear mi ludoteca gratis",
-  catalog: "Crear ludoteca gratis",
-  game: "Crear cuenta gratis",
+  catalog: "Crear gratis",
+  game: "Crear mi ludoteca gratis",
   tavern: "Unirme gratis",
-  review: "Crear cuenta gratis",
-  header: "Crear mi ludoteca"
+  review: "Crear mi ludoteca gratis",
+  header: "Crear mi ludoteca gratis"
 };
 
 export function AuthCtaButton({
@@ -30,13 +31,14 @@ export function AuthCtaButton({
   mode = "register",
   next,
   intent,
+  authContext,
   children,
   className,
   "aria-label": ariaLabel
 }: AuthCtaButtonProps) {
   const pathname = usePathname();
   const resolvedNext = next || pathname || "/";
-  const href = buildAuthHref({ mode, next: resolvedNext, intent });
+  const href = buildAuthHref({ mode, next: resolvedNext, intent, authContext });
   const baseClass =
     variant === "primary"
       ? "button-primary"

@@ -21,7 +21,13 @@ function getDisplayName(email: string | undefined, displayName: unknown, name: u
   return "Mi perfil";
 }
 
-export function PublicAuthControls({ profileLabel }: { profileLabel?: string } = {}) {
+type PublicAuthControlsProps = {
+  profileLabel?: string;
+  /** Cuando es true, muestra los CTAs en disposición vertical (menú móvil) */
+  vertical?: boolean;
+};
+
+export function PublicAuthControls({ profileLabel, vertical = false }: PublicAuthControlsProps = {}) {
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
 
@@ -30,15 +36,28 @@ export function PublicAuthControls({ profileLabel }: { profileLabel?: string } =
   }
 
   if (!user) {
+    if (vertical) {
+      // Dentro del menú móvil: opciones apiladas
+      return (
+        <div className="grid gap-2">
+          <AuthCtaButton context="header" className="justify-center">
+            Crear mi ludoteca gratis
+          </AuthCtaButton>
+          <AuthCtaButton variant="secondary" mode="login" className="justify-center">
+            Entrar
+          </AuthCtaButton>
+        </div>
+      );
+    }
+
+    // Header desktop: CTA que cubre tanto registro como login
     return (
-      <div className="flex items-center gap-2">
-        <AuthCtaButton variant="subtle" mode="login" className="hidden lg:inline-flex">
-          Entrar
-        </AuthCtaButton>
-        <AuthCtaButton context="header" className="min-h-10 px-3 py-2 text-sm">
-          Crear mi ludoteca
-        </AuthCtaButton>
-      </div>
+      <AuthCtaButton
+        context="header"
+        className="hidden lg:inline-flex whitespace-nowrap px-6 py-2.5 text-sm font-bold min-h-10"
+      >
+        Entrar
+      </AuthCtaButton>
     );
   }
 
@@ -69,3 +88,4 @@ export function PublicAuthControls({ profileLabel }: { profileLabel?: string } =
     </div>
   );
 }
+
