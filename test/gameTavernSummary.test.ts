@@ -72,8 +72,7 @@ test("getGameTavernSummary returns public counts and at most three tiny profile 
     };
   };
   assert.deepEqual(Object.keys(select.user?.select?.profile?.select || {}).sort(), ["avatarUrl", "displayName", "username"]);
-  assert.equal(select.user?.select?.gameRatings?.take, 1);
-  assert.deepEqual(select.user?.select?.gameRatings?.select, { score: true });
+  assert.equal(select.user?.select?.gameRatings, undefined);
   assert.deepEqual(ratingArgs?._avg, { score: true });
   assert.deepEqual(ratingArgs?._count, { _all: true });
 });

@@ -9,6 +9,7 @@ export type GameTavernStatus = "OWNED" | "WANT_TO_PLAY" | "PLAYED";
 
 export type GameTavernSampleUser = {
   id: string;
+  name: string;
   username: string;
   avatarUrl: string | null;
   status: GameTavernStatus;
@@ -24,7 +25,28 @@ export type GameTavernSummary = {
   sampleUsers: GameTavernSampleUser[];
 };
 
-type GameTavernDb = Pick<typeof prisma, "userLibraryGame" | "userGameRating">;
+type GameTavernDb = {
+  userLibraryGame: typeof prisma.userLibraryGame;
+  userGameRating?: {
+    aggregate: typeof prisma.userGameRating.aggregate;
+  };
+  $queryRaw?: <T = unknown>(query: Prisma.Sql) => Promise<T>;
+};
+
+type RatingAggregate = {
+  _avg: { score: number | null };
+  _count: { _all: number };
+};
+
+type RatingAggregateRow = {
+  averageScore: number | string | null;
+  votesCount: number;
+};
+
+type SampleRatingRow = {
+  userId: string;
+  score: number;
+};
 
 type TavernCountGroup = {
   owned: boolean;
@@ -40,10 +62,11 @@ type TavernEntry = {
   played: boolean;
   user: {
     profile: {
+      displayName: string | null;
       username: string;
       avatarUrl: string | null;
     } | null;
-    gameRatings: Array<{ score: number }>;
+    gameRatings?: Array<{ score: number }>;
   };
 };
 
@@ -84,33 +107,19 @@ export async function queryGameTavernSummary(
             profile: {
               select: {
                 username: true,
+                displayName: true,
                 avatarUrl: true
               }
-            },
-            gameRatings: {
-              where: { gameId },
-              select: { score: true },
-              take: 1
             }
           }
         }
       }
     }),
-    db.userGameRating.aggregate({
-      where: {
-        gameId,
-        user: {
-          profile: {
-            is: { profileVisibility: ProfileVisibility.PUBLIC }
-          }
-        }
-      },
-      _avg: { score: true },
-      _count: { _all: true }
-    })
+    queryPublicRatingAggregate(gameId, db)
   ]);
   const countGroups = rawCountGroups as TavernCountGroup[];
   const entries = rawEntries as TavernEntry[];
+  const sampleRatings = await querySampleRatings(gameId, entries, db);
 
   const counts = countGroups.reduce(
     (summary, group) => ({
@@ -129,11 +138,12 @@ export async function queryGameTavernSummary(
     }
 
     const status = getPrimaryStatus(entry);
-    const rating = status === "PLAYED" ? entry.user.gameRatings[0]?.score : undefined;
+    const rating = status === "PLAYED" ? sampleRatings.get(entry.userId) : undefined;
 
     return [
       {
         id: entry.userId,
+        name: profile.displayName || profile.username || "tabernero",
         username: profile.username || "tabernero",
         avatarUrl: profile.avatarUrl,
         status,
@@ -150,6 +160,103 @@ export async function queryGameTavernSummary(
     ratingCount: ratingAggregate._count._all,
     sampleUsers
   };
+}
+
+async function queryPublicRatingAggregate(gameId: string, db: GameTavernDb): Promise<RatingAggregate> {
+  try {
+    if (db.userGameRating) {
+      return db.userGameRating.aggregate({
+        where: {
+          gameId,
+          user: {
+            profile: {
+              is: { profileVisibility: ProfileVisibility.PUBLIC }
+            }
+          }
+        },
+        _avg: { score: true },
+        _count: { _all: true }
+      });
+    }
+
+    if (!db.$queryRaw) {
+      return emptyRatingAggregate();
+    }
+
+    const [row] = await db.$queryRaw<RatingAggregateRow[]>(Prisma.sql`
+      SELECT
+        ROUND(AVG(ugr."score")::numeric, 1) AS "averageScore",
+        COUNT(*)::int AS "votesCount"
+      FROM "UserGameRating" ugr
+      INNER JOIN "User" u ON u."id" = ugr."userId"
+      INNER JOIN "UserProfile" p ON p."userId" = u."id"
+      WHERE ugr."gameId" = ${gameId}
+        AND p."profileVisibility" = ${ProfileVisibility.PUBLIC}::"ProfileVisibility"
+    `);
+
+    return {
+      _avg: {
+        score: numberOrNull(row?.averageScore)
+      },
+      _count: {
+        _all: Number(row?.votesCount || 0)
+      }
+    };
+  } catch {
+    return emptyRatingAggregate();
+  }
+}
+
+async function querySampleRatings(gameId: string, entries: TavernEntry[], db: GameTavernDb) {
+  const ratings = new Map<string, number>();
+
+  for (const entry of entries) {
+    const score = entry.user.gameRatings?.[0]?.score;
+    if (typeof score === "number") {
+      ratings.set(entry.userId, score);
+    }
+  }
+
+  const missingUserIds = entries
+    .filter((entry) => !ratings.has(entry.userId))
+    .map((entry) => entry.userId);
+
+  if (!missingUserIds.length || !db.$queryRaw) {
+    return ratings;
+  }
+
+  try {
+    const rows = await db.$queryRaw<SampleRatingRow[]>(Prisma.sql`
+      SELECT "userId", "score"
+      FROM "UserGameRating"
+      WHERE "gameId" = ${gameId}
+        AND "userId" IN (${Prisma.join(missingUserIds)})
+    `);
+
+    for (const row of rows) {
+      ratings.set(row.userId, row.score);
+    }
+  } catch {
+    return ratings;
+  }
+
+  return ratings;
+}
+
+function emptyRatingAggregate(): RatingAggregate {
+  return {
+    _avg: { score: null },
+    _count: { _all: 0 }
+  };
+}
+
+function numberOrNull(value: number | string | null | undefined) {
+  if (value === null || typeof value === "undefined") {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
 }
 
 const getCachedGameTavernSummary = unstable_cache(
