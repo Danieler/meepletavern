@@ -20,7 +20,7 @@ function getDisplayName(email: string | undefined, displayName: unknown, name: u
   return "Mi perfil";
 }
 
-export function PublicAuthControls() {
+export function PublicAuthControls({ profileLabel }: { profileLabel?: string } = {}) {
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
 
@@ -45,7 +45,7 @@ export function PublicAuthControls() {
   return (
     <div className="flex items-center gap-2">
       <Link className="header-profile-link" href="/mi-perfil">
-        {label}
+        {profileLabel || label}
       </Link>
       <button
         type="button"

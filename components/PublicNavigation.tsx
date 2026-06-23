@@ -112,21 +112,22 @@ export function PublicMobileMenu() {
     <div className="lg:hidden">
       <button
         type="button"
-        className="header-action w-10 px-0"
+        className="header-action relative z-[60] min-h-11 w-11 px-0 sm:w-auto sm:px-3"
         aria-label={open ? "Cerrar menú" : "Abrir menú"}
         aria-expanded={open}
         aria-controls={panelId}
+        aria-haspopup="true"
         onClick={() => setOpen((current) => !current)}
       >
         <BrandIcon name={open ? "x" : "menu"} size={19} />
+        <span className="hidden sm:inline">{open ? "Cerrar" : "Menú"}</span>
       </button>
 
       {open ? (
         <>
-          <button
-            type="button"
+          <div
             className="fixed inset-0 z-40 bg-black/30"
-            aria-label="Cerrar menú"
+            aria-hidden="true"
             onClick={() => setOpen(false)}
           />
           <nav
@@ -134,6 +135,13 @@ export function PublicMobileMenu() {
             className="mobile-nav-panel"
             aria-label="Navegación principal"
           >
+            <section className="mobile-nav-account mb-3">
+              <p className="mobile-nav-label">Tu rincón</p>
+              <div className="mt-2">
+                <PublicAuthControls profileLabel="Mi rincón" />
+              </div>
+            </section>
+
             <div className="space-y-3">
               {navGroups.map((group) => (
                 <section key={group.tone} className={`mobile-nav-group mobile-nav-group-${group.tone}`}>
@@ -159,9 +167,6 @@ export function PublicMobileMenu() {
               ))}
             </div>
 
-            <div className="mt-3 border-t border-white/10 pt-3">
-              <PublicAuthControls />
-            </div>
           </nav>
         </>
       ) : null}

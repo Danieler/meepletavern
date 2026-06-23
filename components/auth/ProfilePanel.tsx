@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ListPlus, LogOut, Settings, UserRound } from "lucide-react";
+import { Copy, Eye, EyeOff, ListPlus, LogOut, Mail, Settings, UserRound } from "lucide-react";
 import { LibraryPanel } from "@/components/account/LibraryPanel";
 import { UserRatingsPanel } from "@/components/account/UserRatingsPanel";
 import { UserAvatar } from "@/components/account/UserAvatar";
@@ -272,6 +272,7 @@ export function ProfilePanel() {
               Ver mis listas
             </Link>
           </section>
+          <InviteFriendCard inviterName={username ? `@${username}` : profileName} />
           <LibraryPanel embedded />
           <UserRatingsPanel />
           <GameSuggestionForm />
@@ -313,5 +314,89 @@ function AccountDatum({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-black uppercase tracking-[0.12em] text-walnut/50">{label}</dt>
       <dd className="mt-1 break-words font-semibold leading-6 text-ink">{value}</dd>
     </div>
+  );
+}
+
+function InviteFriendCard({ inviterName }: { inviterName: string }) {
+  const [friendEmail, setFriendEmail] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [siteUrl, setSiteUrl] = useState(process.env.NEXT_PUBLIC_SITE_URL || "https://meepletavern.com");
+  const email = friendEmail.trim();
+  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const inviteUrl = `${siteUrl.replace(/\/+$/, "")}/auth?mode=register`;
+  const subject = "Te invito a MeepleTavern";
+  const body = [
+    `¡Hola! ${inviterName} te invita a entrar en MeepleTavern.`,
+    "",
+    "Puedes crear tu cuenta aquí:",
+    inviteUrl
+  ].join("\n");
+  const mailtoHref = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSiteUrl(window.location.origin);
+    }
+  }, []);
+
+  async function copyInviteLink() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <section className="tavern-card p-5 sm:p-6">
+      <div className="flex items-center gap-3">
+        <Mail size={20} className="text-ember" />
+        <div>
+          <p className="tavern-eyebrow">Invitar</p>
+          <h2 className="font-display mt-1 text-2xl font-bold text-wood">Invita a un amigo</h2>
+        </div>
+      </div>
+
+      <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-walnut/65">
+        Escribe su email y le abrimos una invitación básica para registrarse en MeepleTavern.
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <input
+          type="email"
+          value={friendEmail}
+          onChange={(event) => setFriendEmail(event.target.value)}
+          placeholder="amigo@email.com"
+          className="field-input"
+          inputMode="email"
+          autoComplete="email"
+        />
+        <a
+          href={emailIsValid ? mailtoHref : undefined}
+          className={`button-primary ${emailIsValid ? "" : "pointer-events-none opacity-50"}`}
+        >
+          <Mail size={17} />
+          Enviar invitación
+        </a>
+      </div>
+
+      {friendEmail && !emailIsValid ? (
+        <p className="mt-2 text-xs font-semibold text-ruby">Escribe un email válido para preparar la invitación.</p>
+      ) : (
+        <p className="mt-2 text-xs font-semibold text-walnut/55">
+          Se abrirá tu app de correo con el email del amigo y el enlace ya preparados.
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-3">
+        <button type="button" className="button-secondary" onClick={() => void copyInviteLink()}>
+          <Copy size={17} />
+          {copied ? "Enlace copiado" : "Copiar enlace"}
+        </button>
+        <span className="min-w-0 break-all text-xs font-semibold text-walnut/55">{inviteUrl}</span>
+      </div>
+    </section>
   );
 }
