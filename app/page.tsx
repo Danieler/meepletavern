@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import type { LucideIcon } from "lucide-react";
 import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User } from "lucide-react";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
-import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { HeroDiscoveryBoard } from "@/components/home/HeroDiscoveryBoard";
 import { PublicShell } from "@/components/PublicShell";
 import { FeaturedRankingCarousel } from "@/components/FeaturedRankingCarousel";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
+import { HomeHeroAuthControls, HomeSidebarAuthControls, HomeFooterSignupCta } from "@/components/home/HomeAuthControls";
 import {
   getBeginnerGames,
   getCategoryTerms,
@@ -22,7 +21,6 @@ import {
   type GameFilterInput
 } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
-import { createClient } from "@/lib/supabase/server";
 import { rotateDaily } from "@/lib/dailyRotation";
 
 export const metadata: Metadata = {
@@ -46,14 +44,6 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  const profileHref = user ? "/mi-perfil" : "/auth?mode=register&next=%2F";
-  const profileLabel = user ? "Ir a mi rincón" : "Crear mi ludoteca gratis";
-
   const [popularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
     getPopularGames(6),
     getBeginnerGames(4),
@@ -140,25 +130,7 @@ export default async function Home() {
                 <div className="mt-8 max-w-2xl">
                   <GameSearch variant="hero" submitLabel="Buscar juegos" />
                 </div>
-                <div className="mt-5 flex flex-wrap gap-4">
-                  {user ? (
-                    <Link href={profileHref} className="button-primary px-8 py-3 text-base">
-                      {profileLabel}
-                    </Link>
-                  ) : (
-                    <AuthCtaButton context="home" className="px-8 py-3 text-base" next="/">
-                      Crear mi ludoteca gratis
-                    </AuthCtaButton>
-                  )}
-                  <Link href="/juegos" className="button-secondary px-8 py-3 text-base">
-                    Explorar juegos
-                  </Link>
-                </div>
-                {!user ? (
-                  <p className="mt-3 text-sm font-bold text-walnut/65">
-                    Gratis · Guarda juegos · Crea listas · Puntúa partidas
-                  </p>
-                ) : null}
+                <HomeHeroAuthControls />
 
                 <div className="mt-10">
                   <div className="flex items-center gap-4">
@@ -204,29 +176,13 @@ export default async function Home() {
                     <TavernFeatureCard
                       key={feature.title}
                       {...feature}
-                      href={feature.title === "Mi ludoteca" ? profileHref : feature.href}
+                      href={feature.title === "Mi ludoteca" ? "/mi-perfil" : feature.href}
                     />
                   ))}
                 </div>
               </div>
               <aside className="border-t border-walnut/10 bg-[#3a2118] p-5 text-white lg:border-l lg:border-t-0 sm:p-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-ember">Rincón de jugador</p>
-                <h3 className="font-display mt-3 text-3xl font-bold leading-tight">
-                  {user ? "Tu rincón te está esperando" : "Haz tuya la taberna"}
-                </h3>
-                <p className="mt-3 text-sm font-semibold leading-6 text-parchment/78">
-                  {user
-                    ? "Vuelve a tu colección, tus listas y tus valoraciones para preparar la próxima partida."
-                    : "Crea tu ludoteca gratis para guardar tus juegos, puntuar partidas y preparar listas para cada grupo."}
-                </p>
-                <div className="mt-5 grid gap-3">
-                  <Link href={profileHref} className="button-primary justify-center">
-                    {profileLabel}
-                  </Link>
-                  <Link href="/taberna" className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
-                    Ver la taberna
-                  </Link>
-                </div>
+                <HomeSidebarAuthControls />
                 <div className="mt-5 rounded-md border border-white/10 bg-white/8 p-3">
                   <p className="text-[10px] font-black uppercase tracking-[0.14em] text-ember">Para empezar</p>
                   <p className="mt-2 text-sm font-semibold leading-6 text-parchment/80">
@@ -301,37 +257,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {!user ? (
-          <section className="container-page py-8 lg:py-10">
-            <div className="overflow-hidden rounded-lg border border-walnut/15 bg-[#3a2118] text-white shadow-soft">
-              <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
-                <div>
-                  <p className="tavern-eyebrow text-ember">Tu mesa, siempre a mano</p>
-                  <h2 className="font-display mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
-                    Guarda los juegos que quieres probar antes de olvidarlos
-                  </h2>
-                  <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-parchment/78">
-                    Convierte cada descubrimiento en tu ludoteca, una valoración o una lista para la
-                    próxima partida. Todo queda reunido en tu rincón de MeepleTavern.
-                  </p>
-                  <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold text-parchment/88">
-                    <li>✓ Tu ludoteca en un sitio</li>
-                    <li>✓ Listas para cada grupo</li>
-                    <li>✓ Valoraciones con contexto</li>
-                  </ul>
-                </div>
-                <aside className="rounded-md border border-white/10 bg-white/8 p-5 text-center">
-                  <AuthCtaButton context="home" className="w-full justify-center px-6 py-3 text-base" next="/">
-                    Crear mi ludoteca gratis
-                  </AuthCtaButton>
-                  <p className="mt-3 text-xs font-bold text-parchment/65">
-                    Crear la cuenta es gratis.
-                  </p>
-                </aside>
-              </div>
-            </div>
-          </section>
-        ) : null}
+        <HomeFooterSignupCta />
 
         <section className="container-page py-8 lg:py-10">
           <SEOTextBlock title="Recomendaciones de juegos de mesa en español">
