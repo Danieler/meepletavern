@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Heart, LibraryBig, ListPlus, Star } from "lucide-react";
+import { ScrollCarousel } from "@/components/ui/ScrollCarousel";
 import type { TavernNowSummary } from "@/lib/tavernNow";
 
 export function TavernNowSection({ summary }: { summary: TavernNowSummary }) {
@@ -7,7 +8,7 @@ export function TavernNowSection({ summary }: { summary: TavernNowSummary }) {
 
   return (
     <section className="container-page pt-8 sm:pt-10" aria-labelledby="tavern-now-title">
-      <div className="tavern-panel p-5 sm:p-6">
+      <div className="tavern-panel p-4 sm:p-6">
         <div>
           <p className="tavern-eyebrow">La sala común</p>
           <h2 id="tavern-now-title" className="font-display mt-2 text-3xl font-bold text-wood sm:text-4xl">
@@ -19,7 +20,10 @@ export function TavernNowSection({ summary }: { summary: TavernNowSummary }) {
         </div>
 
         {hasAny ? (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <ScrollCarousel
+            containerClassName="-mx-4 mt-6 w-[calc(100%+2rem)] max-w-[calc(100%+2rem)] sm:mx-0 sm:w-auto sm:max-w-none"
+            listClassName="flex gap-3 px-4 pb-3 scroll-px-4 sm:px-0 sm:pb-0 sm:grid sm:grid-cols-2 xl:grid-cols-4 sm:overflow-visible sm:snap-none"
+          >
             <GameSignalCard
               icon={Heart}
               label="Más quieren probar"
@@ -36,7 +40,7 @@ export function TavernNowSection({ summary }: { summary: TavernNowSummary }) {
             />
             <RatingCard rating={summary.latestRating} />
             <ListCard list={summary.latestList} />
-          </div>
+          </ScrollCarousel>
         ) : (
           <p className="mt-6 rounded-md border border-walnut/10 bg-white/60 p-5 text-sm font-semibold text-walnut/60">
             La taberna acaba de abrir. Añade juegos a tu ludoteca para empezar a moverla.
@@ -61,7 +65,7 @@ function GameSignalCard({
   empty: string;
 }) {
   return (
-    <article className="flex min-h-52 flex-col rounded-md border border-walnut/12 bg-white/65 p-4 shadow-soft">
+    <article className="group relative flex min-h-52 flex-col overflow-hidden rounded-md border border-walnut/12 bg-white/65 p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-md w-[85vw] min-w-[270px] max-w-[320px] sm:w-auto shrink-0 snap-start">
       <CardLabel icon={Icon}>{label}</CardLabel>
       {signal ? (
         <>
@@ -77,7 +81,7 @@ function GameSignalCard({
 
 function RatingCard({ rating }: { rating: TavernNowSummary["latestRating"] }) {
   return (
-    <article className="flex min-h-52 flex-col rounded-md border border-walnut/12 bg-white/65 p-4 shadow-soft">
+    <article className="group relative flex min-h-52 flex-col overflow-hidden rounded-md border border-walnut/12 bg-white/65 p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-md w-[85vw] min-w-[270px] max-w-[320px] sm:w-auto shrink-0 snap-start">
       <CardLabel icon={Star}>Última puntuación</CardLabel>
       {rating ? (
         <>
@@ -98,7 +102,7 @@ function RatingCard({ rating }: { rating: TavernNowSummary["latestRating"] }) {
 
 function ListCard({ list }: { list: TavernNowSummary["latestList"] }) {
   return (
-    <article className="flex min-h-52 flex-col rounded-md border border-walnut/12 bg-white/65 p-4 shadow-soft">
+    <article className="group relative flex min-h-52 flex-col overflow-hidden rounded-md border border-walnut/12 bg-white/65 p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:bg-white/80 hover:shadow-md w-[85vw] min-w-[270px] max-w-[320px] sm:w-auto shrink-0 snap-start">
       <CardLabel icon={ListPlus}>Última lista creada</CardLabel>
       {list ? (
         <>
@@ -132,7 +136,7 @@ function CardAction({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link href={href} prefetch={false} className="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs font-black uppercase tracking-[0.1em] text-wood hover:text-ember">
       {children}
-      <ArrowRight size={14} aria-hidden="true" />
+      <ArrowRight size={14} aria-hidden="true" className="transition-transform group-hover:translate-x-1" />
     </Link>
   );
 }

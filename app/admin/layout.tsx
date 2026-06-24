@@ -49,6 +49,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link className="button-secondary min-h-10" href="/admin/candidates">
               Candidatos
             </Link>
+            <Link className="button-secondary min-h-10" href="/admin/suggestions">
+              Sugerencias
+            </Link>
           </nav>
         </div>
       </header>

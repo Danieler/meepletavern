@@ -12,6 +12,7 @@ type AdminImportPageProps = {
   searchParams?: Promise<{
     sourceId?: string;
     error?: string;
+    q?: string;
   }>;
 };
 
@@ -35,7 +36,7 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
             </Link>
           </div>
         ) : null}
-        <MasterImportForm disabled={!sources.length} />
+        <MasterImportForm disabled={!sources.length} initialValue={params?.q || ""} />
         <SourceImportForm
           sources={sources.map((source) => ({
             id: source.id,
