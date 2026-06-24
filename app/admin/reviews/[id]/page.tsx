@@ -49,7 +49,9 @@ export default async function AdminReviewEditorPage({ params }: AdminReviewEdito
             authorName: review.authorName,
             title: review.title,
             summary: review.summary,
-            body: review.body
+            body: review.body,
+            isApproved: review.isApproved,
+            instagramPostId: review.instagramPostId
           }}
         />
       )}

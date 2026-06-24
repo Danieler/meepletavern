@@ -25,6 +25,8 @@ type ReviewFormValue = {
   title: string;
   summary: string;
   body: string;
+  isApproved?: boolean;
+  instagramPostId?: string | null;
 };
 
 export function CreateAdminReviewForm({
@@ -40,9 +42,12 @@ export function CreateAdminReviewForm({
     <form action={action} className="space-y-6">
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
       <div className="flex flex-wrap gap-3">
-        <button className="button-primary" disabled={isPending} type="submit">
+        <button className="button-secondary" name="action" value="draft" disabled={isPending} type="submit">
+          Guardar borrador
+        </button>
+        <button className="button-primary" name="action" value="publish" disabled={isPending} type="submit">
           <Save size={18} aria-hidden="true" />
-          Crear reseña
+          Publicar en la web e Instagram
         </button>
         <Link className="button-secondary" href="/admin/reviews">
           Volver
@@ -67,10 +72,27 @@ export function EditAdminReviewForm({
       <input type="hidden" name="id" value={initialValue.id} />
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
       <div className="flex flex-wrap gap-3">
-        <button className="button-primary" disabled={isPending} type="submit">
-          <Save size={18} aria-hidden="true" />
-          Guardar reseña
-        </button>
+        {initialValue.isApproved ? (
+          <>
+            <button className="button-primary" name="action" value="publish" disabled={isPending} type="submit">
+              <Save size={18} aria-hidden="true" />
+              Guardar cambios
+            </button>
+            <button className="button-secondary" name="action" value="draft" disabled={isPending} type="submit">
+              Mover a borradores
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="button-secondary" name="action" value="draft" disabled={isPending} type="submit">
+              Guardar borrador
+            </button>
+            <button className="button-primary" name="action" value="publish" disabled={isPending} type="submit">
+              <Save size={18} aria-hidden="true" />
+              Publicar en la web e Instagram
+            </button>
+          </>
+        )}
         <Link className="button-secondary" href="/admin/reviews">
           Volver
         </Link>
@@ -110,6 +132,20 @@ function AdminReviewFields({
           <Field label="Título">
             <input className="field-input" name="title" defaultValue={initialValue.title} maxLength={REVIEW_TITLE_MAX_LENGTH} required />
           </Field>
+          {initialValue.id && (
+            <div className="flex flex-col justify-center mt-6">
+              <span className="text-sm font-bold text-ink/60 mb-1">Estado en Instagram</span>
+              {initialValue.instagramPostId ? (
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-moss">
+                  ✅ Publicado
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-ink/40">
+                  ⚪ No publicado
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

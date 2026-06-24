@@ -10,6 +10,7 @@ export type ReviewPayload = {
   title: string;
   summary: string;
   body: string;
+  isApproved?: boolean;
   createdByAdmin?: boolean;
 };
 
@@ -55,6 +56,8 @@ const adminReviewSelect = {
   body: true,
   authorName: true,
   createdByAdmin: true,
+  isApproved: true,
+  instagramPostId: true,
   createdAt: true,
   updatedAt: true,
   publishedAt: true,
@@ -65,7 +68,18 @@ const adminReviewSelect = {
       id: true,
       title: true,
       name: true,
-      slug: true
+      slug: true,
+      coverImageUrl: true,
+      imageUrl: true
+    }
+  },
+  user: {
+    select: {
+      profile: {
+        select: {
+          username: true
+        }
+      }
     }
   }
 } as const;
@@ -86,6 +100,7 @@ export async function getPublishedReviewBySlug(slug: string) {
 const getCachedPublishedReviews = unstable_cache(
   async function getCachedPublishedReviews() {
     return prisma.review.findMany({
+      where: { isApproved: true },
       select: publicReviewListSelect,
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
     });
@@ -96,8 +111,8 @@ const getCachedPublishedReviews = unstable_cache(
 
 const getCachedPublishedReviewBySlug = unstable_cache(
   async function getCachedPublishedReviewBySlug(slug: string) {
-    return prisma.review.findUnique({
-      where: { slug },
+    return prisma.review.findFirst({
+      where: { slug, isApproved: true },
       select: publicReviewSelect
     });
   },
@@ -135,6 +150,7 @@ export async function createReview(input: ReviewPayload) {
       slug,
       summary,
       body,
+      isApproved: input.isApproved ?? false,
       createdByAdmin: input.createdByAdmin ?? false,
       publishedAt: new Date()
     },
@@ -158,6 +174,8 @@ export async function updateReview(
     title: string;
     summary: string;
     body: string;
+    isApproved?: boolean;
+    instagramPostId?: string | null;
     publishedAt?: Date | null;
   }
 ) {
@@ -188,6 +206,8 @@ export async function updateReview(
       slug: nextSlug,
       summary,
       body,
+      isApproved: input.isApproved,
+      instagramPostId: input.instagramPostId,
       publishedAt: input.publishedAt ?? currentDate()
     },
     select: {
@@ -199,6 +219,13 @@ export async function updateReview(
         }
       }
     }
+  });
+}
+
+export async function updateReviewInstagramPostId(id: string, postId: string) {
+  return prisma.review.update({
+    where: { id },
+    data: { instagramPostId: postId }
   });
 }
 

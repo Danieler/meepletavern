@@ -41,7 +41,8 @@ export default async function AdminNewReviewPage({ searchParams }: AdminNewRevie
             authorName: "Admin MeepleTavern",
             title: "",
             summary: "",
-            body: ""
+            body: "",
+            isApproved: false
           }}
         />
       )}
