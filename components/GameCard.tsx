@@ -28,6 +28,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
               variant="card"
               showPlaceholderLabel={false}
               className="rounded-none"
+              imageSizes="(max-width: 640px) 150px, 220px"
             />
             <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-wood/90 px-2 py-1 text-sm font-black leading-none text-white shadow-sm">
               <BrandIcon name="star" size={15} />
@@ -45,11 +46,11 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
 
   if (compact) {
     return (
-      <article className="tavern-card h-full min-h-[144px] overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45 xl:h-[150px] xl:min-h-[150px]">
+      <article className="tavern-card h-full min-h-[144px] overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45 xl:min-h-[150px]">
         <Link
           href={`/juegos/${game.slug}`}
           prefetch
-          className="grid h-full min-h-[144px] grid-cols-[88px_minmax(0,1fr)] items-center gap-4 p-3 touch-manipulation cursor-pointer sm:p-4 xl:h-[150px] xl:min-h-[150px]"
+          className="grid h-full min-h-[144px] grid-cols-[88px_minmax(0,1fr)] items-center gap-4 p-3 touch-manipulation cursor-pointer sm:p-4 xl:min-h-[150px]"
           aria-label={`Abrir ficha de ${game.title}`}
         >
           <GameCoverImage
@@ -58,6 +59,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
             variant="ranking"
             showPlaceholderLabel={false}
             className="self-start"
+            imageSizes="88px"
           />
           <div className="min-w-0 py-1">
             <div className="flex flex-wrap gap-2">
@@ -97,7 +99,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
         className="block touch-manipulation cursor-pointer"
         aria-label={`Abrir ficha de ${game.title}`}
       >
-        <GameCoverImage {...game} gameTitle={game.title} variant="card" />
+        <GameCoverImage {...game} gameTitle={game.title} variant="card" imageSizes="(max-width: 768px) 94vw, (max-width: 1280px) 45vw, 350px" />
         <div className="p-4 sm:p-5">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="flex flex-wrap gap-2">

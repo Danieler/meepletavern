@@ -1,25 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
+import { useAuth } from "@/hooks/useAuth";
 
 type UserGamePlayCountProps = {
   gameId: string;
   gameSlug: string;
-  initialCount: number;
-  isAuthenticated: boolean;
+  initialCount?: number;
+  isAuthenticated?: boolean;
 };
 
 export function UserGamePlayCount({
   gameId,
   gameSlug,
-  initialCount,
-  isAuthenticated
+  initialCount = 0,
+  isAuthenticated: serverIsAuthenticated
 }: UserGamePlayCountProps) {
+  const { user, loading: authLoading } = useAuth();
+  const isAuthenticated = serverIsAuthenticated ?? Boolean(user);
+
   const [count, setCount] = useState(initialCount);
   const [pending, setPending] = useState(false);
+  const [fetchingCount, setFetchingCount] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
+
+  useEffect(() => {
+    if (serverIsAuthenticated === undefined && user) {
+      setFetchingCount(true);
+      fetch(`/api/account/play-count?gameId=${encodeURIComponent(gameId)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (typeof data.count === "number") {
+            setCount(data.count);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setFetchingCount(false));
+    }
+  }, [gameId, user, serverIsAuthenticated]);
 
   async function mutate(direction: "increment" | "decrement") {
     if (!isAuthenticated) {

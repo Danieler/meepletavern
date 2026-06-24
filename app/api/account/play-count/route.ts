@@ -43,6 +43,32 @@ async function mutatePlayCount(request: Request) {
   }
 }
 
+export async function GET(request: Request) {
+  try {
+    const appUser = await requireCurrentAppUser();
+    const { searchParams } = new URL(request.url);
+    const gameId = searchParams.get("gameId")?.trim();
+
+    if (!gameId) {
+      return NextResponse.json({ error: "Falta el juego." }, { status: 400 });
+    }
+
+    const playCount = await prisma.userGamePlayCount.findUnique({
+      where: {
+        userId_gameId: {
+          userId: appUser.id,
+          gameId
+        }
+      },
+      select: { count: true }
+    });
+
+    return NextResponse.json({ count: playCount?.count || 0 });
+  } catch {
+    return NextResponse.json({ count: 0 }); // Fallback for unauthenticated users or errors
+  }
+}
+
 export async function POST(request: Request) {
   return mutatePlayCount(request);
 }
@@ -50,3 +76,4 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   return mutatePlayCount(request);
 }
+

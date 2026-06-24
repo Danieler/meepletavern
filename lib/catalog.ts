@@ -311,24 +311,50 @@ export async function getRankingGames(ranking: Ranking) {
   return sortGamesByEffectiveRating(games);
 }
 
+const getCachedPopularDbGamesList = unstable_cache(
+  async () => {
+    const games = await getCatalogGames();
+    return sortGamesByEffectiveRating(games);
+  },
+  ["all-popular-db-games"],
+  { revalidate: 3600, tags: ["public-games"] }
+);
+
 export async function getPopularGames(limit = 6) {
-  const games = await getCatalogGames();
-  return sortGamesByEffectiveRating(games).slice(0, limit);
+  const games = await getCachedPopularDbGamesList();
+  return games.slice(0, limit);
 }
+
+const getCachedBeginnerDbGamesList = unstable_cache(
+  async () => {
+    const games = await getCatalogGames();
+    return games
+      .filter((game) => game.categories.some(isBeginnerTerm) || isLightComplexity(game.complexity))
+      .sort((a, b) => compareOptionalText(a.complexity, b.complexity) || a.title.localeCompare(b.title, "es"));
+  },
+  ["all-beginner-db-games"],
+  { revalidate: 3600, tags: ["public-games"] }
+);
 
 export async function getBeginnerGames(limit = 5) {
-  const games = await getCatalogGames();
-
-  return games
-    .filter((game) => game.categories.some(isBeginnerTerm) || isLightComplexity(game.complexity))
-    .sort((a, b) => compareOptionalText(a.complexity, b.complexity) || a.title.localeCompare(b.title, "es"))
-    .slice(0, limit);
+  const games = await getCachedBeginnerDbGamesList();
+  return games.slice(0, limit);
 }
+
+const getCachedNewDbGamesList = unstable_cache(
+  async () => {
+    const games = await getCatalogGames();
+    return sortGames(games, "fecha");
+  },
+  ["all-new-db-games"],
+  { revalidate: 3600, tags: ["public-games"] }
+);
 
 export async function getNewGames(limit = 5) {
-  const games = await getCatalogGames();
-  return sortGames(games, "fecha").slice(0, limit);
+  const games = await getCachedNewDbGamesList();
+  return games.slice(0, limit);
 }
+
 
 export async function getRelatedGames(game: CatalogGame) {
   const directMatches = await getGamesBySlugs(game.similarGames);
