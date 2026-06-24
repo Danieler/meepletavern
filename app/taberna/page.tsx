@@ -32,7 +32,7 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
   return (
     <PublicShell>
       <main>
-        <section className="page-hero !py-6 sm:!py-8">
+        <section className="page-hero !py-2 sm:!py-3">
           <div className="container-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
             <div>
               <p className="tavern-eyebrow">La taberna</p>
@@ -273,20 +273,20 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
   const { highlights, mostWanted } = overview;
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl shadow-2xl lg:ml-auto w-full sm:max-w-md transition-all duration-500 hover:bg-black/50 hover:border-white/20">
+    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl shadow-2xl lg:ml-auto w-full sm:max-w-[380px] transition-all duration-500 hover:bg-black/50 hover:border-white/20">
       {/* Animated glowing border effect */}
       <div className="absolute -inset-[100%] z-0 animate-[spin_10s_linear_infinite] bg-gradient-to-r from-transparent via-ember/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       
-      <div className="relative z-10 rounded-xl bg-[#0a0a0a]/90 p-4 sm:p-5 backdrop-blur-md border border-white/5">
+      <div className="relative z-10 rounded-lg bg-[#0a0a0a]/90 p-3 backdrop-blur-md border border-white/5">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-ember/20 ring-1 ring-ember/30">
+        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-ember/20 ring-1 ring-ember/30">
               <div className="absolute inset-0 rounded-full animate-ping bg-ember/30" />
-              <Activity className="text-ember relative z-10" size={16} />
+              <Activity className="text-ember relative z-10" size={14} />
             </div>
             <div>
-              <h2 className="font-display text-sm font-black uppercase tracking-[0.1em] text-parchment/90 leading-tight">
+              <h2 className="font-display text-xs font-black uppercase tracking-[0.1em] text-parchment/90 leading-tight">
                 El pulso de la taberna
               </h2>
               <p className="text-[10px] font-bold text-parchment/50 uppercase tracking-wider mt-0.5">Últimos 7 días</p>
@@ -295,41 +295,38 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
         </div>
 
         {/* Bento Grid Stats */}
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {/* Big Stat */}
-          <Link href="#actividad" className="col-span-2 relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
-            <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover/stat:opacity-10 transition-opacity duration-500 group-hover/stat:scale-110">
-              <Activity size={100} />
+          <Link href="#actividad" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <div className="absolute -right-5 -bottom-5 opacity-[0.03] group-hover/stat:opacity-10 transition-opacity duration-500 group-hover/stat:scale-110">
+              <Activity size={74} />
             </div>
-            <div className="relative flex items-end justify-between">
+            <div className="relative">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-wider text-parchment/50 mb-1">Movimientos</p>
-                <p className="font-display text-4xl font-bold leading-none text-white">{highlights.weeklyActivityCount}</p>
-              </div>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20 shadow-[0_0_10px_rgba(52,211,153,0.2)]">
-                <Flame size={12} className="animate-pulse" /> Alta actividad
+                <p className="font-display text-3xl font-bold leading-none text-white">{highlights.weeklyActivityCount}</p>
               </div>
             </div>
           </Link>
 
           {/* Small Stats */}
-          <Link href="#ultimos-juegos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
-            <Dices size={18} className="text-parchment/40 mb-3 group-hover/stat:text-parchment/80 transition-colors" />
-            <p className="font-display text-2xl font-bold leading-none text-white">{highlights.weeklyLibraryAdds}</p>
-            <p className="mt-1.5 text-[10px] font-black uppercase tracking-wider text-parchment/50">Juegos añadidos</p>
+          <Link href="#ultimos-juegos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <Dices size={13} className="text-parchment/40 mb-1 group-hover/stat:text-parchment/80 transition-colors" />
+            <p className="font-display text-xl font-bold leading-none text-white">{highlights.weeklyLibraryAdds}</p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-parchment/50">Añadidos</p>
           </Link>
 
-          <Link href="#juegos-mas-queridos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
-            <Heart size={18} className="text-parchment/40 mb-3 group-hover/stat:text-ember transition-colors" />
-            <p className="font-display text-2xl font-bold leading-none text-white">{highlights.topWantedGame?.count || 0}</p>
-            <p className="mt-1.5 text-[10px] font-black uppercase tracking-wider text-parchment/50">Nuevos deseos</p>
+          <Link href="#juegos-mas-queridos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <Heart size={13} className="text-parchment/40 mb-1 group-hover/stat:text-ember transition-colors" />
+            <p className="font-display text-xl font-bold leading-none text-white">{highlights.topWantedGame?.count || 0}</p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-parchment/50">Deseos</p>
           </Link>
         </div>
 
         {/* Feature: Mini Trending Games */}
         {mostWanted && mostWanted.length > 0 && (
-          <div className="mt-5 pt-5 border-t border-white/10">
-            <div className="flex items-center justify-between mb-3">
+          <div className="mt-2 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-black uppercase tracking-wider text-parchment/60 flex items-center gap-1.5">
                 <Flame size={12} className="text-ember" /> Tendencias actuales
               </p>
@@ -338,14 +335,14 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
               </Link>
             </div>
             
-            <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2 snap-x">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 snap-x">
               {mostWanted.slice(0, 3).map((game) => (
                 <Link 
                   key={game.gameId}
                   href={`/juegos/${encodeURIComponent(game.slug)}`}
-                  className="group/game relative flex-none w-[110px] rounded-lg border border-white/5 bg-black/40 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 snap-start"
+                  className="group/game relative grid w-[112px] flex-none grid-cols-[38px_minmax(0,1fr)] items-center gap-2 rounded-md border border-white/5 bg-black/40 p-1.5 transition duration-300 hover:bg-white/10 hover:border-ember/30 snap-start"
                 >
-                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded bg-white/5 shadow-inner mb-2">
+                  <div className="relative h-[38px] w-[38px] overflow-hidden rounded bg-white/5 shadow-inner">
                     {game.coverImageUrl ? (
                       <Image
                         src={game.coverImageUrl}
@@ -357,18 +354,20 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-white/20">
-                        <Gamepad2 size={24} />
+                        <Gamepad2 size={16} />
                       </div>
                     )}
                     {/* Overlay gradient */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover/game:opacity-100" />
                   </div>
-                  <h3 className="truncate text-xs font-bold text-white group-hover/game:text-ember transition-colors">
-                    {game.title}
-                  </h3>
-                  <p className="text-[10px] text-parchment/60 mt-1 flex items-center gap-1 font-semibold">
-                    <Heart size={10} className="fill-ember text-ember" /> {game.count} {game.count === 1 ? 'deseo' : 'deseos'}
-                  </p>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-[10px] font-bold leading-tight text-white group-hover/game:text-ember transition-colors">
+                      {game.title}
+                    </h3>
+                    <p className="mt-0.5 flex items-center gap-1 text-[9px] font-semibold text-parchment/60">
+                      <Heart size={9} className="fill-ember text-ember" /> {game.count} {game.count === 1 ? 'deseo' : 'deseos'}
+                    </p>
+                  </div>
                 </Link>
               ))}
             </div>

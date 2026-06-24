@@ -19,25 +19,25 @@ function LoadingShell({ children, label }: { children: React.ReactNode; label: s
   );
 }
 
-function PageHeroSkeleton({ split = false }: { split?: boolean }) {
+function PageHeroSkeleton({ split = false, compact = false }: { split?: boolean; compact?: boolean }) {
   return (
-    <section className="page-hero" aria-hidden="true">
-      <div className={`container-page grid gap-8 ${split ? "lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end" : ""}`}>
+    <section className={`page-hero ${compact ? "!py-2 sm:!py-3" : ""}`} aria-hidden="true">
+      <div className={`container-page grid ${compact ? "gap-6" : "gap-8"} ${split ? "lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center" : ""}`}>
         <div>
           <DarkBone className="h-3 w-28" />
-          <DarkBone className="mt-4 h-11 w-full max-w-2xl sm:h-14" />
-          <DarkBone className="mt-4 h-5 w-full max-w-xl" />
-          <DarkBone className="mt-2 h-5 w-4/5 max-w-lg" />
-          {split ? <DarkBone className="mt-7 h-12 w-full max-w-xl" /> : null}
+          <DarkBone className={`${compact ? "mt-3 h-10 sm:h-12" : "mt-4 h-11 sm:h-14"} w-full max-w-2xl`} />
+          <DarkBone className={`${compact ? "mt-3" : "mt-4"} h-5 w-full max-w-xl`} />
+          {!compact ? <DarkBone className="mt-2 h-5 w-4/5 max-w-lg" /> : null}
+          {split && !compact ? <DarkBone className="mt-7 h-12 w-full max-w-xl" /> : null}
         </div>
         {split ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 w-full max-w-sm lg:ml-auto">
-            <DarkBone className="h-3.5 w-40 mb-4" />
+          <div className={`rounded-xl border border-white/10 bg-white/5 w-full max-w-sm lg:ml-auto ${compact ? "p-2.5" : "p-4"}`}>
+            <DarkBone className={`${compact ? "mb-2" : "mb-4"} h-3.5 w-40`} />
             <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 3 }, (_, index) => <DarkBone key={index} className="h-16" />)}
+              {Array.from({ length: 3 }, (_, index) => <DarkBone key={index} className={compact ? "h-12" : "h-16"} />)}
             </div>
-            <div className="mt-4 border-t border-white/10 pt-4 flex gap-3 items-center">
-              <DarkBone className="h-14 w-10 shrink-0" />
+            <div className={`${compact ? "mt-2 pt-2" : "mt-4 pt-4"} border-t border-white/10 flex gap-2 items-center`}>
+              <DarkBone className={compact ? "h-10 w-24 shrink-0" : "h-14 w-10 shrink-0"} />
               <div className="flex-1 space-y-2 py-0.5">
                 <DarkBone className="h-2.5 w-16" />
                 <DarkBone className="h-3 w-3/4" />
@@ -104,7 +104,7 @@ export function CatalogResultsSkeleton() {
 export function TavernPageSkeleton() {
   return (
     <LoadingShell label="Cargando la taberna">
-      <PageHeroSkeleton split />
+      <PageHeroSkeleton split compact />
       <section className="container-page pt-8 sm:pt-10" aria-hidden="true">
         <div className="tavern-panel p-4 sm:p-6">
           <Bone className="h-4 w-32" />
