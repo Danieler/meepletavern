@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useRef } from "react";
 import Link from "next/link";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { ReviewBodyEditor } from "@/components/reviews/ReviewBodyEditor";
 import { REVIEW_SUMMARY_MAX_LENGTH, REVIEW_TITLE_MAX_LENGTH } from "@/lib/reviewContent";
 import {
@@ -37,19 +37,20 @@ export function CreateAdminReviewForm({
   gameOptions: ReviewGameOption[];
 }) {
   const [state, action, isPending] = useActionState(createAdminReviewAction, initialState);
-  const [submitAction, setSubmitAction] = useState<string>("draft");
+  const intentRef = useRef<HTMLInputElement>(null);
 
   return (
     <form action={action} className="space-y-6">
-      <input type="hidden" name="action" value={submitAction} />
+      <input type="hidden" name="intent" ref={intentRef} defaultValue="draft" />
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
       <div className="flex flex-wrap gap-3">
-        <button className="button-secondary" onClick={() => setSubmitAction("draft")} disabled={isPending} type="submit">
-          Guardar borrador
+        <button className="button-secondary" onClick={() => { if(intentRef.current) intentRef.current.value="draft"; }} disabled={isPending} type="submit">
+          {isPending && (!intentRef.current || intentRef.current.value === "draft") ? <Loader2 size={18} className="animate-spin" /> : null}
+          {isPending && (!intentRef.current || intentRef.current.value === "draft") ? "Guardando..." : "Guardar borrador"}
         </button>
-        <button className="button-primary" onClick={() => setSubmitAction("publish")} disabled={isPending} type="submit">
-          <Save size={18} aria-hidden="true" />
-          Publicar en la web e Instagram
+        <button className="button-primary" onClick={() => { if(intentRef.current) intentRef.current.value="publish"; }} disabled={isPending} type="submit">
+          {isPending && intentRef.current?.value === "publish" ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
+          {isPending && intentRef.current?.value === "publish" ? "Publicando..." : "Publicar en la web e Instagram"}
         </button>
         <Link className="button-secondary" href="/admin/reviews">
           Volver
@@ -68,32 +69,34 @@ export function EditAdminReviewForm({
   gameOptions: ReviewGameOption[];
 }) {
   const [state, action, isPending] = useActionState(updateAdminReviewAction, initialState);
-  const [submitAction, setSubmitAction] = useState<string>(initialValue.isApproved ? "publish" : "draft");
+  const intentRef = useRef<HTMLInputElement>(null);
 
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="id" value={initialValue.id} />
-      <input type="hidden" name="action" value={submitAction} />
+      <input type="hidden" name="intent" ref={intentRef} defaultValue={initialValue.isApproved ? "publish" : "draft"} />
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
       <div className="flex flex-wrap gap-3">
         {initialValue.isApproved ? (
           <>
-            <button className="button-primary" onClick={() => setSubmitAction("publish")} disabled={isPending} type="submit">
-              <Save size={18} aria-hidden="true" />
-              Guardar cambios
+            <button className="button-primary" onClick={() => { if(intentRef.current) intentRef.current.value="publish"; }} disabled={isPending} type="submit">
+              {isPending && intentRef.current?.value === "publish" ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
+              {isPending && intentRef.current?.value === "publish" ? "Guardando..." : "Guardar cambios"}
             </button>
-            <button className="button-secondary" onClick={() => setSubmitAction("draft")} disabled={isPending} type="submit">
-              Mover a borradores
+            <button className="button-secondary" onClick={() => { if(intentRef.current) intentRef.current.value="draft"; }} disabled={isPending} type="submit">
+              {isPending && intentRef.current?.value === "draft" ? <Loader2 size={18} className="animate-spin" /> : null}
+              {isPending && intentRef.current?.value === "draft" ? "Moviendo..." : "Mover a borradores"}
             </button>
           </>
         ) : (
           <>
-            <button className="button-secondary" onClick={() => setSubmitAction("draft")} disabled={isPending} type="submit">
-              Guardar borrador
+            <button className="button-secondary" onClick={() => { if(intentRef.current) intentRef.current.value="draft"; }} disabled={isPending} type="submit">
+              {isPending && intentRef.current?.value === "draft" ? <Loader2 size={18} className="animate-spin" /> : null}
+              {isPending && intentRef.current?.value === "draft" ? "Guardando..." : "Guardar borrador"}
             </button>
-            <button className="button-primary" onClick={() => setSubmitAction("publish")} disabled={isPending} type="submit">
-              <Save size={18} aria-hidden="true" />
-              Publicar en la web e Instagram
+            <button className="button-primary" onClick={() => { if(intentRef.current) intentRef.current.value="publish"; }} disabled={isPending} type="submit">
+              {isPending && intentRef.current?.value === "publish" ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
+              {isPending && intentRef.current?.value === "publish" ? "Publicando..." : "Publicar en la web e Instagram"}
             </button>
           </>
         )}

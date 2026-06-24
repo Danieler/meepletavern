@@ -16,8 +16,8 @@ export async function createAdminReviewAction(
   formData: FormData
 ): Promise<AdminReviewActionState> {
   try {
-    const actionVal = formData.get("action");
-    const isApproved = actionVal === "publish" || actionVal === "save";
+    const intentVal = formData.get("intent");
+    const isApproved = intentVal === "publish" || intentVal === "save";
 
     const review = await createReview({
       gameId: requiredString(formData.get("gameId"), "Selecciona un juego."),
@@ -47,8 +47,9 @@ export async function updateAdminReviewAction(
   const id = requiredString(formData.get("id"), "Falta el identificador de la reseña.");
 
   try {
-    const actionVal = formData.get("action");
-    const isApproved = actionVal === "publish" || actionVal === "save";
+    const intentVal = formData.get("intent");
+    const isApproved = intentVal === "publish" || intentVal === "save";
+    console.log("updateAdminReviewAction -> intentVal:", intentVal, "isApproved:", isApproved);
     const existingReview = await getAdminReviewById(id);
 
     const review = await updateReview(id, {
@@ -73,7 +74,7 @@ export async function updateAdminReviewAction(
     if (instagramError) {
       return { error: `Guardado en la web, pero falló Instagram: ${instagramError}` };
     }
-    return { message: "Reseña guardada y publicada." };
+    return { message: `Reseña guardada y publicada. (intentVal: ${String(intentVal)}, isApproved: ${isApproved})` };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "No se pudo guardar la reseña." };
   }
