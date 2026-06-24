@@ -60,12 +60,20 @@ export async function updateAdminReviewAction(
       isApproved
     });
 
+    let instagramError = "";
     if (isApproved && existingReview && !existingReview.instagramPostId) {
-      await tryPublishToInstagram(review.id);
+      const igResult = await tryPublishToInstagram(review.id);
+      if (!igResult.success && igResult.error) {
+        instagramError = igResult.error;
+      }
     }
 
     revalidateReviews(review.slug, review.game.slug);
-    return { message: "Reseña guardada." };
+
+    if (instagramError) {
+      return { error: `Guardado en la web, pero falló Instagram: ${instagramError}` };
+    }
+    return { message: "Reseña guardada y publicada." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "No se pudo guardar la reseña." };
   }
@@ -116,10 +124,10 @@ function readStringList(formData: FormData, key: string) {
     .filter(Boolean);
 }
 
-async function tryPublishToInstagram(reviewId: string) {
+async function tryPublishToInstagram(reviewId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const review = await getAdminReviewById(reviewId);
-    if (!review) return;
+    if (!review) return { success: false, error: "No se encontró la reseña." };
 
     if (!review.instagramPostId) {
       // Extract images from review body
@@ -133,7 +141,7 @@ async function tryPublishToInstagram(reviewId: string) {
       }
 
       if (imageUrls.length > 0) {
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+        const siteUrl = "https://meepletavern.com";
         const authorUsername = review.user?.profile?.username;
         const authorText = authorUsername
           ? `${review.authorName} (${siteUrl}/u/${authorUsername})`
@@ -144,14 +152,19 @@ async function tryPublishToInstagram(reviewId: string) {
           const postId = await publishToInstagram(imageUrls, caption);
           if (postId) {
             await updateReviewInstagramPostId(review.id, postId);
+            return { success: true };
           }
         } catch (error) {
           console.error("Error publishing to Instagram on create:", error);
+          return { success: false, error: error instanceof Error ? error.message : "Error desconocido al publicar." };
         }
+      } else {
+        return { success: false, error: "La reseña no tiene imágenes." };
       }
     }
+    return { success: true };
   } catch (error) {
     console.error("Failed to publish to Instagram:", error);
-    // Don't throw, we don't want to break the review creation/update if Instagram fails
+    return { success: false, error: error instanceof Error ? error.message : "Fallo en la publicación." };
   }
 }

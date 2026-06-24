@@ -37,15 +37,17 @@ export function CreateAdminReviewForm({
   gameOptions: ReviewGameOption[];
 }) {
   const [state, action, isPending] = useActionState(createAdminReviewAction, initialState);
+  const [submitAction, setSubmitAction] = useState<string>("draft");
 
   return (
     <form action={action} className="space-y-6">
+      <input type="hidden" name="action" value={submitAction} />
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
       <div className="flex flex-wrap gap-3">
-        <button className="button-secondary" name="action" value="draft" disabled={isPending} type="submit">
+        <button className="button-secondary" onClick={() => setSubmitAction("draft")} disabled={isPending} type="submit">
           Guardar borrador
         </button>
-        <button className="button-primary" name="action" value="publish" disabled={isPending} type="submit">
+        <button className="button-primary" onClick={() => setSubmitAction("publish")} disabled={isPending} type="submit">
           <Save size={18} aria-hidden="true" />
           Publicar en la web e Instagram
         </button>
@@ -66,28 +68,30 @@ export function EditAdminReviewForm({
   gameOptions: ReviewGameOption[];
 }) {
   const [state, action, isPending] = useActionState(updateAdminReviewAction, initialState);
+  const [submitAction, setSubmitAction] = useState<string>(initialValue.isApproved ? "publish" : "draft");
 
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="id" value={initialValue.id} />
+      <input type="hidden" name="action" value={submitAction} />
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
       <div className="flex flex-wrap gap-3">
         {initialValue.isApproved ? (
           <>
-            <button className="button-primary" name="action" value="publish" disabled={isPending} type="submit">
+            <button className="button-primary" onClick={() => setSubmitAction("publish")} disabled={isPending} type="submit">
               <Save size={18} aria-hidden="true" />
               Guardar cambios
             </button>
-            <button className="button-secondary" name="action" value="draft" disabled={isPending} type="submit">
+            <button className="button-secondary" onClick={() => setSubmitAction("draft")} disabled={isPending} type="submit">
               Mover a borradores
             </button>
           </>
         ) : (
           <>
-            <button className="button-secondary" name="action" value="draft" disabled={isPending} type="submit">
+            <button className="button-secondary" onClick={() => setSubmitAction("draft")} disabled={isPending} type="submit">
               Guardar borrador
             </button>
-            <button className="button-primary" name="action" value="publish" disabled={isPending} type="submit">
+            <button className="button-primary" onClick={() => setSubmitAction("publish")} disabled={isPending} type="submit">
               <Save size={18} aria-hidden="true" />
               Publicar en la web e Instagram
             </button>
