@@ -321,6 +321,8 @@ model Review {
   slug            String   @unique
   summary         String
   body            String
+  isApproved      Boolean  @default(false)
+  instagramPostId String?
   createdByAdmin  Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

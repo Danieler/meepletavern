@@ -23,6 +23,7 @@ export function CreateReviewForm({
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   if (!isConfigured) {
     return (
@@ -57,6 +58,25 @@ export function CreateReviewForm({
         >
           Entrar
         </Link>
+      </section>
+    );
+  }
+
+  if (success) {
+    return (
+      <section className="rounded-md border border-ink/10 bg-white p-6 shadow-soft">
+        <h1 className="text-3xl font-black text-ink">¡Reseña enviada!</h1>
+        <p className="mt-3 font-semibold text-ink/65">
+          Tu reseña se ha guardado correctamente y está pendiente de revisión.
+        </p>
+        <p className="mt-2 text-sm text-ink/60">
+          La publicaremos una vez comprobemos que cumple con las normas de la taberna.
+        </p>
+        <div className="mt-6">
+          <Link className="button-primary" href={`/juegos/${gameSlug}`}>
+            Volver al juego
+          </Link>
+        </div>
       </section>
     );
   }
@@ -110,8 +130,7 @@ export function CreateReviewForm({
             return;
           }
 
-          router.push(`/resenas/${payload.review.slug}`);
-          router.refresh();
+          setSuccess(true);
         }}
       >
         <label className="block">

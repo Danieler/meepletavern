@@ -29,6 +29,7 @@ export default async function AdminReviewsPage() {
             slug: review.slug,
             authorName: review.authorName,
             createdByAdmin: review.createdByAdmin,
+            isApproved: review.isApproved,
             createdAt: review.createdAt.toISOString(),
             game: {
               id: review.game.id,

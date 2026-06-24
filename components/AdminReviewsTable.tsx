@@ -11,6 +11,7 @@ type AdminReviewRow = {
   slug: string;
   authorName: string;
   createdByAdmin: boolean;
+  isApproved: boolean;
   createdAt: string;
   game: {
     id: string;
@@ -84,6 +85,7 @@ export function AdminReviewsTable({
               <th className="px-4 py-3">Juego</th>
               <th className="px-4 py-3">Autor</th>
               <th className="px-4 py-3">Tipo</th>
+              <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Creada</th>
               <th className="px-4 py-3" />
             </tr>
@@ -120,6 +122,17 @@ export function AdminReviewsTable({
                   <td className="px-4 py-3 text-ink/70">{review.authorName}</td>
                   <td className="px-4 py-3 text-ink/70">
                     {review.createdByAdmin ? "Admin" : "Usuario"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {review.isApproved ? (
+                      <span className="inline-flex items-center rounded-full bg-moss/10 px-2 py-1 text-xs font-semibold text-moss">
+                        Aprobada
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-sun/20 px-2 py-1 text-xs font-semibold text-sun-dark">
+                        Pendiente
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-ink/70">{formatDate(review.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
