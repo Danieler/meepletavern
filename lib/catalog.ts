@@ -93,7 +93,11 @@ export type GameFilterInput = {
   mechanic?: string | string[];
   sort?: string;
   page?: string | number;
+  pageSize?: string | number;
 };
+
+export const CATALOG_SORT_VALUES = ["nombre", "valoracion", "fecha", "dificultad"] as const;
+export type CatalogSortValue = (typeof CATALOG_SORT_VALUES)[number];
 
 const publicMediaAssetSelect = {
   id: true,
@@ -445,7 +449,7 @@ export async function filterGames(input: GameFilterInput) {
 
   const sorted = sortGames(filtered, input.sort);
   const total = sorted.length;
-  const pageSize = 12;
+  const pageSize = Math.max(1, Math.trunc(Number(input.pageSize) || 12));
   const page = Math.max(1, Number(input.page) || 1);
   const games = sorted.slice((page - 1) * pageSize, page * pageSize);
 
