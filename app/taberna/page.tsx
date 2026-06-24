@@ -353,6 +353,7 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
                         fill
                         sizes="100px"
                         className="object-cover transition duration-500 group-hover/game:scale-110"
+                        unoptimized
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-white/20">
