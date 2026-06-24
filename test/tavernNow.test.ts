@@ -36,7 +36,7 @@ test("queryLatestTavernNowSignals reads one tiny public rating and list", async 
     gameTitle: "Wingspan",
     gameSlug: "wingspan",
     rating: 8,
-    userName: "Daniel",
+    userName: "daniel",
     userSlug: "daniel"
   });
   assert.equal(result.latestList?.gameCount, 6);

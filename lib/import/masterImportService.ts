@@ -29,6 +29,7 @@ import { slugify } from "@/lib/slug";
 import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 import { sourceRepository } from "@/lib/editorialRepositories";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
+import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import type { AiPromptSource, AiWebProposal } from "@/lib/ai/gameWebAutofill";
 import { importSourceProductCandidate } from "@/lib/import/importSourceProduct";
 import {
@@ -2029,20 +2030,33 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
     };
   }
 
-  const validation = validateBeforePublish(game);
-  const canPublish = validation.complete;
+  const ratingUpdate = await buildExternalRatingUpdate({
+    ...game,
+    title: game.title || game.name || "Nuevo juego",
+    name: game.name || game.title || "Nuevo juego"
+  });
+
+  const updatedGame = await prisma.game.update({
+    where: { id: gameId },
+    data: {
+      ratings: ratingUpdate.ratings
+    }
+  });
+
+  const validation = validateBeforePublish(updatedGame);
+  const canPublish = validation.valid;
   await prisma.game.update({
     where: { id: gameId },
     data: {
       status: canPublish ? GameStatus.published : GameStatus.review,
-      publishedAt: canPublish ? game.publishedAt || new Date() : null
+      publishedAt: canPublish ? updatedGame.publishedAt || new Date() : null
     }
   });
 
   return {
     status: canPublish ? "ready_to_publish" : "needs_review",
     missingFields: validation.errors,
-    warnings: dedupeStrings([...warnings, ...validation.warnings])
+    warnings: dedupeStrings([...warnings, ...validation.warnings, ...ratingUpdate.warnings])
   };
 }
 

@@ -55,7 +55,7 @@ test("the lightweight editor exposes formatting, image and preview controls", ()
   }));
 
   assert.match(html, /aria-label="Negrita"/);
-  assert.match(html, /aria-label="Imagen por URL"/);
+  assert.match(html, /aria-label="Imagen"/);
   assert.match(html, /Vista previa/);
   assert.match(html, /name="body"/);
 });

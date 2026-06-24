@@ -114,12 +114,12 @@ export async function completeGameEditorialFieldsWithBedrock(
                   "- publisher debe ser la editorial o marca solo si aparece claramente en la fuente o se puede inferir con mucha seguridad.\n" +
                   "- minPlayers, maxPlayers, minPlayTime, maxPlayTime y minAge deben ir como número o null. Si no estás bastante seguro, devuelve null.\n" +
                   "- Si el título coincide claramente con un juego publicado y conoces su ficha estándar con seguridad alta, prioriza completar esos campos estructurados.\n" +
-                  "- shortDescription debe ser un resumen editorial potente de 1 o 2 frases, útil para catálogo.\n" +
-                  "- longDescription debe ser una descripción editorial desarrollada, concreta y sin frases tipo 'importado' o 'pendiente de revisión'.\n" +
+                  "- shortDescription debe ser un resumen editorial potente, conciso y directo de unas 1 o 2 frases (entre 150 y 350 caracteres), ideal para catálogo.\n" +
+                  "- longDescription debe ser una descripción editorial muy desarrollada, rica en detalles, inmersiva e interesante, estructurada en 2 o 3 párrafos completos. Debe tener entre 150 y 300 palabras (entre 800 y 2000 caracteres) y explicar con detalle la temática, el flujo o decisiones de juego, los componentes clave y las sensaciones/dinámicas en mesa, evitando frases genéricas o repetitivas.\n" +
                   "- Si conoces rango de jugadores, duración o edad, intégralos con naturalidad en shortDescription o longDescription.\n" +
                   "- Usa título limpio del juego, no la marca o editorial, salvo que sea realmente parte del nombre.\n" +
-                  "- shortDescription máximo 300 caracteres.\n" +
-                  "- longDescription máximo 1200 caracteres.\n" +
+                  "- shortDescription máximo 400 caracteres.\n" +
+                  "- longDescription máximo 2500 caracteres.\n" +
                   `- categories máximo 5 y solo etiquetas exactas de esta lista: ${CANONICAL_CATEGORIES.join(", ")}.\n` +
                   `- mechanics máximo 6, solo sistemas reales de juego y solo etiquetas exactas de esta lista: ${CANONICAL_MECHANICS.join(", ")}.\n` +
                   "- themes máximo 5 y solo con temas genéricos como Fantasía, Ciencia ficción, Terror, Naturaleza, Animales, Insectos, Espacio, Histórico, Economía, Guerra o Aventura. No uses personajes, piezas, roles, componentes ni objetivos concretos como Reina, Abeja Reina, Colmena o similares.\n" +
@@ -134,7 +134,7 @@ export async function completeGameEditorialFieldsWithBedrock(
           }
         ],
         inferenceConfig: {
-          maxTokens: 1600,
+          maxTokens: 4000,
           temperature: 0.2,
           topP: 0.9
         }
