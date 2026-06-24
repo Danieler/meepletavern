@@ -4,16 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { BrandIcon } from "@/components/BrandIcon";
-import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { PublicAuthControls } from "@/components/PublicAuthControls";
 import { PublicDesktopNavigation, PublicMobileMenu } from "@/components/PublicNavigation";
-import { useAuth } from "@/hooks/useAuth";
 import { siteConfig } from "@/lib/site";
 
 export function PublicHeader() {
   const pathname = usePathname();
   const isSearchPage = pathname === "/juegos";
-  const { user, loading } = useAuth();
 
   return (
     <header className="tavern-header sticky top-0 z-40 text-white">
@@ -48,16 +45,6 @@ export function PublicHeader() {
                 <BrandIcon name="search" size={18} />
                 <span className="hidden sm:inline">Buscar</span>
               </Link>
-            )}
-            {/* CTA visible en móvil solo para guest */}
-            {!loading && !user && (
-              <AuthCtaButton
-                context="catalog"
-                className="min-h-10 px-3 py-2 text-sm"
-                aria-label="Crear mi ludoteca gratis"
-              >
-                Crear gratis
-              </AuthCtaButton>
             )}
             <PublicMobileMenu />
           </div>

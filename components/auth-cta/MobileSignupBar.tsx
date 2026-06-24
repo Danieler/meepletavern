@@ -69,9 +69,17 @@ export function MobileSignupBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
-      <div className="mx-auto flex max-w-md items-center gap-3 rounded-lg border border-walnut/15 bg-[#2f1d16]/95 p-3 text-white shadow-2xl backdrop-blur">
-        <p className="min-w-0 flex-1 text-sm font-extrabold leading-5">{copy.text}</p>
-        <AuthCtaButton context="catalog" className="min-h-10 shrink-0 px-3 py-2 text-sm" next={next} intent={copy.intent}>
+      <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-ember/25 bg-[#251610]/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ember/20 text-ember text-sm leading-none">
+          ✨
+        </div>
+        <p className="min-w-0 flex-1 text-sm font-extrabold leading-snug">{copy.text}</p>
+        <AuthCtaButton
+          context="catalog"
+          className="min-h-10 shrink-0 px-4 py-2 text-xs font-black bg-ember border-none hover:bg-ember-strong text-white rounded-md shadow-md transition-all active:scale-[0.98]"
+          next={next}
+          intent={copy.intent}
+        >
           {copy.button}
         </AuthCtaButton>
       </div>

@@ -316,7 +316,7 @@ export function AuthScreen({
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-5xl px-4 py-4 sm:py-8">
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
@@ -326,60 +326,66 @@ export function AuthScreen({
           setGoogleScriptStatus("failed");
         }}
       />
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_420px] md:items-center">
-        <section>
-          <h1 className="text-4xl font-black leading-tight text-ink md:text-5xl">
-            {isRegister
-              ? (authContext ? AUTH_CONTEXT_TITLES[authContext] : "Crea tu ludoteca gratis")
-              : "Entra en tu cuenta"}
-          </h1>
-          <p className="mt-3 max-w-xl text-base font-semibold leading-7 text-ink/65">
-            {introMessage ??
-              (isRegister
-                ? "Guarda juegos, crea listas y descubre qué tienen otros taberneros."
-                : "Accede para gestionar tu perfil, tu ludoteca y tus aportes en MeepleTavern.")}
-          </p>
-          {isRegister ? (
-            <p className="mt-3 text-sm font-black text-ember">
-              Gratis. Sin spam. Puedes borrar tu cuenta cuando quieras.
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-start">
+        <section className="space-y-6">
+          <div>
+            <h1 className="text-4xl font-black leading-tight text-wood md:text-5xl">
+              {isRegister
+                ? (authContext ? AUTH_CONTEXT_TITLES[authContext] : "Crea tu ludoteca gratis")
+                : "Entra en tu cuenta"}
+            </h1>
+            <p className="mt-3 max-w-xl text-base font-semibold leading-7 text-walnut/70">
+              {introMessage ??
+                (isRegister
+                  ? "Únete a la taberna de juegos de mesa en español para conectar, jugar y organizar."
+                  : "Accede para gestionar tu perfil, tu ludoteca y tus aportes en MeepleTavern.")}
             </p>
+          </div>
+
+          {isRegister ? (
+            <>
+              {/* Mobile: compact trust signal — no scroll friction */}
+              <p className="text-sm font-black text-ember lg:hidden">
+                Gratis · Sin spam · Borra tu cuenta cuando quieras
+              </p>
+
+              {/* Desktop: full benefit checklist beside the form */}
+              <div className="hidden lg:block space-y-4 rounded-xl border border-walnut/12 bg-[#fffcf5] p-5 shadow-sm md:p-6">
+                <p className="text-xs font-black uppercase tracking-wider text-ember">¿Qué consigues al registrarte?</p>
+                <ul className="grid gap-3.5 text-sm font-semibold text-walnut/85">
+                  <li className="flex items-start gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
+                    <span><strong>Organiza tu colección:</strong> Guarda tus juegos y lleva la cuenta de tus partidas.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
+                    <span><strong>Puntúa y opina:</strong> Valora juegos y comparte tus opiniones con la comunidad.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
+                    <span><strong>Conecta con taberneros:</strong> Descubre qué juegan otros y organiza mesas.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
+                    <span><strong>100% Gratis:</strong> Sin anuncios invasivos. Borra tu cuenta cuando quieras.</span>
+                  </li>
+                </ul>
+              </div>
+            </>
           ) : null}
         </section>
 
-        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft md:p-6">
+        <section className="rounded-2xl border border-walnut/12 bg-white p-6 shadow-md md:p-8 transition-all hover:shadow-lg">
           {!isConfigured ? (
-            <div className="rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
+            <div className="mb-4 rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
               {configMessage}
             </div>
           ) : null}
 
-          <div className="mb-5 flex rounded-md bg-ink/5 p-1">
-            {(["register", "login"] as const).map((value) => {
-              const active = mode === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  className={active ? "button-primary flex-1 min-h-10" : "flex-1 rounded-md px-4 py-2 text-sm font-bold text-ink/65 transition hover:text-ink"}
-                  onClick={() => {
-                    setMode(value);
-                    setFeedback(null);
-                    setFieldErrors({});
-                    if (value === "register") {
-                      setAcceptedTerms(false);
-                    }
-                  }}
-                >
-                  {value === "login" ? "Entrar" : "Crear ludoteca"}
-                </button>
-              );
-            })}
-          </div>
-
           {useGoogleOAuthFallback ? (
             <button
               type="button"
-              className="button-secondary mb-4 w-full justify-center"
+              className="button-secondary mb-4 w-full justify-center min-h-11 shadow-sm hover:border-ember"
               disabled={submitting || cooldownSeconds > 0 || !isConfigured}
               onClick={() => void handleGoogleSignIn()}
             >
@@ -387,7 +393,7 @@ export function AuthScreen({
             </button>
           ) : (
             <div
-              className={`relative mb-4 min-h-10 w-full ${
+              className={`relative mb-4 min-h-11 w-full ${
                 submitting || cooldownSeconds > 0 || !isConfigured
                   ? "pointer-events-none opacity-60"
                   : ""
@@ -399,7 +405,7 @@ export function AuthScreen({
               />
               {!googleButtonReady ? (
                 <button
-                  className="button-secondary absolute inset-0 w-full justify-center"
+                  className="button-secondary absolute inset-0 w-full justify-center min-h-11"
                   disabled
                   type="button"
                 >
@@ -409,22 +415,22 @@ export function AuthScreen({
             </div>
           )}
 
-          <div className="mb-4 flex items-center gap-3">
-            <div className="h-px flex-1 bg-ink/10" />
-            <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">o con email</span>
-            <div className="h-px flex-1 bg-ink/10" />
+          <div className="mb-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-walnut/10" />
+            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-walnut/45">o con email</span>
+            <div className="h-px flex-1 bg-walnut/10" />
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             {isRegister ? (
               <label className="block">
-                <span className="text-sm font-bold text-ink">Nombre</span>
-                <span className="relative mt-2 flex items-center">
-                  <UserRound className="pointer-events-none absolute left-3 h-4 w-4 text-ink/40" aria-hidden="true" />
+                <span className="text-xs font-extrabold text-wood">Nombre</span>
+                <span className="relative mt-1.5 flex items-center">
+                  <UserRound className="pointer-events-none absolute left-3.5 h-4 w-4 text-walnut/40" aria-hidden="true" />
                   <input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
-                    className="focus-ring min-h-11 w-full rounded-md border border-ink/10 bg-white pl-10 pr-3 text-sm text-ink"
+                    className="focus-ring min-h-11 w-full rounded-md border border-walnut/20 bg-white pl-10 pr-3 text-sm text-ink shadow-sm transition hover:border-walnut/35"
                     placeholder="Tu nombre"
                     autoComplete="name"
                   />
@@ -434,13 +440,13 @@ export function AuthScreen({
             ) : null}
 
             <label className="block">
-              <span className="text-sm font-bold text-ink">Email</span>
-              <span className="relative mt-2 flex items-center">
-                <Mail className="pointer-events-none absolute left-3 h-4 w-4 text-ink/40" aria-hidden="true" />
+              <span className="text-xs font-extrabold text-wood">Email</span>
+              <span className="relative mt-1.5 flex items-center">
+                <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-walnut/40" aria-hidden="true" />
                 <input
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="focus-ring min-h-11 w-full rounded-md border border-ink/10 bg-white pl-10 pr-3 text-sm text-ink"
+                  className="focus-ring min-h-11 w-full rounded-md border border-walnut/20 bg-white pl-10 pr-3 text-sm text-ink shadow-sm transition hover:border-walnut/35"
                   placeholder="tu@email.com"
                   autoComplete="email"
                   inputMode="email"
@@ -450,20 +456,20 @@ export function AuthScreen({
             </label>
 
             <label className="block">
-              <span className="text-sm font-bold text-ink">Contraseña</span>
-              <span className="relative mt-2 flex items-center">
-                <LockKeyhole className="pointer-events-none absolute left-3 h-4 w-4 text-ink/40" aria-hidden="true" />
+              <span className="text-xs font-extrabold text-wood">Contraseña</span>
+              <span className="relative mt-1.5 flex items-center">
+                <LockKeyhole className="pointer-events-none absolute left-3.5 h-4 w-4 text-walnut/40" aria-hidden="true" />
                 <input
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="focus-ring min-h-11 w-full rounded-md border border-ink/10 bg-white pl-10 pr-11 text-sm text-ink"
+                  className="focus-ring min-h-11 w-full rounded-md border border-walnut/20 bg-white pl-10 pr-11 text-sm text-ink shadow-sm transition hover:border-walnut/35"
                   placeholder="Mínimo 6 caracteres"
                   autoComplete={isRegister ? "new-password" : "current-password"}
                   type={showPassword ? "text" : "password"}
                 />
                 <button
                   type="button"
-                  className="absolute right-3 text-ink/45 transition hover:text-ink"
+                  className="absolute right-3.5 text-walnut/45 transition hover:text-wood"
                   onClick={() => setShowPassword((current) => !current)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
@@ -473,11 +479,11 @@ export function AuthScreen({
             </label>
 
             {isRegister ? (
-              <div>
-                <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-6 text-ink/70">
+              <div className="pt-1">
+                <label className="flex cursor-pointer items-start gap-3 text-xs font-semibold leading-5 text-walnut/70">
                   <input
                     checked={acceptedTerms}
-                    className="focus-ring mt-1 h-4 w-4 shrink-0 accent-ember"
+                    className="focus-ring mt-0.5 h-4 w-4 shrink-0 rounded border-walnut/20 accent-ember"
                     onChange={(event) => {
                       setAcceptedTerms(event.target.checked);
                       setFieldErrors((current) => ({ ...current, terms: undefined }));
@@ -485,7 +491,7 @@ export function AuthScreen({
                     type="checkbox"
                   />
                   <span>
-                    Acepto las <Link className="font-bold text-wood underline underline-offset-2" href="/aviso-legal" target="_blank">condiciones de uso</Link> y confirmo que he leído la <Link className="font-bold text-wood underline underline-offset-2" href="/privacidad" target="_blank">política de privacidad</Link>.
+                    Acepto las <Link className="font-bold text-wood underline underline-offset-2 hover:text-ember transition" href="/aviso-legal" target="_blank">condiciones de uso</Link> y confirmo que he leído la <Link className="font-bold text-wood underline underline-offset-2 hover:text-ember transition" href="/privacidad" target="_blank">política de privacidad</Link>.
                   </span>
                 </label>
                 {fieldErrors.terms ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.terms}</span> : null}
@@ -498,16 +504,49 @@ export function AuthScreen({
               </div>
             ) : null}
 
-            <button className="button-primary w-full" disabled={submitting || cooldownSeconds > 0 || !isConfigured} type="submit">
+            <button className="button-primary w-full shadow-md hover:shadow-lg transition min-h-11" disabled={submitting || cooldownSeconds > 0 || !isConfigured} type="submit">
               {submitting
                 ? "Enviando..."
                 : cooldownSeconds > 0
                   ? `Espera ${cooldownSeconds}s`
                   : isRegister
-                    ? "Crear mi ludoteca"
+                    ? "Crear mi ludoteca gratis"
                     : "Entrar"}
             </button>
           </form>
+
+          {isRegister ? (
+            <p className="mt-5 text-center text-xs font-semibold text-walnut/60">
+              ¿Ya tienes una cuenta?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setFeedback(null);
+                  setFieldErrors({});
+                }}
+                className="text-ember hover:text-amber-strong transition font-bold underline underline-offset-2"
+              >
+                Inicia sesión aquí
+              </button>
+            </p>
+          ) : (
+            <p className="mt-5 text-center text-xs font-semibold text-walnut/60">
+              ¿No tienes una cuenta aún?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("register");
+                  setFeedback(null);
+                  setFieldErrors({});
+                  setAcceptedTerms(false);
+                }}
+                className="text-ember hover:text-amber-strong transition font-bold underline underline-offset-2"
+              >
+                Regístrate gratis
+              </button>
+            </p>
+          )}
         </section>
       </div>
     </div>

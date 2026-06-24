@@ -37,24 +37,30 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
 
   if (!user) {
     if (vertical) {
-      // Dentro del menú móvil: opciones apiladas
+      // Dentro del menú móvil: CTA primario + link sutil para login
       return (
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           <AuthCtaButton context="header" className="justify-center">
-            Crear mi ludoteca gratis
+            Crear cuenta gratis
           </AuthCtaButton>
-          <AuthCtaButton variant="secondary" mode="login" className="justify-center">
-            Entrar
+          <AuthCtaButton
+            variant="subtle"
+            mode="login"
+            context="header"
+            className="justify-center text-sm font-bold text-parchment/70 hover:text-white transition py-1"
+          >
+            Ya tengo cuenta · Entrar
           </AuthCtaButton>
         </div>
       );
     }
 
-    // Header desktop: CTA que cubre tanto registro como login
+    // Header desktop: un solo CTA limpio
     return (
       <AuthCtaButton
+        variant="primary"
         context="header"
-        className="hidden lg:inline-flex whitespace-nowrap px-6 py-2.5 text-sm font-bold min-h-10"
+        className="hidden lg:inline-flex whitespace-nowrap px-5 py-2 text-sm font-extrabold min-h-10"
       >
         Entrar
       </AuthCtaButton>
