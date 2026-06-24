@@ -31,20 +31,45 @@ function PageHeroSkeleton({ split = false, compact = false }: { split?: boolean;
           {split && !compact ? <DarkBone className="mt-7 h-12 w-full max-w-xl" /> : null}
         </div>
         {split ? (
-          <div className={`rounded-xl border border-white/10 bg-white/5 w-full max-w-sm lg:ml-auto ${compact ? "p-2.5" : "p-4"}`}>
-            <DarkBone className={`${compact ? "mb-2" : "mb-4"} h-3.5 w-40`} />
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 3 }, (_, index) => <DarkBone key={index} className={compact ? "h-12" : "h-16"} />)}
-            </div>
-            <div className={`${compact ? "mt-2 pt-2" : "mt-4 pt-4"} border-t border-white/10 flex gap-2 items-center`}>
-              <DarkBone className={compact ? "h-10 w-24 shrink-0" : "h-14 w-10 shrink-0"} />
-              <div className="flex-1 space-y-2 py-0.5">
-                <DarkBone className="h-2.5 w-16" />
-                <DarkBone className="h-3 w-3/4" />
-                <DarkBone className="h-2 w-1/2" />
+          compact ? (
+            <div className="rounded-xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl w-full max-w-full sm:max-w-[380px] lg:ml-auto">
+              <div className="rounded-lg bg-[#0a0a0a]/90 p-3 border border-white/5 overflow-hidden">
+                <DarkBone className="mb-2 h-3.5 w-40" />
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {Array.from({ length: 3 }, (_, index) => <DarkBone key={index} className="h-14" />)}
+                </div>
+                <div className="mt-2 pt-2 border-t border-white/10 space-y-2">
+                  <DarkBone className="h-2.5 w-24 mb-3" />
+                  <div className="flex gap-2 overflow-hidden -mx-1 px-1">
+                    {Array.from({ length: 3 }, (_, index) => (
+                      <div key={index} className="h-[46px] w-[112px] shrink-0 bg-white/5 rounded-md border border-white/5 flex items-center gap-2 p-1">
+                        <div className="h-[38px] w-[38px] bg-white/10 rounded shrink-0"></div>
+                        <div className="flex-1 space-y-1">
+                          <DarkBone className="h-2 w-10" />
+                          <DarkBone className="h-1.5 w-6" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-white/10 bg-white/5 w-full max-w-sm lg:ml-auto p-4">
+              <DarkBone className="mb-4 h-3.5 w-40" />
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 3 }, (_, index) => <DarkBone key={index} className="h-16" />)}
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/10 flex gap-2 items-center">
+                <DarkBone className="h-14 w-10 shrink-0" />
+                <div className="flex-1 space-y-2 py-0.5">
+                  <DarkBone className="h-2.5 w-16" />
+                  <DarkBone className="h-3 w-3/4" />
+                  <DarkBone className="h-2 w-1/2" />
+                </div>
+              </div>
+            </div>
+          )
         ) : null}
       </div>
     </section>

@@ -117,23 +117,39 @@ async function TavernGameOverviewWrapper() {
 
 function TavernHighlightsSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl animate-pulse w-full max-w-md lg:ml-auto">
-      <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-4">
-        <div className="h-8 w-8 rounded-full bg-white/10"></div>
-        <div className="space-y-2">
-          <div className="h-3 w-32 bg-white/10 rounded"></div>
-          <div className="h-2 w-20 bg-white/5 rounded"></div>
+    <div className="rounded-xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl animate-pulse w-full max-w-full sm:max-w-[380px] lg:ml-auto">
+      <div className="rounded-lg bg-[#0a0a0a]/90 p-3 border border-white/5 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-white/10 pb-2 mb-3">
+          <div className="h-7 w-7 rounded-full bg-white/10"></div>
+          <div className="space-y-1.5 flex-1">
+            <div className="h-3 w-32 bg-white/10 rounded"></div>
+            <div className="h-2 w-16 bg-white/5 rounded"></div>
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2 h-20 bg-white/5 rounded-lg border border-white/5"></div>
-        <div className="h-20 bg-white/5 rounded-lg border border-white/5"></div>
-        <div className="h-20 bg-white/5 rounded-lg border border-white/5"></div>
-      </div>
-      <div className="mt-4 pt-4 border-t border-white/10 flex gap-2">
-        <div className="h-32 w-28 bg-white/5 rounded-lg shrink-0 border border-white/5"></div>
-        <div className="h-32 w-28 bg-white/5 rounded-lg shrink-0 border border-white/5"></div>
-        <div className="h-32 w-28 bg-white/5 rounded-lg shrink-0 border border-white/5"></div>
+
+        {/* Bento Grid Stats */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="h-14 bg-white/5 rounded-lg border border-white/5"></div>
+          <div className="h-14 bg-white/5 rounded-lg border border-white/5"></div>
+          <div className="h-14 bg-white/5 rounded-lg border border-white/5"></div>
+        </div>
+
+        {/* Carousel / Trends list */}
+        <div className="mt-2 pt-2 border-t border-white/10 space-y-2">
+          <div className="h-2.5 w-24 bg-white/10 rounded mb-3"></div>
+          <div className="flex gap-2 overflow-hidden -mx-1 px-1">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-[46px] w-[112px] shrink-0 bg-white/5 rounded-md border border-white/5 flex items-center gap-2 p-1">
+                <div className="h-[38px] w-[38px] bg-white/10 rounded shrink-0"></div>
+                <div className="flex-1 space-y-1">
+                  <div className="h-2 bg-white/10 rounded w-10"></div>
+                  <div className="h-1.5 bg-white/5 rounded w-6"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -274,10 +290,10 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
 
   return (
     <div className="group relative w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl shadow-2xl transition-all duration-500 hover:border-white/20 hover:bg-black/50 sm:max-w-[380px] lg:ml-auto">
-      {/* Animated glowing border effect */}
-      <div className="absolute -inset-[100%] z-0 animate-[spin_10s_linear_infinite] bg-gradient-to-r from-transparent via-ember/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      {/* Animated glowing border effect - hidden on mobile to prevent overflow/performance issues */}
+      <div className="hidden md:block absolute -inset-[100%] z-0 animate-[spin_10s_linear_infinite] bg-gradient-to-r from-transparent via-ember/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       
-      <div className="relative z-10 rounded-lg bg-[#0a0a0a]/90 p-3 backdrop-blur-md border border-white/5">
+      <div className="relative z-10 rounded-lg bg-[#0a0a0a]/90 p-3 backdrop-blur-md border border-white/5 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -296,30 +312,40 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
 
         {/* Bento Grid Stats */}
         <div className="mt-3 grid grid-cols-3 gap-2">
-          {/* Big Stat */}
-          <Link href="#actividad" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
-            <div className="absolute -right-5 -bottom-5 opacity-[0.03] group-hover/stat:opacity-10 transition-opacity duration-500 group-hover/stat:scale-110">
-              <Activity size={74} />
+          {/* Movimientos */}
+          <Link href="#actividad" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 text-center transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <div className="absolute -right-4 -bottom-4 opacity-[0.02] group-hover/stat:opacity-10 transition-opacity duration-500 group-hover/stat:scale-110">
+              <Activity size={48} />
             </div>
-            <div className="relative">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-wider text-parchment/50 mb-1">Movimientos</p>
-                <p className="font-display text-3xl font-bold leading-none text-white">{highlights.weeklyActivityCount}</p>
-              </div>
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              <Activity size={13} className="text-parchment/40 mb-1 group-hover/stat:text-parchment/80 transition-colors" />
+              <p className="font-display text-lg sm:text-xl font-bold leading-none text-white">{highlights.weeklyActivityCount}</p>
+              <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-parchment/50">Movimientos</p>
             </div>
           </Link>
 
-          {/* Small Stats */}
-          <Link href="#ultimos-juegos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
-            <Dices size={13} className="text-parchment/40 mb-1 group-hover/stat:text-parchment/80 transition-colors" />
-            <p className="font-display text-xl font-bold leading-none text-white">{highlights.weeklyLibraryAdds}</p>
-            <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-parchment/50">Añadidos</p>
+          {/* Añadidos */}
+          <Link href="#ultimos-juegos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 text-center transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <div className="absolute -right-4 -bottom-4 opacity-[0.02] group-hover/stat:opacity-10 transition-opacity duration-500 group-hover/stat:scale-110">
+              <Dices size={48} />
+            </div>
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              <Dices size={13} className="text-parchment/40 mb-1 group-hover/stat:text-parchment/80 transition-colors" />
+              <p className="font-display text-lg sm:text-xl font-bold leading-none text-white">{highlights.weeklyLibraryAdds}</p>
+              <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-parchment/50">Añadidos</p>
+            </div>
           </Link>
 
-          <Link href="#juegos-mas-queridos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
-            <Heart size={13} className="text-parchment/40 mb-1 group-hover/stat:text-ember transition-colors" />
-            <p className="font-display text-xl font-bold leading-none text-white">{highlights.topWantedGame?.count || 0}</p>
-            <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-parchment/50">Deseos</p>
+          {/* Deseos */}
+          <Link href="#juegos-mas-queridos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-2 text-center transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <div className="absolute -right-4 -bottom-4 opacity-[0.02] group-hover/stat:opacity-10 transition-opacity duration-500 group-hover/stat:scale-110">
+              <Heart size={48} />
+            </div>
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              <Heart size={13} className="text-parchment/40 mb-1 group-hover/stat:text-ember transition-colors" />
+              <p className="font-display text-lg sm:text-xl font-bold leading-none text-white">{highlights.topWantedGame?.count || 0}</p>
+              <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-parchment/50">Deseos</p>
+            </div>
           </Link>
         </div>
 
@@ -336,40 +362,44 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
             </div>
             
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 snap-x">
-              {mostWanted.slice(0, 3).map((game) => (
-                <Link 
-                  key={game.gameId}
-                  href={`/juegos/${encodeURIComponent(game.slug)}`}
-                  className="group/game relative grid w-[112px] flex-none grid-cols-[38px_minmax(0,1fr)] items-center gap-2 rounded-md border border-white/5 bg-black/40 p-1.5 transition duration-300 hover:bg-white/10 hover:border-ember/30 snap-start"
-                >
-                  <div className="relative h-[38px] w-[38px] overflow-hidden rounded bg-white/5 shadow-inner">
-                    {game.coverImageUrl ? (
-                      <Image
-                        src={game.coverImageUrl}
-                        alt={game.coverImageAlt || game.title}
-                        fill
-                        sizes="100px"
-                        className="object-cover transition duration-500 group-hover/game:scale-110"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-white/20">
-                        <Gamepad2 size={16} />
-                      </div>
-                    )}
-                    {/* Overlay gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover/game:opacity-100" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate text-[10px] font-bold leading-tight text-white group-hover/game:text-ember transition-colors">
-                      {game.title}
-                    </h3>
-                    <p className="mt-0.5 flex items-center gap-1 text-[9px] font-semibold text-parchment/60">
-                      <Heart size={9} className="fill-ember text-ember" /> {game.count} {game.count === 1 ? 'deseo' : 'deseos'}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+              {mostWanted.slice(0, 3).map((game) => {
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+                const isOptimizable = Boolean(game.coverImageUrl && supabaseUrl && game.coverImageUrl.startsWith(supabaseUrl));
+                return (
+                  <Link 
+                    key={game.gameId}
+                    href={`/juegos/${encodeURIComponent(game.slug)}`}
+                    className="group/game relative grid w-[112px] flex-none grid-cols-[38px_minmax(0,1fr)] items-center gap-2 rounded-md border border-white/5 bg-black/40 p-1.5 transition duration-300 hover:bg-white/10 hover:border-ember/30 snap-start"
+                  >
+                    <div className="relative h-[38px] w-[38px] overflow-hidden rounded bg-white/5 shadow-inner">
+                      {game.coverImageUrl ? (
+                        <Image
+                          src={game.coverImageUrl}
+                          alt={game.coverImageAlt || game.title}
+                          fill
+                          sizes="100px"
+                          className="object-cover transition duration-500 group-hover/game:scale-110"
+                          unoptimized={!isOptimizable}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-white/20">
+                          <Gamepad2 size={16} />
+                        </div>
+                      )}
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover/game:opacity-100" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[10px] font-bold leading-tight text-white group-hover/game:text-ember transition-colors">
+                        {game.title}
+                      </h3>
+                      <p className="mt-0.5 flex items-center gap-1 text-[9px] font-semibold text-parchment/60">
+                        <Heart size={9} className="fill-ember text-ember" /> {game.count} {game.count === 1 ? 'deseo' : 'deseos'}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
