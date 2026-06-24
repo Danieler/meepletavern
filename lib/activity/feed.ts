@@ -20,6 +20,7 @@ export type TavernActivityFeedItem = {
   listSlug: string | null;
   rating: number | null;
   commentSnippet: string | null;
+  gameCoverImageUrl: string | null;
   createdAt: string;
 };
 
@@ -31,14 +32,16 @@ export type TavernActivityFeed = {
 type ActivityFeedDb = Pick<typeof prisma, "activityEvent">;
 
 export async function queryTavernActivityFeed(
-  input: { limit?: number; cursor?: string | null; query?: string | null } = {},
+  input: { limit?: number; cursor?: string | null; query?: string | null; type?: string | null } = {},
   db: ActivityFeedDb = prisma
 ): Promise<TavernActivityFeed> {
   const limit = normalizeLimit(input.limit);
   const search = normalizeTavernSearch(input.query);
+  const typeFilter = normalizeTypeFilter(input.type);
   const rows = await db.activityEvent.findMany({
     where: {
       visibility: ActivityEventVisibility.PUBLIC,
+      ...(typeFilter ? { type: { in: typeFilter } } : {}),
       ...(search
         ? {
             OR: [
@@ -65,7 +68,10 @@ export async function queryTavernActivityFeed(
       listSlugSnapshot: true,
       rating: true,
       commentSnippet: true,
-      createdAt: true
+      createdAt: true,
+      game: {
+        select: { coverImageUrl: true }
+      }
     }
   });
   const hasMore = rows.length > limit;
@@ -84,6 +90,7 @@ export async function queryTavernActivityFeed(
       listSlug: row.listSlugSnapshot,
       rating: row.rating,
       commentSnippet: row.commentSnippet,
+      gameCoverImageUrl: row.game?.coverImageUrl || null,
       createdAt: row.createdAt.toISOString()
     })),
     nextCursor: hasMore ? visibleRows.at(-1)?.id || null : null
@@ -97,11 +104,13 @@ const getCachedTavernActivityFeed = unstable_cache(
 );
 
 export function getTavernActivityFeed(
-  input: { limit?: number; cursor?: string | null; query?: string | null } = {}
+  input: { limit?: number; cursor?: string | null; query?: string | null; type?: string | null } = {}
 ) {
   const search = normalizeTavernSearch(input.query);
-  if (search) {
-    return queryTavernActivityFeed({ limit: input.limit, cursor: input.cursor, query: search });
+  const typeFilter = normalizeTypeFilter(input.type);
+  
+  if (search || input.type) {
+    return queryTavernActivityFeed({ limit: input.limit, cursor: input.cursor, query: search, type: input.type });
   }
 
   return getCachedTavernActivityFeed(normalizeLimit(input.limit), input.cursor || null);
@@ -110,4 +119,18 @@ export function getTavernActivityFeed(
 function normalizeLimit(value?: number) {
   if (!Number.isFinite(value)) return TAVERN_ACTIVITY_PAGE_SIZE;
   return Math.min(MAX_TAVERN_ACTIVITY_PAGE_SIZE, Math.max(1, Math.trunc(value || TAVERN_ACTIVITY_PAGE_SIZE)));
+}
+
+function normalizeTypeFilter(type?: string | null): ActivityEventType[] | null {
+  if (!type || type === "all") return null;
+  switch (type) {
+    case "ratings":
+      return [ActivityEventType.RATED, ActivityEventType.COMMENTED];
+    case "lists":
+      return [ActivityEventType.LIST_CREATED, ActivityEventType.LIST_GAME_ADDED];
+    case "games":
+      return [ActivityEventType.COLLECTION_ADDED, ActivityEventType.WANT_TO_PLAY, ActivityEventType.PLAYED];
+    default:
+      return null;
+  }
 }

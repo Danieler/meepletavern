@@ -15,12 +15,13 @@ export async function GET(request: Request) {
   }
 
   const query = normalizeTavernSearch(rawQuery);
+  const type = searchParams.get("type")?.trim() || null;
 
   try {
-    const feed = await getTavernActivityFeed({ limit: TAVERN_ACTIVITY_PAGE_SIZE, cursor, query });
+    const feed = await getTavernActivityFeed({ limit: TAVERN_ACTIVITY_PAGE_SIZE, cursor, query, type });
     return NextResponse.json(feed, {
       headers: {
-        "Cache-Control": query ? "no-store" : "public, s-maxage=60, stale-while-revalidate=300"
+        "Cache-Control": (query || type) ? "no-store" : "public, s-maxage=60, stale-while-revalidate=300"
       }
     });
   } catch {

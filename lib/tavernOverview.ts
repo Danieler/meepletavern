@@ -43,7 +43,13 @@ export type TavernOverview = {
 export type TavernActivityHighlights = {
   weeklyLibraryAdds: number;
   weeklyActivityCount: number;
-  topWantedGame: { title: string; slug: string; count: number } | null;
+  topWantedGame: { 
+    title: string; 
+    slug: string; 
+    count: number;
+    coverImageUrl: string | null;
+    coverImageAlt: string | null;
+  } | null;
 };
 
 type TavernOverviewDb = Pick<typeof prisma, "activityEvent" | "userLibraryGame" | "game">;
@@ -161,7 +167,13 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
       weeklyLibraryAdds,
       weeklyActivityCount,
       topWantedGame: topWanted
-        ? { title: topWanted.title, slug: topWanted.slug, count: topWanted.count }
+        ? { 
+            title: topWanted.title, 
+            slug: topWanted.slug, 
+            count: topWanted.count,
+            coverImageUrl: topWanted.coverImageUrl,
+            coverImageAlt: topWanted.coverImageAlt
+          }
         : null
     }
   };

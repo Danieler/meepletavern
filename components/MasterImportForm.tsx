@@ -10,9 +10,9 @@ import {
   type MasterImportBatchEvent
 } from "@/lib/import/masterImportBatchShared";
 
-export function MasterImportForm({ disabled }: { disabled?: boolean }) {
+export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: boolean; initialValue?: string }) {
   const [state, setState] = useState<MasterImportBatchState>(initialMasterImportBatchState);
-  const [rawInput, setRawInput] = useState("");
+  const [rawInput, setRawInput] = useState(initialValue);
   const [progress, setProgress] = useState<ImportProgressState | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);

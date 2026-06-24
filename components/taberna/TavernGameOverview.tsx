@@ -1,13 +1,31 @@
+"use client";
+
 import Link from "next/link";
 import { Flame, Gamepad2, Heart } from "lucide-react";
+import { useState } from "react";
 import { ListGameThumbnail } from "@/components/lists/ListGameThumbnail";
 import type { TavernOverview, TavernRankedGame, TavernRecentGame } from "@/lib/tavernOverview";
 
 export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
+  const [activeTab, setActiveTab] = useState<"recent" | "wanted" | "played">("recent");
   const hasAny = overview.recentGames.length || overview.mostWanted.length || overview.mostPlayed.length;
 
+  if (!hasAny) {
+    return (
+      <section className="tavern-panel p-4 sm:p-6 lg:col-span-2" aria-labelledby="tavern-overview-title">
+        <div className="border-b border-walnut/10 pb-4">
+          <p className="tavern-eyebrow">En las mesas</p>
+          <h2 id="tavern-overview-title" className="font-display mt-2 text-3xl font-bold text-wood">
+            Lo último de la comunidad
+          </h2>
+        </div>
+        <EmptyState>Aún no hay suficientes movimientos en la taberna.</EmptyState>
+      </section>
+    );
+  }
+
   return (
-    <section className="tavern-panel p-5 sm:p-6 lg:col-span-2" aria-labelledby="tavern-overview-title">
+    <section className="tavern-panel p-4 sm:p-6 lg:col-span-2" aria-labelledby="tavern-overview-title">
       <div className="border-b border-walnut/10 pb-4">
         <p className="tavern-eyebrow">En las mesas</p>
         <h2 id="tavern-overview-title" className="font-display mt-2 text-3xl font-bold text-wood">
@@ -15,25 +33,110 @@ export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
         </h2>
       </div>
 
-      {hasAny ? (
-        <div className="mt-5 grid gap-6 lg:grid-cols-[1.4fr_0.8fr_0.8fr]">
-          <div id="ultimos-juegos" className="scroll-mt-24">
+      {/* Mobile/Tablet Tabs Switcher (< lg) */}
+      <div className="mt-4 flex gap-1 bg-walnut/5 p-1 rounded-lg lg:hidden">
+        <button
+          type="button"
+          onClick={() => setActiveTab("recent")}
+          className={`flex flex-1 items-center justify-center gap-1.5 py-2 px-1 text-xs font-black uppercase tracking-wider rounded-md transition ${
+            activeTab === "recent"
+              ? "bg-white text-wood shadow-sm border border-walnut/10"
+              : "text-walnut/60 hover:text-wood hover:bg-white/40"
+          }`}
+        >
+          <Flame size={14} className={activeTab === "recent" ? "text-ember" : "text-walnut/50"} />
+          Añadidos
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("wanted")}
+          className={`flex flex-1 items-center justify-center gap-1.5 py-2 px-1 text-xs font-black uppercase tracking-wider rounded-md transition ${
+            activeTab === "wanted"
+              ? "bg-white text-wood shadow-sm border border-walnut/10"
+              : "text-walnut/60 hover:text-wood hover:bg-white/40"
+          }`}
+        >
+          <Heart size={14} className={activeTab === "wanted" ? "text-ember" : "text-walnut/50"} />
+          Queridos
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("played")}
+          className={`flex flex-1 items-center justify-center gap-1.5 py-2 px-1 text-xs font-black uppercase tracking-wider rounded-md transition ${
+            activeTab === "played"
+              ? "bg-white text-wood shadow-sm border border-walnut/10"
+              : "text-walnut/60 hover:text-wood hover:bg-white/40"
+          }`}
+        >
+          <Gamepad2 size={14} className={activeTab === "played" ? "text-ember" : "text-walnut/50"} />
+          Jugados
+        </button>
+      </div>
+
+      {/* Mobile/Tablet content view (< lg) */}
+      <div className="mt-4 lg:hidden">
+        {activeTab === "recent" && (
+          <div id="ultimos-juegos-mobile">
             <SectionTitle icon={Flame}>Últimos juegos añadidos</SectionTitle>
             {overview.recentGames.length ? (
               <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                 {overview.recentGames.map((game) => <RecentGameRow key={game.gameId} game={game} />)}
               </ul>
             ) : (
-              <EmptyState>La taberna acaba de abrir. Añade juegos a tu ludoteca para que aparezcan aquí.</EmptyState>
+              <EmptyState>La taberna acaba de abrir. Añade juegos a tu ludoteca.</EmptyState>
             )}
           </div>
+        )}
 
-          <Ranking id="juegos-mas-queridos" title="Juegos más queridos" icon={Heart} games={overview.mostWanted} label={(count) => `${count} ${count === 1 ? "quiere" : "quieren"} probarlo`} />
-          <Ranking id="juegos-mas-jugados" title="Más jugados" icon={Gamepad2} games={overview.mostPlayed} label={(count) => `${count} ${count === 1 ? "lo ha" : "lo han"} jugado`} />
+        {activeTab === "wanted" && (
+          <Ranking 
+            id="juegos-mas-queridos-mobile" 
+            title="Juegos más queridos" 
+            icon={Heart} 
+            games={overview.mostWanted} 
+            label={(count) => `${count} ${count === 1 ? "quiere" : "quieren"} probarlo`} 
+          />
+        )}
+
+        {activeTab === "played" && (
+          <Ranking 
+            id="juegos-mas-jugados-mobile" 
+            title="Más jugados" 
+            icon={Gamepad2} 
+            games={overview.mostPlayed} 
+            label={(count) => `${count} ${count === 1 ? "lo ha" : "lo han"} jugado`} 
+          />
+        )}
+      </div>
+
+      {/* Desktop Grid view (>= lg) */}
+      <div className="hidden lg:grid lg:grid-cols-[1.4fr_0.8fr_0.8fr] lg:gap-6 lg:mt-6">
+        <div id="ultimos-juegos" className="scroll-mt-24">
+          <SectionTitle icon={Flame}>Últimos juegos añadidos</SectionTitle>
+          {overview.recentGames.length ? (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {overview.recentGames.map((game) => <RecentGameRow key={game.gameId} game={game} />)}
+            </ul>
+          ) : (
+            <EmptyState>La taberna acaba de abrir. Añade juegos a tu ludoteca para que aparezcan aquí.</EmptyState>
+          )}
         </div>
-      ) : (
-        <EmptyState>Aún no hay suficientes movimientos en la taberna.</EmptyState>
-      )}
+
+        <Ranking 
+          id="juegos-mas-queridos" 
+          title="Juegos más queridos" 
+          icon={Heart} 
+          games={overview.mostWanted} 
+          label={(count) => `${count} ${count === 1 ? "quiere" : "quieren"} probarlo`} 
+        />
+        <Ranking 
+          id="juegos-mas-jugados" 
+          title="Más jugados" 
+          icon={Gamepad2} 
+          games={overview.mostPlayed} 
+          label={(count) => `${count} ${count === 1 ? "lo ha" : "lo han"} jugado`} 
+        />
+      </div>
     </section>
   );
 }
@@ -61,16 +164,18 @@ function Ranking({
   id,
   icon: Icon,
   games,
-  label
+  label,
+  className = ""
 }: {
   title: string;
   id: string;
   icon: typeof Heart;
   games: TavernRankedGame[];
   label: (count: number) => string;
+  className?: string;
 }) {
   return (
-    <div id={id} className="scroll-mt-24">
+    <div id={id} className={`scroll-mt-24 ${className}`}>
       <SectionTitle icon={Icon}>{title}</SectionTitle>
       {games.length ? (
         <ol className="mt-3 space-y-2">

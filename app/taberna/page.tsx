@@ -1,6 +1,8 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { Activity, Search } from "lucide-react";
+import { Suspense } from "react";
+import { Activity, ChevronRight, Dices, Flame, Gamepad2, Heart } from "lucide-react";
 import { PublicShell } from "@/components/PublicShell";
 import { GuestOnlyCta } from "@/components/auth-cta/GuestOnlyCta";
 import { PublicUserDirectory } from "@/components/taberna/PublicUserDirectory";
@@ -9,7 +11,7 @@ import { TavernGameOverview } from "@/components/taberna/TavernGameOverview";
 import { TavernNowSection } from "@/components/taberna/TavernNowSection";
 import { getTavernActivityFeed } from "@/lib/activity/feed";
 import { getPublicUsersPage } from "@/lib/publicProfiles";
-import { normalizeTavernSearch, TAVERN_SEARCH_MAX_LENGTH, TAVERN_SEARCH_MIN_LENGTH } from "@/lib/tavernSearch";
+import { normalizeTavernSearch } from "@/lib/tavernSearch";
 import { getTavernOverview, type TavernActivityHighlights } from "@/lib/tavernOverview";
 import { getTavernNowSummary } from "@/lib/tavernNow";
 
@@ -26,43 +28,24 @@ type TavernPageProps = {
 export default async function TavernPage({ searchParams }: TavernPageProps) {
   const { q } = (await searchParams) || {};
   const query = normalizeTavernSearch(q);
-  const overviewPromise = getTavernOverview();
-  const [usersPage, activityFeed, overview, nowSummary] = await Promise.all([
-    getPublicUsersPage({ query }),
-    getTavernActivityFeed(),
-    overviewPromise,
-    getTavernNowSummary(overviewPromise)
-  ]);
-
+  
   return (
     <PublicShell>
       <main>
-        <section className="page-hero">
-          <div className="container-page grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
+        <section className="page-hero !py-6 sm:!py-8">
+          <div className="container-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
             <div>
               <p className="tavern-eyebrow">La taberna</p>
-              <h1 className="page-hero-title">La Taberna</h1>
-              <p className="page-hero-copy">
+              <h1 className="page-hero-title !mt-1">La Taberna</h1>
+              <p className="page-hero-copy !mt-2 max-w-xl text-sm sm:text-base">
                 Mira qué están jugando, probando y recomendando otros taberneros.
               </p>
-              <form className="mt-7 flex max-w-xl flex-col gap-3 sm:flex-row">
-                <label className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-walnut/45" size={18} />
-                  <input
-                    name="q"
-                    defaultValue={query}
-                    minLength={TAVERN_SEARCH_MIN_LENGTH}
-                    maxLength={TAVERN_SEARCH_MAX_LENGTH}
-                    placeholder="Nombre de tabernero"
-                    className="field-input h-12 bg-white pl-10"
-                  />
-                </label>
-                <button type="submit" className="button-primary h-12">
-                  Buscar mesa
-                </button>
-              </form>
             </div>
-            <TavernHighlights highlights={overview.highlights} />
+            <div className="w-full">
+              <Suspense fallback={<TavernHighlightsSkeleton />}>
+                <TavernHighlightsWrapper />
+              </Suspense>
+            </div>
           </div>
         </section>
 
@@ -76,63 +59,321 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
           />
         </div>
 
-        <TavernNowSection summary={nowSummary} />
+        <Suspense fallback={<TavernNowSectionSkeleton />}>
+          <TavernNowSectionWrapper />
+        </Suspense>
 
         <div className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,3fr)_minmax(380px,2fr)] lg:items-start lg:py-14">
-          <TavernActivityFeed initialFeed={activityFeed} />
-          <PublicUserDirectory key={query || "all"} initialPage={usersPage} query={query} />
-          <TavernGameOverview overview={overview} />
+          <div className="w-full min-w-0 lg:col-start-2 lg:row-start-1">
+            <Suspense fallback={<PublicUserDirectorySkeleton />}>
+              <PublicUserDirectoryWrapper query={query} />
+            </Suspense>
+          </div>
+
+          <div className="w-full min-w-0 lg:col-start-1 lg:row-start-1">
+            <Suspense fallback={<TavernActivityFeedSkeleton />}>
+              <TavernActivityFeedWrapper query={query} />
+            </Suspense>
+          </div>
+
+          <div className="w-full min-w-0 lg:col-span-2">
+            <Suspense fallback={<TavernGameOverviewSkeleton />}>
+              <TavernGameOverviewWrapper />
+            </Suspense>
+          </div>
         </div>
       </main>
     </PublicShell>
   );
 }
 
-function TavernHighlights({ highlights }: { highlights: TavernActivityHighlights }) {
+async function TavernHighlightsWrapper() {
+  const overview = await getTavernOverview();
+  return <TavernHighlights overview={overview} />;
+}
+
+async function TavernNowSectionWrapper() {
+  const overviewPromise = getTavernOverview();
+  const summary = await getTavernNowSummary(overviewPromise);
+  return <TavernNowSection summary={summary} />;
+}
+
+async function TavernActivityFeedWrapper({ query }: { query: string }) {
+  const feed = await getTavernActivityFeed({ query });
+  return <TavernActivityFeed initialFeed={feed} />;
+}
+
+async function PublicUserDirectoryWrapper({ query }: { query: string }) {
+  const usersPage = await getPublicUsersPage({ query });
+  return <PublicUserDirectory key={query || "all"} initialPage={usersPage} query={query} />;
+}
+
+async function TavernGameOverviewWrapper() {
+  const overview = await getTavernOverview();
+  return <TavernGameOverview overview={overview} />;
+}
+
+// SKELETONS
+
+function TavernHighlightsSkeleton() {
   return (
-    <div className="rounded-md border border-white/10 bg-white/8 p-4 backdrop-blur">
-      <div className="flex items-center gap-2 text-parchment/72">
-        <Activity size={17} aria-hidden="true" />
-        <p className="text-xs font-black uppercase tracking-[0.1em]">Esta semana en la taberna</p>
+    <div className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl animate-pulse w-full max-w-md lg:ml-auto">
+      <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-4">
+        <div className="h-8 w-8 rounded-full bg-white/10"></div>
+        <div className="space-y-2">
+          <div className="h-3 w-32 bg-white/10 rounded"></div>
+          <div className="h-2 w-20 bg-white/5 rounded"></div>
+        </div>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <HighlightStat
-          value={highlights.weeklyActivityCount}
-          label={highlights.weeklyActivityCount === 1 ? "actividad esta semana" : "actividades esta semana"}
-          href="#actividad"
-        />
-        <HighlightStat
-          value={highlights.weeklyLibraryAdds}
-          label={highlights.weeklyLibraryAdds === 1 ? "juego añadido" : "juegos añadidos"}
-          href="#ultimos-juegos"
-        />
-        <HighlightStat
-          value={highlights.topWantedGame?.count || 0}
-          label={highlights.topWantedGame?.count === 1 ? "persona quiere jugar" : "personas quieren jugar"}
-          href="#juegos-mas-queridos"
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2 h-20 bg-white/5 rounded-lg border border-white/5"></div>
+        <div className="h-20 bg-white/5 rounded-lg border border-white/5"></div>
+        <div className="h-20 bg-white/5 rounded-lg border border-white/5"></div>
       </div>
-      {highlights.topWantedGame ? (
-        <p className="mt-3 break-words text-xs font-semibold leading-5 text-parchment/65">
-          El juego que más apetece: {" "}
-          <Link href={`/juegos/${encodeURIComponent(highlights.topWantedGame.slug)}`} prefetch={false} className="font-black text-white hover:text-ember">
-            {highlights.topWantedGame.title}
-          </Link>
-        </p>
-      ) : null}
+      <div className="mt-4 pt-4 border-t border-white/10 flex gap-2">
+        <div className="h-32 w-28 bg-white/5 rounded-lg shrink-0 border border-white/5"></div>
+        <div className="h-32 w-28 bg-white/5 rounded-lg shrink-0 border border-white/5"></div>
+        <div className="h-32 w-28 bg-white/5 rounded-lg shrink-0 border border-white/5"></div>
+      </div>
     </div>
   );
 }
 
-function HighlightStat({ label, value, href }: { label: string; value: number; href: string }) {
+function TavernNowSectionSkeleton() {
   return (
-    <Link
-      href={href}
-      className="focus-ring group min-w-0 rounded-md border border-white/10 bg-black/12 p-2.5 text-center transition hover:-translate-y-0.5 hover:border-ember/60 hover:bg-white/10"
-      aria-label={`${value} ${label}. Ir a esa sección`}
-    >
-      <p className="font-display text-2xl font-bold leading-none text-white">{value}</p>
-      <p className="mt-2 text-[10px] font-black leading-4 text-parchment/62 transition group-hover:text-parchment/85">{label}</p>
-    </Link>
+    <section className="container-page pt-8 sm:pt-10">
+      <div className="tavern-panel p-4 sm:p-6 animate-pulse">
+        <div className="h-4 w-24 bg-walnut/10 rounded mb-2"></div>
+        <div className="h-10 w-64 bg-walnut/10 rounded"></div>
+        <div className="scrollbar-hide -mx-4 sm:-mx-6 mt-6 flex w-[calc(100%+2rem)] sm:w-[calc(100%+3rem)] max-w-[calc(100%+2rem)] sm:max-w-[calc(100%+3rem)] gap-3 overflow-hidden px-4 sm:px-6 pb-3 sm:mx-0 sm:grid sm:w-auto sm:max-w-none sm:grid-cols-2 xl:grid-cols-4 sm:px-0 sm:pb-0 sm:overflow-visible">
+          <div className="h-52 w-[85vw] min-w-[270px] max-w-[320px] sm:w-auto shrink-0 bg-white/60 rounded-md border border-walnut/10"></div>
+          <div className="h-52 w-[85vw] min-w-[270px] max-w-[320px] sm:w-auto shrink-0 bg-white/60 rounded-md border border-walnut/10"></div>
+          <div className="h-52 w-[85vw] min-w-[270px] max-w-[320px] sm:w-auto shrink-0 bg-white/60 rounded-md border border-walnut/10"></div>
+          <div className="h-52 w-[85vw] min-w-[270px] max-w-[320px] sm:w-auto shrink-0 bg-white/60 rounded-md border border-walnut/10"></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TavernActivityFeedSkeleton() {
+  return (
+    <section className="tavern-panel p-4 sm:p-6 animate-pulse">
+      <div className="h-4 w-24 bg-walnut/10 rounded mb-2"></div>
+      <div className="h-8 w-64 bg-walnut/10 rounded mb-4"></div>
+      <div className="h-11 w-full bg-walnut/10 rounded mb-8"></div>
+      
+      <div className="space-y-6">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex gap-3">
+            <div className="h-10 w-10 bg-walnut/10 rounded-full shrink-0"></div>
+            <div className="flex-1 space-y-2 py-1">
+              <div className="h-4 bg-walnut/10 rounded w-3/4"></div>
+              <div className="h-3 bg-walnut/10 rounded w-1/4"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PublicUserDirectorySkeleton() {
+  return (
+    <section className="animate-pulse w-full">
+      {/* Mobile Stories Skeleton (< lg) */}
+      <div className="lg:hidden mb-6">
+        <div className="h-4 w-36 bg-walnut/10 rounded mb-3"></div>
+        <div className="scrollbar-hide -mx-4 sm:-mx-6 flex w-[calc(100%+2rem)] sm:w-[calc(100%+3rem)] max-w-[calc(100%+2rem)] sm:max-w-[calc(100%+3rem)] gap-4 overflow-hidden px-4 sm:px-6 pb-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1 shrink-0">
+              <div className="h-14 w-14 rounded-full bg-walnut/10"></div>
+              <div className="h-3 w-12 bg-walnut/10 rounded mt-1"></div>
+              <div className="h-2 w-8 bg-walnut/5 rounded mt-0.5"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop List Skeleton (>= lg) */}
+      <div className="hidden lg:block">
+        <div className="h-4 w-24 bg-walnut/10 rounded mb-2"></div>
+        <div className="h-8 w-48 bg-walnut/10 rounded mb-6"></div>
+        <div className="grid gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-walnut/5 rounded-md border border-walnut/10"></div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TavernGameOverviewSkeleton() {
+  return (
+    <section className="tavern-panel p-4 sm:p-6 lg:col-span-2 animate-pulse" aria-hidden="true">
+      <div className="border-b border-walnut/10 pb-4">
+        <div className="h-3 w-20 bg-walnut/10 rounded mb-2"></div>
+        <div className="h-7 w-56 bg-walnut/10 rounded"></div>
+      </div>
+
+      {/* Mobile/Tablet Skeleton: Tabs + Active Tab Content (< lg) */}
+      <div className="lg:hidden">
+        {/* Segmented control track */}
+        <div className="mt-4 flex gap-1 bg-walnut/5 p-1 rounded-lg">
+          <div className="h-8 bg-white/70 rounded-md flex-1"></div>
+          <div className="h-8 bg-walnut/5 rounded-md flex-1"></div>
+          <div className="h-8 bg-walnut/5 rounded-md flex-1"></div>
+        </div>
+        {/* Content skeleton for first tab */}
+        <div className="mt-4">
+          <div className="h-4 w-44 bg-walnut/10 rounded mb-3"></div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-[76px] bg-walnut/5 rounded-md border border-walnut/10"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Skeleton: 3 Columns (>= lg) */}
+      <div className="hidden lg:grid lg:grid-cols-[1.4fr_0.8fr_0.8fr] lg:gap-6 lg:mt-6">
+        <div>
+          <div className="h-4 w-44 bg-walnut/10 rounded mb-3"></div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-[76px] bg-walnut/5 rounded-md border border-walnut/10"></div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="h-4 w-32 bg-walnut/10 rounded mb-3"></div>
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-[60px] bg-walnut/5 rounded-md border border-walnut/10"></div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="h-4 w-32 bg-walnut/10 rounded mb-3"></div>
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-[60px] bg-walnut/5 rounded-md border border-walnut/10"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+import { TavernOverview } from "@/lib/tavernOverview";
+
+function TavernHighlights({ overview }: { overview: TavernOverview }) {
+  const { highlights, mostWanted } = overview;
+
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl shadow-2xl lg:ml-auto w-full sm:max-w-md transition-all duration-500 hover:bg-black/50 hover:border-white/20">
+      {/* Animated glowing border effect */}
+      <div className="absolute -inset-[100%] z-0 animate-[spin_10s_linear_infinite] bg-gradient-to-r from-transparent via-ember/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      
+      <div className="relative z-10 rounded-xl bg-[#0a0a0a]/90 p-4 sm:p-5 backdrop-blur-md border border-white/5">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-ember/20 ring-1 ring-ember/30">
+              <div className="absolute inset-0 rounded-full animate-ping bg-ember/30" />
+              <Activity className="text-ember relative z-10" size={16} />
+            </div>
+            <div>
+              <h2 className="font-display text-sm font-black uppercase tracking-[0.1em] text-parchment/90 leading-tight">
+                El pulso de la taberna
+              </h2>
+              <p className="text-[10px] font-bold text-parchment/50 uppercase tracking-wider mt-0.5">Últimos 7 días</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bento Grid Stats */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {/* Big Stat */}
+          <Link href="#actividad" className="col-span-2 relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover/stat:opacity-10 transition-opacity duration-500 group-hover/stat:scale-110">
+              <Activity size={100} />
+            </div>
+            <div className="relative flex items-end justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-parchment/50 mb-1">Movimientos</p>
+                <p className="font-display text-4xl font-bold leading-none text-white">{highlights.weeklyActivityCount}</p>
+              </div>
+              <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20 shadow-[0_0_10px_rgba(52,211,153,0.2)]">
+                <Flame size={12} className="animate-pulse" /> Alta actividad
+              </div>
+            </div>
+          </Link>
+
+          {/* Small Stats */}
+          <Link href="#ultimos-juegos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <Dices size={18} className="text-parchment/40 mb-3 group-hover/stat:text-parchment/80 transition-colors" />
+            <p className="font-display text-2xl font-bold leading-none text-white">{highlights.weeklyLibraryAdds}</p>
+            <p className="mt-1.5 text-[10px] font-black uppercase tracking-wider text-parchment/50">Juegos añadidos</p>
+          </Link>
+
+          <Link href="#juegos-mas-queridos" className="relative overflow-hidden rounded-lg border border-white/5 bg-white/5 p-4 transition duration-300 hover:bg-white/10 hover:border-ember/30 group/stat">
+            <Heart size={18} className="text-parchment/40 mb-3 group-hover/stat:text-ember transition-colors" />
+            <p className="font-display text-2xl font-bold leading-none text-white">{highlights.topWantedGame?.count || 0}</p>
+            <p className="mt-1.5 text-[10px] font-black uppercase tracking-wider text-parchment/50">Nuevos deseos</p>
+          </Link>
+        </div>
+
+        {/* Feature: Mini Trending Games */}
+        {mostWanted && mostWanted.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-white/10">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-black uppercase tracking-wider text-parchment/60 flex items-center gap-1.5">
+                <Flame size={12} className="text-ember" /> Tendencias actuales
+              </p>
+              <Link href="#juegos-mas-queridos" className="text-[10px] font-bold uppercase tracking-wider text-parchment/40 hover:text-ember transition-colors flex items-center gap-0.5">
+                Ver todos <ChevronRight size={10} />
+              </Link>
+            </div>
+            
+            <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2 snap-x">
+              {mostWanted.slice(0, 3).map((game) => (
+                <Link 
+                  key={game.gameId}
+                  href={`/juegos/${encodeURIComponent(game.slug)}`}
+                  className="group/game relative flex-none w-[110px] rounded-lg border border-white/5 bg-black/40 p-2 transition duration-300 hover:bg-white/10 hover:border-ember/30 snap-start"
+                >
+                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded bg-white/5 shadow-inner mb-2">
+                    {game.coverImageUrl ? (
+                      <Image
+                        src={game.coverImageUrl}
+                        alt={game.coverImageAlt || game.title}
+                        fill
+                        sizes="100px"
+                        className="object-cover transition duration-500 group-hover/game:scale-110"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-white/20">
+                        <Gamepad2 size={24} />
+                      </div>
+                    )}
+                    {/* Overlay gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover/game:opacity-100" />
+                  </div>
+                  <h3 className="truncate text-xs font-bold text-white group-hover/game:text-ember transition-colors">
+                    {game.title}
+                  </h3>
+                  <p className="text-[10px] text-parchment/60 mt-1 flex items-center gap-1 font-semibold">
+                    <Heart size={10} className="fill-ember text-ember" /> {game.count} {game.count === 1 ? 'deseo' : 'deseos'}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
