@@ -41,7 +41,7 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
                 Mira qué están jugando, probando y recomendando otros taberneros.
               </p>
             </div>
-            <div className="w-full">
+            <div className="w-full min-w-0">
               <Suspense fallback={<TavernHighlightsSkeleton />}>
                 <TavernHighlightsWrapper />
               </Suspense>
@@ -273,20 +273,20 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
   const { highlights, mostWanted } = overview;
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl shadow-2xl lg:ml-auto w-full sm:max-w-[380px] transition-all duration-500 hover:bg-black/50 hover:border-white/20">
+    <div className="group relative w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-black/40 p-1 backdrop-blur-xl shadow-2xl transition-all duration-500 hover:border-white/20 hover:bg-black/50 sm:max-w-[380px] lg:ml-auto">
       {/* Animated glowing border effect */}
       <div className="absolute -inset-[100%] z-0 animate-[spin_10s_linear_infinite] bg-gradient-to-r from-transparent via-ember/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       
       <div className="relative z-10 rounded-lg bg-[#0a0a0a]/90 p-3 backdrop-blur-md border border-white/5">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-ember/20 ring-1 ring-ember/30">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ember/20 ring-1 ring-ember/30">
               <div className="absolute inset-0 rounded-full animate-ping bg-ember/30" />
               <Activity className="text-ember relative z-10" size={14} />
             </div>
-            <div>
-              <h2 className="font-display text-xs font-black uppercase tracking-[0.1em] text-parchment/90 leading-tight">
+            <div className="min-w-0">
+              <h2 className="max-w-full break-words font-display text-[11px] font-black uppercase leading-tight tracking-[0.06em] text-parchment/90 sm:text-xs sm:tracking-[0.1em]">
                 El pulso de la taberna
               </h2>
               <p className="text-[10px] font-bold text-parchment/50 uppercase tracking-wider mt-0.5">Últimos 7 días</p>
