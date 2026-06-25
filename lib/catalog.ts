@@ -11,7 +11,7 @@ import { getPublishedReviewBySlug, getPublishedReviews } from "@/lib/reviews";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { slugify } from "@/lib/slug";
-import { getTaxonomyTermNames } from "@/lib/taxonomy";
+import { getTaxonomyTermNames, normalizeMechanics, normalizeCategories } from "@/lib/taxonomy";
 import { normalizeHowToPlayVideos, type HowToPlayVideo } from "@/lib/videos/howToPlayVideos";
 
 export type BuyLink = {
@@ -395,8 +395,8 @@ export async function getRelatedGames(game: CatalogGame) {
 
 export async function filterGames(input: GameFilterInput) {
   const query = input.q?.trim().toLowerCase();
-  const categories = getFilterValues(input.category);
-  const mechanics = getFilterValues(input.mechanic);
+  const categories = normalizeCategories(getFilterValues(input.category));
+  const mechanics = normalizeMechanics(getFilterValues(input.mechanic));
   const players = getFilterValues(input.players);
   const durations = getFilterValues(input.duration);
   const weights = getFilterValues(input.weight);

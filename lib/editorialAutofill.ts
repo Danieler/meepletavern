@@ -155,20 +155,20 @@ const cooperativeProfile = {
   cons: () => [
     "Puede depender mucho de que el grupo se coordine bien.",
     "No es la mejor opción para quien busca competición directa.",
-    "Conviene revisar reglas y ritmo antes de publicarlo como recomendación cerrada."
+    "Puede haber un líder alfa que domine las decisiones del grupo."
   ],
   faq: (title: string, input: EditorialAutofillInput) => [
     {
       question: `¿${title} es competitivo o cooperativo?`,
-      answer: "Los datos importados apuntan a una experiencia cooperativa; conviene revisarlo antes de publicar la ficha definitiva."
+      answer: "Es un juego cooperativo donde todos los jugadores trabajan juntos hacia un objetivo común."
     },
     {
       question: "¿Cuántos jugadores admite?",
-      answer: playerAnswer(input, "Revisa el rango de jugadores antes de publicarlo.")
+      answer: playerAnswer(input, "Revisa el número de jugadores indicado en la caja.")
     },
     {
       question: "¿Es difícil?",
-      answer: "La dificultad queda marcada como media de forma preliminar y debe revisarse editorialmente."
+      answer: "Tiene una dificultad media, accesible con una partida de prueba."
     }
   ]
 };
@@ -183,8 +183,8 @@ const partyProfile = {
   pros: () => ["Fácil de proponer en grupo.", "Buena opción para reuniones.", "No exige una preparación pesada."],
   cons: () => ["Depende mucho del ambiente de la mesa.", "Puede quedarse corto para jugadores muy estratégicos."],
   faq: (_title: string, input: EditorialAutofillInput) => [
-    { question: "¿Es adecuado para grupos grandes?", answer: playerAnswer(input, "Parece orientado a juego social; revisa el rango exacto de jugadores.") },
-    { question: "¿Es difícil de aprender?", answer: "No debería ser especialmente difícil; queda como ficha preliminar pendiente de revisión." }
+    { question: "¿Es adecuado para grupos grandes?", answer: playerAnswer(input, "Es un juego orientado al aspecto social y las dinámicas de grupo.") },
+    { question: "¿Es difícil de aprender?", answer: "No debería ser especialmente difícil; las reglas suelen ser sencillas para facilitar el juego en grupo." }
   ]
 };
 
@@ -195,10 +195,10 @@ const familyProfile = {
   themes: ["Familiar", "Infantil"],
   bestFor: () => "Familias, jugadores ocasionales y mesas que quieren reglas sencillas.",
   notFor: () => "Jugadores que buscan mucha profundidad estratégica o partidas largas y exigentes.",
-  pros: () => ["Accesible para nuevas mesas.", "Buen candidato para jugar en familia.", "Formato fácil de revisar y completar editorialmente."],
-  cons: () => ["Puede quedarse corto para jugadores expertos.", "La recomendación final depende de revisar edad, duración y reglas."],
+  pros: () => ["Accesible para nuevas mesas.", "Buen candidato para jugar en familia.", "Reglas sencillas que permiten empezar rápido."],
+  cons: () => ["Puede quedarse corto para jugadores expertos.", "La diversión depende mucho de la edad y el grupo."],
   faq: (_title: string, input: EditorialAutofillInput) => [
-    { question: "¿Es familiar?", answer: "Los datos disponibles apuntan a una ficha accesible, pero conviene revisar la edad recomendada antes de publicarla." },
+    { question: "¿Es familiar?", answer: "Sí, es un juego pensado para jugar en familia con reglas accesibles." },
     { question: "¿Cuánto dura?", answer: playtimeAnswer(input) }
   ]
 };
@@ -209,39 +209,39 @@ const genericProfile = {
   mechanics: [],
   themes: [],
   bestFor: (title: string) =>
-    `Jugadores que quieren descubrir ${title} con una ficha preliminar clara antes de completar la reseña editorial.`,
+    `Jugadores interesados en probar ${title} y descubrir lo que ofrece sobre la mesa.`,
   notFor: () =>
-    "Jugadores que necesitan una recomendación cerrada, una reseña completa o datos editoriales ya revisados al detalle.",
-  pros: () => [
-    "Ficha base creada para revisión editorial.",
-    "Permite publicar una entrada básica sin bloquear el flujo.",
-    "Se puede mejorar más adelante con valoración de mesa."
+    "Jugadores que buscan una experiencia de juego muy específica o partidas con mecánicas muy concretas.",
+  pros: (title: string) => [
+    `Buena puerta de entrada para conocer ${title}.`,
+    "Formato accesible para mesas variadas.",
+    "Apto para diferentes tipos de grupo."
   ],
   cons: () => [
-    "Necesita revisión editorial para afinar la recomendación.",
-    "Algunos datos pueden depender de la fuente importada.",
-    "No sustituye una reseña completa."
+    "La experiencia puede variar según el grupo de juego.",
+    "Conviene revisar las reglas antes de la primera partida.",
+    "Puede no destacar en un aspecto concreto frente a juegos más especializados."
   ],
   faq: (_title: string, input: EditorialAutofillInput) => [
-    { question: "¿Está la ficha completa?", answer: "Es una ficha publicable de base, pero puede mejorar con revisión editorial." },
-    { question: "¿Cuántos jugadores admite?", answer: playerAnswer(input, "Revisa el rango de jugadores antes de publicarlo.") },
+    { question: "¿Cuántos jugadores admite?", answer: playerAnswer(input, "Consulta la caja o las reglas para conocer el número de jugadores.") },
     { question: "¿Cuánto dura?", answer: playtimeAnswer(input) }
   ]
 };
+
 
 function playerAnswer(input: EditorialAutofillInput, fallback: string) {
   const min = input.players?.min || null;
   const max = input.players?.max || null;
 
   if (min && max) {
-    return min === max ? `La ficha importada indica ${min} jugadores.` : `La ficha importada indica ${min}-${max} jugadores.`;
+    return min === max ? `Admite ${min} jugadores.` : `Admite de ${min} a ${max} jugadores.`;
   }
 
   return fallback;
 }
 
 function playtimeAnswer(input: EditorialAutofillInput) {
-  return input.playtime ? `La duración importada es ${input.playtime}.` : "La duración debe revisarse antes de cerrar la ficha.";
+  return input.playtime ? `La duración aproximada es de ${input.playtime}.` : "Consulta la caja o las reglas para conocer la duración de la partida.";
 }
 
 function groupText(input: EditorialAutofillInput) {

@@ -2014,7 +2014,7 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
   missingFields: string[];
   warnings: string[];
 }> {
-  const warnings: string[] = ["Autocompletado web posterior desactivado para mantener la importación maestra controlada."];
+  const warnings: string[] = [];
 
   const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) {
@@ -2025,26 +2025,70 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
     };
   }
 
-  const ratingUpdate = await buildExternalRatingUpdate({
-    ...game,
-    title: game.title || game.name || "Nuevo juego",
-    name: game.name || game.title || "Nuevo juego"
+  // Find the associated candidate for source context
+  const candidate = await prisma.gameCandidate.findFirst({
+    where: { gameId },
+    orderBy: { updatedAt: "desc" }
   });
 
-  const updatedGame = await prisma.game.update({
+  // AI editorial completion with Bedrock
+  try {
+    const { completeGameEditorialFieldsWithBedrock } = await import("@/lib/ai/completeGameEditorialFieldsWithBedrock");
+    const { sanitizeEditorialFields } = await import("@/lib/import/sanitizeEditorialFields");
+    const { buildSafeEditorialPatch } = await import("@/lib/games/buildSafeEditorialPatch");
+
+    const completion = await completeGameEditorialFieldsWithBedrock(game, candidate ? {
+      title: candidate.title,
+      extractedDescription: candidate.extractedDescription,
+      metadata: candidate.metadata
+    } : null);
+    const sanitizedCompletion = sanitizeEditorialFields(completion);
+    const patchResult = buildSafeEditorialPatch(game, sanitizedCompletion, {
+      mode: "prefer_completion"
+    });
+
+    if (patchResult.appliedFields.length) {
+      await prisma.game.update({
+        where: { id: gameId },
+        data: {
+          ...patchResult.patch,
+          createdByAi: true
+        }
+      });
+      warnings.push(`IA editorial aplicada: ${patchResult.appliedFields.join(", ")}.`);
+    }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Error desconocido";
+    if (reason.includes("Bedrock credentials are not configured")) {
+      warnings.push("Credenciales de Bedrock no configuradas: los campos editoriales se rellenaron con plantilla.");
+    } else {
+      warnings.push(`La IA no pudo completar los campos editoriales: ${reason}`);
+    }
+  }
+
+  // Reload game after possible AI update
+  const updatedGame = await prisma.game.findUnique({ where: { id: gameId } }) || game;
+
+  const ratingUpdate = await buildExternalRatingUpdate({
+    ...updatedGame,
+    title: updatedGame.title || updatedGame.name || "Nuevo juego",
+    name: updatedGame.name || updatedGame.title || "Nuevo juego"
+  });
+
+  const gameWithRatings = await prisma.game.update({
     where: { id: gameId },
     data: {
       ratings: ratingUpdate.ratings
     }
   });
 
-  const validation = validateBeforePublish(updatedGame);
+  const validation = validateBeforePublish(gameWithRatings);
   const canPublish = validation.valid;
   await prisma.game.update({
     where: { id: gameId },
     data: {
       status: canPublish ? GameStatus.published : GameStatus.review,
-      publishedAt: canPublish ? updatedGame.publishedAt || new Date() : null
+      publishedAt: canPublish ? gameWithRatings.publishedAt || new Date() : null
     }
   });
 
@@ -2054,6 +2098,7 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
     warnings: dedupeStrings([...warnings, ...validation.warnings, ...ratingUpdate.warnings])
   };
 }
+
 
 function isAmazonSource(source: Pick<Source, "baseUrl" | "name">) {
   return `${source.name} ${source.baseUrl}`.toLowerCase().includes("amazon.");
