@@ -134,99 +134,101 @@ export default async function Home() {
                 </div>
                 <HomeHeroAuthControls />
 
-                <div className="mt-10 mb-5">
-                  <div className="flex items-center gap-4">
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50 flex items-center gap-1.5">
-                      <Beer size={13} className="text-ember" strokeWidth={2.5} />
-                      Tablón de misiones del tabernero
-                    </p>
-                    <div className="h-px flex-1 bg-walnut/10" />
-                  </div>
-                  <h2 className="font-display mt-2.5 text-2xl font-bold leading-tight text-[#482c1d]">
-                    Elige un contrato directo del tablón para empezar tu próxima partida
-                  </h2>
-                </div>
-                
-                {/* Tablón de Misiones (Estilo Monster Hunter de Madera y Corcho) */}
-                <div className="relative rounded-2xl p-2.5 sm:p-4 quest-board-frame border border-[#3d2414] shadow-[0_16px_38px_rgba(0,0,0,0.32)]">
-                  {/* Antique Brass Corner Brackets */}
-                  {/* Top-Left */}
-                  <div className="absolute top-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md">
-                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
-                      <defs>
-                        <linearGradient id="metal-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor="#ffd57a" />
-                          <stop offset="35%" stopColor="#a8884c" />
-                          <stop offset="70%" stopColor="#7a5b29" />
-                          <stop offset="100%" stopColor="#473211" />
-                        </linearGradient>
-                        <linearGradient id="rivet-grad" x1="0" y1="0" x2="5" y2="5" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor="#fff" />
-                          <stop offset="50%" stopColor="#d5b060" />
-                          <stop offset="100%" stopColor="#4a3512" />
-                        </linearGradient>
-                      </defs>
-                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
-                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                    </svg>
+                <div className="lg:hidden xl:block mt-10">
+                  <div className="mb-5">
+                    <div className="flex items-center gap-4">
+                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50 flex items-center gap-1.5">
+                        <Beer size={13} className="text-ember" strokeWidth={2.5} />
+                        Tablón de misiones del tabernero
+                      </p>
+                      <div className="h-px flex-1 bg-walnut/10" />
+                    </div>
+                    <h2 className="font-display mt-2.5 text-2xl font-bold leading-tight text-[#482c1d]">
+                      Elige un contrato directo del tablón para empezar tu próxima partida
+                    </h2>
                   </div>
                   
-                  {/* Top-Right */}
-                  <div className="absolute top-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-90">
-                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
-                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
-                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                    </svg>
-                  </div>
+                  {/* Tablón de Misiones (Estilo Monster Hunter de Madera y Corcho) */}
+                  <div className="relative rounded-2xl p-2.5 sm:p-4 quest-board-frame border border-[#3d2414] shadow-[0_16px_38px_rgba(0,0,0,0.32)]">
+                    {/* Antique Brass Corner Brackets */}
+                    {/* Top-Left */}
+                    <div className="absolute top-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md">
+                      <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                        <defs>
+                          <linearGradient id="metal-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#ffd57a" />
+                            <stop offset="35%" stopColor="#a8884c" />
+                            <stop offset="70%" stopColor="#7a5b29" />
+                            <stop offset="100%" stopColor="#473211" />
+                          </linearGradient>
+                          <linearGradient id="rivet-grad" x1="0" y1="0" x2="5" y2="5" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#fff" />
+                            <stop offset="50%" stopColor="#d5b060" />
+                            <stop offset="100%" stopColor="#4a3512" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                        <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                        <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      </svg>
+                    </div>
+                    
+                    {/* Top-Right */}
+                    <div className="absolute top-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-90">
+                      <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                        <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                        <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                        <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      </svg>
+                    </div>
 
-                  {/* Bottom-Right */}
-                  <div className="absolute bottom-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-180">
-                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
-                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
-                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                    </svg>
-                  </div>
+                    {/* Bottom-Right */}
+                    <div className="absolute bottom-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-180">
+                      <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                        <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                        <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                        <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      </svg>
+                    </div>
 
-                  {/* Bottom-Left */}
-                  <div className="absolute bottom-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md -rotate-90">
-                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
-                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
-                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
-                    </svg>
-                  </div>
+                    {/* Bottom-Left */}
+                    <div className="absolute bottom-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md -rotate-90">
+                      <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                        <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                        <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                        <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      </svg>
+                    </div>
 
-                  <style dangerouslySetInnerHTML={{ __html: `
-                    .quest-board-frame {
-                      background-color: #6a4228;
-                      background-image: 
-                        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 40%),
-                        linear-gradient(0deg, rgba(0, 0, 0, 0.18), transparent 25%);
-                    }
-                    .quest-board-cork {
-                      background-color: #be8f65;
-                      background-image: linear-gradient(180deg, #be8f65, #b28359);
-                    }
-                    .quest-card {
-                      transform: rotate(var(--card-rotation)) translateY(0);
-                      transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.15s, box-shadow 0.22s;
-                    }
-                    .quest-card:hover {
-                      transform: rotate(0deg) translateY(-4px) !important;
-                      border-color: #d97706 !important;
-                      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35) !important;
-                    }
-                  `}} />
+                    <style dangerouslySetInnerHTML={{ __html: `
+                      .quest-board-frame {
+                        background-color: #6a4228;
+                        background-image: 
+                          linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 40%),
+                          linear-gradient(0deg, rgba(0, 0, 0, 0.18), transparent 25%);
+                      }
+                      .quest-board-cork {
+                        background-color: #be8f65;
+                        background-image: linear-gradient(180deg, #be8f65, #b28359);
+                      }
+                      .quest-card {
+                        transform: rotate(var(--card-rotation)) translateY(0);
+                        transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.15s, box-shadow 0.22s;
+                      }
+                      .quest-card:hover {
+                        transform: rotate(0deg) translateY(-4px) !important;
+                        border-color: #d97706 !important;
+                        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35) !important;
+                      }
+                    `}} />
 
-                  {/* Inner Corkboard Container */}
-                  <div className="quest-board-cork rounded-lg border border-[#3d2414]/70 p-2 sm:p-5 shadow-[inset_0_4px_10px_rgba(0,0,0,0.4)]">
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-                      {intentCards.map((card) => (
-                        <IntentCard key={card.title} {...card} />
-                      ))}
+                    {/* Inner Corkboard Container */}
+                    <div className="quest-board-cork rounded-lg border border-[#3d2414]/70 p-2 sm:p-5 shadow-[inset_0_4px_10px_rgba(0,0,0,0.4)]">
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                        {intentCards.map((card) => (
+                          <IntentCard key={card.title} {...card} />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -237,6 +239,63 @@ export default async function Home() {
                   <HeroDiscoveryBoard games={heroGamePool} />
                 </aside>
               ) : null}
+            </div>
+
+            {/* Tablón de misiones para tablet horizontal y pantallas intermedias (lg) */}
+            <div className="relative z-10 mt-10 hidden lg:block xl:hidden">
+              <div className="mb-5">
+                <div className="flex items-center gap-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50 flex items-center gap-1.5">
+                    <Beer size={13} className="text-ember" strokeWidth={2.5} />
+                    Tablón de misiones del tabernero
+                  </p>
+                  <div className="h-px flex-1 bg-walnut/10" />
+                </div>
+                <h2 className="font-display mt-2.5 text-2xl font-bold leading-tight text-[#482c1d]">
+                  Elige un contrato directo del tablón para empezar tu próxima partida
+                </h2>
+              </div>
+              
+              <div className="relative rounded-2xl p-2.5 sm:p-4 quest-board-frame border border-[#3d2414] shadow-[0_16px_38px_rgba(0,0,0,0.32)]">
+                {/* Antique Brass Corner Brackets */}
+                <div className="absolute top-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md">
+                  <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                    <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                    <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                  </svg>
+                </div>
+                <div className="absolute top-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-90">
+                  <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                    <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                    <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                  </svg>
+                </div>
+                <div className="absolute bottom-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-180">
+                  <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                    <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                    <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                  </svg>
+                </div>
+                <div className="absolute bottom-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md -rotate-90">
+                  <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                    <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                    <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                  </svg>
+                </div>
+
+                {/* Inner Corkboard Container */}
+                <div className="quest-board-cork rounded-lg border border-[#3d2414]/70 p-2 sm:p-5 shadow-[inset_0_4px_10px_rgba(0,0,0,0.4)]">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                    {intentCards.map((card) => (
+                      <IntentCard key={card.title} {...card} />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -398,7 +457,7 @@ function IntentCard({
   return (
     <Link
       href={href}
-      className="quest-card relative group flex items-center gap-2 sm:gap-3 lg:gap-2 xl:gap-3 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-2 sm:p-3.5 lg:p-2 xl:p-3.5 border border-[#cfb088]/40 shadow-[0_4px_10px_rgba(0,0,0,0.15)] rounded-md select-none transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffbf2]"
+      className="quest-card relative group flex items-center gap-2 sm:gap-3 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-2 sm:p-3.5 border border-[#cfb088]/40 shadow-[0_4px_10px_rgba(0,0,0,0.15)] rounded-md select-none transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffbf2]"
       style={{
         "--card-rotation": `${rotation}deg`
       } as React.CSSProperties}
@@ -409,15 +468,15 @@ function IntentCard({
       </span>
 
       {/* Sello Cuadrado Suave del Gremio */}
-      <span className="inline-flex h-8 w-8 sm:h-11 sm:w-11 lg:h-8 lg:w-8 xl:h-11 xl:w-11 shrink-0 items-center justify-center rounded-lg bg-[#f5ebd9] text-[#b45309] transition-all duration-300 group-hover:scale-105 group-hover:bg-[#fff7eb] group-hover:text-[#e25c1d]">
-        <Icon strokeWidth={2.2} className="w-[16px] h-[16px] sm:w-[20px] sm:h-[20px] lg:w-[16px] lg:h-[16px] xl:w-[20px] xl:h-[20px] opacity-95" />
+      <span className="inline-flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg bg-[#f5ebd9] text-[#b45309] transition-all duration-300 group-hover:scale-105 group-hover:bg-[#fff7eb] group-hover:text-[#e25c1d]">
+        <Icon strokeWidth={2.2} className="w-[16px] h-[16px] sm:w-[20px] sm:h-[20px] opacity-95" />
       </span>
 
-      <div className="min-w-0 pr-0 sm:pr-1 lg:pr-0 xl:pr-1 text-left">
-        <h3 className="font-display text-[12px] sm:text-[15px] lg:text-[12px] xl:text-[15px] font-bold text-[#3e1a00] leading-tight group-hover:text-[#e25c1d] transition-colors break-normal">
+      <div className="min-w-0 pr-0 sm:pr-1 text-left">
+        <h3 className="font-display text-[12px] sm:text-[15px] font-bold text-[#3e1a00] leading-tight group-hover:text-[#e25c1d] transition-colors break-normal">
           {title}
         </h3>
-        <p className="mt-0.5 sm:mt-1.5 lg:mt-0.5 xl:mt-1.5 text-[10px] sm:text-[11px] lg:text-[10px] xl:text-[11px] font-semibold leading-normal sm:leading-4 text-[#7c583f]/90">
+        <p className="mt-0.5 sm:mt-1.5 text-[10px] sm:text-[11px] font-semibold leading-normal sm:leading-4 text-[#7c583f]/90">
           {description}
         </p>
       </div>
