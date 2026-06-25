@@ -15,11 +15,27 @@ import { filterGames, getCategoryTerms, getMechanicTerms, type GameFilterInput }
 import { getPublicUsersPage } from "@/lib/publicProfiles";
 import { GameSuggestionForm } from "@/components/GameSuggestionForm";
 
-export const metadata: Metadata = {
-  title: "Catálogo de juegos de mesa",
-  description:
-    "Explora juegos de mesa por jugadores, duración, dificultad, categorías, mecánicas, puntuación y popularidad."
-};
+import { siteConfig } from "@/lib/site";
+
+export async function generateMetadata({ searchParams }: GamesPageProps): Promise<Metadata> {
+  const filters = (await searchParams) || {};
+  const noIndexParams = ['category', 'mechanic', 'players', 'duration', 'weight', 'age', 'q', 'sort', 'page'];
+  const shouldNoIndex = noIndexParams.some(param => filters[param as keyof GameFilterInput]);
+
+  return {
+    title: "Catálogo de juegos de mesa",
+    description: "Explora juegos de mesa por jugadores, duración, dificultad, categorías, mecánicas, puntuación y popularidad.",
+    alternates: {
+      canonical: `${siteConfig.url}/juegos`,
+    },
+    ...(shouldNoIndex && {
+      robots: {
+        index: false,
+        follow: false,
+      }
+    })
+  };
+}
 
 type GamesPageProps = {
   searchParams?: Promise<GameFilterInput>;

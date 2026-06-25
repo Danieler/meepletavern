@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { getMechanicGameCounts, getMechanicTerms } from "@/lib/catalog";
+import { slugify } from "@/lib/slug";
 
 export const metadata: Metadata = {
   title: "Mecánicas de juegos de mesa",
@@ -34,7 +35,7 @@ export default async function MechanicsPage() {
             return (
               <Link
                 key={term}
-                href={`/juegos?mechanic=${encodeURIComponent(term)}`}
+                href={`/mecanicas/${slugify(term)}`}
                 className="term-card"
               >
                 <h2 className="font-display text-xl font-bold leading-tight text-ink">{term}</h2>

@@ -3,25 +3,45 @@ import {
   getCatalogGames,
   getRankings,
   getReviews,
+  getCategoryTerms,
+  getMechanicTerms
 } from "@/lib/catalog";
+import { getGuias } from "@/lib/guias";
+import { getPublicUsersPage } from "@/lib/publicProfiles";
 import { siteConfig } from "@/lib/site";
+import { slugify } from "@/lib/slug";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const [catalogGames, rankings, reviews] = await Promise.all([
+  const [
+    catalogGames,
+    rankings,
+    reviews,
+    guias,
+    categories,
+    mechanics,
+    usersPage
+  ] = await Promise.all([
     getCatalogGames(),
     getRankings(),
-    getReviews()
+    getReviews(),
+    getGuias(),
+    getCategoryTerms(),
+    getMechanicTerms(),
+    getPublicUsersPage()
   ]);
+
   const staticRoutes = [
     "",
     "/juegos",
     "/rankings",
     "/resenas",
+    "/guias",
     "/taberna",
     "/categorias",
     "/mecanicas"
   ];
+  
   const legalRoutes = ["/aviso-legal", "/privacidad", "/cookies"];
 
   return [
@@ -54,6 +74,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(review.publishedAt),
       changeFrequency: "monthly" as const,
       priority: 0.72
+    })),
+    ...guias.map((guia) => ({
+      url: `${siteConfig.url}/guias/${guia.slug}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.75
+    })),
+    ...categories.map((cat) => ({
+      url: `${siteConfig.url}/categorias/${slugify(cat)}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.80
+    })),
+    ...mechanics.map((mec) => ({
+      url: `${siteConfig.url}/mecanicas/${slugify(mec)}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.80
+    })),
+    ...usersPage.items.map((user) => ({
+      url: `${siteConfig.url}/u/${user.username}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.50
     }))
   ];
 }

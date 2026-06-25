@@ -30,6 +30,12 @@ export async function generateMetadata({ params }: RankingPageProps): Promise<Me
     description: ranking.description,
     alternates: {
       canonical: `${siteConfig.url}/rankings/${ranking.slug}`
+    },
+    openGraph: {
+      title: ranking.title,
+      description: ranking.description,
+      type: "website",
+      url: `${siteConfig.url}/rankings/${ranking.slug}`
     }
   };
 }
@@ -44,9 +50,26 @@ export default async function RankingPage({ params }: RankingPageProps) {
 
   const games = await getRankingGames(ranking);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: ranking.title,
+    description: ranking.description,
+    url: `${siteConfig.url}/rankings/${ranking.slug}`,
+    itemListElement: games.map((game, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${siteConfig.url}/juegos/${game.slug}`
+    }))
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="page-hero">
           <div className="container-page">
             <p className="tavern-eyebrow">Ranking MeepleTavern</p>

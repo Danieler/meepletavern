@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PublicShell } from "@/components/PublicShell";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { getCategoryGameCounts, getCategoryTerms } from "@/lib/catalog";
+import { slugify } from "@/lib/slug";
 
 export const metadata: Metadata = {
   title: "Categorías de juegos de mesa",
@@ -59,7 +60,7 @@ function TermPage({
           return (
             <Link
               key={term}
-              href={`/juegos?${param}=${encodeURIComponent(term)}`}
+              href={`/categorias/${slugify(term)}`}
               className="term-card"
             >
               <h2 className="font-display text-xl font-bold leading-tight text-ink">{term}</h2>

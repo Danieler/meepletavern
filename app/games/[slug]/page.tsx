@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 type GameRedirectProps = {
   params: Promise<{
@@ -8,6 +8,6 @@ type GameRedirectProps = {
 
 export default async function GameRedirect({ params }: GameRedirectProps) {
   const { slug } = await params;
-  redirect(`/juegos/${slug}`);
+  permanentRedirect(`/juegos/${slug}`);
 }
 

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 type ReviewRedirectProps = {
   params: Promise<{
@@ -8,6 +8,6 @@ type ReviewRedirectProps = {
 
 export default async function ReviewRedirect({ params }: ReviewRedirectProps) {
   const { slug } = await params;
-  redirect(`/resenas/${slug}`);
+  permanentRedirect(`/resenas/${slug}`);
 }
 

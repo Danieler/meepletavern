@@ -45,8 +45,8 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
     };
   }
 
-  const title = `${game.title}: ficha, duración y jugadores`;
-  const description = `${game.title} en MeepleTavern: jugadores, duración, dificultad, resumen editorial, pros, contras, categorías, mecánicas y juegos parecidos.`;
+  const title = game.seoTitle || `${game.title}: ficha, duración y jugadores`;
+  const description = game.seoDescription || `${game.title} en MeepleTavern: jugadores, duración, dificultad, resumen editorial, pros, contras, categorías, mecánicas y juegos parecidos.`;
   const imageUrl = hasVerifiedCoverImage(game) && game.coverImageUrl ? game.coverImageUrl : null;
 
   return {
@@ -581,6 +581,26 @@ function buildJsonLd(game: CatalogGame) {
               bestRating: "10",
               worstRating: "1",
               ratingCount: (game.ratings.users?.votesCount || 0) + (hasExternalRating ? 1 : 0)
+            }
+          }
+        : {}),
+      ...(game.buyLinks.length > 0
+        ? {
+            offers: {
+              "@type": "AggregateOffer",
+              offerCount: game.buyLinks.length,
+              priceCurrency: "EUR",
+              offers: game.buyLinks.map(link => ({
+                "@type": "Offer",
+                url: link.url,
+                priceCurrency: "EUR",
+                ...(link.priceLabel ? { price: link.priceLabel.replace(/[^0-9,]/g, '').replace(',', '.') } : {}),
+                availability: link.availability === "Disponible" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                seller: {
+                  "@type": "Organization",
+                  name: link.store
+                }
+              }))
             }
           }
         : {}),

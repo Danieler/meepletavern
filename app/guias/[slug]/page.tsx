@@ -30,6 +30,12 @@ export async function generateMetadata({ params }: GuiaPageProps): Promise<Metad
     description: guia.description,
     alternates: {
       canonical: `${siteConfig.url}/guias/${guia.slug}`
+    },
+    openGraph: {
+      title: guia.title,
+      description: guia.description,
+      type: "article",
+      url: `${siteConfig.url}/guias/${guia.slug}`
     }
   };
 }
@@ -51,9 +57,26 @@ export default async function GuiaPage({ params }: GuiaPageProps) {
 
   const games = await getGamesForGuia(guia);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: guia.title,
+    description: guia.description,
+    url: `${siteConfig.url}/guias/${guia.slug}`,
+    itemListElement: games.map((game, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${siteConfig.url}/juegos/${game.slug}`
+    }))
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="page-hero">
           <div className="container-page">
             <p className="tavern-eyebrow">Guía de compra</p>

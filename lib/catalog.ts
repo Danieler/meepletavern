@@ -60,6 +60,8 @@ export type CatalogGame = GameImageFields & {
   updatedAt: string;
   publishedAt: string | null;
   placeholderKind: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
 };
 
 export type Review = GameImageFields & {
@@ -147,6 +149,8 @@ const catalogCardGameSelect = {
   },
   createdAt: true,
   updatedAt: true,
+  seoTitle: true,
+  seoDescription: true,
   publishedAt: true
 } satisfies Prisma.GameSelect;
 
@@ -722,7 +726,9 @@ function toCatalogGameShape(game: CatalogCardDbGame, details: CatalogGameDetails
     howToPlayVideos: normalizeHowToPlayVideos(details.howToPlayVideos),
     addedAt: toIsoString(game.createdAt) || new Date().toISOString(),
     updatedAt: toIsoString(game.updatedAt) || new Date().toISOString(),
-    publishedAt: toIsoString(game.publishedAt)
+    publishedAt: toIsoString(game.publishedAt),
+    seoTitle: game.seoTitle,
+    seoDescription: game.seoDescription
   };
 }
 

@@ -308,7 +308,7 @@ export function TaxonomyPageSkeleton({ label = "Cargando categorías" }: { label
 
 export function GameDetailPageSkeleton() {
   return (
-    <LoadingShell label="Cargando ficha del juego">
+    <LoadingShell label="Cargando...">
       <section className="tavern-breadcrumb-bar"><div className="container-page py-4"><DarkBone className="h-4 w-52" /></div></section>
       <section className="container-page -mt-2 pb-10 pt-1">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
