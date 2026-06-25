@@ -147,7 +147,7 @@ export default async function GamePage({ params }: GamePageProps) {
                         </div>
                       </section>
                     ) : null}
-                    <GameLibraryPanel gameId={game.id} />
+                    <GameLibraryPanel gameId={game.id} gameTitle={game.title} />
                   </aside>
 
                   <article className="min-w-0 space-y-5 xl:pr-2">

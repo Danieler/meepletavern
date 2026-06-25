@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { getPendingAction, executePendingAction } from "@/lib/pendingActions";
+import { track } from "@vercel/analytics/react";
 
 type LibraryState = {
   owned: boolean;
@@ -121,63 +123,83 @@ export function GameInteractionProvider({
       setLoading(true);
     }
 
-    fetch(`/api/account/game-state?gameId=${encodeURIComponent(gameId)}`)
-      .then(async (res) => {
-        const data = await res.json().catch(() => null);
-        if (!active) return;
+    const fetchState = () => {
+      fetch(`/api/account/game-state?gameId=${encodeURIComponent(gameId)}`)
+        .then(async (res) => {
+          const data = await res.json().catch(() => null);
+          if (!active) return;
 
-        if (res.ok && data?.ok) {
-          let updatedRating = "8";
-          let updatedHasExistingScore = false;
-          if (data.rating !== null) {
-            updatedRating = String(data.rating);
-            updatedHasExistingScore = true;
-          }
-          setRating(updatedRating);
-          setHasExistingScore(updatedHasExistingScore);
-          
-          let updatedLibrary = { owned: false, wantToPlay: false, wantToBuy: false, played: false };
-          if (data.library) {
-            updatedLibrary = data.library;
-            setLibrary(data.library);
-          }
-          
-          const updatedPlayCount = data.playCount ?? 0;
-          setPlayCount(updatedPlayCount);
-          
-          const updatedComment = data.comment;
-          setComment(updatedComment);
-          
-          let updatedUserId = null;
-          if (user) {
-            updatedUserId = user.id;
-            setFetchedUserId(user.id);
-          }
+          if (res.ok && data?.ok) {
+            let updatedRating = "8";
+            let updatedHasExistingScore = false;
+            if (data.rating !== null) {
+              updatedRating = String(data.rating);
+              updatedHasExistingScore = true;
+            }
+            setRating(updatedRating);
+            setHasExistingScore(updatedHasExistingScore);
+            
+            let updatedLibrary = { owned: false, wantToPlay: false, wantToBuy: false, played: false };
+            if (data.library) {
+              updatedLibrary = data.library;
+              setLibrary(data.library);
+            }
+            
+            const updatedPlayCount = data.playCount ?? 0;
+            setPlayCount(updatedPlayCount);
+            
+            const updatedComment = data.comment;
+            setComment(updatedComment);
+            
+            let updatedUserId = null;
+            if (user) {
+              updatedUserId = user.id;
+              setFetchedUserId(user.id);
+            }
 
-          gameStateCache[gameId] = {
-            rating: updatedRating,
-            hasExistingScore: updatedHasExistingScore,
-            library: updatedLibrary,
-            playCount: updatedPlayCount,
-            comment: updatedComment,
-            fetchedUserId: updatedUserId
-          };
-        } else if (res.status === 401) {
-          setRating("8");
-          setHasExistingScore(false);
-          setLibrary({ owned: false, wantToPlay: false, wantToBuy: false, played: false });
-          setPlayCount(0);
-          setComment(null);
-          setFetchedUserId(null);
-        }
-        setReady(true);
-      })
-      .catch(() => {
-        if (active) setReady(true);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+            gameStateCache[gameId] = {
+              rating: updatedRating,
+              hasExistingScore: updatedHasExistingScore,
+              library: updatedLibrary,
+              playCount: updatedPlayCount,
+              comment: updatedComment,
+              fetchedUserId: updatedUserId
+            };
+          } else if (res.status === 401) {
+            setRating("8");
+            setHasExistingScore(false);
+            setLibrary({ owned: false, wantToPlay: false, wantToBuy: false, played: false });
+            setPlayCount(0);
+            setComment(null);
+            setFetchedUserId(null);
+          }
+          setReady(true);
+        })
+        .catch(() => {
+          if (active) setReady(true);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    };
+
+    if (user) {
+      const action = getPendingAction();
+      if (action && action.gameId === gameId) {
+        executePendingAction().then((res) => {
+          if (active) {
+            track("pending_action_completed");
+            if (res && res.ok && res.type === "RATE_GAME" && res.data?.ratings) {
+              window.dispatchEvent(new CustomEvent("meepletavern:ratings-updated", { detail: res.data.ratings }));
+            }
+            fetchState();
+          }
+        });
+        return;
+      }
+    }
+
+    fetchState();
 
     return () => {
       active = false;

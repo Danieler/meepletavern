@@ -8,9 +8,12 @@ import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import { LibraryOnboardingTooltip } from "@/components/account/LibraryOnboardingTooltip";
 import { useGameInteraction } from "@/components/GameInteractionProvider";
+import { setPendingAction, executePendingAction } from "@/lib/pendingActions";
+import { track } from "@vercel/analytics/react";
 
 type GameLibraryPanelProps = {
   gameId: string;
+  gameTitle?: string;
 };
 
 type LibraryState = {
@@ -20,7 +23,7 @@ type LibraryState = {
   played: boolean;
 };
 
-export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
+export function GameLibraryPanel({ gameId, gameTitle = "este juego" }: GameLibraryPanelProps) {
   const { library: state, setLibrary, ready } = useGameInteraction();
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -33,7 +36,8 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
     localStorage.setItem("meepletavern_library_onboarding_seen", "true");
 
     if (!user) {
-      setAuthModalTitle(getModalTitleForStatus(key));
+      setPendingAction({ type: "LIBRARY_TOGGLE", gameId, payload: { key } });
+      setAuthModalTitle(getModalTitleForStatus(key, gameTitle));
       return;
     }
 
@@ -54,6 +58,21 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
       router.refresh();
     }
     setBusy(null);
+  };
+
+  const handleAuthSuccess = async () => {
+    setAuthModalTitle(null);
+    const result = await executePendingAction();
+    if (result && result.ok && result.type === "LIBRARY_TOGGLE") {
+      track("pending_action_completed");
+      const key = result.action.payload?.key;
+      if (key === "owned" || key === "wantToPlay" || key === "wantToBuy" || key === "played") {
+        setLibrary((current) => ({ ...current, [key]: true }));
+      }
+      router.refresh();
+    } else {
+      router.refresh();
+    }
   };
 
   const hasAny = state.owned || state.wantToPlay || state.wantToBuy || state.played;
@@ -119,18 +138,19 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
       <AuthPromptModal
         isOpen={Boolean(authModalTitle)}
         onClose={() => setAuthModalTitle(null)}
-        title={authModalTitle || "Guarda este juego en tu ludoteca"}
+        title={authModalTitle || `Guarda ${gameTitle} en tu ludoteca`}
         next={pathname || "/"}
+        onSuccess={handleAuthSuccess}
       />
     </>
   );
 }
 
-function getModalTitleForStatus(key: keyof LibraryState) {
-  if (key === "owned") return "Crea tu ludoteca para guardar este juego";
-  if (key === "wantToPlay") return "Crea tu ludoteca para marcar este juego como pendiente";
-  if (key === "played") return "Crea tu ludoteca para puntuar este juego";
-  return "Crea tu ludoteca para añadir este juego a una lista";
+function getModalTitleForStatus(key: keyof LibraryState, gameTitle: string) {
+  if (key === "owned") return `Guarda ${gameTitle} en tu ludoteca`;
+  if (key === "wantToPlay") return `Añade ${gameTitle} a tu lista de pendientes`;
+  if (key === "played") return `Puntúa ${gameTitle} y ayuda a otros jugadores`;
+  return `Crea tu lista para guardar ${gameTitle}`;
 }
 
 function ToggleButton({

@@ -147,7 +147,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
         </div>
       </Link>
       <div className="px-4 pb-4 sm:px-5 sm:pb-5">
-        <GameCardSaveButton gameTitle={game.title} />
+        <GameCardSaveButton gameId={game.id} gameTitle={game.title} />
       </div>
     </article>
   );

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
+import { QuickAuthForm } from "@/components/auth/QuickAuthForm";
+import { useAuth } from "@/hooks/useAuth";
+import { track } from "@vercel/analytics/react";
 
 type AuthPromptModalProps = {
   isOpen: boolean;
@@ -12,26 +14,39 @@ type AuthPromptModalProps = {
   intent?: string;
   primaryLabel?: string;
   secondaryLabel?: string;
+  onSuccess?: () => void;
 };
 
 export function AuthPromptModal({
   isOpen,
   onClose,
   title = "Guarda este juego en tu ludoteca",
-  description = "Guarda tus juegos y descubre qué jugar con otros taberneros.",
+  description = "Crea tu cuenta gratis para guardar juegos, hacer listas y descubrir qué se juega en la taberna.",
   next,
-  intent,
-  primaryLabel = "Crear mi ludoteca gratis",
-  secondaryLabel = "Entrar"
+  intent: _intent,
+  primaryLabel: _primaryLabel = "Crear mi ludoteca gratis",
+  secondaryLabel: _secondaryLabel = "Entrar",
+  onSuccess
 }: AuthPromptModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
+  const {
+    isConfigured,
+    signIn,
+    signUp,
+    signInWithGoogleIdToken,
+    signInWithGoogle,
+    signInWithDiscord
+  } = useAuth();
+
   useEffect(() => {
     if (!isOpen) {
       return;
     }
+
+    track("auth_modal_opened");
 
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     window.dispatchEvent(new CustomEvent("meepletavern:auth-prompt", { detail: { open: true } }));
@@ -39,6 +54,7 @@ export function AuthPromptModal({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        track("modal_closed");
         onClose();
       }
     };
@@ -56,13 +72,13 @@ export function AuthPromptModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/45 px-3 sm:items-center sm:px-6" role="presentation" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/45 px-0 pb-0 sm:px-3 sm:items-center sm:pb-6" role="presentation" onMouseDown={() => { track("modal_closed"); onClose(); }}>
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-prompt-title"
-        className="w-full max-w-md rounded-t-2xl border border-walnut/15 bg-paper p-5 shadow-2xl outline-none sm:rounded-lg sm:p-6"
+        className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-walnut/15 bg-paper p-5 shadow-2xl outline-none sm:p-6 max-h-[95vh] overflow-y-auto mt-auto sm:mt-0"
         style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
         onMouseDown={(event) => event.stopPropagation()}
       >
@@ -77,21 +93,28 @@ export function AuthPromptModal({
             ref={closeButtonRef}
             type="button"
             className="focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-walnut/10 bg-white text-xl font-black text-walnut/65 transition hover:text-wood"
-            onClick={onClose}
+            onClick={() => { track("modal_closed"); onClose(); }}
             aria-label="Cerrar"
           >
             ×
           </button>
         </div>
-        <p className="mt-3 text-sm font-semibold leading-6 text-walnut/75">{description}</p>
-        <div className="mt-5 grid gap-3">
-          <AuthCtaButton context="game" className="justify-center" next={next} intent={intent}>
-            {primaryLabel}
-          </AuthCtaButton>
-          <AuthCtaButton variant="secondary" mode="login" className="justify-center" next={next} intent={intent}>
-            {secondaryLabel}
-          </AuthCtaButton>
-          <button type="button" className="text-sm font-extrabold text-walnut/55 transition hover:text-wood" onClick={onClose}>
+        <p className="mt-3 text-sm font-semibold leading-6 text-walnut/75 mb-6">{description}</p>
+        
+        <QuickAuthForm
+          isConfigured={isConfigured}
+          onSignIn={signIn}
+          onSignUp={signUp}
+          onGoogleIdTokenSignIn={signInWithGoogleIdToken}
+          onGoogleSignIn={() => signInWithGoogle(next)}
+          onDiscordSignIn={() => signInWithDiscord(next)}
+          initialMode="register"
+          compact={true}
+          onSuccess={onSuccess ? onSuccess : onClose}
+        />
+        
+        <div className="mt-5 text-center">
+          <button type="button" className="text-sm font-extrabold text-walnut/55 transition hover:text-wood" onClick={() => { track("modal_closed"); onClose(); }}>
             Ahora no
           </button>
         </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { useGameInteraction } from "@/components/GameInteractionProvider";
+import { setPendingAction, executePendingAction } from "@/lib/pendingActions";
+import { track } from "@vercel/analytics/react";
 
 export function UserRatingVote({
   gameId,
@@ -25,8 +26,23 @@ export function UserRatingVote({
   const pathname = usePathname();
   const next = pathname || "/";
 
+  const handleAuthSuccess = async () => {
+    setAuthOpen(false);
+    const result = await executePendingAction();
+    if (result && result.ok && result.type === "RATE_GAME") {
+      track("pending_action_completed");
+      setHasExistingScore(true);
+      setMessage("Tu nota ha sido guardada automáticamente.");
+      if (result.data?.ratings) {
+        onRated?.(result.data.ratings);
+        window.dispatchEvent(new CustomEvent("meepletavern:ratings-updated", { detail: result.data.ratings }));
+      }
+    }
+  };
+
   async function submit() {
     if (!user) {
+      setPendingAction({ type: "RATE_GAME", gameId, payload: { score } });
       setAuthOpen(true);
       return;
     }
@@ -98,10 +114,11 @@ export function UserRatingVote({
       <AuthPromptModal
         isOpen={authOpen}
         onClose={() => setAuthOpen(false)}
-        title="Guarda este juego en tu ludoteca"
-        description="Crea tu cuenta gratis para guardar juegos, puntuarlos y preparar tu próxima partida."
+        title="Puntúa este juego y ayuda a otros jugadores"
+        description="Crea tu cuenta gratis para guardar juegos, puntuarlos y descubrir qué se juega en la taberna."
         next={next}
         intent="rate_game"
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );

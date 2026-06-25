@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { useAuth } from "@/hooks/useAuth";
 import type { AuthContext } from "@/components/auth-cta/authCtaUrl";
+import { executePendingAction } from "@/lib/pendingActions";
 
 type AuthPageClientProps = {
   nextPath: string;
@@ -27,7 +28,9 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace(nextPath);
+      executePendingAction().then(() => {
+        router.replace(nextPath);
+      });
     }
   }, [loading, nextPath, router, user]);
 
