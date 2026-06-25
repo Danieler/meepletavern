@@ -25,7 +25,12 @@ export async function markSuggestionAction(formData: FormData): Promise<void> {
     throw new Error("Falta el identificador de la sugerencia.");
   }
 
-  const status = (statusStr as GameSuggestionStatus) || GameSuggestionStatus.IMPORTED;
+  const validStatuses = Object.values(GameSuggestionStatus);
+  if (!statusStr || !validStatuses.includes(statusStr as GameSuggestionStatus)) {
+    throw new Error("Estado de sugerencia no válido.");
+  }
+  const status = statusStr as GameSuggestionStatus;
+
 
   await prisma.gameSuggestion.update({
     where: { id },

@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { PublicShell } from "@/components/PublicShell";
+import { PublicHeader } from "@/components/PublicHeader";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 export default function ErrorBoundary({
   error,
@@ -17,7 +18,8 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <PublicShell>
+    <>
+      <PublicHeader />
       <main className="container-page py-16 text-center">
         <h1 className="text-4xl font-display font-black text-wood mb-4">
           Ocurrió un error inesperado
@@ -34,6 +36,12 @@ export default function ErrorBoundary({
           </Link>
         </div>
       </main>
-    </PublicShell>
+      <FeedbackButton />
+      <footer className="tavern-footer text-white">
+        <div className="container-page py-10 text-center text-sm text-parchment/60">
+          <p>© {new Date().getFullYear()} MeepleTavern. Todos los derechos reservados.</p>
+        </div>
+      </footer>
+    </>
   );
 }

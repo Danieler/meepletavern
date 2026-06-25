@@ -7,7 +7,7 @@ import { Copy, Eye, EyeOff, ListPlus, LogOut, Mail, Settings, UserRound } from "
 import { LibraryPanel } from "@/components/account/LibraryPanel";
 import { UserRatingsPanel } from "@/components/account/UserRatingsPanel";
 import { UserAvatar } from "@/components/account/UserAvatar";
-import { GameSuggestionForm } from "@/components/lists/GameSuggestionForm";
+import { GameSuggestionForm } from "@/components/GameSuggestionForm";
 import { useAuth } from "@/hooks/useAuth";
 
 type AccountProfile = {

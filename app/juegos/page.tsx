@@ -13,6 +13,7 @@ import { Sparkles } from "lucide-react";
 import { CommunityHeroWidget } from "@/components/taberna/CommunityHeroWidget";
 import { filterGames, getCategoryTerms, getMechanicTerms, type GameFilterInput } from "@/lib/catalog";
 import { getPublicUsersPage } from "@/lib/publicProfiles";
+import { GameSuggestionForm } from "@/components/GameSuggestionForm";
 
 export const metadata: Metadata = {
   title: "Catálogo de juegos de mesa",
@@ -121,9 +122,16 @@ async function CatalogResults({ filters }: { filters: GameFilterInput }) {
         </div>
         <Pagination active={filters} totalPages={totalPages} currentPage={page} />
         {!games.length ? (
-          <SEOTextBlock title="Sin resultados">
-            <p>Prueba a relajar filtros o buscar por una categoría o mecánica más amplia.</p>
-          </SEOTextBlock>
+          <div className="flex flex-col gap-8 mt-4">
+            <SEOTextBlock title="Sin resultados">
+              <p>Prueba a relajar filtros o buscar por una categoría o mecánica más amplia.</p>
+            </SEOTextBlock>
+            {filters.q ? (
+              <div className="max-w-xl">
+                <GameSuggestionForm initialName={filters.q} />
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </section>

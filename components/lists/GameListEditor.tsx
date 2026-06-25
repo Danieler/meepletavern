@@ -13,7 +13,7 @@ import {
   Search,
   Trash2
 } from "lucide-react";
-import { GameSuggestionForm } from "@/components/lists/GameSuggestionForm";
+import { GameSuggestionForm } from "@/components/GameSuggestionForm";
 import { ListGameThumbnail } from "@/components/lists/ListGameThumbnail";
 import type { GameSearchResult, OwnerGameListPage } from "@/lib/gameLists";
 

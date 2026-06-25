@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { Eye, EyeOff, Heart, ListPlus, Loader2, Plus } from "lucide-react";
-import { GameSuggestionForm } from "@/components/lists/GameSuggestionForm";
+import { GameSuggestionForm } from "@/components/GameSuggestionForm";
 import type { MyGameListSummary } from "@/lib/gameLists";
 
 export function GameListsManager({ initialLists }: { initialLists: MyGameListSummary[] }) {

@@ -2,7 +2,8 @@ import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { prisma } from "@/lib/prisma";
-import { deleteSuggestionAction, markSuggestionAction } from "./actions";
+import { markSuggestionAction } from "./actions";
+import { DeleteSuggestionForm } from "./DeleteSuggestionForm";
 import { GameSuggestionStatus } from "@prisma/client";
 import { Trash2, CheckCircle2, RefreshCw, ExternalLink, User } from "lucide-react";
 import Link from "next/link";
@@ -146,23 +147,7 @@ export default async function AdminSuggestionsPage() {
                             </form>
 
                             {/* Delete */}
-                            <form
-                              action={deleteSuggestionAction}
-                              onSubmit={(event) => {
-                                if (!window.confirm(`¿Eliminar la sugerencia de "${suggestion.name}"?`)) {
-                                  event.preventDefault();
-                                }
-                              }}
-                            >
-                              <input type="hidden" name="id" value={suggestion.id} />
-                              <button
-                                className="button-danger min-h-9 px-3 text-xs flex items-center justify-center"
-                                type="submit"
-                                title="Eliminar sugerencia"
-                              >
-                                <Trash2 size={14} aria-hidden="true" />
-                              </button>
-                            </form>
+                            <DeleteSuggestionForm id={suggestion.id} name={suggestion.name} />
                           </div>
                         </td>
                       </tr>
