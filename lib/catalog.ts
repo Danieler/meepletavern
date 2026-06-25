@@ -531,7 +531,8 @@ const getPublishedDbGamesList = unstable_cache(
     return prisma.game.findMany({
       where: { status: GameStatus.published },
       select: catalogCardGameSelect,
-      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 2000
     });
   },
   ["published-game-cards"],

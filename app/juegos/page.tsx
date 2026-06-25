@@ -149,6 +149,6 @@ function CatalogSignupCta() {
 }
 
 async function CommunityHeroWidgetWrapper() {
-  const usersPage = await getPublicUsersPage({ query: "", limit: 6 });
-  return <CommunityHeroWidget users={usersPage.items} />;
+  const usersPage = await getPublicUsersPage();
+  return <CommunityHeroWidget users={usersPage.items.slice(0, 6)} />;
 }

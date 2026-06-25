@@ -120,10 +120,13 @@ const getCachedPublishedReviewBySlug = unstable_cache(
   { revalidate: 3600, tags: ["public-games"] }
 );
 
+const { body: _body, summary: _summary, ...adminReviewListSelect } = adminReviewSelect;
+
 export async function getAdminReviews() {
   return prisma.review.findMany({
-    select: adminReviewSelect,
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
+    select: adminReviewListSelect as Omit<typeof adminReviewSelect, "body" | "summary">,
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    take: 500
   });
 }
 
