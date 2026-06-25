@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { buildAuthHref, type AuthMode, type AuthContext } from "@/components/auth-cta/authCtaUrl";
 
 type AuthCtaButtonProps = {
-  variant?: "primary" | "secondary" | "subtle";
+  variant?: "primary" | "secondary" | "subtle" | "hero-primary" | "hero-secondary";
   context?: "home" | "catalog" | "game" | "tavern" | "review" | "header";
   mode?: AuthMode;
   next?: string;
@@ -44,7 +44,11 @@ export function AuthCtaButton({
       ? "button-primary"
       : variant === "secondary"
         ? "button-secondary"
-        : "inline-flex min-h-10 items-center text-sm font-extrabold text-parchment/85 transition hover:text-white hover:underline";
+        : variant === "hero-primary"
+          ? "button-hero-primary"
+          : variant === "hero-secondary"
+            ? "button-hero-secondary"
+            : "inline-flex min-h-10 items-center text-sm font-extrabold text-parchment/85 transition hover:text-white hover:underline";
 
   return (
     <Link className={[baseClass, className].filter(Boolean).join(" ")} href={href} aria-label={ariaLabel}>

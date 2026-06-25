@@ -56,14 +56,14 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
       {/* Foam Head (Espuma de Cerveza) */}
       <div className="relative z-10 flex items-start justify-between gap-3 border-b border-[#ebd5bf]/40 bg-gradient-to-b from-[#ffffff] to-[#fffbf2] p-3 shadow-md">
         <div>
-          <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#d97706]">
-            <Beer size={11} className="text-[#d97706] animate-pulse" />
+          <p className="tavern-eyebrow flex items-center gap-1.5">
+            <Beer size={13} className="text-ember animate-pulse" strokeWidth={2.5} />
             Directo del barril
           </p>
-          <h2 className="font-display mt-1 text-xl font-bold leading-tight text-[#451a03]">
+          <h2 className="tavern-title mt-1.5 text-xl">
             Recomendaciones listas para servir
           </h2>
-          <p className="mt-0.5 text-xs font-semibold leading-5 text-[#78350f]/80">
+          <p className="mt-0.5 text-xs font-semibold leading-5 text-walnut/80">
             Una selección fresca para decidir sin perderte en filtros.
           </p>
         </div>
@@ -195,11 +195,11 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-display break-words text-2xl font-bold leading-tight text-[#451a03]">{game.title}</h3>
-        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-[#78350f]/80">
+        <h3 className="font-display break-words text-2xl font-bold leading-tight text-wood">{game.title}</h3>
+        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-walnut/80">
           {game.reviewSummary}
         </p>
-        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-[#78350f]">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-walnut/70">
           {typeof game.ratingScore === "number" ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3c7]/60 border border-[#f59e0b]/20 px-2 py-0.5">
               <BrandIcon name="star" size={11} className="text-[#d97706]" />
@@ -211,7 +211,7 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
             {game.playersLabel || "Mesa flexible"}
           </span>
         </div>
-        <p className="mt-2.5 text-xs font-black uppercase tracking-wider text-[#d97706] group-hover:text-[#b45309] transition-colors">
+        <p className="mt-2.5 text-xs font-black uppercase tracking-wider text-ember group-hover:text-hearth transition-colors">
           Ver grifo de ficha →
         </p>
       </div>
@@ -240,9 +240,9 @@ function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
         />
       </div>
       <div className="min-w-0 p-2.5">
-        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#d97706]">{label}</p>
-        <h3 className="font-display mt-0.5 break-words text-base font-bold leading-tight text-[#451a03]">{game.title}</h3>
-        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-4 text-[#78350f]/80">
+        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-ember">{label}</p>
+        <h3 className="font-display mt-0.5 break-words text-base font-bold leading-tight text-wood">{game.title}</h3>
+        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-4 text-walnut/80">
           {game.reviewSummary}
         </p>
       </div>
@@ -261,11 +261,11 @@ function HeroMiniStat({
 }) {
   return (
     <div className="min-w-0 rounded-md border border-[#ebd5bf]/60 bg-[#fffdfa] p-2 text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-      <p className="flex min-w-0 flex-col items-center gap-0.5 text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#92400e]/70 min-[380px]:text-[10px]">
-        <BrandIcon name={icon} size={11} className="text-[#d97706]" />
+      <p className="flex min-w-0 flex-col items-center gap-0.5 text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-walnut/70 min-[380px]:text-[10px]">
+        <BrandIcon name={icon} size={11} className="text-ember" />
         {label}
       </p>
-      <p className="mt-0.5 break-words font-display text-xs font-bold leading-tight text-[#451a03] min-[380px]:text-sm">{value}</p>
+      <p className="mt-0.5 break-words font-display text-xs font-bold leading-tight text-wood min-[380px]:text-sm">{value}</p>
     </div>
   );
 }

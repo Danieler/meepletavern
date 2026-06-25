@@ -121,7 +121,7 @@ export default async function Home() {
 
             <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_400px] lg:items-stretch">
               <div className="flex h-full flex-col">
-                <p className="tavern-eyebrow text-ember/80 tracking-[0.25em]">La carta de juegos de mesa</p>
+                <p className="tavern-eyebrow">La carta de juegos de mesa</p>
                 <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-wood sm:text-6xl lg:text-7xl">
                   Encuentra tu próximo <span className="text-ember">juego de mesa</span>
                 </h1>
@@ -137,13 +137,13 @@ export default async function Home() {
                 <div className="lg:hidden xl:block mt-10">
                   <div className="mb-5">
                     <div className="flex items-center gap-4">
-                      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50 flex items-center gap-1.5">
+                      <p className="tavern-eyebrow flex items-center gap-1.5">
                         <Beer size={13} className="text-ember" strokeWidth={2.5} />
                         Tablón de misiones del tabernero
                       </p>
                       <div className="h-px flex-1 bg-walnut/10" />
                     </div>
-                    <h2 className="font-display mt-2.5 text-2xl font-bold leading-tight text-[#482c1d]">
+                    <h2 className="tavern-title mt-2.5 text-2xl">
                       Elige un contrato directo del tablón para empezar tu próxima partida
                     </h2>
                   </div>
@@ -245,13 +245,13 @@ export default async function Home() {
             <div className="relative z-10 mt-10 hidden lg:block xl:hidden">
               <div className="mb-5">
                 <div className="flex items-center gap-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50 flex items-center gap-1.5">
+                  <p className="tavern-eyebrow flex items-center gap-1.5">
                     <Beer size={13} className="text-ember" strokeWidth={2.5} />
                     Tablón de misiones del tabernero
                   </p>
                   <div className="h-px flex-1 bg-walnut/10" />
                 </div>
-                <h2 className="font-display mt-2.5 text-2xl font-bold leading-tight text-[#482c1d]">
+                <h2 className="tavern-title mt-2.5 text-2xl">
                   Elige un contrato directo del tablón para empezar tu próxima partida
                 </h2>
               </div>
@@ -305,10 +305,10 @@ export default async function Home() {
             <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="p-5 sm:p-6">
                 <p className="tavern-eyebrow">La taberna está abierta</p>
-                <h2 className="font-display mt-2 text-3xl font-bold leading-tight text-wood sm:text-4xl">
+                <h2 className="tavern-title mt-2 text-3xl sm:text-4xl">
                   Tu próxima partida empieza en la taberna
                 </h2>
-                <p className="mt-3 text-base font-medium leading-7 text-walnut/80">
+                <p className="tavern-copy mt-3">
                   Crea tu rincón, guarda tu ludoteca y descubre qué juegos tienen otros jugadores
                   antes de montar la próxima partida.
                 </p>
@@ -325,7 +325,7 @@ export default async function Home() {
               <aside className="border-t border-walnut/10 bg-[#3a2118] p-5 text-white lg:border-l lg:border-t-0 sm:p-6">
                 <HomeSidebarAuthControls />
                 <div className="mt-5 rounded-md border border-white/10 bg-white/8 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-ember">Para empezar</p>
+                  <p className="tavern-eyebrow">Para empezar</p>
                   <p className="mt-2 text-sm font-semibold leading-6 text-parchment/80">
                     Menos rankings sueltos, más mesas reales y ludotecas con contexto.
                   </p>
@@ -525,7 +525,7 @@ function EmptyStatePanel({
 }) {
   return (
     <div className="tavern-card p-6">
-      <h3 className="font-display text-2xl font-bold text-wood">{title}</h3>
+      <h3 className="tavern-title text-2xl">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-walnut/80">{description}</p>
       <Link href={href} className="mt-5 inline-flex text-sm font-extrabold text-ember transition hover:text-wood">
         {linkLabel}

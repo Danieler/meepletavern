@@ -19,15 +19,15 @@ export function HomeHeroAuthControls() {
     <>
       <div className="mt-5 flex flex-wrap gap-4">
         {user ? (
-          <Link href="/mi-perfil" className="button-primary px-8 py-3 text-base">
+          <Link href="/mi-perfil" className="button-hero-primary">
             Ir a mi rincón
           </Link>
         ) : (
-          <AuthCtaButton context="home" className="px-8 py-3 text-base" next="/">
+          <AuthCtaButton context="home" variant="hero-primary" next="/">
             Crear mi ludoteca gratis
           </AuthCtaButton>
         )}
-        <Link href="/juegos" className="button-secondary px-8 py-3 text-base">
+        <Link href="/juegos" className="button-hero-secondary">
           Explorar juegos
         </Link>
       </div>
@@ -56,7 +56,7 @@ export function HomeSidebarAuthControls() {
 
   return (
     <>
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-ember">Rincón de jugador</p>
+      <p className="tavern-eyebrow">Rincón de jugador</p>
       <h3 className="font-display mt-3 text-3xl font-bold leading-tight">
         {user ? "Tu rincón te está esperando" : "Haz tuya la taberna"}
       </h3>
@@ -89,7 +89,7 @@ export function HomeFooterSignupCta() {
       <div className="overflow-hidden rounded-lg border border-walnut/15 bg-[#3a2118] text-white shadow-soft">
         <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
           <div>
-            <p className="tavern-eyebrow text-ember">Tu mesa, siempre a mano</p>
+            <p className="tavern-eyebrow">Tu mesa, siempre a mano</p>
             <h2 className="font-display mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
               Guarda los juegos que quieres probar antes de olvidarlos
             </h2>

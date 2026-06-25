@@ -121,6 +121,14 @@ dd {
     @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-walnut/25 bg-paper px-4 py-2.5 text-center text-sm font-extrabold leading-snug text-walnut shadow-sm transition hover:-translate-y-px hover:border-ember hover:bg-white hover:text-wood disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
+  .button-hero-primary {
+    @apply focus-ring inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[#78350f]/30 bg-gradient-to-br from-[#d97706] to-[#b45309] px-8 py-3 text-center text-base font-black tracking-wide text-[#fffdfa] shadow-[0_4px_12px_rgba(217,119,6,0.2)] transition-all duration-300 hover:scale-[1.02] hover:from-[#b45309] hover:to-[#92400e] hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .button-hero-secondary {
+    @apply focus-ring inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[#ebd5bf] bg-[#fffdfa]/80 backdrop-blur-sm px-8 py-3 text-center text-base font-extrabold text-[#78350f] shadow-sm transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffdfa] hover:border-[#d97706] hover:text-[#d97706] hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
   .button-danger {
     @apply focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-md border border-ruby/25 bg-paper px-4 py-2.5 text-center text-sm font-extrabold leading-snug text-ruby transition hover:-translate-y-px hover:bg-ruby hover:text-white disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
   }
