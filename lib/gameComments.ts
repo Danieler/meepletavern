@@ -46,8 +46,8 @@ export async function getGameComments(gameId: string, limit = 12): Promise<Publi
   return getCachedGameComments(gameId, limit);
 }
 
-const getCachedGameComments = unstable_cache(
-  async function getCachedGameComments(gameId: string, limit = 12): Promise<PublicGameComment[]> {
+const getCachedGameComments = (gameId: string, limit = 12) => unstable_cache(
+  async () => {
     const comments = await prisma.gameComment.findMany({
       where: { gameId },
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
@@ -74,6 +74,6 @@ const getCachedGameComments = unstable_cache(
       updatedAt: comment.updatedAt.toISOString()
     }));
   },
-  ["game-comments"],
+  ["game-comments", gameId, String(limit)],
   { revalidate: 300, tags: ["public-comments"] }
-);
+)();

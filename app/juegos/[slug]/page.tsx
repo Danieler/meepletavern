@@ -21,6 +21,7 @@ import { PublicShell } from "@/components/PublicShell";
 import { SectionHeader } from "@/components/SectionHeader";
 import { UserGamePlayCount } from "@/components/UserGamePlayCount";
 import { UserRatingVote } from "@/components/UserRatingVote";
+import { GameInteractionProvider } from "@/components/GameInteractionProvider";
 import { getGameBySlug, getRelatedGames, getCatalogGames, type CatalogGame } from "@/lib/catalog";
 import { getGameComments } from "@/lib/gameComments";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
@@ -97,7 +98,8 @@ export default async function GamePage({ params }: GamePageProps) {
 
   return (
     <PublicShell>
-      <main>
+      <GameInteractionProvider gameId={game.id}>
+        <main>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -246,6 +248,7 @@ export default async function GamePage({ params }: GamePageProps) {
         </section>
 
       </main>
+      </GameInteractionProvider>
     </PublicShell>
   );
 }

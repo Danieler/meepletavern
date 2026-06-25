@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import type { GameRatingsData } from "@/lib/ratings/types";
+import { useGameInteraction } from "@/components/GameInteractionProvider";
 
 export function UserRatingVote({
   gameId,
@@ -16,38 +17,13 @@ export function UserRatingVote({
   initialVotesCount: number;
   onRated?: (ratings: GameRatingsData) => void;
 }) {
-  const [score, setScore] = useState("8");
+  const { rating: score, setRating: setScore, hasExistingScore, setHasExistingScore } = useGameInteraction();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [hasExistingScore, setHasExistingScore] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const pathname = usePathname();
   const next = pathname || "/";
-
-  useEffect(() => {
-    if (authLoading || !user) {
-      return;
-    }
-
-    let active = true;
-
-    fetch(`/api/account/ratings?gameId=${encodeURIComponent(gameId)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const payload = (await response.json().catch(() => null)) as { score?: number | null } | null;
-        if (!active || !response.ok || typeof payload?.score !== "number") {
-          return;
-        }
-
-        setScore(String(payload.score));
-        setHasExistingScore(true);
-      })
-      .catch(() => {});
-
-    return () => {
-      active = false;
-    };
-  }, [authLoading, gameId, user]);
 
   async function submit() {
     if (!user) {

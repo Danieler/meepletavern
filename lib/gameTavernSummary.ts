@@ -259,11 +259,11 @@ function numberOrNull(value: number | string | null | undefined) {
   return Number.isFinite(numericValue) ? numericValue : null;
 }
 
-const getCachedGameTavernSummary = unstable_cache(
-  (gameId: string) => queryGameTavernSummary(gameId),
-  ["game-tavern-summary-v1"],
+const getCachedGameTavernSummary = (gameId: string) => unstable_cache(
+  () => queryGameTavernSummary(gameId),
+  ["game-tavern-summary-v1", gameId],
   { revalidate: 180, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
-);
+)();
 
 export function getGameTavernSummary(gameId: string) {
   return getCachedGameTavernSummary(gameId);

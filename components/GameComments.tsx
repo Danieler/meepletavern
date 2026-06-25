@@ -5,6 +5,7 @@ import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { BrandIcon } from "@/components/BrandIcon";
 import { useAuth } from "@/hooks/useAuth";
 import type { PublicGameComment } from "@/lib/gameComments";
+import { useGameInteraction } from "@/components/GameInteractionProvider";
 
 type OwnComment = {
   id: string;
@@ -23,13 +24,12 @@ export function GameComments({
   initialComments: PublicGameComment[];
 }) {
   const { user, loading, isConfigured } = useAuth();
-  const [comments, setComments] = useState(initialComments);
+  const { comment: ownComment, setComment: setOwnComment, loading: loadingOwnComment } = useGameInteraction();
+  const [comments, setComments] = useState<PublicGameComment[]>([]);
   const [body, setBody] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [loadingOwnComment, setLoadingOwnComment] = useState(false);
-  const [ownComment, setOwnComment] = useState<OwnComment>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const next = `/juegos/${gameSlug}#comentarios`;
 
@@ -38,47 +38,12 @@ export function GameComments({
   }, [initialComments]);
 
   useEffect(() => {
-    if (!user) {
-      setLoadingOwnComment(false);
-      setOwnComment(null);
+    if (ownComment) {
+      setBody(ownComment.body);
+    } else {
       setBody("");
-      return;
     }
-
-    let active = true;
-    setLoadingOwnComment(true);
-
-    fetch(`/api/account/comments?gameId=${encodeURIComponent(gameId)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const payload = (await response.json().catch(() => null)) as
-          | {
-              comment?: OwnComment;
-            }
-          | null;
-
-        if (!active) {
-          return;
-        }
-
-        const nextComment = payload?.comment || null;
-        setOwnComment(nextComment);
-        setBody(nextComment?.body || "");
-      })
-      .catch(() => {
-        if (active) {
-          setOwnComment(null);
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoadingOwnComment(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [gameId, user]);
+  }, [ownComment]);
 
   async function submitComment() {
     setSaving(true);

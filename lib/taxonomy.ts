@@ -316,7 +316,7 @@ async function getCachedTaxonomyTermNames(type: TaxonomyTypeKey) {
     async function cachedTaxonomyTermNames(innerType: TaxonomyTypeKey) {
       return getDirectTaxonomyTermNames(innerType);
     },
-    ["taxonomy-term-names"],
+    ["taxonomy-term-names", type],
     { revalidate: 3600, tags: ["public-taxonomy"] }
   );
 

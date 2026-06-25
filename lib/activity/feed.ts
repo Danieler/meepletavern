@@ -97,11 +97,11 @@ export async function queryTavernActivityFeed(
   };
 }
 
-const getCachedTavernActivityFeed = unstable_cache(
-  async (limit: number, cursor: string | null) => queryTavernActivityFeed({ limit, cursor }),
-  ["tavern-activity-feed-v2"],
+const getCachedTavernActivityFeed = (limit: number, cursor: string | null) => unstable_cache(
+  () => queryTavernActivityFeed({ limit, cursor }),
+  ["tavern-activity-feed-v2", String(limit), cursor || ""],
   { revalidate: TAVERN_ACTIVITY_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
-);
+)();
 
 export function getTavernActivityFeed(
   input: { limit?: number; cursor?: string | null; query?: string | null; type?: string | null } = {}

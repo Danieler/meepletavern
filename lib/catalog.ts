@@ -247,24 +247,27 @@ export async function getCatalogGamesByIds(ids: string[]) {
   });
 }
 
-const getDbGamesByIdentifiers = unstable_cache(
-  async function getDbGamesByIdentifiers(identifiers: string[]) {
-    return prisma.game.findMany({
-      where: {
-        status: GameStatus.published,
-        OR: [
-          { slug: { in: identifiers } },
-          { title: { in: identifiers } },
-          { name: { in: identifiers } }
-        ]
-      },
-      select: catalogCardGameSelect,
-      take: Math.max(identifiers.length, 4)
-    });
-  },
-  ["db-games-by-identifiers"],
-  { revalidate: 3600, tags: ["public-games"] }
-);
+const getDbGamesByIdentifiers = (identifiers: string[]) => {
+  const sortedKeys = [...identifiers].sort().join(",");
+  return unstable_cache(
+    async () => {
+      return prisma.game.findMany({
+        where: {
+          status: GameStatus.published,
+          OR: [
+            { slug: { in: identifiers } },
+            { title: { in: identifiers } },
+            { name: { in: identifiers } }
+          ]
+        },
+        select: catalogCardGameSelect,
+        take: Math.max(identifiers.length, 4)
+      });
+    },
+    ["db-games-by-identifiers", sortedKeys],
+    { revalidate: 3600, tags: ["public-games"] }
+  )();
+};
 
 export async function getReviews(): Promise<Review[]> {
   const reviews = await getPublishedReviews();
@@ -539,8 +542,8 @@ const getPublishedDbGamesList = unstable_cache(
   { revalidate: 3600, tags: ["public-games"] }
 );
 
-const getPublishedDbGameBySlug = unstable_cache(
-  async function getPublishedDbGameBySlug(slug: string) {
+const getPublishedDbGameBySlug = (slug: string) => unstable_cache(
+  async () => {
     return prisma.game.findFirst({
       where: {
         slug,
@@ -549,9 +552,9 @@ const getPublishedDbGameBySlug = unstable_cache(
       select: catalogGameSelect
     });
   },
-  ["published-db-game-by-slug"],
+  ["published-db-game-by-slug", slug],
   { revalidate: 3600, tags: ["public-games"] }
-);
+)();
 
 const getPublishedGameTermCountsRows = unstable_cache(
   async function getPublishedGameTermCountsRows() {
@@ -564,36 +567,41 @@ const getPublishedGameTermCountsRows = unstable_cache(
   { revalidate: 3600, tags: ["public-games"] }
 );
 
-const getRelatedDbGames = unstable_cache(
-  async function getRelatedDbGames(slug: string, categories: string[], mechanics: string[], themes: string[]) {
-    const relatedFilters: Prisma.GameWhereInput[] = [];
-    if (categories.length) {
-      relatedFilters.push({ categories: { hasSome: categories } });
-    }
-    if (mechanics.length) {
-      relatedFilters.push({ mechanics: { hasSome: mechanics } });
-    }
-    if (themes.length) {
-      relatedFilters.push({ themes: { hasSome: themes } });
-    }
+const getRelatedDbGames = (slug: string, categories: string[], mechanics: string[], themes: string[]) => {
+  const catKey = [...categories].sort().join(",");
+  const mechKey = [...mechanics].sort().join(",");
+  const themeKey = [...themes].sort().join(",");
+  return unstable_cache(
+    async () => {
+      const relatedFilters: Prisma.GameWhereInput[] = [];
+      if (categories.length) {
+        relatedFilters.push({ categories: { hasSome: categories } });
+      }
+      if (mechanics.length) {
+        relatedFilters.push({ mechanics: { hasSome: mechanics } });
+      }
+      if (themes.length) {
+        relatedFilters.push({ themes: { hasSome: themes } });
+      }
 
-    if (!relatedFilters.length) {
-      return [];
-    }
+      if (!relatedFilters.length) {
+        return [];
+      }
 
-    return prisma.game.findMany({
-      where: {
-        status: GameStatus.published,
-        slug: { not: slug },
-        OR: relatedFilters
-      },
-      select: catalogCardGameSelect,
-      take: 12
-    });
-  },
-  ["related-db-games"],
-  { revalidate: 3600, tags: ["public-games"] }
-);
+      return prisma.game.findMany({
+        where: {
+          status: GameStatus.published,
+          slug: { not: slug },
+          OR: relatedFilters
+        },
+        select: catalogCardGameSelect,
+        take: 12
+      });
+    },
+    ["related-db-games", slug, catKey, mechKey, themeKey],
+    { revalidate: 3600, tags: ["public-games"] }
+  )();
+};
 
 type CatalogGameDetails = {
   description: string | null;

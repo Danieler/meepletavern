@@ -109,16 +109,16 @@ const getCachedPublishedReviews = unstable_cache(
   { revalidate: 3600, tags: ["public-games"] }
 );
 
-const getCachedPublishedReviewBySlug = unstable_cache(
-  async function getCachedPublishedReviewBySlug(slug: string) {
+const getCachedPublishedReviewBySlug = (slug: string) => unstable_cache(
+  async () => {
     return prisma.review.findFirst({
       where: { slug, isApproved: true },
       select: publicReviewSelect
     });
   },
-  ["published-review-by-slug"],
+  ["published-review-by-slug", slug],
   { revalidate: 3600, tags: ["public-games"] }
-);
+)();
 
 const { body: _body, summary: _summary, ...adminReviewListSelect } = adminReviewSelect;
 

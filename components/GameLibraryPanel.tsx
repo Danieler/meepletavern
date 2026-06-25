@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import { LibraryOnboardingTooltip } from "@/components/account/LibraryOnboardingTooltip";
+import { useGameInteraction } from "@/components/GameInteractionProvider";
 
 type GameLibraryPanelProps = {
   gameId: string;
@@ -20,62 +21,12 @@ type LibraryState = {
 };
 
 export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
+  const { library: state, setLibrary, ready } = useGameInteraction();
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [state, setState] = useState<LibraryState>({
-    owned: false,
-    wantToPlay: false,
-    wantToBuy: false,
-    played: false
-  });
   const [busy, setBusy] = useState<keyof LibraryState | null>(null);
-  const [ready, setReady] = useState(false);
   const [authModalTitle, setAuthModalTitle] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) {
-      setReady(true);
-      return;
-    }
-
-    let active = true;
-
-    fetch(`/api/account/library?gameId=${encodeURIComponent(gameId)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const payload = (await response.json().catch(() => null)) as
-          | {
-              entry?: {
-                gameId: string;
-                owned: boolean;
-                wantToPlay: boolean;
-                wantToBuy: boolean;
-                played: boolean;
-              } | null;
-            }
-          | null;
-
-        if (!active) return;
-
-        const entry = payload?.entry;
-        if (entry) {
-          setState({
-            owned: entry.owned,
-            wantToPlay: entry.wantToPlay,
-            wantToBuy: entry.wantToBuy,
-            played: entry.played
-          });
-        }
-        setReady(true);
-      })
-      .catch(() => {
-        if (active) setReady(true);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [gameId, user]);
 
   const toggleStatus = async (key: keyof LibraryState) => {
     // If they click any button, dismiss the onboarding tooltip
@@ -99,7 +50,7 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
     });
 
     if (response.ok) {
-      setState((current) => ({ ...current, [key]: nextValue }));
+      setLibrary((current) => ({ ...current, [key]: nextValue }));
       router.refresh();
     }
     setBusy(null);
