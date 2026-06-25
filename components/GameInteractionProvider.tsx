@@ -117,7 +117,7 @@ export function GameInteractionProvider({
     }
 
     let active = true;
-    if (!cached) {
+    if (!gameStateCache[gameId]) {
       setLoading(true);
     }
 
@@ -182,7 +182,7 @@ export function GameInteractionProvider({
     return () => {
       active = false;
     };
-  }, [gameId, user, authLoading, fetchedUserId, cached]);
+  }, [gameId, user, authLoading, fetchedUserId]);
 
   return (
     <GameInteractionContext.Provider
