@@ -5,6 +5,7 @@ type UserAvatarProps = {
   name: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
+  editable?: boolean;
 };
 
 const sizeClasses = {
@@ -21,14 +22,12 @@ const sizePixels = {
   xl: 128
 };
 
-export function UserAvatar({ src, name, size = "md", className = "" }: UserAvatarProps) {
+export function UserAvatar({ src, name, size = "md", className = "", editable = false }: UserAvatarProps) {
   const label = name.trim() || "Usuario";
   const isPreviewUrl = src?.startsWith("blob:") || src?.startsWith("data:");
 
-  return (
-    <div
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-walnut/15 bg-paper shadow-sm ${sizeClasses[size]} ${className}`}
-    >
+  const avatarContent = (
+    <>
       {src && isPreviewUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={label} className="h-full w-full object-cover" />
@@ -37,6 +36,33 @@ export function UserAvatar({ src, name, size = "md", className = "" }: UserAvata
       ) : (
         <UserAvatarFallbackArt seed={label} className="h-full w-full" />
       )}
+      {editable && !src && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-100">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-1">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <circle cx="12" cy="13" r="3"/>
+          </svg>
+          <span className="text-[10px] font-bold uppercase tracking-wider">Subir foto</span>
+        </div>
+      )}
+    </>
+  );
+
+  const containerClasses = `group relative flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-walnut/15 bg-paper shadow-sm ${sizeClasses[size]} ${className}`;
+
+  if (editable && !src) {
+    // We use an anchor tag to ensure a hard navigation, or a Link to nextjs routing.
+    // Given the ProfilePanel uses next/link, we'll use a normal anchor for simplicity or require next/link.
+    return (
+      <a href="/mi-perfil/ajustes" className={containerClasses} title="Subir foto de perfil">
+        {avatarContent}
+      </a>
+    );
+  }
+
+  return (
+    <div className={containerClasses}>
+      {avatarContent}
     </div>
   );
 }

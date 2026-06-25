@@ -6,6 +6,7 @@ import { Check, LibraryBig, Gamepad2, ShoppingCart, Trophy } from "lucide-react"
 import { useEffect, useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
+import { LibraryOnboardingTooltip } from "@/components/account/LibraryOnboardingTooltip";
 
 type GameLibraryPanelProps = {
   gameId: string;
@@ -77,6 +78,9 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   }, [gameId, user]);
 
   const toggleStatus = async (key: keyof LibraryState) => {
+    // If they click any button, dismiss the onboarding tooltip
+    localStorage.setItem("meepletavern_library_onboarding_seen", "true");
+
     if (!user) {
       setAuthModalTitle(getModalTitleForStatus(key));
       return;
@@ -102,11 +106,21 @@ export function GameLibraryPanel({ gameId }: GameLibraryPanelProps) {
   };
 
   const hasAny = state.owned || state.wantToPlay || state.wantToBuy || state.played;
+
+  useEffect(() => {
+    // If the user already has this game marked in their library, they know how to use the feature.
+    // Silently mark the onboarding as seen.
+    if (hasAny) {
+      localStorage.setItem("meepletavern_library_onboarding_seen", "true");
+    }
+  }, [hasAny]);
+
   const showNeutralState = !user;
 
   return (
     <>
-      <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+      <section className="relative rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <LibraryOnboardingTooltip />
         <p className="tavern-eyebrow">Mi ludoteca</p>
         <h2 className="mt-2 text-lg font-black text-ink">Añade este juego a tu ludoteca</h2>
         <div className="mt-4 grid gap-2">

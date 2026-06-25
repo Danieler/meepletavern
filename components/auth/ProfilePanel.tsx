@@ -180,7 +180,7 @@ export function ProfilePanel() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(201,130,31,0.35),transparent_28rem),linear-gradient(135deg,rgba(54,32,22,0.98),rgba(31,31,31,0.96)_58%,rgba(47,79,111,0.45))]" />
         <div className="relative grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
           <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-end">
-            <UserAvatar src={avatarUrl} name={profileName} size="xl" className="border-white/20 bg-paper/95" />
+            <UserAvatar src={avatarUrl} name={profileName} size="xl" className="border-white/20 bg-paper/95" editable={true} />
             <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-ember">Mi perfil</p>
               <h1 className="font-display mt-2 text-4xl font-bold leading-tight text-white sm:text-5xl">
@@ -192,9 +192,16 @@ export function ProfilePanel() {
               {profile?.profile?.bio ? (
                 <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-parchment/78">{profile.profile.bio}</p>
               ) : (
-                <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-parchment/62">
-                  Añade una bio breve para que otros sepan qué tipo de juegos te gustan.
-                </p>
+                <div className="mt-4">
+                  <p className="max-w-2xl text-base font-medium leading-7 text-parchment/62">
+                    Añade una bio breve para que otros sepan qué tipo de juegos te gustan.
+                  </p>
+                  {!avatarUrl && (
+                    <p className="mt-1 text-sm font-bold text-amber-200">
+                      ¡Y no olvides subir una foto de perfil pulsando en el avatar!
+                    </p>
+                  )}
+                </div>
               )}
               <div className="mt-5 flex flex-wrap gap-2">
                 {username ? (

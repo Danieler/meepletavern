@@ -9,6 +9,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { CatalogResultsSkeleton } from "@/components/loading/PublicPageSkeletons";
 import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
+import { Sparkles } from "lucide-react";
 import { filterGames, getCategoryTerms, getMechanicTerms, type GameFilterInput } from "@/lib/catalog";
 
 export const metadata: Metadata = {
@@ -30,13 +31,36 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
       <main>
         <section className="page-hero">
           <div className="container-page">
+            {filters.welcome === "true" && (
+              <div className="mb-8 rounded-lg border border-moss/20 bg-moss/10 p-5 shadow-soft">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-moss/20 text-moss">
+                    <Sparkles size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-wood">¡Bienvenido a la Taberna!</h2>
+                    <p className="mt-1 text-walnut/80 font-medium">
+                      Tu cuenta ya está lista. Empieza buscando tu juego de mesa favorito y pulsa en él para añadirlo a tu ludoteca o marcarlo como "Quiero jugar".
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <a href="#buscar" className="button-primary inline-flex">
+                        Buscar mi primer juego
+                      </a>
+                      <a href="/mi-perfil/ajustes" className="button-secondary bg-white inline-flex">
+                        Subir foto de perfil
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <p className="tavern-eyebrow">Archivo de juegos</p>
             <h1 className="page-hero-title">Catálogo de juegos de mesa</h1>
             <p className="page-hero-copy">
               Busca por título, filtra por mesa y compara categorías, mecánicas, duración y dificultad
               sin perder el hilo.
             </p>
-            <div className="mt-7 max-w-3xl">
+            <div id="buscar" className="mt-7 max-w-3xl scroll-mt-24">
               <GameSearch query={filters.q} variant="hero" />
             </div>
           </div>

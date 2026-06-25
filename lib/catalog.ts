@@ -93,6 +93,7 @@ export type GameFilterInput = {
   mechanic?: string | string[];
   sort?: string;
   page?: string | number;
+  welcome?: string | string[];
 };
 
 const publicMediaAssetSelect = {

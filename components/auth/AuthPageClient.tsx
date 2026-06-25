@@ -45,7 +45,11 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
       onSignUp={async (email, password, name) => {
         const result = await signUp(email, password, name);
         if (result.ok && !result.requiresEmailConfirmation) {
-          router.replace(nextPath);
+          if (nextPath === "/mi-perfil" || nextPath === "/") {
+            router.replace("/juegos?welcome=true");
+          } else {
+            router.replace(nextPath);
+          }
         }
         return result;
       }}
