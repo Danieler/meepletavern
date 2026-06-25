@@ -20,6 +20,7 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
     isConfigured,
     signIn,
     signInWithGoogle,
+    signInWithDiscord,
     signInWithGoogleIdToken,
     signUp
   } = useAuth();
@@ -61,6 +62,7 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
         return result;
       }}
       onGoogleSignIn={async () => signInWithGoogle(nextPath)}
+      onDiscordSignIn={async () => signInWithDiscord(nextPath)}
     />
   );
 }

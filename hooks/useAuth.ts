@@ -341,6 +341,33 @@ export function useAuth() {
     }
   }
 
+  async function signInWithDiscord(nextPath?: string): Promise<AuthActionResult> {
+    if (!isSupabaseConfigured) {
+      return { ok: false, message: missingConfigMessage };
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: {
+          redirectTo: getOAuthRedirectTo(nextPath)
+        }
+      });
+
+      if (error) {
+        return {
+          ok: false,
+          code: getAuthErrorCode(error.message),
+          message: getReadableAuthMessage(error.message)
+        };
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return getUnknownAuthError(error);
+    }
+  }
+
   async function signInWithGoogleIdToken(credential: string): Promise<AuthActionResult> {
     if (!isSupabaseConfigured) {
       return { ok: false, message: missingConfigMessage };
@@ -440,6 +467,7 @@ export function useAuth() {
     signUp,
     signIn,
     signInWithGoogle,
+    signInWithDiscord,
     signInWithGoogleIdToken,
     signOut,
     updateProfile
