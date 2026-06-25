@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User } from "lucide-react";
+import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User, Beer } from "lucide-react";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
 import { HeroDiscoveryBoard } from "@/components/home/HeroDiscoveryBoard";
@@ -54,28 +54,30 @@ export default async function Home() {
   const ratedGames = popularGames.filter((game) => typeof getEffectiveRatingScore(game) === "number");
   const showRatingsSection = ratedGames.length >= 3;
   const editorsPick = ratedGames[0] || popularGames[0] || beginnerGames[0] || null;
-  const heroGamePool = rotateDaily(
-    dedupeGames([
-      ...(ratedGames[0] ? [ratedGames[0]] : []),
-      ...(beginnerGames[0] ? [beginnerGames[0]] : []),
-      ...(newGames[0] ? [newGames[0]] : []),
-      ...newGames,
-      ...beginnerGames,
-      ...popularGames
-    ])
-      .slice(0, 9)
-      .map((game) => ({
-        slug: game.slug,
-        title: game.title,
-        coverImageUrl: game.coverImageUrl,
-        coverImageAlt: game.coverImageAlt,
-        reviewSummary: game.reviewSummary,
-        playersLabel: game.playersLabel,
-        playtime: game.playtime,
-        complexity: game.complexity,
-        ratingScore: getEffectiveRatingScore(game)
-      }))
-  );
+  const uniqueDiscoveryGames = dedupeGames([
+    ...(ratedGames[0] ? [ratedGames[0]] : []),
+    ...(beginnerGames[0] ? [beginnerGames[0]] : []),
+    ...(newGames[0] ? [newGames[0]] : []),
+    ...newGames,
+    ...beginnerGames,
+    ...popularGames
+  ]);
+
+  const rotatedDiscoveryGames = rotateDaily(uniqueDiscoveryGames);
+
+  const heroGamePool = rotatedDiscoveryGames
+    .slice(0, 12)
+    .map((game) => ({
+      slug: game.slug,
+      title: game.title,
+      coverImageUrl: game.coverImageUrl,
+      coverImageAlt: game.coverImageAlt,
+      reviewSummary: game.reviewSummary,
+      playersLabel: game.playersLabel,
+      playtime: game.playtime,
+      complexity: game.complexity,
+      ratingScore: getEffectiveRatingScore(game)
+    }));
   const featuredGames = dedupeGames([
     ...(editorsPick ? [editorsPick] : []),
     ...beginnerGames,
@@ -132,20 +134,100 @@ export default async function Home() {
                 </div>
                 <HomeHeroAuthControls />
 
-                <div className="mt-10">
+                <div className="mt-10 mb-5">
                   <div className="flex items-center gap-4">
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50">
-                      Mesa de descubrimiento
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-walnut/50 flex items-center gap-1.5">
+                      <Beer size={13} className="text-ember" strokeWidth={2.5} />
+                      Tablón de misiones del tabernero
                     </p>
                     <div className="h-px flex-1 bg-walnut/10" />
                   </div>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-walnut/76">
-                    Menos filtros, más partida.
-                  </p>
-                  <div className="mt-4 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-3">
-                    {intentCards.map((card) => (
-                      <IntentCard key={card.title} {...card} />
-                    ))}
+                  <h2 className="font-display mt-2.5 text-2xl font-bold leading-tight text-[#482c1d]">
+                    Elige un contrato directo del tablón para empezar tu próxima partida
+                  </h2>
+                </div>
+                
+                {/* Tablón de Misiones (Estilo Monster Hunter de Madera y Corcho) */}
+                <div className="relative rounded-2xl p-2.5 sm:p-4 quest-board-frame border border-[#3d2414] shadow-[0_16px_38px_rgba(0,0,0,0.32)]">
+                  {/* Antique Brass Corner Brackets */}
+                  {/* Top-Left */}
+                  <div className="absolute top-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md">
+                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                      <defs>
+                        <linearGradient id="metal-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#ffd57a" />
+                          <stop offset="35%" stopColor="#a8884c" />
+                          <stop offset="70%" stopColor="#7a5b29" />
+                          <stop offset="100%" stopColor="#473211" />
+                        </linearGradient>
+                        <linearGradient id="rivet-grad" x1="0" y1="0" x2="5" y2="5" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#fff" />
+                          <stop offset="50%" stopColor="#d5b060" />
+                          <stop offset="100%" stopColor="#4a3512" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    </svg>
+                  </div>
+                  
+                  {/* Top-Right */}
+                  <div className="absolute top-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-90">
+                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    </svg>
+                  </div>
+
+                  {/* Bottom-Right */}
+                  <div className="absolute bottom-0 right-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md rotate-180">
+                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    </svg>
+                  </div>
+
+                  {/* Bottom-Left */}
+                  <div className="absolute bottom-0 left-0 w-10 h-10 z-20 pointer-events-none drop-shadow-md -rotate-90">
+                    <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
+                      <path d="M0 0 H36 V10 H10 V36 H0 Z" fill="url(#metal-grad)" stroke="#3e2414" strokeWidth="1.2" />
+                      <circle cx="5" cy="20" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                      <circle cx="20" cy="5" r="2.2" fill="url(#rivet-grad)" stroke="#3e2414" strokeWidth="0.8" />
+                    </svg>
+                  </div>
+
+                  <style dangerouslySetInnerHTML={{ __html: `
+                    .quest-board-frame {
+                      background-color: #6a4228;
+                      background-image: 
+                        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 40%),
+                        linear-gradient(0deg, rgba(0, 0, 0, 0.18), transparent 25%);
+                    }
+                    .quest-board-cork {
+                      background-color: #be8f65;
+                      background-image: linear-gradient(180deg, #be8f65, #b28359);
+                    }
+                    .quest-card {
+                      transform: rotate(var(--card-rotation)) translateY(0);
+                      transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.15s, box-shadow 0.22s;
+                    }
+                    .quest-card:hover {
+                      transform: rotate(0deg) translateY(-4px) !important;
+                      border-color: #d97706 !important;
+                      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35) !important;
+                    }
+                  `}} />
+
+                  {/* Inner Corkboard Container */}
+                  <div className="quest-board-cork rounded-lg border border-[#3d2414]/70 p-2 sm:p-5 shadow-[inset_0_4px_10px_rgba(0,0,0,0.4)]">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                      {intentCards.map((card) => (
+                        <IntentCard key={card.title} {...card} />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -310,19 +392,32 @@ function IntentCard({
   href: string;
   icon: LucideIcon;
 }) {
+  // Generar una inclinación orgánica determinista basada en el título del contrato (-0.6deg a 0.6deg)
+  const rotation = ((title.charCodeAt(0) + title.charCodeAt(title.length - 1)) % 5) * 0.3 - 0.6;
+
   return (
     <Link
       href={href}
-      className="tavern-card group flex items-center gap-3 bg-white/50 p-3.5 transition hover:-translate-y-0.5 hover:border-ember/40"
+      className="quest-card relative group flex items-center gap-2 sm:gap-3 lg:gap-2 xl:gap-3 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-2 sm:p-3.5 lg:p-2 xl:p-3.5 border border-[#cfb088]/40 shadow-[0_4px_10px_rgba(0,0,0,0.15)] rounded-md select-none transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffbf2]"
+      style={{
+        "--card-rotation": `${rotation}deg`
+      } as React.CSSProperties}
     >
-      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-ember/10 text-ember transition group-hover:bg-ember/15">
-        <Icon size={20} strokeWidth={2.1} absoluteStrokeWidth />
+      {/* Chincheta de Latón Grande en el centro superior */}
+      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[#ffd26a] via-[#c29c47] to-[#7c5e21] border border-[#5c4015]/40 shadow-[0_2px_4px_rgba(0,0,0,0.35)] z-20 flex items-center justify-center">
+        <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-tl from-[#ffffff]/70 to-[#ffffff]/0 absolute top-0.5 left-0.5" />
       </span>
-      <div className="min-w-0">
-        <h3 className="font-display text-[15px] font-bold text-wood leading-tight group-hover:text-ember transition">
+
+      {/* Sello Cuadrado Suave del Gremio */}
+      <span className="inline-flex h-8 w-8 sm:h-11 sm:w-11 lg:h-8 lg:w-8 xl:h-11 xl:w-11 shrink-0 items-center justify-center rounded-lg bg-[#f5ebd9] text-[#b45309] transition-all duration-300 group-hover:scale-105 group-hover:bg-[#fff7eb] group-hover:text-[#e25c1d]">
+        <Icon strokeWidth={2.2} className="w-[16px] h-[16px] sm:w-[20px] sm:h-[20px] lg:w-[16px] lg:h-[16px] xl:w-[20px] xl:h-[20px] opacity-95" />
+      </span>
+
+      <div className="min-w-0 pr-0 sm:pr-1 lg:pr-0 xl:pr-1 text-left">
+        <h3 className="font-display text-[12px] sm:text-[15px] lg:text-[12px] xl:text-[15px] font-bold text-[#3e1a00] leading-tight group-hover:text-[#e25c1d] transition-colors break-normal">
           {title}
         </h3>
-        <p className="mt-1 text-[11px] font-medium leading-4 text-walnut/70">
+        <p className="mt-0.5 sm:mt-1.5 lg:mt-0.5 xl:mt-1.5 text-[10px] sm:text-[11px] lg:text-[10px] xl:text-[11px] font-semibold leading-normal sm:leading-4 text-[#7c583f]/90">
           {description}
         </p>
       </div>
