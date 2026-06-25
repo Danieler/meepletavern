@@ -10,7 +10,9 @@ import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { CatalogResultsSkeleton } from "@/components/loading/PublicPageSkeletons";
 import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { Sparkles } from "lucide-react";
+import { CommunityHeroWidget } from "@/components/taberna/CommunityHeroWidget";
 import { filterGames, getCategoryTerms, getMechanicTerms, type GameFilterInput } from "@/lib/catalog";
+import { getPublicUsersPage } from "@/lib/publicProfiles";
 
 export const metadata: Metadata = {
   title: "Catálogo de juegos de mesa",
@@ -54,14 +56,25 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
                 </div>
               </div>
             )}
-            <p className="tavern-eyebrow">Archivo de juegos</p>
-            <h1 className="page-hero-title">Catálogo de juegos de mesa</h1>
-            <p className="page-hero-copy">
-              Busca por título, filtra por mesa y compara categorías, mecánicas, duración y dificultad
-              sin perder el hilo.
-            </p>
-            <div id="buscar" className="mt-7 max-w-3xl scroll-mt-24">
-              <GameSearch query={filters.q} variant="hero" />
+            
+            <div className="flex flex-col lg:flex-row gap-8 lg:items-center">
+              <div className="flex-1">
+                <p className="tavern-eyebrow">Archivo de juegos</p>
+                <h1 className="page-hero-title">Catálogo de juegos de mesa</h1>
+                <p className="page-hero-copy">
+                  Busca por título, filtra por mesa y compara categorías, mecánicas, duración y dificultad
+                  sin perder el hilo.
+                </p>
+                <div id="buscar" className="mt-7 max-w-2xl scroll-mt-24">
+                  <GameSearch query={filters.q} variant="hero" />
+                </div>
+              </div>
+              
+              <div className="w-full lg:w-[380px] shrink-0">
+                <Suspense fallback={<div className="h-[120px] rounded-xl bg-black/5 animate-pulse" />}>
+                  <CommunityHeroWidgetWrapper />
+                </Suspense>
+              </div>
             </div>
           </div>
         </section>
@@ -122,20 +135,20 @@ async function CatalogResults({ filters }: { filters: GameFilterInput }) {
 function CatalogSignupCta() {
   return (
     <article className="rounded-lg border border-ember/20 bg-[#3a2118] p-5 text-white shadow-soft md:col-span-2 xl:col-span-3">
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px] md:items-center">
-        <div>
-          <p className="tavern-eyebrow text-ember">Tu ludoteca</p>
-          <h2 className="font-display mt-2 text-2xl font-bold leading-tight">
-            ¿Has encontrado juegos que quieres probar?
-          </h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-parchment/78">
-            Guárdalos en tu ludoteca y crea listas para tu próxima partida.
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+        <div className="flex-1">
+          <h3 className="font-display text-xl font-bold">Crea tu ludoteca digital</h3>
+          <p className="mt-1 text-sm text-parchment/80">
+            Regístrate gratis para marcar los juegos que tienes, los que quieres probar y crear listas personalizadas.
           </p>
         </div>
-        <AuthCtaButton context="catalog" className="justify-center" next="/juegos">
-          Crear ludoteca gratis
-        </AuthCtaButton>
+        <AuthCtaButton label="Crear cuenta gratis" context="list" />
       </div>
     </article>
   );
+}
+
+async function CommunityHeroWidgetWrapper() {
+  const usersPage = await getPublicUsersPage({ query: "", limit: 6 });
+  return <CommunityHeroWidget users={usersPage.items} />;
 }
