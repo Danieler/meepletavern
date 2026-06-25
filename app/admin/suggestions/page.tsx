@@ -28,7 +28,8 @@ export default async function AdminSuggestionsPage() {
       },
       orderBy: {
         createdAt: "desc"
-      }
+      },
+      take: 250
     });
 
     return (

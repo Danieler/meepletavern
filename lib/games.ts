@@ -45,6 +45,15 @@ export async function getPublishedGameBySlug(slug: string) {
 
 export async function getAdminGames() {
   return prisma.game.findMany({
+    select: {
+      id: true,
+      name: true,
+      title: true,
+      status: true,
+      slug: true,
+      createdAt: true,
+      updatedAt: true
+    },
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }]
   });
 }

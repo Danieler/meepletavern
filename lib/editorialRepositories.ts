@@ -106,7 +106,19 @@ export const gameCandidateRepository = {
   list(filter: CandidateFilter = "all") {
     return prisma.gameCandidate.findMany({
       where: candidateWhere(filter),
-      include: { source: true },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        confidence: true,
+        flags: true,
+        createdAt: true,
+        source: {
+          select: {
+            name: true
+          }
+        }
+      },
       orderBy: [{ createdAt: "desc" }]
     });
   },
