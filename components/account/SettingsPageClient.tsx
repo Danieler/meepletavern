@@ -114,7 +114,10 @@ export function SettingsPageClient() {
     }
 
     if (file.size > MAX_AVATAR_SIZE) {
-      setFeedback({ type: "error", message: "La imagen debe pesar menos de 3 MB." });
+      setFeedback({
+        type: "error",
+        message: `La imagen debe pesar menos de ${MAX_AVATAR_SIZE / (1024 * 1024)} MB.`
+      });
       return;
     }
 

@@ -51,7 +51,10 @@ export async function POST(request: Request) {
   }
 
   if (file.size > MAX_AVATAR_SIZE) {
-    return NextResponse.json({ error: "La imagen debe pesar menos de 3 MB." }, { status: 400 });
+    return NextResponse.json(
+      { error: `La imagen debe pesar menos de ${MAX_AVATAR_SIZE / (1024 * 1024)} MB.` },
+      { status: 400 }
+    );
   }
 
   const storagePath = `${user.id}/${Date.now()}-${randomUUID()}.${extension}`;
