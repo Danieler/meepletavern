@@ -40,9 +40,7 @@ export default async function ReviewsPage() {
             intent="review_game"
           />
         </div>
-        <Suspense fallback={<ReviewsResultsSkeleton />}>
-          <ReviewsResults />
-        </Suspense>
+        <ReviewsResults />
         <section className="container-page pb-14">
           <SEOTextBlock title="Reseñas largas, fichas rápidas y recomendaciones">
             <p>

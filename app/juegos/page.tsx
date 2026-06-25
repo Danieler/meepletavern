@@ -79,9 +79,7 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
           </div>
         </section>
 
-        <Suspense fallback={<CatalogResultsSkeleton />}>
-          <CatalogResults filters={filters} />
-        </Suspense>
+        <CatalogResults filters={filters} />
 
         <section className="container-page pb-14">
           <SEOTextBlock title="Cómo usar el catálogo de MeepleTavern">

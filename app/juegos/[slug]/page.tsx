@@ -240,9 +240,7 @@ export default async function GamePage({ params }: GamePageProps) {
                 </Panel>
               ) : null}
               <GalleryPreview game={game} />
-              <Suspense fallback={null}>
-                <RelatedGamesPanel game={game} />
-              </Suspense>
+              <RelatedGamesPanel game={game} />
             </aside>
           </div>
         </section>

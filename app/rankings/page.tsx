@@ -32,9 +32,7 @@ export default async function RankingsPage() {
           </div>
         </section>
 
-        <Suspense fallback={<RankingsResultsSkeleton />}>
-          <RankingsResults />
-        </Suspense>
+        <RankingsResults />
 
         <section className="container-page pb-14">
           <SEOTextBlock title="Rankings preparados para descubrir y comparar">

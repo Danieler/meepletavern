@@ -393,7 +393,9 @@ export function AuthScreen({
             </button>
           ) : (
             <div
-              className={`relative mb-4 min-h-11 w-full ${
+              className={`relative min-h-11 w-full ${
+                !googleButtonReady ? "hidden" : "mb-4"
+              } ${
                 submitting || cooldownSeconds > 0 || !isConfigured
                   ? "pointer-events-none opacity-60"
                   : ""
@@ -401,17 +403,8 @@ export function AuthScreen({
             >
               <div
                 ref={googleButtonRef}
-                className={`flex w-full justify-center ${googleButtonReady ? "" : "invisible"}`}
+                className="flex w-full justify-center"
               />
-              {!googleButtonReady ? (
-                <button
-                  className="button-secondary absolute inset-0 w-full justify-center min-h-11"
-                  disabled
-                  type="button"
-                >
-                  Cargando Google...
-                </button>
-              ) : null}
             </div>
           )}
 
