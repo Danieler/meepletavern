@@ -500,7 +500,7 @@ function TavernFeatureCard({
   return (
     <Link
       href={href}
-      className="group rounded-md border border-walnut/10 bg-white/72 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-ember/45 hover:bg-white"
+      className="group rounded-md border border-[#cfb088]/40 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-ember/45 hover:from-[#fffbf2] hover:to-[#fffdf5]"
     >
       <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-ember/10 text-ember">
         <Icon size={20} strokeWidth={2.1} absoluteStrokeWidth />
