@@ -47,8 +47,17 @@ export function UserGamePlayCount({
       return;
     }
 
-    setPending(true);
+    const prevCount = count;
     setError(null);
+    setPending(true);
+
+    // Optimistically update the count
+    setCount((current) => {
+      if (direction === "decrement") {
+        return Math.max(0, current - 1);
+      }
+      return current + 1;
+    });
 
     try {
       const response = await fetch("/api/account/play-count", {
@@ -59,12 +68,17 @@ export function UserGamePlayCount({
       const payload = (await response.json().catch(() => null)) as { error?: string; count?: number } | null;
 
       if (!response.ok || typeof payload?.count !== "number") {
+        // Rollback
+        setCount(prevCount);
         setError(payload?.error || "No se pudo guardar.");
         return;
       }
 
+      // Sync with server count
       setCount(payload.count);
     } catch {
+      // Rollback
+      setCount(prevCount);
       setError("No se pudo guardar.");
     } finally {
       setPending(false);

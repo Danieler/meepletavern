@@ -1,0 +1,5 @@
+# Security disclosure policy for MeepleTavern
+Contact: mailto:seguridad@meepletavern.com
+Expires: 2027-06-25T08:00:00.000Z
+Preferred-Languages: es, en
+Canonical: https://www.meepletavern.com/.well-known/security.txt

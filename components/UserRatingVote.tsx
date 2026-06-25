@@ -55,8 +55,13 @@ export function UserRatingVote({
       return;
     }
 
+    const prevHasExistingScore = hasExistingScore;
+    const prevScore = score;
+
+    // Optimistically update states
+    setHasExistingScore(true);
+    setMessage("Tu nota ya cuenta en la valoración.");
     setPending(true);
-    setMessage(null);
 
     try {
       const response = await fetch("/api/account/ratings", {
@@ -67,15 +72,19 @@ export function UserRatingVote({
       const payload = await response.json();
 
       if (!response.ok) {
+        // Rollback on error
+        setHasExistingScore(prevHasExistingScore);
+        setScore(prevScore);
         setMessage(payload.error || "Inicia sesión para puntuar.");
         return;
       }
 
       onRated?.(payload.ratings);
       window.dispatchEvent(new CustomEvent("meepletavern:ratings-updated", { detail: payload.ratings }));
-      setHasExistingScore(true);
-      setMessage("Tu nota ya cuenta en la valoración.");
     } catch {
+      // Rollback on network/fetch failure
+      setHasExistingScore(prevHasExistingScore);
+      setScore(prevScore);
       setMessage("No se pudo guardar tu nota.");
     } finally {
       setPending(false);

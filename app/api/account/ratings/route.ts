@@ -68,10 +68,6 @@ export async function DELETE(request: Request) {
 
     revalidateTag("public-games");
     if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
-    revalidatePath("/");
-    revalidatePath("/juegos");
-    revalidatePath("/rankings");
-    revalidatePath("/mi-perfil");
     revalidatePath(`/juegos/${game.slug}`);
 
     return NextResponse.json({
@@ -116,10 +112,6 @@ async function saveRating(request: Request) {
 
     revalidateTag("public-games");
     if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
-    revalidatePath("/");
-    revalidatePath("/juegos");
-    revalidatePath("/rankings");
-    revalidatePath("/mi-perfil");
     revalidatePath(`/juegos/${game.slug}`);
 
     return NextResponse.json({

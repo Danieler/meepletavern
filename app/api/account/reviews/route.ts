@@ -55,11 +55,8 @@ export async function POST(request: Request) {
     });
 
     revalidateTag("public-games");
-    revalidatePath("/");
-    revalidatePath("/resenas");
     revalidatePath(`/resenas/${review.slug}`);
     revalidatePath(`/juegos/${game.slug}`);
-    revalidatePath("/sitemap.xml");
 
     return NextResponse.json({
       ok: true,

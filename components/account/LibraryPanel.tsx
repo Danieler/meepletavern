@@ -336,8 +336,13 @@ function LibraryPlayCountControl({
       return;
     }
 
+    const prevCount = count;
     setPending(true);
     setError(null);
+
+    // Optimistically update count
+    const nextCount = direction === "decrement" ? Math.max(0, count - 1) : count + 1;
+    onChange(nextCount);
 
     try {
       const response = await fetch("/api/account/play-count", {
@@ -348,12 +353,16 @@ function LibraryPlayCountControl({
       const payload = (await response.json().catch(() => null)) as { error?: string; count?: number } | null;
 
       if (!response.ok || typeof payload?.count !== "number") {
+        // Rollback
+        onChange(prevCount);
         setError(payload?.error || "No se pudo guardar.");
         return;
       }
 
       onChange(payload.count);
     } catch {
+      // Rollback
+      onChange(prevCount);
       setError("No se pudo guardar.");
     } finally {
       setPending(false);
