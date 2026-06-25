@@ -42,7 +42,7 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
                   <div className="flex-1">
                     <h2 className="text-xl font-bold text-wood">¡Bienvenido a la Taberna!</h2>
                     <p className="mt-1 text-walnut/80 font-medium">
-                      Tu cuenta ya está lista. Empieza buscando tu juego de mesa favorito y pulsa en él para añadirlo a tu ludoteca o marcarlo como "Quiero jugar".
+                      Tu cuenta ya está lista. Empieza buscando tu juego de mesa favorito y pulsa en él para añadirlo a tu ludoteca o marcarlo como &quot;Quiero jugar&quot;.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <a href="#buscar" className="button-primary inline-flex">
@@ -142,7 +142,7 @@ function CatalogSignupCta() {
             Regístrate gratis para marcar los juegos que tienes, los que quieres probar y crear listas personalizadas.
           </p>
         </div>
-        <AuthCtaButton label="Crear cuenta gratis" context="list" />
+        <AuthCtaButton context="catalog">Crear cuenta gratis</AuthCtaButton>
       </div>
     </article>
   );

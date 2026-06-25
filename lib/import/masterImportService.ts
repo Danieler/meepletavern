@@ -1815,11 +1815,6 @@ function createDefaultDeps(): MasterImporterDeps {
         sourceSummary: input.resolved.matchedSources
       });
       const candidateImages = normalizeCandidateImages(input.resolved.candidate.candidateImages);
-      const status = input.duplicateMatch.candidateMatches.length || input.duplicateMatch.gameMatches.length
-        ? GameCandidateStatus.needs_review
-        : input.resolved.missingFields.length <= 2
-          ? GameCandidateStatus.pending
-          : GameCandidateStatus.needs_review;
 
       const persisted = await prisma.$transaction(async (transaction) => {
         const existing = input.duplicateMatch.exactCandidate;

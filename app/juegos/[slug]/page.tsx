@@ -12,6 +12,7 @@ import { GameComments } from "@/components/GameComments";
 import { GameCommunitySection, GameCommunitySectionSkeleton } from "@/components/GameCommunitySection";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameLibraryPanel } from "@/components/GameLibraryPanel";
+import { GameRuleQuestions, GameRuleQuestionsSkeleton } from "@/components/GameRuleQuestions";
 import { GameRatingSummary } from "@/components/GameRatingSummary";
 import { GameStats } from "@/components/GameStats";
 import { MechanicTag } from "@/components/MechanicTag";
@@ -206,6 +207,17 @@ export default async function GamePage({ params }: GamePageProps) {
                 <GameCommentsPanel gameId={game.id} gameSlug={game.slug} />
               </Suspense>
 
+              <section className="tavern-panel p-5 sm:p-6" id="reglas">
+                <SectionHeader
+                  eyebrow="Comunidad"
+                  title="Dudas de Reglas"
+                  description="¿Atascado con el manual? Resuelve tus dudas con la ayuda de la taberna."
+                />
+                <Suspense fallback={<GameRuleQuestionsSkeleton />}>
+                  <GameRuleQuestionsPanel gameId={game.id} gameSlug={game.slug} />
+                </Suspense>
+              </section>
+
             </div>
 
             <aside className="min-w-0 space-y-5">
@@ -262,6 +274,10 @@ async function GameCommentsPanel({ gameId, gameSlug }: { gameId: string; gameSlu
   const comments = await getGameComments(gameId);
 
   return <GameComments gameId={gameId} gameSlug={gameSlug} initialComments={comments} />;
+}
+
+async function GameRuleQuestionsPanel({ gameId, gameSlug }: { gameId: string; gameSlug: string }) {
+  return <GameRuleQuestions gameId={gameId} gameSlug={gameSlug} />;
 }
 
 function CommentsFallback() {

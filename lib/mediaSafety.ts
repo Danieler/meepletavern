@@ -24,7 +24,7 @@ export function canShowMedia(asset: MediaSafetyAsset | null | undefined, source:
   );
 }
 
-export function placeholderUrl(kind: PlaceholderKind = "general") {
+export function placeholderUrl(_kind: PlaceholderKind = "general") {
   return "/brand/meepletavern-mark.webp";
 }
 

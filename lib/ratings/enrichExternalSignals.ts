@@ -2,7 +2,6 @@ import type { Game, Prisma } from "@prisma/client";
 import { normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import {
   buildExternalSignalFromSearchResult,
-  isLikelySameGame,
   legacySignalsToExternalSignals,
   searchExternalGameSources,
   normalizeSignalScore
