@@ -20,7 +20,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "backfill:difficulty": "tsx scripts/backfill-difficulty.ts"
+    "backfill:difficulty": "tsx scripts/backfill-difficulty.ts",
+    "db:clean-proposals": "tsx scripts/clean-proposal-raw-results.ts",
+    "db:seed-mechanics": "tsx scripts/seed-new-mechanics.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1065.0",

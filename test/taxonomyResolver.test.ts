@@ -94,3 +94,73 @@ test("taxonomy resolver warns instead of inventing a speed-observation mechanic"
   assert.deepEqual(resolution.mechanics, []);
   assert.equal(resolution.warnings.some((warning) => /observación|rapidez visual/i.test(warning)), true);
 });
+
+test("taxonomy resolver maps new custom mechanics", () => {
+  const cases = [
+    {
+      text: "Un gran juego con movimiento en cuadrícula y tablero modular.",
+      expected: ["Movimiento en cuadrícula", "Tablero modular"]
+    },
+    {
+      text: "Este juego tiene escenarios y misiones con desarrollo y progresión de personaje.",
+      expected: ["Escenarios/Misiones", "Progresión de personaje"]
+    },
+    {
+      text: "Grid movement, modular board, scenarios and character progression support.",
+      expected: ["Movimiento en cuadrícula", "Tablero modular", "Escenarios/Misiones", "Progresión de personaje"]
+    }
+  ];
+
+  for (const { text, expected } of cases) {
+    const resolution = resolveImportTaxonomy({
+      requestedTitle: "Juego de prueba",
+      descriptions: [text]
+    });
+
+    for (const mechanic of expected) {
+      assert.ok(resolution.mechanics.includes(mechanic), `Should map "${text}" to mechanic "${mechanic}"`);
+    }
+  }
+});
+
+test("taxonomy resolver has high precision for categories, avoiding false positives", () => {
+  const cases = [
+    {
+      text: "Este juego es solo para expertos y no se puede jugar de otra manera.",
+      expectedCategories: [],
+      unexpectedCategories: ["Solitario"]
+    },
+    {
+      text: "El juego incluye un tablero gigante, 4 miniaturas, fichas de madera y 100 cartas.",
+      expectedCategories: ["Miniaturas"],
+      unexpectedCategories: ["Cartas"]
+    },
+    {
+      text: "Un excelente juego de cartas familiar con tematica de fantasia.",
+      expectedCategories: ["Cartas", "Familiar", "Fantasía"],
+      unexpectedCategories: []
+    },
+    {
+      text: "This is a cooperative strategy wargame with miniatures, campaign mode, designed for kids.",
+      expectedCategories: ["Cooperativo", "Estrategia", "Wargame", "Miniaturas", "Campaña / Legacy", "Infantil"],
+      unexpectedCategories: []
+    }
+  ];
+
+  for (const { text, expectedCategories, unexpectedCategories } of cases) {
+    const resolution = resolveImportTaxonomy({
+      requestedTitle: "Juego de prueba de precision",
+      descriptions: [text]
+    });
+
+    for (const category of expectedCategories) {
+      assert.ok(resolution.categories.includes(category), `Should map "${text}" to category "${category}". Got: ${JSON.stringify(resolution.categories)}`);
+    }
+
+    for (const category of unexpectedCategories) {
+      assert.equal(resolution.categories.includes(category), false, `Should NOT map "${text}" to category "${category}". Got: ${JSON.stringify(resolution.categories)}`);
+    }
+  }
+});
+
+

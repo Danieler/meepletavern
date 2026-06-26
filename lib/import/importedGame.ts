@@ -527,7 +527,7 @@ async function ensureUniqueSlug(baseSlug: string) {
   let slug = cleanBase;
   let counter = 2;
 
-  while (await prisma.game.findUnique({ where: { slug } })) {
+  while (await prisma.game.findUnique({ where: { slug }, select: { id: true } })) {
     slug = `${cleanBase}-${counter}`;
     counter += 1;
   }

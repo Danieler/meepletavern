@@ -346,7 +346,7 @@ export async function saveGameImportProposal(input: {
         gameId: input.gameId,
         provider: PROPOSAL_PROVIDER,
         query: input.query,
-        rawSearchResults: input.rawSearchResults,
+        rawSearchResults: [], // Optimización: no guardamos los resultados brutos porque son enormes y causan egress alto sin usarse en UI.
         extractedFields: normalizeAiWebProposal(input.extractedFields) as unknown as Prisma.InputJsonValue
       }
     });
@@ -369,6 +369,16 @@ export async function getPendingGameImportProposal(gameId: string) {
         gameId,
         provider: PROPOSAL_PROVIDER,
         status: GameImportProposalStatus.pending
+      },
+      select: {
+        id: true,
+        gameId: true,
+        provider: true,
+        status: true,
+        query: true,
+        extractedFields: true,
+        createdAt: true,
+        updatedAt: true
       },
       orderBy: { createdAt: "desc" }
     });
@@ -410,7 +420,14 @@ export async function applyGameImportProposalFields(input: {
   try {
     [game, proposal] = await Promise.all([
       prisma.game.findUnique({ where: { id: input.gameId } }),
-      prisma.gameImportProposal.findUnique({ where: { id: input.proposalId } })
+      prisma.gameImportProposal.findUnique({
+        where: { id: input.proposalId },
+        select: {
+          id: true,
+          gameId: true,
+          extractedFields: true
+        }
+      })
     ]);
   } catch (error) {
     if (isMissingProposalTableError(error)) {
@@ -627,7 +644,7 @@ function getAutoApplyAiWebFields(game: Game) {
   });
 }
 
-export function serializeProposal(proposal: GameImportProposal): SerializableGameImportProposal {
+export function serializeProposal(proposal: Omit<GameImportProposal, "rawSearchResults">): SerializableGameImportProposal {
   return {
     id: proposal.id,
     gameId: proposal.gameId,

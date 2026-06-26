@@ -1662,7 +1662,7 @@ async function ensureUniqueGameSlug(baseSlug: string) {
   let slug = baseSlug || "juego";
   let counter = 2;
 
-  while (await prisma.game.findUnique({ where: { slug } })) {
+  while (await prisma.game.findUnique({ where: { slug }, select: { id: true } })) {
     slug = `${baseSlug}-${counter}`;
     counter += 1;
   }
@@ -1766,6 +1766,20 @@ function createDefaultDeps(): MasterImporterDeps {
             }))
           ]
         },
+        select: {
+          id: true,
+          sourceId: true,
+          sourceUrl: true,
+          title: true,
+          originalTitle: true,
+          metadata: true,
+          extractedDescription: true,
+          candidateImages: true,
+          confidence: true,
+          status: true,
+          flags: true,
+          gameId: true
+        },
         orderBy: [{ updatedAt: "desc" }]
       });
       const gameMatches = await prisma.game.findMany({
@@ -1779,6 +1793,12 @@ function createDefaultDeps(): MasterImporterDeps {
             })),
             ...(input.slugs.length ? [{ slug: { in: input.slugs } }] : [])
           ]
+        },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          name: true
         },
         orderBy: [{ updatedAt: "desc" }]
       });
@@ -1875,15 +1895,8 @@ function createDefaultDeps(): MasterImporterDeps {
 
       const finalization = await finalizeMasterImportedGame(persisted.game.id);
 
-      if (input.resolved.aiProposal) {
-        const aiModule = await import("@/lib/ai/gameWebAutofill");
-        await aiModule.saveGameImportProposal({
-          gameId: persisted.game.id,
-          query: input.resolved.aiSearchQuery || `master:${input.resolved.candidate.title}`,
-          rawSearchResults: input.resolved.aiSearchResults || [],
-          extractedFields: input.resolved.aiProposal
-        }).catch((error) => console.error("master import proposal save failed", error));
-      }
+      // Ya no guardamos la propuesta duplicada en BBDD porque ya se han aplicado
+      // sus valores al candidato final durante el master import. Esto optimiza el egress.
 
       return {
         candidateId: persisted.candidate.id,
