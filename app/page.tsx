@@ -5,8 +5,8 @@ import type { LucideIcon } from "lucide-react";
 import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User, Beer } from "lucide-react";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
-import { HeroDiscoveryBoard } from "@/components/home/HeroDiscoveryBoard";
 import { PublicShell } from "@/components/PublicShell";
+import { CompatibilitySection } from "@/components/home/CompatibilitySection";
 import { FeaturedRankingCarousel } from "@/components/FeaturedRankingCarousel";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
@@ -63,21 +63,6 @@ export default async function Home() {
     ...popularGames
   ]);
 
-  const rotatedDiscoveryGames = rotateDaily(uniqueDiscoveryGames);
-
-  const heroGamePool = rotatedDiscoveryGames
-    .slice(0, 12)
-    .map((game) => ({
-      slug: game.slug,
-      title: game.title,
-      coverImageUrl: game.coverImageUrl,
-      coverImageAlt: game.coverImageAlt,
-      reviewSummary: game.reviewSummary,
-      playersLabel: game.playersLabel,
-      playtime: game.playtime,
-      complexity: game.complexity,
-      ratingScore: getEffectiveRatingScore(game)
-    }));
   const featuredGames = dedupeGames([
     ...(editorsPick ? [editorsPick] : []),
     ...beginnerGames,
@@ -119,7 +104,7 @@ export default async function Home() {
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,241,230,0.985),rgba(247,241,230,0.93)_52%,rgba(59,33,22,0.22)_100%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,251,243,0.65),transparent_34%)]" />
 
-            <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_400px] lg:items-stretch">
+            <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_420px] lg:items-stretch">
               <div className="flex h-full flex-col">
                 <p className="tavern-eyebrow">La carta de juegos de mesa</p>
                 <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-wood sm:text-6xl lg:text-7xl">
@@ -234,11 +219,28 @@ export default async function Home() {
                 </div>
               </div>
               
-              {heroGamePool.length ? (
-                <aside className="h-full lg:flex">
-                  <HeroDiscoveryBoard games={heroGamePool} />
-                </aside>
-              ) : null}
+              <aside className="h-full lg:flex flex-col justify-stretch">
+                <CompatibilitySection
+                  popularGames={popularGames.slice(0, 6).map((g) => ({
+                    id: g.id,
+                    name: g.title,
+                    slug: g.slug,
+                    imageUrl: g.coverImageUrl || null,
+                    year: g.year
+                  }))}
+                  featuredGames={featuredGames.map((game) => ({
+                    slug: game.slug,
+                    title: game.title,
+                    coverImageUrl: game.coverImageUrl || null,
+                    coverImageAlt: game.coverImageAlt || null,
+                    reviewSummary: game.reviewSummary || "",
+                    playersLabel: game.playersLabel || null,
+                    playtime: game.playtime || null,
+                    complexity: game.complexity || null,
+                    ratingScore: getEffectiveRatingScore(game)
+                  }))}
+                />
+              </aside>
             </div>
 
             {/* Tablón de misiones para tablet horizontal y pantallas intermedias (lg) */}

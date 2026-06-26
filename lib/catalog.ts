@@ -33,6 +33,7 @@ export type CatalogGame = GameImageFields & {
   id: string;
   slug: string;
   title: string;
+  year: number | null;
   playersMin: number | null;
   playersMax: number | null;
   playersLabel: string | null;
@@ -117,6 +118,7 @@ const catalogCardGameSelect = {
   name: true,
   title: true,
   slug: true,
+  year: true,
   coverImageUrl: true,
   imageUrl: true,
   coverImageAlt: true,
@@ -694,6 +696,7 @@ function toCatalogGameShape(game: CatalogCardDbGame, details: CatalogGameDetails
     id: game.id,
     slug: game.slug,
     title,
+    year: game.year,
     coverImageUrl: publicCoverImage,
     coverImageAlt: game.coverImageAlt || `Imagen editorial de ${title}`,
     imageSourceName: safeMedia?.source?.name || (publicCoverImage ? "URL editorial" : null),
