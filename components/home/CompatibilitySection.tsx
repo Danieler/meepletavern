@@ -218,10 +218,43 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
     setSearchQuery("");
   };
 
+  const getVisibleSharedTags = (match: MatchResult) => {
+    const seen = new Set<string>();
+    const pickUnique = (tags: string[]) =>
+      tags.filter((tag) => {
+        const key = tag.trim().toLocaleLowerCase("es-ES");
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+    return {
+      categories: pickUnique(match.sharedCategories).slice(0, 3),
+      mechanics: pickUnique(match.sharedMechanics).slice(0, 3)
+    };
+  };
+
+  const getMatchExplanation = (match: MatchResult) => {
+    const parts: string[] = [];
+    if (match.sharedCategories.length > 0) {
+      parts.push(`${match.sharedCategories.length} ${match.sharedCategories.length === 1 ? "categoría" : "categorías"}`);
+    }
+    if (match.sharedMechanics.length > 0) {
+      parts.push(`${match.sharedMechanics.length} ${match.sharedMechanics.length === 1 ? "mecánica" : "mecánicas"}`);
+    }
+    if (match.suggestedGames.length > 0) {
+      parts.push(`${match.suggestedGames.length} ${match.suggestedGames.length === 1 ? "juego sugerido" : "juegos sugeridos"}`);
+    }
+
+    return parts.length > 0 ? parts.slice(0, 2).join(" · ") : "Afinidad general de mesa";
+  };
+
   // Render a match profile card
   const renderMatchCard = (match: MatchResult) => {
     const isMock = match.userId.startsWith("archetype-");
     const scoreColor = match.score >= 80 ? "text-emerald-700" : match.score >= 70 ? "text-amber-800" : "text-walnut/80";
+    const visibleSharedTags = getVisibleSharedTags(match);
+    const hasVisibleSharedTags = visibleSharedTags.categories.length > 0 || visibleSharedTags.mechanics.length > 0;
 
     return (
       <div
@@ -251,6 +284,9 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               <h4 className="font-display truncate text-base font-extrabold text-wood">
                 {match.username}
               </h4>
+              <p className="truncate text-[11px] font-bold text-walnut/60">
+                {getMatchExplanation(match)}
+              </p>
               {isMock && (
                 <p className="truncate text-[11px] font-black text-[#b45309]">
                   Perfil Recomendado
@@ -271,19 +307,21 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
           <div className="mt-2.5">
             <p className="text-xs font-extrabold text-walnut/75 uppercase tracking-wider">Gustos en común</p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {match.sharedCategories.length > 0 || match.sharedMechanics.length > 0 ? (
+              {hasVisibleSharedTags ? (
                 <>
-                  {match.sharedCategories.slice(0, 3).map((cat) => (
+                  {visibleSharedTags.categories.map((cat) => (
                     <span
                       key={cat}
+                      title={cat}
                       className="rounded bg-amber-500/10 px-2 py-0.5 text-[10.5px] font-black text-amber-900 border border-amber-500/15 block max-w-[120px] truncate"
                     >
                       {cat}
                     </span>
                   ))}
-                  {match.sharedMechanics.slice(0, 3).map((mec) => (
+                  {visibleSharedTags.mechanics.map((mec) => (
                     <span
                       key={mec}
+                      title={mec}
                       className="rounded bg-walnut/8 px-2 py-0.5 text-[10.5px] font-black text-walnut/80 border border-walnut/15 block max-w-[120px] truncate"
                     >
                       {mec}
@@ -335,6 +373,16 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+          {user && !isMock && (
+            <div className="mt-3">
+              <Link
+                href={`/u/${encodeURIComponent(match.username)}`}
+                className="inline-flex min-h-8 items-center justify-center rounded-lg border border-walnut/15 bg-walnut/5 px-3 text-xs font-black text-walnut/80 hover:border-ember/35 hover:bg-amber-500/10 hover:text-ember focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember transition-colors"
+              >
+                Ver perfil
+              </Link>
             </div>
           )}
         </div>
@@ -615,9 +663,12 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                     {selectedGames.map((g) => (
                       <div
                         key={g.id}
-                        className="flex items-center gap-1.5 rounded bg-white/15 px-2.5 py-1 border border-white/10 text-xs font-extrabold text-white max-w-[140px] truncate"
+                        title={g.name}
+                        className="flex max-w-full items-center gap-1.5 rounded bg-white/15 px-2.5 py-1 border border-white/10 text-xs font-extrabold text-white"
                       >
-                        {g.name}
+                        <span className="min-w-0 line-clamp-2 text-left leading-tight">
+                          {g.name}
+                        </span>
                       </div>
                     ))}
                   </div>
