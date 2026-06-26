@@ -544,11 +544,13 @@ function buildJsonLd(game: CatalogGame) {
   const url = `${siteConfig.url}/juegos/${game.slug}`;
   const hasExternalRating = game.ratings.external && game.ratings.external.score;
   const hasUserRating = game.ratings.users && game.ratings.users.votesCount > 0;
+  const hasOffers = game.buyLinks.length > 0;
+  const isProduct = hasOffers || hasExternalRating || hasUserRating;
 
   return [
     {
       "@context": "https://schema.org",
-      "@type": ["Product", "BoardGame"],
+      "@type": isProduct ? ["Product", "BoardGame"] : "BoardGame",
       name: game.title,
       ...(hasVerifiedCoverImage(game) && game.coverImageUrl ? { image: game.coverImageUrl } : {}),
       description: game.description || game.reviewSummary,

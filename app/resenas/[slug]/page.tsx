@@ -64,7 +64,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
     "@context": "https://schema.org",
     "@type": "Review",
     itemReviewed: {
-      "@type": "BoardGame",
+      "@type": ["Product", "BoardGame"],
       name: review.gameTitle,
       url: `${siteConfig.url}/juegos/${review.gameSlug}`
     },
