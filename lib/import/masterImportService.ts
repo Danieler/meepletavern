@@ -106,7 +106,7 @@ const DEFAULT_MASTER_IMPORT_SOURCES = [
 
 type CandidateRecord = Pick<
   GameCandidate,
-  "id" | "sourceId" | "sourceUrl" | "title" | "originalTitle" | "metadata" | "extractedDescription" | "candidateImages" | "confidence" | "status" | "flags" | "gameId"
+  "id" | "sourceId" | "sourceUrl" | "title" | "originalTitle" | "confidence" | "status" | "flags" | "gameId"
 >;
 
 type GameRecord = Pick<Game, "id" | "slug" | "title" | "name">;
@@ -1772,9 +1772,6 @@ function createDefaultDeps(): MasterImporterDeps {
           sourceUrl: true,
           title: true,
           originalTitle: true,
-          metadata: true,
-          extractedDescription: true,
-          candidateImages: true,
           confidence: true,
           status: true,
           flags: true,
@@ -1837,7 +1834,22 @@ function createDefaultDeps(): MasterImporterDeps {
       const candidateImages = normalizeCandidateImages(input.resolved.candidate.candidateImages);
 
       const persisted = await prisma.$transaction(async (transaction) => {
-        const existing = input.duplicateMatch.exactCandidate;
+        const exactMatch = input.duplicateMatch.exactCandidate;
+        const existing = exactMatch
+          ? await transaction.gameCandidate.findUnique({
+              where: { id: exactMatch.id },
+              select: {
+                id: true,
+                metadata: true,
+                extractedDescription: true,
+                candidateImages: true,
+                originalTitle: true,
+                confidence: true,
+                flags: true,
+                gameId: true
+              }
+            })
+          : null;
         const targetGameId = existing?.gameId || input.duplicateMatch.exactGame?.id || null;
         const game = targetGameId
           ? await transaction.game.update({
@@ -2041,7 +2053,12 @@ async function finalizeMasterImportedGame(gameId: string): Promise<{
   // Find the associated candidate for source context
   const candidate = await prisma.gameCandidate.findFirst({
     where: { gameId },
-    orderBy: { updatedAt: "desc" }
+    orderBy: { updatedAt: "desc" },
+    select: {
+      title: true,
+      extractedDescription: true,
+      metadata: true
+    }
   });
 
   // AI editorial completion with Bedrock
