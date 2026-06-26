@@ -548,7 +548,7 @@ function buildJsonLd(game: CatalogGame) {
   return [
     {
       "@context": "https://schema.org",
-      "@type": "BoardGame",
+      "@type": ["Product", "BoardGame"],
       name: game.title,
       ...(hasVerifiedCoverImage(game) && game.coverImageUrl ? { image: game.coverImageUrl } : {}),
       description: game.description || game.reviewSummary,
@@ -565,11 +565,7 @@ function buildJsonLd(game: CatalogGame) {
         : {}),
       ...(game.durationMax
         ? {
-            timeToPlay: {
-              "@type": "Duration",
-              name: `${game.durationMax} minutes`,
-              value: `PT${game.durationMax}M`
-            }
+            timeToPlay: `PT${game.durationMax}M`
           }
         : {}),
       ...(game.ageValue ? { typicalAgeRange: `${game.ageValue}+` } : {}),

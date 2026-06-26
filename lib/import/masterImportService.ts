@@ -1860,6 +1860,11 @@ function createDefaultDeps(): MasterImporterDeps {
               data: await buildGameCreateData(input.resolved)
             });
 
+        const convertedMetadata = {
+          _note: "Optimizado: metadatos y evidencia pesada de IA eliminados tras la conversión a ficha para ahorrar egress.",
+          importedFrom: input.resolved.primarySource.name
+        };
+
         const candidate = existing
           ? await transaction.gameCandidate.update({
               where: { id: existing.id },
@@ -1867,9 +1872,9 @@ function createDefaultDeps(): MasterImporterDeps {
                 title: input.resolved.candidate.title,
                 originalTitle: input.resolved.candidate.originalTitle || existing.originalTitle,
                 gameId: game.id,
-                metadata: mergeMetadata([normalizeCandidateMetadata(existing.metadata), metadata]) as Prisma.InputJsonValue,
-                extractedDescription: input.resolved.candidate.extractedDescription || existing.extractedDescription,
-                candidateImages: mergeCandidateImages(existing.candidateImages, candidateImages) as unknown as Prisma.InputJsonValue,
+                metadata: convertedMetadata,
+                extractedDescription: null,
+                candidateImages: [],
                 confidence: Math.max(existing.confidence, input.resolved.candidate.confidence),
                 status: GameCandidateStatus.converted,
                 flags: [...new Set([...existing.flags, ...input.resolved.candidate.flags])]
@@ -1882,9 +1887,9 @@ function createDefaultDeps(): MasterImporterDeps {
                 title: input.resolved.candidate.title,
                 originalTitle: input.resolved.candidate.originalTitle,
                 gameId: game.id,
-                metadata: metadata as Prisma.InputJsonValue,
-                extractedDescription: input.resolved.candidate.extractedDescription,
-                candidateImages: candidateImages as unknown as Prisma.InputJsonValue,
+                metadata: convertedMetadata,
+                extractedDescription: null,
+                candidateImages: [],
                 confidence: input.resolved.candidate.confidence,
                 status: GameCandidateStatus.converted,
                 flags: input.resolved.candidate.flags
