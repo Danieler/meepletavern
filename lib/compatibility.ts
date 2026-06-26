@@ -377,6 +377,39 @@ export async function getCompatibilityMatches(
       .slice(0, 3)
       .map(({ id, name, slug, imageUrl, reason }) => ({ id, name, slug, imageUrl, reason }));
 
+    // Fallback: if no suggested games found, recommend one of user A's input games that fits B's tastes
+    if (suggestedGames.length === 0 && userAGames.length > 0) {
+      for (const gameA of userAGames) {
+        const hasMatchingCategory = gameA.game.categories.some(cat => userBCategories.has(cat));
+        const hasMatchingMechanic = gameA.game.mechanics.some(mec => userBMechanics.has(mec));
+        
+        if (hasMatchingCategory || hasMatchingMechanic) {
+          suggestedGames.push({
+            id: gameA.game.id,
+            name: gameA.game.name,
+            slug: gameA.game.slug,
+            imageUrl: gameA.game.imageUrl,
+            reason: hasMatchingCategory 
+              ? "Te gusta este juego y encaja en sus categorías" 
+              : "Te gusta este juego y comparte mecánicas con su ludoteca"
+          });
+        }
+        if (suggestedGames.length >= 2) break;
+      }
+      
+      // If still empty, suggest the first user A game
+      if (suggestedGames.length === 0) {
+        const gameA = userAGames[0];
+        suggestedGames.push({
+          id: gameA.game.id,
+          name: gameA.game.name,
+          slug: gameA.game.slug,
+          imageUrl: gameA.game.imageUrl,
+          reason: "Compatible por afinidad general de mesa"
+        });
+      }
+    }
+
     matches.push({
       userId: candidateId,
       username: userProfile.username,

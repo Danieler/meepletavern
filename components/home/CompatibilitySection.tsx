@@ -221,112 +221,114 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
   // Render a match profile card
   const renderMatchCard = (match: MatchResult) => {
     const isMock = match.userId.startsWith("archetype-");
-    const scoreColor = match.score >= 80 ? "text-emerald-600" : match.score >= 70 ? "text-amber-700" : "text-walnut/70";
+    const scoreColor = match.score >= 80 ? "text-emerald-700" : match.score >= 70 ? "text-amber-800" : "text-walnut/80";
 
     return (
       <div
         key={match.userId}
-        className="relative overflow-hidden rounded-xl border border-white/20 bg-white/90 backdrop-blur-md p-3 shadow-md flex flex-col justify-between z-10"
+        className="relative overflow-hidden rounded-xl border border-white/30 bg-white/95 backdrop-blur-md p-4 shadow-md flex flex-col justify-between z-10 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:border-white/40"
       >
         <div>
           {/* Header */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {match.avatarUrl ? (
-              <div className="relative h-8 w-8 overflow-hidden rounded-full border border-walnut/15 shadow-sm">
+              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-walnut/20 shadow-sm">
                 <Image
                   src={match.avatarUrl}
-                  alt={`Avatar de ${match.displayName || match.username}`}
+                  alt={`Avatar de ${match.username}`}
                   fill
-                  sizes="32px"
+                  sizes="36px"
                   className="object-cover"
                   unoptimized
                 />
               </div>
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#ebd5bf] to-[#c59e7a] text-[10px] font-black text-[#5c3c21] shadow-inner">
-                {(match.displayName || match.username)[0].toUpperCase()}
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#ebd5bf] to-[#c59e7a] text-xs font-black text-[#5c3c21] shadow-inner">
+                {match.username[0].toUpperCase()}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h4 className="font-display truncate text-xs font-bold text-wood">
-                {match.displayName || match.username}
+              <h4 className="font-display truncate text-base font-extrabold text-wood">
+                {match.username}
               </h4>
-              <p className="truncate text-[9px] font-bold text-[#b45309]">
-                {isMock ? "Perfil Recomendado" : `@${match.username}`}
-              </p>
+              {isMock && (
+                <p className="truncate text-[11px] font-black text-[#b45309]">
+                  Perfil Recomendado
+                </p>
+              )}
             </div>
             <div className="flex flex-col items-center">
-              <span className={`font-display text-sm font-black ${scoreColor}`}>
+              <span className={`font-display text-xl font-black ${scoreColor}`}>
                 {match.score}%
               </span>
-              <span className="text-[8px] uppercase tracking-wider text-walnut/55 font-bold">
+              <span className="text-[10.5px] uppercase tracking-wider text-walnut/75 font-black">
                 Afinidad
               </span>
             </div>
           </div>
 
           {/* Shared Interests */}
-          <div className="mt-2">
-            <p className="text-[9px] font-bold text-walnut/55 uppercase tracking-wide">Gustos en común</p>
+          <div className="mt-2.5">
+            <p className="text-xs font-extrabold text-walnut/75 uppercase tracking-wider">Gustos en común</p>
             <div className="mt-1 flex flex-wrap gap-1">
               {match.sharedCategories.length > 0 || match.sharedMechanics.length > 0 ? (
                 <>
-                  {match.sharedCategories.slice(0, 2).map((cat) => (
+                  {match.sharedCategories.slice(0, 3).map((cat) => (
                     <span
                       key={cat}
-                      className="rounded bg-amber-500/8 px-1 py-0.5 text-[8px] font-black text-amber-800 border border-amber-500/10 block max-w-[80px] truncate"
+                      className="rounded bg-amber-500/10 px-2 py-0.5 text-[10.5px] font-black text-amber-900 border border-amber-500/15 block max-w-[120px] truncate"
                     >
                       {cat}
                     </span>
                   ))}
-                  {match.sharedMechanics.slice(0, 2).map((mec) => (
+                  {match.sharedMechanics.slice(0, 3).map((mec) => (
                     <span
                       key={mec}
-                      className="rounded bg-walnut/5 px-1 py-0.5 text-[8px] font-bold text-walnut/70 border border-walnut/10 block max-w-[80px] truncate"
+                      className="rounded bg-walnut/8 px-2 py-0.5 text-[10.5px] font-black text-walnut/80 border border-walnut/15 block max-w-[120px] truncate"
                     >
                       {mec}
                     </span>
                   ))}
                 </>
               ) : (
-                <span className="text-[9px] text-walnut/40 italic">Mesa variada</span>
+                <span className="text-sm text-walnut/65 italic">Mesa variada</span>
               )}
             </div>
           </div>
 
           {/* Suggested Games */}
           {match.suggestedGames.length > 0 && (
-            <div className="mt-2.5 border-t border-walnut/8 pt-2">
-              <p className="text-[9px] font-bold text-walnut/55 uppercase tracking-wide flex items-center gap-1">
-                <Play size={7} className="text-ember fill-ember" /> Para jugar juntos
+            <div className="mt-3 border-t border-walnut/12 pt-2.5">
+              <p className="text-xs font-extrabold text-walnut/75 uppercase tracking-wider flex items-center gap-1">
+                <Play size={8} className="text-ember fill-ember" /> Para jugar juntos
               </p>
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-1.5 space-y-1.5">
                 {match.suggestedGames.slice(0, 2).map((sg) => (
-                  <li key={sg.id} className="flex gap-2 items-center text-[10px]">
+                  <li key={sg.id} className="flex gap-2.5 items-center text-sm">
                     {sg.imageUrl ? (
-                      <div className="relative h-6 w-6 flex-shrink-0 overflow-hidden rounded border border-walnut/10 bg-parchment shadow-inner">
+                      <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded border border-walnut/15 bg-parchment shadow-inner">
                         <Image
                           src={sg.imageUrl}
                           alt={sg.name}
                           fill
-                          sizes="24px"
+                          sizes="32px"
                           className="object-cover"
                           unoptimized
                         />
                       </div>
                     ) : (
-                      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-walnut/5 text-[8px] font-black text-walnut/40">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-walnut/8 text-xs font-black text-walnut/60">
                         M
                       </div>
                     )}
                     <div className="min-w-0 flex-1 leading-tight">
                       <Link
                         href={`/juegos/${sg.slug}`}
-                        className="font-bold text-walnut hover:text-ember hover:underline truncate block"
+                        className="font-extrabold text-walnut hover:text-ember focus-visible:text-ember focus-visible:ring-1 focus-visible:ring-ember focus-visible:outline-none rounded hover:underline truncate block"
                       >
                         {sg.name}
                       </Link>
-                      <span className="text-[8px] text-emerald-600 font-bold block truncate">
+                      <span className="text-[11.5px] text-emerald-700 font-bold block truncate">
                         {sg.reason}
                       </span>
                     </div>
@@ -340,7 +342,6 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
     );
   };
 
-  // Render the old-style recommended game card
   // Render the old-style recommended games list
   const renderFeaturedGames = (limit?: number) => {
     if (!featuredGames || featuredGames.length === 0) return null;
@@ -350,17 +351,17 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
     const secondaryGames = displayGames.slice(1);
 
     return (
-      <div className="mt-3 border-t border-white/10 pt-3 z-10 text-left space-y-2.5">
-        <p className="text-[10px] font-bold text-[#fffaf0]/80 uppercase tracking-wide flex items-center gap-1.5">
-          <Beer size={10} className="text-[#fef3c7]" /> Recomendaciones de la barra
+      <div className="mt-3 border-t border-white/15 pt-3 z-10 text-left space-y-2.5">
+        <p className="text-xs font-extrabold text-[#fffaf0]/95 uppercase tracking-wider flex items-center gap-1.5">
+          <Beer size={11} className="text-[#fef3c7]" aria-hidden="true" /> Recomendaciones de la barra
         </p>
 
         {/* Principal Featured Game */}
         {firstGame && (
-          <div className="rounded-xl border border-white/20 bg-white/95 p-3 shadow-md flex flex-col gap-2">
+          <div className="rounded-xl border border-white/30 bg-white/95 p-3 shadow-md flex flex-col gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:border-white/45">
             <div className="flex gap-3">
               {firstGame.coverImageUrl && (
-                <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded border border-walnut/10 bg-parchment shadow-sm">
+                <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded border border-walnut/15 bg-parchment shadow-sm">
                   <Image
                     src={firstGame.coverImageUrl}
                     alt={firstGame.coverImageAlt || firstGame.title}
@@ -373,18 +374,18 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               )}
               <div className="min-w-0 flex-1 flex flex-col justify-center">
                 <div>
-                  <span className="inline-block rounded bg-[#fef3c7] border border-[#f59e0b]/40 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-[#92400e] shadow-sm">
+                  <span className="inline-block rounded bg-[#fef3c7] border border-[#f59e0b]/40 px-1.5 py-0.5 text-[9.5px] font-black uppercase tracking-wider text-[#92400e] shadow-sm">
                     LA PINTA ESPECIAL
                   </span>
                   <Link
                     href={`/juegos/${firstGame.slug}`}
-                    className="font-display block text-xs font-bold text-wood hover:text-ember hover:underline truncate mt-0.5 leading-tight"
+                    className="font-display block text-sm font-extrabold text-wood hover:text-ember focus-visible:text-ember focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none rounded hover:underline truncate mt-0.5 leading-tight"
                   >
                     {firstGame.title}
                   </Link>
                 </div>
                 {firstGame.reviewSummary && (
-                  <p className="line-clamp-2 text-[10px] font-semibold leading-3.5 text-walnut/70 mt-0.5">
+                  <p className="line-clamp-2 text-xs font-semibold leading-relaxed text-walnut/80 mt-0.5">
                     {firstGame.reviewSummary}
                   </p>
                 )}
@@ -392,18 +393,18 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
             </div>
             
             {/* Stats Tray */}
-            <div className="grid grid-cols-3 gap-1 border-t border-walnut/8 pt-1.5 text-center text-[8px] font-black text-walnut/60 uppercase">
+            <div className="grid grid-cols-3 gap-1 border-t border-walnut/12 pt-1.5 text-center text-[10px] font-black text-walnut/75 uppercase">
               <div>
-                <p className="text-[7px] text-walnut/40 font-bold uppercase leading-none">Jugadores</p>
-                <p className="font-extrabold text-wood mt-0.5 leading-none">{firstGame.playersLabel || "1-6"}</p>
+                <p className="text-[9px] text-walnut/55 font-bold uppercase leading-none">Jugadores</p>
+                <p className="text-xs font-extrabold text-wood mt-0.5 leading-none">{firstGame.playersLabel || "1-6"}</p>
               </div>
               <div>
-                <p className="text-[7px] text-walnut/40 font-bold uppercase leading-none">Tiempo</p>
-                <p className="font-extrabold text-wood mt-0.5 leading-none">{firstGame.playtime || "30-90 min"}</p>
+                <p className="text-[9px] text-walnut/55 font-bold uppercase leading-none">Tiempo</p>
+                <p className="text-xs font-extrabold text-wood mt-0.5 leading-none">{firstGame.playtime || "30-90 min"}</p>
               </div>
               <div>
-                <p className="text-[7px] text-walnut/40 font-bold uppercase leading-none">Dificultad</p>
-                <p className="font-extrabold text-wood mt-0.5 leading-none">{firstGame.complexity || "Media"}</p>
+                <p className="text-[9px] text-walnut/55 font-bold uppercase leading-none">Dificultad</p>
+                <p className="text-xs font-extrabold text-wood mt-0.5 leading-none">{firstGame.complexity || "Media"}</p>
               </div>
             </div>
           </div>
@@ -416,10 +417,10 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               <Link
                 key={game.slug}
                 href={`/juegos/${game.slug}`}
-                className="group flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/10 p-2 shadow-inner hover:bg-white/20 transition-all text-left"
+                className="group flex items-center gap-2.5 rounded-lg border border-white/30 bg-white/90 p-2.5 shadow-md hover:bg-white/95 focus-visible:bg-white/95 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none transition-all text-left hover:-translate-y-0.5 hover:shadow-lg"
               >
                 {game.coverImageUrl && (
-                  <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded border border-white/10 bg-parchment shadow-sm">
+                  <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded border border-walnut/15 bg-parchment shadow-sm">
                     <Image
                       src={game.coverImageUrl}
                       alt={game.coverImageAlt || game.title}
@@ -431,10 +432,10 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="text-[7.5px] font-black uppercase tracking-[0.12em] text-[#fef3c7] opacity-90">
-                    {idx === 0 ? "MEDIA PINTA" : "DOBLE LÚPULO"}
+                  <span className="text-[9px] font-black uppercase tracking-wider text-[#92400e]">
+                    {idx === 0 ? "🫧 MEDIA PINTA" : "🫧 DOBLE LÚPULO"}
                   </span>
-                  <h4 className="font-display text-xs font-bold text-wood truncate group-hover:text-ember transition-colors leading-tight">
+                  <h4 className="font-display text-xs font-extrabold text-wood truncate group-hover:text-ember transition-colors leading-tight">
                     {game.title}
                   </h4>
                 </div>
@@ -449,7 +450,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
   return (
     <section className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-[#92400e]/30 bg-gradient-to-b from-[#fbbf24] via-[#d97706] to-[#78350f] text-wood shadow-[0_16px_38px_rgba(120,53,15,0.25),inset_0_2px_8px_rgba(255,255,255,0.4)] min-h-[460px]">
       {/* Carbonation Bubbles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 z-0">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-35 z-0">
         <div className="bubble x1"></div>
         <div className="bubble x2"></div>
         <div className="bubble x3"></div>
@@ -461,16 +462,16 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
       </div>
 
       {/* Foam Head (Espuma de Cerveza) */}
-      <div className="relative z-10 flex items-start justify-between gap-3 border-b border-[#ebd5bf]/40 bg-gradient-to-b from-[#ffffff] to-[#fffbf2] p-3 shadow-md">
+      <div className="relative z-10 flex items-start justify-between gap-3 border-b border-[#ebd5bf]/60 bg-gradient-to-b from-[#ffffff] to-[#fffbf2] p-3 shadow-md">
         <div>
           <p className="tavern-eyebrow flex items-center gap-1.5">
-            <Beer size={13} className="text-ember animate-pulse" strokeWidth={2.5} />
+            <Beer size={13} className="text-ember animate-pulse" strokeWidth={2.5} aria-hidden="true" />
             Grifo de afinidades
           </p>
           <h2 className="tavern-title mt-1.5 text-xl">
             ¿Con quién encajas para jugar?
           </h2>
-          <p className="mt-0.5 text-xs font-semibold leading-5 text-walnut/80">
+          <p className="mt-0.5 text-sm font-semibold leading-relaxed text-walnut/90">
             {user ? "Matches reales basados en tu ludoteca." : "Elige 3 juegos y te decimos con quién encajas."}
           </p>
         </div>
@@ -483,7 +484,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
         {user ? (
           authMatchesLoading ? (
             <div className="flex flex-col items-center justify-center flex-1 py-8 text-center">
-              <Loader2 className="h-9 w-9 animate-spin text-white" />
+              <Loader2 className="h-9 w-9 animate-spin text-white" aria-hidden="true" />
               <p className="mt-3 text-sm font-bold text-white">
                 Calculando afinidades...
               </p>
@@ -494,36 +495,48 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
           ) : authLibraryEmpty ? (
             <div className="flex flex-col justify-between flex-1 min-h-0">
               <div className="flex-1 overflow-y-auto pr-1">
-                <p className="text-xs font-bold text-white/90 leading-relaxed">
+                <p className="text-sm font-bold text-white/95 leading-relaxed">
                   Tu ludoteca está vacía. Añade al menos 3 juegos que hayas jugado o te gusten para buscar perfiles afines.
                 </p>
 
                 {/* Autocomplete Input */}
                 <div className="mt-4 relative" ref={dropdownRef}>
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-walnut/40" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-walnut/60" aria-hidden="true" />
                     <input
                       ref={searchInputRef}
+                      id="auth-library-game-search"
                       type="text"
                       placeholder="Busca y añade un juego..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="min-h-10 w-full rounded-lg border border-transparent bg-white/90 pl-9 pr-3 text-xs font-semibold text-wood placeholder:text-walnut/40 focus:bg-white focus:outline-none transition-all"
+                      aria-label="Buscar y añadir un juego a tu ludoteca"
+                      aria-autocomplete="list"
+                      aria-controls="auth-search-results"
+                      aria-expanded={searchResults.length > 0}
+                      className="min-h-10 w-full rounded-lg border border-transparent bg-white/95 pl-9 pr-3 text-sm font-semibold text-wood placeholder:text-walnut/60 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78350f] focus-visible:ring-offset-2 transition-all"
                     />
                   </div>
 
                   {/* Dropdown */}
                   {searchResults.length > 0 && (
-                    <div className="absolute left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg">
+                    <div 
+                      id="auth-search-results"
+                      role="listbox"
+                      aria-label="Sugerencias de juegos"
+                      className="absolute left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg"
+                    >
                       {searchResults.map((game) => (
                         <button
                           key={game.id}
+                          role="option"
+                          aria-selected="false"
                           onClick={() => handleAddGameToLibrary(game)}
                           disabled={addingGameId === game.id}
-                          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-amber-500/5 transition-colors"
+                          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-amber-500/5 focus-visible:bg-amber-500/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/40 transition-colors"
                         >
                           {game.imageUrl ? (
-                            <div className="relative h-7 w-7 overflow-hidden rounded border border-walnut/10 bg-parchment shadow-inner flex-shrink-0">
+                            <div className="relative h-7 w-7 overflow-hidden rounded border border-walnut/15 bg-parchment shadow-inner flex-shrink-0">
                               <Image
                                 src={game.imageUrl}
                                 alt={game.name}
@@ -534,20 +547,20 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                               />
                             </div>
                           ) : (
-                            <div className="flex h-7 w-7 items-center justify-center rounded bg-walnut/5 text-[8px] font-black text-walnut/40 flex-shrink-0">
+                            <div className="flex h-7 w-7 items-center justify-center rounded bg-walnut/8 text-xs font-black text-walnut/60 flex-shrink-0">
                               M
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-walnut truncate">{game.name}</p>
+                            <p className="font-extrabold text-walnut truncate text-xs">{game.name}</p>
                             {game.year && (
-                              <p className="text-[9px] text-walnut/40 font-bold">{game.year}</p>
+                              <p className="text-xs text-walnut/65 font-bold">{game.year}</p>
                             )}
                           </div>
                           {addingGameId === game.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin text-ember" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-ember" aria-hidden="true" />
                           ) : (
-                            <Plus className="h-3.5 w-3.5 text-walnut/40 hover:text-ember" />
+                            <Plus className="h-4 w-4 text-walnut/60 hover:text-ember" aria-hidden="true" />
                           )}
                         </button>
                       ))}
@@ -562,7 +575,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               <div className="mt-4">
                 <Link
                   href="/juegos"
-                  className="flex w-full min-h-10 items-center justify-center rounded-lg bg-white/12 border border-white/20 text-white text-xs font-bold hover:bg-white/20 transition-all"
+                  className="flex w-full min-h-10 items-center justify-center rounded-lg bg-white/15 border border-white/25 text-white text-sm font-bold hover:bg-white/25 focus-visible:bg-white/25 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none transition-all shadow-sm"
                 >
                   Explorar catálogo completo
                 </Link>
@@ -570,20 +583,17 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
             </div>
           ) : (
             <div className="flex flex-col justify-between flex-1 min-h-0">
-              {/* Scrollable match results & recommended game at the bottom */}
+              {/* Scrollable match results */}
               <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
                 {authMatches.slice(0, 3).map((match) => renderMatchCard(match))}
-                
-                {/* Re-inject the recommended game in empty spaces at the bottom of the list only if there's a gap */}
-                {authMatches.length < 3 && renderFeaturedGames(3 - authMatches.length)}
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between gap-3 text-[11px] text-white/95 font-bold">
-                <Link href="/taberna" className="hover:underline flex items-center gap-1">
-                  <Users size={11} /> Ver taberna
+              <div className="mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between gap-3 text-xs text-white font-black">
+                <Link href="/taberna" className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">
+                  <Users size={12} aria-hidden="true" /> Ver taberna
                 </Link>
-                <Link href="/mi-perfil" className="hover:underline flex items-center gap-1">
-                  <BookOpen size={11} /> Mi ludoteca
+                <Link href="/mi-perfil" className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">
+                  <BookOpen size={12} aria-hidden="true" /> Mi ludoteca
                 </Link>
               </div>
             </div>
@@ -592,42 +602,39 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
           /* --- GUEST VIEW --- */
           hasCalculated ? (
             <div className="flex flex-col justify-between flex-1 min-h-0">
-              {/* Scrollable guest results & selection summary & recommended game */}
+              {/* Scrollable guest results & selection summary */}
               <div className="space-y-3 flex-1 overflow-y-auto pr-1">
                 {matches.slice(0, 2).map((match) => renderMatchCard(match))}
 
                 {/* Selected games summary */}
-                <div className="relative overflow-hidden rounded-xl border border-white/15 bg-white/10 p-3 shadow-inner z-10">
-                  <p className="text-[10px] font-bold text-[#ebd5bf] uppercase tracking-wide">
+                <div className="relative overflow-hidden rounded-xl border border-white/25 bg-white/10 p-3 shadow-inner z-10">
+                  <p className="text-xs font-bold text-[#ebd5bf] uppercase tracking-wider">
                     Tus juegos seleccionados
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {selectedGames.map((g) => (
                       <div
                         key={g.id}
-                        className="flex items-center gap-1.5 rounded bg-white/15 px-2 py-0.5 border border-white/5 text-[10px] font-bold text-white max-w-[120px] truncate"
+                        className="flex items-center gap-1.5 rounded bg-white/15 px-2.5 py-1 border border-white/10 text-xs font-extrabold text-white max-w-[140px] truncate"
                       >
                         {g.name}
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Recommended game card inside the results list only if there's a gap */}
-                {matches.length < 2 && renderFeaturedGames(2 - matches.length)}
               </div>
 
               {/* Pinned signup and reset CTAs */}
               <div className="mt-4 pt-3 border-t border-white/15">
                 <button
                   onClick={handleSignupCta}
-                  className="w-full min-h-10 text-xs rounded-lg bg-white text-wood font-black tracking-wide shadow-md hover:bg-parchment transition-all flex items-center justify-center gap-1.5"
+                  className="w-full min-h-10 text-sm rounded-lg bg-white text-wood font-black tracking-wide shadow-md hover:bg-parchment focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 transition-all flex items-center justify-center gap-1.5"
                 >
                   Registrarme y guardar juegos
                 </button>
                 <button
                   onClick={handleReset}
-                  className="w-full text-center text-[10px] font-bold text-white/70 hover:text-white hover:underline mt-2"
+                  className="w-full text-center text-xs font-bold text-white/80 hover:text-white hover:underline focus-visible:underline focus-visible:text-white focus-visible:outline-none rounded mt-2"
                 >
                   Probar con otros juegos
                 </button>
@@ -637,7 +644,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
             /* --- GUEST GAME SELECTION --- */
             <div className="flex flex-col justify-between flex-1 min-h-0">
               <div className="flex-1 overflow-y-auto pr-1">
-                <p className="text-xs leading-relaxed text-[#fffaf0]/95 font-semibold">
+                <p className="text-sm leading-relaxed text-[#fffaf0]/95 font-semibold">
                   Dinos 3 juegos que hayas disfrutado y te diremos con quién compartir mesa en la taberna.
                 </p>
 
@@ -672,7 +679,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                                 <div className="absolute inset-0 bg-black/5" />
                               </div>
                             ) : (
-                              <div className="flex flex-col items-center justify-center text-[8px] font-black text-walnut/70 text-center h-full leading-tight">
+                              <div className="flex flex-col items-center justify-center text-[10px] font-black text-walnut/80 text-center h-full leading-tight p-0.5">
                                 {game.name}
                               </div>
                             )}
@@ -681,15 +688,16 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                                 e.stopPropagation();
                                 handleRemoveGame(game.id);
                               }}
-                              className="absolute -top-1.5 -right-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border border-walnut/20 bg-white text-walnut/70 shadow-sm hover:bg-ember hover:text-white hover:border-ember transition-colors"
+                              aria-label={`Eliminar ${game.name} de la selección`}
+                              className="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full border border-walnut/20 bg-white text-walnut/70 shadow-sm hover:bg-ember hover:text-white hover:border-ember focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember transition-colors"
                             >
-                              <X size={9} strokeWidth={3} />
+                              <X size={11} strokeWidth={3.5} aria-hidden="true" />
                             </button>
                           </>
                         ) : (
                           <div className="flex flex-col items-center gap-0.5 text-white/50">
-                            <Plus size={14} strokeWidth={3} />
-                            <span className="text-[8px] font-black uppercase tracking-wider">Mesa</span>
+                            <Plus size={16} strokeWidth={3} aria-hidden="true" />
+                            <span className="text-[10.5px] font-black uppercase tracking-wider">Mesa</span>
                           </div>
                         )}
                       </div>
@@ -700,9 +708,10 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                 {/* Input Search */}
                 <div className="mt-3.5 relative" ref={dropdownRef}>
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-walnut/40" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-walnut/60" aria-hidden="true" />
                     <input
                       ref={searchInputRef}
+                      id="guest-game-search"
                       type="text"
                       placeholder={
                         selectedGames.length >= 3
@@ -712,21 +721,32 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       disabled={selectedGames.length >= 3}
-                      className="min-h-10 w-full rounded-lg border border-transparent bg-white/90 pl-9 pr-3 text-xs font-semibold text-wood placeholder:text-walnut/40 focus:bg-white focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      aria-label="Buscar un juego de mesa para agregar a tu selección"
+                      aria-autocomplete="list"
+                      aria-controls="guest-search-results"
+                      aria-expanded={searchResults.length > 0 && selectedGames.length < 3}
+                      className="min-h-10 w-full rounded-lg border border-transparent bg-white/95 pl-9 pr-3 text-sm font-semibold text-wood placeholder:text-walnut/60 focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#78350f] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     />
                   </div>
 
                   {/* Results Autocomplete */}
                   {searchResults.length > 0 && selectedGames.length < 3 && (
-                    <div className="absolute left-0 right-0 z-30 mt-1 max-h-44 overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg">
+                    <div 
+                      id="guest-search-results"
+                      role="listbox"
+                      aria-label="Sugerencias de juegos"
+                      className="absolute left-0 right-0 z-30 mt-1 max-h-44 overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg"
+                    >
                       {searchResults.map((game) => (
                         <button
                           key={game.id}
+                          role="option"
+                          aria-selected="false"
                           onClick={() => handleSelectGame(game)}
-                          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-amber-500/5 transition-colors"
+                          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-amber-500/5 focus-visible:bg-amber-500/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500/40 transition-colors"
                         >
                           {game.imageUrl ? (
-                            <div className="relative h-7 w-7 overflow-hidden rounded border border-walnut/10 bg-parchment shadow-inner flex-shrink-0">
+                            <div className="relative h-7 w-7 overflow-hidden rounded border border-walnut/15 bg-parchment shadow-inner flex-shrink-0">
                               <Image
                                 src={game.imageUrl}
                                 alt={game.name}
@@ -737,17 +757,17 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                               />
                             </div>
                           ) : (
-                            <div className="flex h-7 w-7 items-center justify-center rounded bg-walnut/5 text-[8px] font-black text-walnut/40 flex-shrink-0">
+                            <div className="flex h-7 w-7 items-center justify-center rounded bg-walnut/8 text-xs font-black text-walnut/60 flex-shrink-0">
                               M
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-walnut truncate">{game.name}</p>
+                            <p className="font-extrabold text-walnut truncate text-xs">{game.name}</p>
                             {game.year && (
-                              <p className="text-[9px] text-walnut/40 font-bold">{game.year}</p>
+                              <p className="text-xs text-walnut/65 font-bold">{game.year}</p>
                             )}
                           </div>
-                          <Plus className="h-3.5 w-3.5 text-walnut/40 hover:text-ember" />
+                          <Plus className="h-4 w-4 text-walnut/60 hover:text-ember" aria-hidden="true" />
                         </button>
                       ))}
                     </div>
@@ -757,7 +777,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                 {/* Popular Games quick adds */}
                 {popularGames.length > 0 && selectedGames.length < 3 && (
                   <div className="mt-4">
-                    <p className="text-[10px] font-bold text-[#fffaf0]/80 uppercase tracking-wide">
+                    <p className="text-xs font-bold text-[#fffaf0]/95 uppercase tracking-wider">
                       ¿O añade un juego popular en un clic?
                     </p>
                     <div className="mt-2 grid grid-cols-3 gap-2">
@@ -766,12 +786,13 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                           key={game.id}
                           onClick={() => handleSelectGame(game)}
                           disabled={selectedGames.some(g => g.id === game.id)}
-                          className={`flex flex-col items-center justify-between p-1.5 rounded-lg border border-white/10 bg-white/10 hover:bg-white/20 disabled:opacity-40 transition-all text-center aspect-[3/4] overflow-hidden group shadow-inner ${
+                          aria-label={`Añadir ${game.name}`}
+                          className={`flex flex-col items-center justify-between p-1.5 rounded-lg border border-white/10 bg-white/10 hover:bg-white/20 focus-visible:bg-white/20 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-40 transition-all text-center aspect-[3/4] overflow-hidden group shadow-inner ${
                             index >= 3 ? "hidden lg:flex" : "flex"
                           }`}
                         >
                           {game.imageUrl ? (
-                            <div className="relative w-full h-[60%] rounded overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
+                            <div className="relative w-full h-[60%] rounded border border-white/10 overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
                               <Image
                                 src={game.imageUrl}
                                 alt={game.name}
@@ -782,11 +803,11 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                               />
                             </div>
                           ) : (
-                            <div className="flex h-6 w-6 items-center justify-center rounded bg-white/10 text-[8px] font-black text-white/50">
+                            <div className="flex h-6 w-6 items-center justify-center rounded bg-white/15 text-[10px] font-bold text-white/60">
                               M
                             </div>
                           )}
-                          <span className="text-[9px] font-bold text-white/95 truncate w-full block mt-1">
+                          <span className="text-xs font-extrabold text-white/95 truncate w-full block mt-1">
                             {game.name}
                           </span>
                         </button>
@@ -803,16 +824,16 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                 <button
                   onClick={handleCalculate}
                   disabled={selectedGames.length < 3 || calculating}
-                  className="w-full min-h-10 text-xs rounded-lg bg-white text-wood font-black tracking-wide shadow-md hover:bg-parchment disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5"
+                  className="w-full min-h-10 text-sm rounded-lg bg-white text-wood font-black tracking-wide shadow-md hover:bg-parchment focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5"
                 >
                   {calculating ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                       Calculando...
                     </>
                   ) : (
                     <>
-                      <Sparkles size={12} />
+                      <Sparkles size={12} aria-hidden="true" />
                       Calcular mi afinidad
                     </>
                   )}
