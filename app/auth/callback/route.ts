@@ -1,5 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import {
+  normalizeOnboardingGameIds,
+  normalizeOnboardingSource,
+  syncOnboardingGamesForUser
+} from "@/lib/onboardingGames";
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
 
@@ -27,6 +32,15 @@ export async function GET(request: Request) {
 
     if (user) {
       const account = await upsertAppUserFromAuthUser(user);
+      const onboardingGameIds = normalizeOnboardingGameIds(user.user_metadata?.meepletavern_onboarding_games);
+
+      if (onboardingGameIds.length > 0) {
+        await syncOnboardingGamesForUser({
+          appUser: account,
+          gameIds: onboardingGameIds,
+          source: normalizeOnboardingSource(user.user_metadata?.meepletavern_onboarding_source)
+        });
+      }
 
       if (!account.profile?.username) {
         return NextResponse.redirect(new URL("/mi-perfil/ajustes", url.origin));

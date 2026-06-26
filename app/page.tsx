@@ -44,8 +44,9 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [popularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
+  const [popularGames, compatibilityPopularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
     getPopularGames(6),
+    getPopularGames(48),
     getBeginnerGames(4),
     getNewGames(4),
     getCategoryTerms()
@@ -105,21 +106,23 @@ export default async function Home() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,251,243,0.65),transparent_34%)]" />
 
             <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_420px] lg:items-stretch">
-              <div className="flex h-full flex-col">
-                <p className="tavern-eyebrow">La carta de juegos de mesa</p>
-                <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-wood sm:text-6xl lg:text-7xl">
-                  Encuentra tu próximo <span className="text-ember">juego de mesa</span>
-                </h1>
-                <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-walnut/85 sm:text-xl">
-                  Busca, compara y descubre qué sacar a mesa según tu grupo, tu tiempo y las
-                  ludotecas de otros jugadores.
-                </p>
-                <div className="mt-8 max-w-2xl">
-                  <GameSearch variant="hero" submitLabel="Buscar juegos" />
+              <div className="contents lg:order-1 lg:flex lg:h-full lg:flex-col">
+                <div className="order-1 lg:order-none">
+                  <p className="tavern-eyebrow">La carta de juegos de mesa</p>
+                  <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-wood sm:text-6xl lg:text-7xl">
+                    Encuentra tu próximo <span className="text-ember">juego de mesa</span>
+                  </h1>
+                  <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-walnut/85 sm:text-xl">
+                    Busca, compara y descubre qué sacar a mesa según tu grupo, tu tiempo y las
+                    ludotecas de otros jugadores.
+                  </p>
+                  <div className="mt-8 max-w-2xl">
+                    <GameSearch variant="hero" submitLabel="Buscar juegos" />
+                  </div>
+                  <HomeHeroAuthControls />
                 </div>
-                <HomeHeroAuthControls />
 
-                <div className="lg:hidden xl:block mt-10">
+                <div className="order-3 mt-10 lg:hidden lg:order-none xl:block">
                   <div className="mb-5">
                     <div className="flex items-center gap-4">
                       <p className="tavern-eyebrow flex items-center gap-1.5">
@@ -219,14 +222,19 @@ export default async function Home() {
                 </div>
               </div>
               
-              <aside className="h-full lg:flex flex-col justify-stretch">
+              <aside className="order-2 h-full lg:order-2 lg:flex flex-col justify-stretch">
                 <CompatibilitySection
-                  popularGames={popularGames.slice(0, 6).map((g) => ({
+                  popularGames={compatibilityPopularGames.map((g) => ({
                     id: g.id,
                     name: g.title,
                     slug: g.slug,
                     imageUrl: g.coverImageUrl || null,
-                    year: g.year
+                    year: g.year,
+                    playersMin: g.playersMin,
+                    playersMax: g.playersMax,
+                    durationMax: g.durationMax,
+                    categories: g.categories,
+                    mechanics: g.mechanics
                   }))}
                   featuredGames={featuredGames.map((game) => ({
                     slug: game.slug,

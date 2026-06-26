@@ -70,6 +70,32 @@ function getOAuthRedirectTo(nextPath?: string) {
   return `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
+function getPendingOnboardingMetadata() {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const rawGameIds = window.sessionStorage.getItem("meepletavern_onboarding_games");
+    const parsedGameIds = rawGameIds ? JSON.parse(rawGameIds) : null;
+    const gameIds = Array.isArray(parsedGameIds)
+      ? parsedGameIds.filter((gameId): gameId is string => typeof gameId === "string" && gameId.trim().length > 0)
+      : [];
+    const source = window.sessionStorage.getItem("meepletavern_onboarding_source") || "";
+
+    if (gameIds.length === 0) {
+      return {};
+    }
+
+    return {
+      meepletavern_onboarding_games: Array.from(new Set(gameIds.map((gameId) => gameId.trim()))).slice(0, 12),
+      meepletavern_onboarding_source: source || "auth_onboarding"
+    };
+  } catch {
+    return {};
+  }
+}
+
 function getAuthErrorCode(message: string): AuthActionResult["code"] | undefined {
   const normalized = message.toLowerCase();
 
@@ -264,7 +290,8 @@ export function useAuth() {
             name: name || "",
             display_name: name || "",
             terms_accepted_at: new Date().toISOString(),
-            terms_version: LEGAL_VERSION
+            terms_version: LEGAL_VERSION,
+            ...getPendingOnboardingMetadata()
           }
         }
       });

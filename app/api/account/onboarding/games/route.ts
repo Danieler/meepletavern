@@ -1,12 +1,12 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
-import { ActivityEventType } from "@prisma/client";
-import { tryRecordPublicActivityEvent, TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
-import { compatibilityCache } from "@/lib/compatibility";
-import { revalidateTag } from "next/cache";
+import {
+  normalizeOnboardingGameIds,
+  normalizeOnboardingSource,
+  syncOnboardingGamesForUser
+} from "@/lib/onboardingGames";
 
 export async function POST(request: Request) {
   try {
@@ -31,76 +31,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const gameIds: string[] = body.gameIds;
+    const gameIds = normalizeOnboardingGameIds(body.gameIds);
+    const source = normalizeOnboardingSource(body.source);
 
-    // Fetch game details to ensure they exist and record activities
-    const games = await prisma.game.findMany({
-      where: {
-        id: { in: gameIds }
-      },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        name: true
-      }
-    });
+    if (gameIds.length === 0) {
+      return NextResponse.json(
+        { error: "Faltan los identificadores de juegos." },
+        { status: 400 }
+      );
+    }
 
-    if (games.length === 0) {
+    const result = await syncOnboardingGamesForUser({ appUser, gameIds, source });
+
+    if (!result.ok) {
       return NextResponse.json(
         { error: "No se encontraron los juegos indicados." },
         { status: 404 }
       );
     }
 
-    // Insert library entries and trigger activity events
-    let activityRecorded = false;
-    for (const game of games) {
-      // Upsert library entry strictly as played: true
-      await prisma.userLibraryGame.upsert({
-        where: {
-          userId_gameId: {
-            userId: appUser.id,
-            gameId: game.id
-          }
-        },
-        create: {
-          userId: appUser.id,
-          gameId: game.id,
-          played: true,
-          owned: false,
-          wantToPlay: false,
-          wantToBuy: false
-        },
-        update: {
-          played: true,
-          owned: false,
-          wantToPlay: false,
-          wantToBuy: false
-        }
-      });
-
-      // Record activity event
-      const eventRecorded = await tryRecordPublicActivityEvent({
-        type: ActivityEventType.PLAYED,
-        actor: appUser,
-        game,
-        requiresPublicCollection: true
-      });
-      if (eventRecorded) {
-        activityRecorded = true;
-      }
-    }
-
-    // Clear compatibility cache for this user
-    compatibilityCache.delete(appUser.id);
-
-    // Invalidate activity caches if any events were logged
-    if (activityRecorded) {
-      revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
-    }
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, gamesCount: result.gamesCount });
   } catch (error) {
     console.error("Error in onboarding games route:", error);
     return NextResponse.json(

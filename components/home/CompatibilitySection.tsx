@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Search, Plus, X, Sparkles, Users, BookOpen, Loader2, Play, Beer } from "lucide-react";
+import { Search, Plus, X, Sparkles, Users, BookOpen, Loader2, Play, Beer, Swords, Clock3 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -13,6 +13,11 @@ interface SearchGame {
   slug: string;
   imageUrl: string | null;
   year: number | null;
+  playersMin?: number | null;
+  playersMax?: number | null;
+  durationMax?: number | null;
+  categories?: string[];
+  mechanics?: string[];
 }
 
 interface MatchResult {
@@ -50,6 +55,39 @@ interface CompatibilitySectionProps {
   featuredGames?: FeaturedGame[];
 }
 
+type PopularModeFilter = "cooperative" | "competitive";
+type PopularPlayersFilter = "1" | "2" | "3plus";
+type PopularDurationFilter = "30" | "60" | "long";
+
+const MODE_FILTERS: Array<{ value: PopularModeFilter; label: string }> = [
+  { value: "cooperative", label: "Cooperativo" },
+  { value: "competitive", label: "Competitivo" }
+];
+
+const PLAYER_FILTERS: Array<{ value: PopularPlayersFilter; label: string }> = [
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3plus", label: "3+" }
+];
+
+const DURATION_FILTERS: Array<{ value: PopularDurationFilter; label: string }> = [
+  { value: "30", label: "<30 min" },
+  { value: "60", label: "<60 min" },
+  { value: "long", label: "Largos" }
+];
+
+function stableGameShuffle(seed: string, gameId: string) {
+  const value = `${seed}:${gameId}`;
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
 export function CompatibilitySection({ popularGames = [], featuredGames = [] }: CompatibilitySectionProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -62,6 +100,9 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
   const [calculating, setCalculating] = useState(false);
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const [popularModeFilter, setPopularModeFilter] = useState<PopularModeFilter>("competitive");
+  const [popularPlayersFilter, setPopularPlayersFilter] = useState<PopularPlayersFilter>("2");
+  const [popularDurationFilter, setPopularDurationFilter] = useState<PopularDurationFilter>("60");
 
   // Authenticated States
   const [authMatches, setAuthMatches] = useState<MatchResult[]>([]);
@@ -207,6 +248,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
   const handleSignupCta = () => {
     const gameIds = selectedGames.map((g) => g.id);
     sessionStorage.setItem("meepletavern_onboarding_games", JSON.stringify(gameIds));
+    sessionStorage.setItem("meepletavern_onboarding_source", "compatibility_affinity");
     router.push("/auth?mode=register&next=%2F");
   };
 
@@ -216,6 +258,32 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
     setMatches([]);
     setHasCalculated(false);
     setSearchQuery("");
+  };
+
+  const matchesPopularFilters = (game: SearchGame) => {
+    const terms = [...(game.categories || []), ...(game.mechanics || [])].map((term) => term.toLocaleLowerCase("es-ES"));
+    const isCooperative = terms.some((term) => term.includes("cooperativo") || term.includes("coop"));
+    const matchesMode = popularModeFilter === "cooperative" ? isCooperative : !isCooperative;
+    const minPlayers = game.playersMin || null;
+    const maxPlayers = game.playersMax || null;
+    const targetPlayers = popularPlayersFilter === "3plus" ? 3 : Number(popularPlayersFilter);
+    const matchesPlayers = minPlayers && maxPlayers ? minPlayers <= targetPlayers && maxPlayers >= targetPlayers : false;
+    const durationMax = game.durationMax || null;
+    const matchesDuration =
+      popularDurationFilter === "long"
+        ? durationMax ? durationMax > 60 : false
+        : durationMax ? durationMax <= Number(popularDurationFilter) : false;
+
+    return matchesMode && matchesPlayers && matchesDuration;
+  };
+
+  const getFilteredPopularGames = () => {
+    const seed = `${popularModeFilter}-${popularPlayersFilter}-${popularDurationFilter}`;
+    const filteredGames = popularGames.filter(matchesPopularFilters);
+
+    return [...filteredGames]
+      .sort((a, b) => stableGameShuffle(seed, a.id) - stableGameShuffle(seed, b.id))
+      .slice(0, 6);
   };
 
   const getVisibleSharedTags = (match: MatchResult) => {
@@ -495,6 +563,8 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
     );
   };
 
+  const filteredPopularGames = getFilteredPopularGames();
+
   return (
     <section className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-[#92400e]/30 bg-gradient-to-b from-[#fbbf24] via-[#d97706] to-[#78350f] text-wood shadow-[0_16px_38px_rgba(120,53,15,0.25),inset_0_2px_8px_rgba(255,255,255,0.4)] min-h-[460px]">
       {/* Carbonation Bubbles */}
@@ -542,7 +612,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
             </div>
           ) : authLibraryEmpty ? (
             <div className="flex flex-col justify-between flex-1 min-h-0">
-              <div className="flex-1 overflow-y-auto pr-1">
+              <div className="flex-1 overflow-x-hidden overflow-y-auto pr-1">
                 <p className="text-sm font-bold text-white/95 leading-relaxed">
                   Tu ludoteca está vacía. Añade al menos 3 juegos que hayas jugado o te gusten para buscar perfiles afines.
                 </p>
@@ -572,7 +642,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                       id="auth-search-results"
                       role="listbox"
                       aria-label="Sugerencias de juegos"
-                      className="absolute left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg"
+                      className="absolute left-0 right-0 z-30 mt-1 max-h-48 overflow-x-hidden overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg"
                     >
                       {searchResults.map((game) => (
                         <button
@@ -632,7 +702,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
           ) : (
             <div className="flex flex-col justify-between flex-1 min-h-0">
               {/* Scrollable match results */}
-              <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+              <div className="space-y-2.5 flex-1 overflow-x-hidden overflow-y-auto pr-1">
                 {authMatches.slice(0, 3).map((match) => renderMatchCard(match))}
               </div>
 
@@ -651,7 +721,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
           hasCalculated ? (
             <div className="flex flex-col justify-between flex-1 min-h-0">
               {/* Scrollable guest results & selection summary */}
-              <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+              <div className="space-y-3 flex-1 overflow-x-hidden overflow-y-auto pr-1">
                 {matches.slice(0, 2).map((match) => renderMatchCard(match))}
 
                 {/* Selected games summary */}
@@ -694,7 +764,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
           ) : (
             /* --- GUEST GAME SELECTION --- */
             <div className="flex flex-col justify-between flex-1 min-h-0">
-              <div className="flex-1 overflow-y-auto pr-1">
+              <div className="flex-1 overflow-x-hidden overflow-y-auto pr-1">
                 <p className="text-sm leading-relaxed text-[#fffaf0]/95 font-semibold">
                   Dinos 3 juegos que hayas disfrutado y te diremos con quién compartir mesa en la taberna.
                 </p>
@@ -786,7 +856,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                       id="guest-search-results"
                       role="listbox"
                       aria-label="Sugerencias de juegos"
-                      className="absolute left-0 right-0 z-30 mt-1 max-h-44 overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg"
+                      className="absolute left-0 right-0 z-30 mt-1 max-h-44 overflow-x-hidden overflow-y-auto rounded-lg border border-walnut/15 bg-white p-1 shadow-lg"
                     >
                       {searchResults.map((game) => (
                         <button
@@ -831,19 +901,94 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                     <p className="text-xs font-bold text-[#fffaf0]/95 uppercase tracking-wider">
                       ¿O añade un juego popular en un clic?
                     </p>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
-                      {popularGames.map((game, index) => (
+
+                    <div className="mt-2 space-y-2 rounded-lg border border-white/15 bg-white/10 p-2 shadow-inner backdrop-blur-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Swords className="h-3.5 w-3.5 shrink-0 text-[#fffaf0]/80" aria-hidden="true" />
+                        <div className="grid flex-1 grid-cols-2 gap-1 rounded-md bg-[#78350f]/30 p-1">
+                          {MODE_FILTERS.map((option) => {
+                            const active = popularModeFilter === option.value;
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setPopularModeFilter(option.value)}
+                                aria-pressed={active}
+                                className={`min-h-7 rounded px-2 text-[10.5px] font-black transition-all ${
+                                  active
+                                    ? "bg-white text-wood shadow-sm"
+                                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                                }`}
+                              >
+                                {option.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5 shrink-0 text-[#fffaf0]/80" aria-hidden="true" />
+                          <div className="grid flex-1 grid-cols-3 gap-1 rounded-md bg-[#78350f]/30 p-1">
+                            {PLAYER_FILTERS.map((option) => {
+                              const active = popularPlayersFilter === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => setPopularPlayersFilter(option.value)}
+                                  aria-pressed={active}
+                                  className={`min-h-7 rounded px-2 text-[10.5px] font-black transition-all ${
+                                    active
+                                      ? "bg-white text-wood shadow-sm"
+                                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#fffaf0]/80" aria-hidden="true" />
+                          <div className="grid flex-1 grid-cols-3 gap-1 rounded-md bg-[#78350f]/30 p-1">
+                            {DURATION_FILTERS.map((option) => {
+                              const active = popularDurationFilter === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => setPopularDurationFilter(option.value)}
+                                  aria-pressed={active}
+                                  className={`min-h-7 rounded px-1.5 text-[10px] font-black transition-all ${
+                                    active
+                                      ? "bg-white text-wood shadow-sm"
+                                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-3 gap-1.5">
+                      {filteredPopularGames.map((game) => (
                         <button
                           key={game.id}
                           onClick={() => handleSelectGame(game)}
                           disabled={selectedGames.some(g => g.id === game.id)}
                           aria-label={`Añadir ${game.name}`}
-                          className={`flex flex-col items-center justify-between p-1.5 rounded-lg border border-white/10 bg-white/10 hover:bg-white/20 focus-visible:bg-white/20 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-40 transition-all text-center aspect-[3/4] overflow-hidden group shadow-inner ${
-                            index >= 3 ? "hidden lg:flex" : "flex"
-                          }`}
+                          className="flex flex-col items-center overflow-hidden rounded-lg border border-white/10 bg-white/10 p-1 text-center shadow-inner transition-all hover:bg-white/20 focus-visible:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40 group"
                         >
                           {game.imageUrl ? (
-                            <div className="relative w-full h-[60%] rounded border border-white/10 overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
+                            <div className="relative aspect-[4/3] w-full flex-shrink-0 overflow-hidden rounded border border-white/10 shadow-sm transition-transform group-hover:scale-105">
                               <Image
                                 src={game.imageUrl}
                                 alt={game.name}
@@ -858,12 +1003,18 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                               M
                             </div>
                           )}
-                          <span className="text-xs font-extrabold text-white/95 truncate w-full block mt-1">
+                          <span className="mt-1.5 block w-full truncate text-xs font-extrabold leading-tight text-white/95">
                             {game.name}
                           </span>
                         </button>
                       ))}
                     </div>
+
+                    {filteredPopularGames.length === 0 && (
+                      <p className="mt-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-[#fffaf0]/90">
+                        No hay juegos publicados con esta combinación.
+                      </p>
+                    )}
                   </div>
                 )}
 

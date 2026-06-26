@@ -73,13 +73,15 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
           if (onboardingGamesStr) {
             const gameIds = JSON.parse(onboardingGamesStr);
             if (Array.isArray(gameIds) && gameIds.length > 0) {
+              const source = sessionStorage.getItem("meepletavern_onboarding_source") || "auth_onboarding";
               await fetch("/api/account/onboarding/games", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ gameIds, source: "compatibility_onboarding" })
+                body: JSON.stringify({ gameIds, source })
               });
             }
             sessionStorage.removeItem("meepletavern_onboarding_games");
+            sessionStorage.removeItem("meepletavern_onboarding_source");
           }
         } catch (err) {
           console.error("Error syncing onboarding games:", err);
@@ -152,7 +154,16 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
   const handleContinue = () => {
     if (selectedGames.length < 2) return;
     sessionStorage.setItem("meepletavern_onboarding_games", JSON.stringify(selectedGames.map(g => g.id)));
+    sessionStorage.setItem("meepletavern_onboarding_source", "auth_onboarding");
     setShowSignupForm(true);
+  };
+
+  const getOAuthNextPath = () => {
+    if (typeof window === "undefined") return nextPath;
+    const hasOnboardingGames = Boolean(sessionStorage.getItem("meepletavern_onboarding_games"));
+    if (!hasOnboardingGames || nextPath.startsWith("/auth")) return nextPath;
+
+    return `/auth?mode=${resolvedMode}&next=${encodeURIComponent(nextPath)}`;
   };
 
   // Render onboarding mandatory game selection
@@ -316,32 +327,16 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
       authContext={authContext}
       isConfigured={isConfigured}
       onSignIn={async (email, password) => {
-        const result = await signIn(email, password);
-        if (result.ok) {
-          router.replace(nextPath);
-        }
-        return result;
+        return signIn(email, password);
       }}
       onSignUp={async (email, password, name) => {
-        const result = await signUp(email, password, name);
-        if (result.ok && !result.requiresEmailConfirmation) {
-          if (nextPath === "/mi-perfil" || nextPath === "/") {
-            router.replace("/juegos?welcome=true");
-          } else {
-            router.replace(nextPath);
-          }
-        }
-        return result;
+        return signUp(email, password, name);
       }}
       onGoogleIdTokenSignIn={async (credential) => {
-        const result = await signInWithGoogleIdToken(credential);
-        if (result.ok) {
-          router.replace(nextPath);
-        }
-        return result;
+        return signInWithGoogleIdToken(credential);
       }}
-      onGoogleSignIn={async () => signInWithGoogle(nextPath)}
-      onDiscordSignIn={async () => signInWithDiscord(nextPath)}
+      onGoogleSignIn={async () => signInWithGoogle(getOAuthNextPath())}
+      onDiscordSignIn={async () => signInWithDiscord(getOAuthNextPath())}
     />
   );
 }
