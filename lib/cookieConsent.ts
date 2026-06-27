@@ -1,4 +1,4 @@
-export const COOKIE_CONSENT_VERSION = "2026-06-22";
+export const COOKIE_CONSENT_VERSION = "2026-06-26";
 export const COOKIE_CONSENT_STORAGE_KEY = "meepletavern_cookie_consent";
 export const COOKIE_CONSENT_CHANGED_EVENT = "meepletavern:cookie-consent-changed";
 export const COOKIE_PREFERENCES_OPEN_EVENT = "meepletavern:cookie-preferences-open";

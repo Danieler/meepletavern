@@ -5,7 +5,7 @@ import { useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import { setPendingAction, executePendingAction } from "@/lib/pendingActions";
-import { track } from "@vercel/analytics/react";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 export function GameCardSaveButton({ gameId, gameTitle }: { gameId: string; gameTitle: string }) {
   const { user, loading } = useAuth();
@@ -18,7 +18,7 @@ export function GameCardSaveButton({ gameId, gameTitle }: { gameId: string; game
     setOpen(false);
     const result = await executePendingAction();
     if (result && result.ok && result.type === "SAVE_GAME") {
-      track("pending_action_completed");
+      trackEvent("pending_action_completed");
       router.refresh();
     } else {
       router.refresh();

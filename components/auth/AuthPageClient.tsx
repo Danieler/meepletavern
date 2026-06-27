@@ -6,6 +6,7 @@ import { AuthScreen } from "@/components/auth/AuthScreen";
 import { useAuth } from "@/hooks/useAuth";
 import type { AuthContext } from "@/components/auth-cta/authCtaUrl";
 import { executePendingAction } from "@/lib/pendingActions";
+import { syncPendingLegalAcceptance } from "@/lib/legalAcceptanceClient";
 import { Search, Plus, X, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
 
@@ -88,7 +89,9 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
         }
       };
 
-      syncOnboardingGames()
+      syncPendingLegalAcceptance()
+        .catch((err) => console.error("Error syncing legal acceptance:", err))
+        .then(syncOnboardingGames)
         .then(() => executePendingAction())
         .then(() => {
           router.replace(nextPath);

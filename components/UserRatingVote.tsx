@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { useGameInteraction } from "@/components/GameInteractionProvider";
 import { setPendingAction, executePendingAction } from "@/lib/pendingActions";
-import { track } from "@vercel/analytics/react";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 export function UserRatingVote({
   gameId,
@@ -30,7 +30,7 @@ export function UserRatingVote({
     setAuthOpen(false);
     const result = await executePendingAction();
     if (result && result.ok && result.type === "RATE_GAME") {
-      track("pending_action_completed");
+      trackEvent("pending_action_completed");
       setHasExistingScore(true);
       setMessage("Tu nota ha sido guardada automáticamente.");
       if (result.data?.ratings) {

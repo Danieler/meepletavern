@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { QuickAuthForm } from "@/components/auth/QuickAuthForm";
 import { useAuth } from "@/hooks/useAuth";
-import { track } from "@vercel/analytics/react";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type AuthPromptModalProps = {
   isOpen: boolean;
@@ -46,7 +46,7 @@ export function AuthPromptModal({
       return;
     }
 
-    track("auth_modal_opened");
+    trackEvent("auth_modal_opened");
 
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     window.dispatchEvent(new CustomEvent("meepletavern:auth-prompt", { detail: { open: true } }));
@@ -54,7 +54,7 @@ export function AuthPromptModal({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        track("modal_closed");
+        trackEvent("modal_closed");
         onClose();
       }
     };
@@ -72,7 +72,7 @@ export function AuthPromptModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/45 px-0 pb-0 sm:px-3 sm:items-center sm:pb-6" role="presentation" onMouseDown={() => { track("modal_closed"); onClose(); }}>
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/45 px-0 pb-0 sm:px-3 sm:items-center sm:pb-6" role="presentation" onMouseDown={() => { trackEvent("modal_closed"); onClose(); }}>
       <div
         ref={dialogRef}
         role="dialog"
@@ -93,7 +93,7 @@ export function AuthPromptModal({
             ref={closeButtonRef}
             type="button"
             className="focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-walnut/10 bg-white text-xl font-black text-walnut/65 transition hover:text-wood"
-            onClick={() => { track("modal_closed"); onClose(); }}
+            onClick={() => { trackEvent("modal_closed"); onClose(); }}
             aria-label="Cerrar"
           >
             ×
@@ -114,7 +114,7 @@ export function AuthPromptModal({
         />
         
         <div className="mt-5 text-center">
-          <button type="button" className="text-sm font-extrabold text-walnut/55 transition hover:text-wood" onClick={() => { track("modal_closed"); onClose(); }}>
+          <button type="button" className="text-sm font-extrabold text-walnut/55 transition hover:text-wood" onClick={() => { trackEvent("modal_closed"); onClose(); }}>
             Ahora no
           </button>
         </div>

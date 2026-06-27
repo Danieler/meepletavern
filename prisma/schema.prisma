@@ -169,6 +169,10 @@ model User {
   authUserId  String   @unique
   email       String   @unique
   displayName String?
+  termsAcceptedAt   DateTime?
+  termsVersion      String?
+  privacyAcceptedAt DateTime?
+  privacyVersion    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   profile     UserProfile?

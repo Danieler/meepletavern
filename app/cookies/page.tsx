@@ -25,8 +25,8 @@ export default function CookiesPage() {
               utilizar analítica opcional para entender de forma agregada cómo se usa la web.
             </p>
             <p className="mt-3">
-              Esa analítica solo se carga después de que pulses
-              “Aceptar analítica”. Rechazarla no limita ninguna función de la web.
+              Esa analítica solo se carga después de que pulses “Aceptar” o la actives desde
+              “Configurar”. Rechazarla no limita ninguna función de la web.
             </p>
             <CookiePreferencesButton />
           </>
@@ -112,7 +112,7 @@ export default function CookiesPage() {
           Puedes borrar o bloquear cookies desde la configuración de tu navegador. Si bloqueas las
           necesarias, es posible que no puedas iniciar sesión o utilizar determinadas funciones. Si
           en el futuro añadimos publicidad u otra tecnología no necesaria, actualizaremos esta
-          política con su proveedor y duración, y pediremos consentimiento antes de activarla.
+          política con su proveedor, finalidad y duración, y pediremos consentimiento antes de activarla.
         </p>
       </section>
     </LegalDocument>

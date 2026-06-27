@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getPendingAction, executePendingAction } from "@/lib/pendingActions";
-import { track } from "@vercel/analytics/react";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type LibraryState = {
   owned: boolean;
@@ -188,7 +188,7 @@ export function GameInteractionProvider({
       if (action && action.gameId === gameId) {
         executePendingAction().then((res) => {
           if (active) {
-            track("pending_action_completed");
+            trackEvent("pending_action_completed");
             if (res && res.ok && res.type === "RATE_GAME" && res.data?.ratings) {
               window.dispatchEvent(new CustomEvent("meepletavern:ratings-updated", { detail: res.data.ratings }));
             }
@@ -235,4 +235,3 @@ export function useGameInteraction() {
   }
   return context;
 }
-

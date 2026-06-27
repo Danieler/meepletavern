@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/LegalDocument";
+import { LegalIdentitySummary } from "@/components/LegalIdentitySummary";
 import { getLegalIdentity } from "@/lib/legal";
 
 export const metadata: Metadata = {
@@ -16,6 +17,8 @@ export default function LegalNoticePage() {
       title="Aviso legal y condiciones de uso"
       intro="Las reglas básicas para usar MeepleTavern y saber quién está detrás del servicio."
     >
+      <LegalIdentitySummary title="Titular del sitio web" />
+
       <section>
         <h2>Qué ofrece MeepleTavern</h2>
         <p className="mt-3">
@@ -48,6 +51,16 @@ export default function LegalNoticePage() {
         <p className="mt-3">
           Para comunicar contenido ilícito, una vulneración de derechos, una incidencia o una
           reclamación, escribe a {identity.contactEmail ? <a href={`mailto:${identity.contactEmail}`}>{identity.contactEmail}</a> : "la dirección de contacto indicada en esta página"}. Incluye la URL afectada, una explicación y, cuando proceda, la acreditación de tus derechos.
+        </p>
+      </section>
+
+      <section>
+        <h2>Privacidad, cookies y comunicaciones</h2>
+        <p className="mt-3">
+          El tratamiento de datos personales se explica en la <a href="/privacidad">política de privacidad</a>.
+          Las cookies y tecnologías similares se explican en la <a href="/cookies">política de cookies</a>.
+          MeepleTavern no envía comunicaciones comerciales por email salvo que en el futuro se pida
+          un consentimiento específico y separado.
         </p>
       </section>
 

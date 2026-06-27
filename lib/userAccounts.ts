@@ -1,4 +1,6 @@
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import type { Prisma } from "@prisma/client";
+import { LEGAL_VERSION } from "@/lib/legalConstants";
 import { prisma } from "@/lib/prisma";
 
 function normalizeDisplayName(value: unknown) {
@@ -17,24 +19,47 @@ export function getSupabaseDisplayName(user: Pick<SupabaseUser, "email" | "user_
   return user.email?.split("@")[0]?.trim() || null;
 }
 
+function getLegalAcceptanceFromMetadata(metadata: SupabaseUser["user_metadata"]) {
+  const termsAcceptedAt = typeof metadata?.terms_accepted_at === "string"
+    ? new Date(metadata.terms_accepted_at)
+    : null;
+  const privacyAcceptedAt = typeof metadata?.privacy_accepted_at === "string"
+    ? new Date(metadata.privacy_accepted_at)
+    : termsAcceptedAt;
+
+  if (!termsAcceptedAt || Number.isNaN(termsAcceptedAt.getTime())) {
+    return {};
+  }
+
+  return {
+    termsAcceptedAt,
+    termsVersion: typeof metadata?.terms_version === "string" ? metadata.terms_version : LEGAL_VERSION,
+    privacyAcceptedAt: privacyAcceptedAt && !Number.isNaN(privacyAcceptedAt.getTime()) ? privacyAcceptedAt : termsAcceptedAt,
+    privacyVersion: typeof metadata?.privacy_version === "string" ? metadata.privacy_version : LEGAL_VERSION
+  } satisfies Prisma.UserUpdateInput;
+}
+
 export async function upsertAppUserFromAuthUser(user: Pick<SupabaseUser, "id" | "email" | "user_metadata">) {
   if (!user.email) {
     throw new Error("La cuenta autenticada no tiene email.");
   }
 
   const displayName = getSupabaseDisplayName(user);
+  const legalAcceptance = getLegalAcceptanceFromMetadata(user.user_metadata);
 
   const appUser = await prisma.user.upsert({
     where: { authUserId: user.id },
     include: { profile: true },
     update: {
       email: user.email,
-      displayName
+      displayName,
+      ...legalAcceptance
     },
     create: {
       authUserId: user.id,
       email: user.email,
-      displayName
+      displayName,
+      ...legalAcceptance
     }
   });
 

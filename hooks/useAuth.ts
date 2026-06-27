@@ -291,6 +291,8 @@ export function useAuth() {
             display_name: name || "",
             terms_accepted_at: new Date().toISOString(),
             terms_version: LEGAL_VERSION,
+            privacy_accepted_at: new Date().toISOString(),
+            privacy_version: LEGAL_VERSION,
             ...getPendingOnboardingMetadata()
           }
         }

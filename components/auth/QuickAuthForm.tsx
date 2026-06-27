@@ -3,9 +3,9 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail, UserRound, ChevronDown } from "lucide-react";
 import Link from "next/link";
-import Script from "next/script";
-import { track } from "@vercel/analytics/react";
 import type { AuthActionResult } from "@/hooks/useAuth";
+import { rememberLegalAcceptance, syncPendingLegalAcceptance } from "@/lib/legalAcceptanceClient";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type GoogleCredentialResponse = {
   credential?: string;
@@ -98,7 +98,7 @@ function getFieldErrors(input: {
   }
 
   if (input.mode === "register" && !input.acceptedTerms) {
-    errors.terms = "Acepta las condiciones para crear tu cuenta.";
+    errors.terms = "Acepta las condiciones y la política de privacidad para crear tu cuenta.";
   }
 
   return errors;
@@ -140,7 +140,7 @@ export function QuickAuthForm({
 
   const isRegister = mode === "register";
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
-  const useGoogleOAuthFallback = !isConfigured || !googleClientId || googleScriptStatus === "failed";
+  const useGoogleOAuthFallback = true;
 
   useEffect(() => {
     googleIdTokenSignInRef.current = onGoogleIdTokenSignIn;
@@ -232,6 +232,10 @@ export function QuickAuthForm({
     setFieldErrors({});
     setSubmitting(true);
 
+    if (isRegister) {
+      rememberLegalAcceptance();
+    }
+
     const result = isRegister
       ? await onSignUp(normalizeEmail(email), password, normalizeName(name))
       : await onSignIn(normalizeEmail(email), password);
@@ -260,18 +264,29 @@ export function QuickAuthForm({
     }
 
     if (onSuccess) {
-      track("auth_completed");
+      await syncPendingLegalAcceptance().catch(() => undefined);
+      trackEvent("auth_completed");
       onSuccess();
     } else if (result.message) {
-      track("auth_completed");
+      await syncPendingLegalAcceptance().catch(() => undefined);
+      trackEvent("auth_completed");
       setFeedbackTone("success");
       setFeedback(result.message);
     }
   }
 
   async function handleGoogleSignIn() {
-    track("auth_modal_google_clicked");
+    trackEvent("auth_modal_google_clicked");
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
+    if (isRegister && !acceptedTerms) {
+      setFieldErrors((current) => ({ ...current, terms: "Acepta las condiciones y la política de privacidad para continuar." }));
+      setFeedbackTone("error");
+      setFeedback("Revisa los campos marcados antes de continuar.");
+      return;
+    }
+    if (isRegister) {
+      rememberLegalAcceptance();
+    }
     setSubmitting(true);
     setFeedback(null);
     setFieldErrors({});
@@ -285,6 +300,15 @@ export function QuickAuthForm({
 
   async function handleDiscordSignIn() {
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
+    if (isRegister && !acceptedTerms) {
+      setFieldErrors((current) => ({ ...current, terms: "Acepta las condiciones y la política de privacidad para continuar." }));
+      setFeedbackTone("error");
+      setFeedback("Revisa los campos marcados antes de continuar.");
+      return;
+    }
+    if (isRegister) {
+      rememberLegalAcceptance();
+    }
     setSubmitting(true);
     setFeedback(null);
     setFieldErrors({});
@@ -313,18 +337,13 @@ export function QuickAuthForm({
       setFeedbackTone("error");
       setFeedback(result.message ?? "No hemos podido iniciar sesión con Google.");
     } else if (onSuccess) {
+      await syncPendingLegalAcceptance().catch(() => undefined);
       onSuccess();
     }
   }
 
   return (
     <>
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        strategy="afterInteractive"
-        onReady={() => setGoogleScriptStatus("ready")}
-        onError={() => setGoogleScriptStatus("failed")}
-      />
       {!isConfigured ? (
         <div className="mb-4 rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby">
           {configMessage}
@@ -332,6 +351,37 @@ export function QuickAuthForm({
       ) : null}
 
       <div ref={parentContainerRef} className="flex w-full flex-col">
+        {isRegister ? (
+          <div className="mb-4 rounded-md border border-walnut/10 bg-white/70 p-3">
+            <label className="flex cursor-pointer items-start gap-3 text-xs font-semibold leading-5 text-walnut/70">
+              <input
+                checked={acceptedTerms}
+                className="focus-ring mt-0.5 h-4 w-4 shrink-0 rounded border-walnut/20 accent-ember"
+                onChange={(event) => {
+                  setAcceptedTerms(event.target.checked);
+                  setFieldErrors((current) => ({ ...current, terms: undefined }));
+                }}
+                type="checkbox"
+              />
+              <span>
+                Acepto las{" "}
+                <Link className="font-bold text-wood underline underline-offset-2 transition hover:text-ember" href="/aviso-legal" target="_blank">
+                  condiciones de uso
+                </Link>{" "}
+                y la{" "}
+                <Link className="font-bold text-wood underline underline-offset-2 transition hover:text-ember" href="/privacidad" target="_blank">
+                  política de privacidad
+                </Link>
+                .
+              </span>
+            </label>
+            <p className="mt-2 text-[11px] font-semibold leading-5 text-walnut/55">
+              Usaremos tus datos para crear tu cuenta, mantener tu ludoteca y prestar el servicio. La analítica opcional se decide aparte en cookies.
+            </p>
+            {fieldErrors.terms ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.terms}</span> : null}
+          </div>
+        ) : null}
+
         {useGoogleOAuthFallback ? (
           <button
             type="button"
@@ -443,26 +493,6 @@ export function QuickAuthForm({
               </span>
               {fieldErrors.password ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.password}</span> : null}
             </label>
-
-            {isRegister ? (
-              <div className="pt-1">
-                <label className="flex cursor-pointer items-start gap-3 text-xs font-semibold leading-5 text-walnut/70">
-                  <input
-                    checked={acceptedTerms}
-                    className="focus-ring mt-0.5 h-4 w-4 shrink-0 rounded border-walnut/20 accent-ember"
-                    onChange={(event) => {
-                      setAcceptedTerms(event.target.checked);
-                      setFieldErrors((current) => ({ ...current, terms: undefined }));
-                    }}
-                    type="checkbox"
-                  />
-                  <span>
-                    Acepto las <Link className="font-bold text-wood underline underline-offset-2 hover:text-ember transition" href="/aviso-legal" target="_blank">condiciones de uso</Link>.
-                  </span>
-                </label>
-                {fieldErrors.terms ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.terms}</span> : null}
-              </div>
-            ) : null}
 
             {feedback ? (
               <div className={feedbackTone === "error" ? "rounded-md border border-ruby/20 bg-ruby/5 px-4 py-3 text-sm font-semibold text-ruby" : "rounded-md border border-moss/20 bg-moss/10 px-4 py-3 text-sm font-semibold text-moss"}>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/LegalDocument";
+import { LegalIdentitySummary } from "@/components/LegalIdentitySummary";
 import { getLegalIdentity } from "@/lib/legal";
 
 export const metadata: Metadata = {
@@ -16,10 +17,13 @@ export default function PrivacyPage() {
       title="Política de privacidad"
       intro="Qué datos usamos, para qué, durante cuánto tiempo y cómo puedes ejercer tus derechos."
     >
+      <LegalIdentitySummary />
+
       <section>
         <h2>Datos que tratamos</h2>
         <ul className="mt-3">
           <li><strong>Cuenta:</strong> email, identificador de usuario y datos necesarios para autenticarte. La contraseña es gestionada por el proveedor de autenticación y MeepleTavern no puede verla.</li>
+          <li><strong>Acceso con terceros:</strong> si entras con Google o Discord, recibimos los datos mínimos que el proveedor entregue para identificar la cuenta, normalmente email, identificador y nombre visible.</li>
           <li><strong>Perfil:</strong> nombre visible, alias, biografía, avatar y preferencias de visibilidad.</li>
           <li><strong>Uso y contenido:</strong> ludoteca, listas, valoraciones, reseñas, comentarios, sugerencias y actividad que decidas realizar.</li>
           <li><strong>Datos técnicos:</strong> dirección IP, navegador, dispositivo, registros de seguridad y datos imprescindibles para mantener la sesión y prevenir abusos.</li>
@@ -30,6 +34,7 @@ export default function PrivacyPage() {
         <h2>Finalidades y bases jurídicas</h2>
         <ul className="mt-3">
           <li><strong>Crear y gestionar tu cuenta y prestar el servicio:</strong> ejecución de las condiciones de uso.</li>
+          <li><strong>Acreditar la aceptación de condiciones y privacidad:</strong> cumplimiento de obligaciones legales e interés legítimo en poder demostrar la versión aceptada.</li>
           <li><strong>Publicar tu perfil y aportaciones cuando los marcas como públicos:</strong> ejecución del servicio solicitado por ti. Puedes cambiar su visibilidad o eliminarlos cuando la función lo permita.</li>
           <li><strong>Proteger la plataforma, prevenir fraude y moderar abusos:</strong> interés legítimo en mantener un servicio seguro, ponderado frente a tus derechos.</li>
           <li><strong>Atender solicitudes y cumplir obligaciones legales:</strong> cumplimiento de obligaciones legales e interés legítimo en responder y defender reclamaciones.</li>
@@ -48,6 +53,7 @@ export default function PrivacyPage() {
           contratos exigibles: alojamiento, base de datos, autenticación y almacenamiento. En la
           configuración actual, Supabase presta servicios de autenticación y almacenamiento de
           perfiles o avatares; Vercel presta alojamiento y, solo si lo aceptas, Web Analytics.
+          Google y Discord solo intervienen si eliges iniciar sesión con esos proveedores.
           También podrán comunicarse datos a autoridades cuando exista una obligación legal.
         </p>
         <p className="mt-3">
@@ -64,6 +70,8 @@ export default function PrivacyPage() {
         <p className="mt-3">
           Los datos de cuenta y perfil se conservan mientras mantengas la cuenta. Las aportaciones
           se conservan hasta que las elimines, cierres la cuenta o deban retirarse por moderación.
+          La prueba de aceptación de condiciones y privacidad se conserva mientras exista la cuenta
+          y durante los plazos necesarios para atender responsabilidades.
           Después, los datos imprescindibles podrán quedar bloqueados durante los plazos legales
           para atender responsabilidades. Los registros técnicos y copias de seguridad se conservan
           durante periodos limitados definidos por seguridad y por los proveedores del servicio.
@@ -77,6 +85,10 @@ export default function PrivacyPage() {
         <p className="mt-3">
           Puedes solicitar acceso, rectificación, supresión, oposición, limitación y portabilidad,
           así como retirar un consentimiento cuando esa sea la base del tratamiento. Escribe a {identity.contactEmail ? <a href={`mailto:${identity.contactEmail}`}>{identity.contactEmail}</a> : "la dirección de contacto del responsable"} e indica qué derecho deseas ejercer; podremos pedirte información razonable para verificar tu identidad.
+        </p>
+        <p className="mt-3">
+          Puedes retirar el consentimiento de analítica desde la <a href="/cookies">política de cookies</a>.
+          La retirada no afecta a los tratamientos ya realizados lícitamente antes de retirarlo.
         </p>
         <p className="mt-3">
           Si consideras que tus datos no se han tratado correctamente, puedes reclamar ante la{" "}
