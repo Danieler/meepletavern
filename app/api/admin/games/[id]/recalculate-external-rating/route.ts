@@ -1,7 +1,8 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { GameStatus } from "@prisma/client";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { gameRepository } from "@/lib/editorialRepositories";
+import { revalidatePublishedGame } from "@/lib/publicGameCache";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 
 type RouteContext = {
@@ -27,9 +28,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     revalidateGameAdmin(id);
     if (updatedGame.status === GameStatus.published) {
-      revalidateTag("public-games");
-      revalidatePath("/juegos");
-      revalidatePath(`/juegos/${updatedGame.slug}`);
+      revalidatePublishedGame(updatedGame.slug);
     }
 
     return jsonNoStore({

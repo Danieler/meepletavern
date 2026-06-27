@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createReview, deleteReview, updateReview, getAdminReviewById, updateReviewInstagramPostId } from "@/lib/reviews";
 import { publishToInstagram } from "@/lib/instagram";
+import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
 import { parseReviewContent } from "@/lib/reviewContent";
 
 export type AdminReviewActionState = {
@@ -97,11 +98,9 @@ export async function deleteReviewsBulkAction(formData: FormData) {
 }
 
 function revalidateReviews(slug: string, gameSlug: string) {
-  revalidateTag("public-games");
-  revalidatePath("/");
   revalidatePath("/resenas");
   revalidatePath(`/resenas/${slug}`);
-  revalidatePath(`/juegos/${gameSlug}`);
+  revalidatePublicGameDetail(gameSlug);
   revalidatePath("/admin/reviews");
   revalidatePath("/sitemap.xml");
 }

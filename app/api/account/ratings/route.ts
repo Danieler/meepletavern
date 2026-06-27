@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { ActivityEventType } from "@prisma/client";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
@@ -8,6 +8,7 @@ import {
   tryRemoveActivityEvent
 } from "@/lib/activity/events";
 import { prisma } from "@/lib/prisma";
+import { revalidatePublishedGame } from "@/lib/publicGameCache";
 import {
   deleteCurrentUserGameRating,
   getCurrentUserGameRating,
@@ -66,9 +67,8 @@ export async function DELETE(request: Request) {
     const result = await deleteCurrentUserGameRating(appUser.id, game.id);
     const activityChanged = await tryRemoveActivityEvent(ActivityEventType.RATED, appUser.id, game.id);
 
-    revalidateTag("public-games");
+    revalidatePublishedGame(game.slug);
     if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
-    revalidatePath(`/juegos/${game.slug}`);
 
     return NextResponse.json({
       ok: true,
@@ -110,9 +110,8 @@ async function saveRating(request: Request) {
       rating: score
     });
 
-    revalidateTag("public-games");
+    revalidatePublishedGame(game.slug);
     if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
-    revalidatePath(`/juegos/${game.slug}`);
 
     return NextResponse.json({
       ok: true,

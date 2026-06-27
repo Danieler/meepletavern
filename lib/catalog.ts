@@ -4,6 +4,11 @@ import { cache } from "react";
 import type { GameImageFields } from "@/lib/gameImages";
 import { canShowMedia, inferPlaceholderKind } from "@/lib/mediaSafety";
 import { sanitizeImportedList, sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
+import {
+  publicGameDetailTag,
+  PUBLIC_GAMES_LIST_TAG,
+  PUBLIC_GAME_TAXONOMY_TAG
+} from "@/lib/publicGameCache";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { isUnavailableOfferAvailability } from "@/lib/gameOffers";
 import { prisma } from "@/lib/prisma";
@@ -271,7 +276,7 @@ const getDbGamesByIdentifiers = (identifiers: string[]) => {
       });
     },
     ["db-games-by-identifiers", sortedKeys],
-    { revalidate: 3600, tags: ["public-games"] }
+    { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
   )();
 };
 
@@ -327,7 +332,7 @@ const getCachedPopularDbGamesList = unstable_cache(
     return sortGamesByEffectiveRating(games);
   },
   ["all-popular-db-games"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
 );
 
 export async function getPopularGames(limit = 6) {
@@ -343,7 +348,7 @@ const getCachedBeginnerDbGamesList = unstable_cache(
       .sort((a, b) => compareOptionalText(a.complexity, b.complexity) || a.title.localeCompare(b.title, "es"));
   },
   ["all-beginner-db-games"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
 );
 
 export async function getBeginnerGames(limit = 5) {
@@ -357,7 +362,7 @@ const getCachedNewDbGamesList = unstable_cache(
     return sortGames(games, "fecha");
   },
   ["all-new-db-games"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
 );
 
 export async function getNewGames(limit = 5) {
@@ -545,7 +550,7 @@ const getPublishedDbGamesList = unstable_cache(
     });
   },
   ["published-game-cards"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
 );
 
 const getPublishedDbGameBySlug = (slug: string) => unstable_cache(
@@ -559,7 +564,7 @@ const getPublishedDbGameBySlug = (slug: string) => unstable_cache(
     });
   },
   ["published-db-game-by-slug", slug],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [publicGameDetailTag(slug)] }
 )();
 
 const getPublishedGameTermCountsRows = unstable_cache(
@@ -570,7 +575,7 @@ const getPublishedGameTermCountsRows = unstable_cache(
     });
   },
   ["published-game-term-counts"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG, PUBLIC_GAME_TAXONOMY_TAG] }
 );
 
 const getRelatedDbGames = (slug: string, categories: string[], mechanics: string[], themes: string[]) => {
@@ -605,7 +610,7 @@ const getRelatedDbGames = (slug: string, categories: string[], mechanics: string
       });
     },
     ["related-db-games", slug, catKey, mechKey, themeKey],
-    { revalidate: 3600, tags: ["public-games"] }
+    { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
   )();
 };
 

@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import {
   applyGameImportProposalFields,
@@ -11,6 +10,7 @@ import {
   rejectGameImportProposal
 } from "@/lib/ai/gameWebAutofill";
 import { prisma } from "@/lib/prisma";
+import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
 import {
   mergeHowToPlayVideoSuggestions,
   sanitizeAdminHowToPlayVideos
@@ -152,9 +152,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 function revalidateGame(slug: string) {
-  revalidateTag("public-games");
-  revalidatePath("/juegos");
-  revalidatePath(`/juegos/${slug}`);
+  revalidatePublicGameDetail(slug);
 }
 
 async function safeSearchHowToPlayVideos(game: Awaited<ReturnType<typeof prisma.game.findUnique>>) {

@@ -1,7 +1,8 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { prisma } from "@/lib/prisma";
+import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
 import { createReview } from "@/lib/reviews";
 import { validateReviewContent } from "@/lib/reviewContent";
 
@@ -54,9 +55,8 @@ export async function POST(request: Request) {
       createdByAdmin: false
     });
 
-    revalidateTag("public-games");
     revalidatePath(`/resenas/${review.slug}`);
-    revalidatePath(`/juegos/${game.slug}`);
+    revalidatePublicGameDetail(game.slug);
 
     return NextResponse.json({
       ok: true,

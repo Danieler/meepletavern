@@ -1,6 +1,7 @@
-import { revalidatePath, revalidateTag } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { isUniqueConstraintError, updateGameFromPayload } from "@/lib/games";
+import { prisma } from "@/lib/prisma";
+import { revalidatePublicGameDetail, revalidatePublishedGame } from "@/lib/publicGameCache";
 
 type RouteContext = {
   params: Promise<{
@@ -13,12 +14,22 @@ export async function PATCH(request: Request, context: RouteContext) {
     assertTrustedAdminApiRequest(request, { requireJson: true });
     const { id } = await context.params;
     const body = await request.json();
+    const previous = await prisma.game.findUnique({
+      where: { id },
+      select: {
+        slug: true,
+        status: true
+      }
+    });
     const game = await updateGameFromPayload(id, body);
 
     if (game.status === "published") {
-      revalidateTag("public-games");
-      revalidatePath("/juegos");
-      revalidatePath(`/juegos/${game.slug}`);
+      revalidatePublishedGame(game.slug);
+      if (previous?.status === "published" && previous.slug !== game.slug) {
+        revalidatePublicGameDetail(previous.slug);
+      }
+    } else if (previous?.status === "published") {
+      revalidatePublishedGame(previous.slug);
     }
 
     return jsonNoStore({ gameId: game.id, slug: game.slug, status: game.status });

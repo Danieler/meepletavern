@@ -1,9 +1,10 @@
 import { MediaAssetStatus, MediaAssetType, MediaAssetUsage } from "@prisma/client";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { sourceRepository } from "@/lib/editorialRepositories";
 import { importSourceProductCandidate } from "@/lib/import/importSourceProduct";
 import { prisma } from "@/lib/prisma";
+import { revalidatePublishedGame } from "@/lib/publicGameCache";
 
 type RouteContext = {
   params: Promise<{
@@ -119,12 +120,10 @@ export async function POST(request: Request, context: RouteContext) {
 }
 
 function revalidateGame(id: string, slug: string) {
-  revalidateTag("public-games");
   revalidatePath("/admin/games");
   revalidatePath(`/admin/games/${id}`);
   revalidatePath(`/admin/games/${id}/edit`);
-  revalidatePath("/juegos");
-  revalidatePath(`/juegos/${slug}`);
+  revalidatePublishedGame(slug);
 }
 
 function readSourceUrl(value: unknown) {

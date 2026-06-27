@@ -1,12 +1,17 @@
 "use server";
 
 import { GameStatus, Prisma } from "@prisma/client";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gameRepository } from "@/lib/editorialRepositories";
 import { buildEditorialAutofill } from "@/lib/editorialAutofill";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { buildPublicEditorialCopy, needsPublicEditorialRewrite } from "@/lib/publicEditorialCopy";
+import {
+  revalidatePublicGameCollections,
+  revalidatePublicGameDetail,
+  revalidatePublishedGame
+} from "@/lib/publicGameCache";
 import { sanitizeImportedList } from "@/lib/importedTextSanitizer";
 import { buildExternalRatingUpdate } from "@/lib/ratings/gameRatings";
 import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
@@ -39,7 +44,18 @@ export async function saveGameEditorAction(
     const validation = validateBeforePublish(savedWithExternalRating);
     revalidateGameAdmin(id);
     if (savedWithExternalRating.status === GameStatus.published) {
-      revalidatePublicGame(savedWithExternalRating.slug);
+      revalidatePublicGameDetail(savedWithExternalRating.slug);
+      if (editorGame.status === GameStatus.published && editorGame.slug !== savedWithExternalRating.slug) {
+        revalidatePublicGameDetail(editorGame.slug);
+      }
+      if (
+        editorGame.status !== GameStatus.published ||
+        affectsPublicGameCollections(editorGame, savedWithExternalRating)
+      ) {
+        revalidatePublicGameCollections();
+      }
+    } else if (editorGame.status === GameStatus.published) {
+      revalidatePublishedGame(editorGame.slug);
     }
     const statusMessage = {
       [GameStatus.draft]: "Guardado como borrador.",
@@ -105,7 +121,7 @@ export async function publishGameEditorAction(
       publishedAt: new Date()
     });
     revalidateGameAdmin(id);
-    revalidatePublicGame(savedWithExternalRating.slug);
+    revalidatePublishedGame(savedWithExternalRating.slug);
     return validation.warnings.length
       ? { message: "Juego publicado. Se puede mejorar la ficha cuando quieras.", warnings: validation.warnings }
       : { message: "Juego publicado. Ficha completa." };
@@ -137,6 +153,20 @@ export async function autocompleteGameEditorAction(
     const validation = validateBeforePublish(savedWithExternalRating);
 
     revalidateGameAdmin(id);
+    if (savedWithExternalRating.status === GameStatus.published) {
+      revalidatePublicGameDetail(savedWithExternalRating.slug);
+      if (editorGame.status === GameStatus.published && editorGame.slug !== savedWithExternalRating.slug) {
+        revalidatePublicGameDetail(editorGame.slug);
+      }
+      if (
+        editorGame.status !== GameStatus.published ||
+        affectsPublicGameCollections(editorGame, savedWithExternalRating)
+      ) {
+        revalidatePublicGameCollections();
+      }
+    } else if (editorGame.status === GameStatus.published) {
+      revalidatePublishedGame(editorGame.slug);
+    }
     return validation.warnings.length
       ? {
           message: "Campos editoriales autocompletados. Revisa la ficha antes de publicar.",
@@ -163,7 +193,7 @@ export async function deleteGameEditorAction(formData: FormData) {
   revalidatePath("/admin/reviews");
   revalidatePath("/admin/candidates");
   if (game.slug) {
-    revalidatePublicGame(game.slug);
+    revalidatePublishedGame(game.slug);
   }
   redirect(returnTo);
 }
@@ -180,7 +210,7 @@ export async function deleteGamesBulkAction(formData: FormData) {
     const deletedGame = await gameRepository.delete(id);
     revalidateGameAdmin(id);
     if (deletedGame.slug) {
-      revalidatePublicGame(deletedGame.slug);
+      revalidatePublishedGame(deletedGame.slug);
     }
   }
 
@@ -445,15 +475,6 @@ function revalidateGameAdmin(id: string) {
   revalidatePath(`/admin/games/${id}/edit`);
 }
 
-function revalidatePublicGame(slug: string) {
-  revalidateTag("public-games");
-  revalidatePath("/");
-  revalidatePath("/juegos");
-  revalidatePath(`/juegos/${slug}`);
-  revalidatePath("/rankings");
-  revalidatePath("/resenas");
-}
-
 async function persistExternalRating(game: {
   id: string;
   ratings: Prisma.JsonValue;
@@ -470,4 +491,94 @@ async function persistExternalRating(game: {
   return gameRepository.update(game.id, {
     ratings: ratingUpdate.ratings
   });
+}
+
+function affectsPublicGameCollections(
+  previous: {
+    status: GameStatus;
+    slug: string;
+    title: string;
+    name: string;
+    publishedAt: Date | null;
+    coverImageUrl: string | null;
+    imageUrl: string | null;
+    imageStatus: string;
+    shortSummary: string | null;
+    shortDescription: string | null;
+    quickVerdict: string | null;
+    minPlayers: number | null;
+    maxPlayers: number | null;
+    playtime: string | null;
+    age: string | null;
+    minAge: number | null;
+    publisher: string | null;
+    spanishPublisher: string | null;
+    complexity: string | null;
+    difficulty: string | null;
+    categories: string[];
+    mechanics: string[];
+    themes: string[];
+    ratings: Prisma.JsonValue;
+  },
+  next: {
+    status: GameStatus;
+    slug: string;
+    title: string | null;
+    name: string | null;
+    publishedAt: Date | null;
+    coverImageUrl: string | null;
+    imageUrl: string | null;
+    imageStatus: string;
+    shortSummary: string | null;
+    shortDescription: string | null;
+    quickVerdict: string | null;
+    minPlayers: number | null;
+    maxPlayers: number | null;
+    playtime: string | null;
+    age: string | null;
+    minAge: number | null;
+    publisher: string | null;
+    spanishPublisher: string | null;
+    complexity: string | null;
+    difficulty: string | null;
+    categories: string[];
+    mechanics: string[];
+    themes: string[];
+    ratings: Prisma.JsonValue;
+  }
+) {
+  return (
+    previous.status !== next.status ||
+    previous.slug !== next.slug ||
+    previous.title !== (next.title || "") ||
+    previous.name !== (next.name || "") ||
+    isoOrEmpty(previous.publishedAt) !== isoOrEmpty(next.publishedAt) ||
+    previous.coverImageUrl !== next.coverImageUrl ||
+    previous.imageUrl !== next.imageUrl ||
+    previous.imageStatus !== next.imageStatus ||
+    previous.shortSummary !== next.shortSummary ||
+    previous.shortDescription !== next.shortDescription ||
+    previous.quickVerdict !== next.quickVerdict ||
+    previous.minPlayers !== next.minPlayers ||
+    previous.maxPlayers !== next.maxPlayers ||
+    previous.playtime !== next.playtime ||
+    previous.age !== next.age ||
+    previous.minAge !== next.minAge ||
+    previous.publisher !== next.publisher ||
+    previous.spanishPublisher !== next.spanishPublisher ||
+    previous.complexity !== next.complexity ||
+    previous.difficulty !== next.difficulty ||
+    !sameStringList(previous.categories, next.categories) ||
+    !sameStringList(previous.mechanics, next.mechanics) ||
+    !sameStringList(previous.themes, next.themes) ||
+    JSON.stringify(previous.ratings) !== JSON.stringify(next.ratings)
+  );
+}
+
+function sameStringList(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function isoOrEmpty(value: Date | null) {
+  return value ? value.toISOString() : "";
 }

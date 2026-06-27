@@ -1,9 +1,10 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { sourceRepository } from "@/lib/editorialRepositories";
 import { buildStoreOfferInputFromCandidate, getBestOffer, upsertStoreOfferRecordDetailed } from "@/lib/gameOffers";
 import { importSourceProductCandidate } from "@/lib/import/importSourceProduct";
 import { prisma } from "@/lib/prisma";
+import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
 
 type RouteContext = {
   params: Promise<{
@@ -87,11 +88,9 @@ export async function POST(request: Request, context: RouteContext) {
 }
 
 function revalidateGame(id: string, slug: string) {
-  revalidateTag("public-games");
   revalidatePath("/admin/games");
   revalidatePath(`/admin/games/${id}`);
-  revalidatePath("/juegos");
-  revalidatePath(`/juegos/${slug}`);
+  revalidatePublicGameDetail(slug);
 }
 
 function readSourceUrl(value: unknown) {

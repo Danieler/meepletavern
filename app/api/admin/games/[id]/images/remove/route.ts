@@ -1,7 +1,8 @@
 import { GameImageStatus } from "@prisma/client";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { assertTrustedAdminApiRequest, jsonNoStore } from "@/lib/adminApiSecurity";
 import { prisma } from "@/lib/prisma";
+import { revalidatePublishedGame } from "@/lib/publicGameCache";
 
 type RouteContext = {
   params: Promise<{
@@ -109,15 +110,10 @@ export async function DELETE(request: Request, context: RouteContext) {
 }
 
 function revalidateGame(id: string, slug: string) {
-  revalidateTag("public-games");
-  revalidatePath("/");
   revalidatePath("/admin/games");
   revalidatePath(`/admin/games/${id}`);
   revalidatePath(`/admin/games/${id}/edit`);
-  revalidatePath("/juegos");
-  revalidatePath(`/juegos/${slug}`);
-  revalidatePath("/rankings");
-  revalidatePath("/resenas");
+  revalidatePublishedGame(slug);
 }
 
 function readAssetId(value: unknown) {

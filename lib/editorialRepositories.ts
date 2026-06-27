@@ -126,7 +126,47 @@ export const gameCandidateRepository = {
   getById(id: string) {
     return prisma.gameCandidate.findUnique({
       where: { id },
-      include: { source: true, mediaAssets: true, game: true }
+      select: {
+        id: true,
+        sourceId: true,
+        sourceUrl: true,
+        title: true,
+        originalTitle: true,
+        status: true,
+        confidence: true,
+        flags: true,
+        metadata: true,
+        candidateImages: true,
+        gameId: true,
+        createdAt: true,
+        updatedAt: true,
+        source: {
+          select: {
+            id: true,
+            name: true,
+            baseUrl: true
+          }
+        },
+        mediaAssets: {
+          select: {
+            id: true,
+            url: true,
+            type: true,
+            status: true,
+            usage: true,
+            gameId: true,
+            candidateId: true,
+            sourceId: true,
+            localPath: true,
+            attribution: true
+          }
+        },
+        game: {
+          select: {
+            status: true
+          }
+        }
+      }
     });
   },
 

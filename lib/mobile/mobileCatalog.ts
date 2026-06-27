@@ -2,6 +2,11 @@ import { GameStatus, Prisma, TaxonomyType } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { canShowMedia } from "@/lib/mediaSafety";
 import { sanitizeImportedList, sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
+import {
+  publicGameDetailTag,
+  PUBLIC_GAMES_LIST_TAG,
+  PUBLIC_GAME_TAXONOMY_TAG
+} from "@/lib/publicGameCache";
 import { prisma } from "@/lib/prisma";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
@@ -264,7 +269,7 @@ const getCachedPublishedMobileDbGames = unstable_cache(
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
   }),
   ["mobile-published-game-list"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
 );
 
 const getPublishedMobileDbGameBySlug = (slug: string) => unstable_cache(
@@ -276,7 +281,7 @@ const getPublishedMobileDbGameBySlug = (slug: string) => unstable_cache(
     select: mobileGameSelect
   }),
   ["mobile-game-by-slug", slug],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [publicGameDetailTag(slug)] }
 )();
 
 async function getMobileTaxonomyLookup(): Promise<TaxonomyLookup> {
@@ -313,7 +318,7 @@ const getCachedMobileTaxonomyTerms = unstable_cache(
     }
   }),
   ["mobile-taxonomy-terms"],
-  { revalidate: 3600, tags: ["public-taxonomy"] }
+  { revalidate: 3600, tags: [PUBLIC_GAME_TAXONOMY_TAG] }
 );
 
 async function getMobileTaxonomyFilters(type: TaxonomyType) {
@@ -352,7 +357,7 @@ const getCachedMobileTaxonomyTermsByType = (type: TaxonomyType) => unstable_cach
     }
   }),
   ["mobile-taxonomy-filter-terms", type],
-  { revalidate: 3600, tags: ["public-taxonomy"] }
+  { revalidate: 3600, tags: [PUBLIC_GAME_TAXONOMY_TAG] }
 )();
 
 const getCachedMobileTaxonomyCountRows = unstable_cache(
@@ -364,7 +369,7 @@ const getCachedMobileTaxonomyCountRows = unstable_cache(
     }
   }),
   ["mobile-taxonomy-count-rows"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG, PUBLIC_GAME_TAXONOMY_TAG] }
 );
 
 function filterMobileGames(games: MobileMappedGame[], filters: MobileGameFilterInput, taxonomy: TaxonomyLookup) {
