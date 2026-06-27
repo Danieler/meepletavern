@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMobileGameBySlug } from "@/lib/mobile/mobileCatalog";
+import { getMobileGameBySlug, mobilePublicCacheHeaders } from "@/lib/mobile/mobileCatalog";
 
 export async function GET(
   _request: Request,
@@ -12,5 +12,5 @@ export async function GET(
     return NextResponse.json({ error: "Game not found" }, { status: 404 });
   }
 
-  return NextResponse.json(game);
+  return NextResponse.json(game, { headers: mobilePublicCacheHeaders() });
 }

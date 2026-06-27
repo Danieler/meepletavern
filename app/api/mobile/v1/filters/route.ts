@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getMobileFilters } from "@/lib/mobile/mobileCatalog";
+import { getMobileFilters, mobilePublicCacheHeaders } from "@/lib/mobile/mobileCatalog";
 
 export async function GET() {
-  return NextResponse.json(getMobileFilters());
+  return NextResponse.json(getMobileFilters(), { headers: mobilePublicCacheHeaders() });
 }

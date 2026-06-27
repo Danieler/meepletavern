@@ -65,9 +65,6 @@ export function GameCoverImage({
     }
   }, [coverImageAlt, coverImageUrl, gameTitle, imageStatus]);
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const isOptimizable = Boolean(coverImageUrl && supabaseUrl && coverImageUrl.startsWith(supabaseUrl));
-
   return (
     <div className={`relative w-full min-w-0 max-w-full overflow-hidden rounded-md bg-ink/5 ${variantClasses[variant]} ${className}`}>
       {showVerifiedCover ? (
@@ -79,7 +76,7 @@ export function GameCoverImage({
           sizes={imageSizes || "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"}
           className="object-cover"
           onError={() => setFailed(true)}
-          unoptimized={!isOptimizable}
+          unoptimized
         />
       ) : (
         <MeepleTavernCoverPlaceholder

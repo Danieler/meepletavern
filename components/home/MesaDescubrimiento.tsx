@@ -140,9 +140,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
   }
 
   const activeGame = carouselGames[activeIndex] || carouselGames[0] || pool[0];
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const coverUrl = activeGame.coverImageUrl || siteConfig.markImage;
-  const isOptimizable = Boolean(activeGame.coverImageUrl && supabaseUrl && activeGame.coverImageUrl.startsWith(supabaseUrl));
 
   return (
     <div id="descubrimiento" className="tavern-card flex flex-col gap-5 bg-white p-5 shadow-lg border border-walnut/12 rounded-xl relative">
@@ -281,7 +279,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
                 fill
                 sizes="68px"
                 className="object-cover transition duration-300 group-hover:scale-105"
-                unoptimized={!isOptimizable}
+                unoptimized
               />
             </div>
             <div className="min-w-0">

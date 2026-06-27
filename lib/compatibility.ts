@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { ProfileVisibility } from "@prisma/client";
 
 export const compatibilityCache = new Map<string, { data: unknown; expiresAt: number }>();
+const COMPATIBILITY_CANDIDATE_LIMIT = 24;
 
 export interface UserGameInput {
   gameId: string;
@@ -89,8 +90,8 @@ export async function getCompatibilityMatches(
 
   const gameIds = userAGames.map((g) => g.gameId);
 
-  // 1. Pre-filter candidates: find users who have at least one of these games, or public profiles
-  // We prioritize users who share games, then fill up to 50 candidates using other public active users.
+  // 1. Pre-filter candidates: find users who have at least one of these games, or public profiles.
+  // Keep the candidate pool bounded because the next step loads candidate library entries.
   const sharedGameUsers = await prisma.userLibraryGame.findMany({
     where: {
       gameId: { in: gameIds },
@@ -103,13 +104,13 @@ export async function getCompatibilityMatches(
     },
     select: { userId: true },
     distinct: ["userId"],
-    take: 50
+    take: COMPATIBILITY_CANDIDATE_LIMIT
   });
 
   const candidateIds = new Set<string>(sharedGameUsers.map((u) => u.userId));
 
   // If we don't have enough candidates, find more public users who have library entries
-  if (candidateIds.size < 50) {
+  if (candidateIds.size < COMPATIBILITY_CANDIDATE_LIMIT) {
     const extraUsers = await prisma.userLibraryGame.findMany({
       where: {
         userId: {
@@ -123,7 +124,7 @@ export async function getCompatibilityMatches(
       },
       select: { userId: true },
       distinct: ["userId"],
-      take: 50 - candidateIds.size
+      take: COMPATIBILITY_CANDIDATE_LIMIT - candidateIds.size
     });
     extraUsers.forEach((u) => candidateIds.add(u.userId));
   }
@@ -137,10 +138,21 @@ export async function getCompatibilityMatches(
     where: {
       userId: { in: Array.from(candidateIds) }
     },
-    include: {
+    select: {
+      userId: true,
+      gameId: true,
+      owned: true,
+      wantToPlay: true,
+      played: true,
       user: {
-        include: {
-          profile: true
+        select: {
+          profile: {
+            select: {
+              username: true,
+              displayName: true,
+              avatarUrl: true
+            }
+          }
         }
       },
       game: {

@@ -172,9 +172,7 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
 }
 
 function HeroFeaturedGame({ game }: { game: HeroGame }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const coverUrl = game.coverImageUrl || siteConfig.markImage;
-  const isOptimizable = Boolean(game.coverImageUrl && supabaseUrl && game.coverImageUrl.startsWith(supabaseUrl));
 
   return (
     <Link
@@ -188,7 +186,7 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
           fill
           sizes="(max-width: 640px) 100vw, 400px"
           className="object-cover transition duration-300 group-hover:scale-103"
-          unoptimized={!isOptimizable}
+          unoptimized
         />
         <div className="absolute left-3 top-3 rounded-full bg-[#fef3c7] border border-[#f59e0b]/40 px-3 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#92400e] shadow-sm">
           {HERO_GAME_LABELS[0]}
@@ -220,9 +218,7 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
 }
 
 function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const coverUrl = game.coverImageUrl || siteConfig.markImage;
-  const isOptimizable = Boolean(game.coverImageUrl && supabaseUrl && game.coverImageUrl.startsWith(supabaseUrl));
 
   return (
     <Link
@@ -236,7 +232,7 @@ function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
           fill
           sizes="90px"
           className="object-cover transition duration-300 group-hover:scale-103"
-          unoptimized={!isOptimizable}
+          unoptimized
         />
       </div>
       <div className="min-w-0 p-2.5">

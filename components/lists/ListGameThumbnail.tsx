@@ -16,9 +16,7 @@ export function ListGameThumbnail({
   imageStatus,
   size = 64
 }: ListGameThumbnailProps) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const canShowImage = imageStatus === "verified" && Boolean(coverImageUrl);
-  const isOptimizable = Boolean(coverImageUrl && supabaseUrl && coverImageUrl.startsWith(supabaseUrl));
 
   return (
     <span
@@ -32,7 +30,7 @@ export function ListGameThumbnail({
           fill
           sizes={`${size}px`}
           className="object-cover"
-          unoptimized={!isOptimizable}
+          unoptimized
         />
       ) : (
         <span className="px-2 text-[10px] font-black uppercase leading-tight tracking-wide text-parchment/80">

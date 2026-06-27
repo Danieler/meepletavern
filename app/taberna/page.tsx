@@ -363,8 +363,6 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
             
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 snap-x">
               {mostWanted.slice(0, 3).map((game) => {
-                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-                const isOptimizable = Boolean(game.coverImageUrl && supabaseUrl && game.coverImageUrl.startsWith(supabaseUrl));
                 return (
                   <Link 
                     key={game.gameId}
@@ -379,7 +377,7 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
                           fill
                           sizes="100px"
                           className="object-cover transition duration-500 group-hover/game:scale-110"
-                          unoptimized={!isOptimizable}
+                          unoptimized
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-white/20">

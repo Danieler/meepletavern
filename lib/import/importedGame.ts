@@ -135,7 +135,8 @@ export async function persistImportedGameReview(input: {
         confidence: candidate.confidence,
         status: candidateStatus,
         flags: candidate.flags
-      }
+      },
+      select: { id: true }
     });
 
     const createdGame = await transaction.game.create({
@@ -198,7 +199,8 @@ export async function persistImportedGameReview(input: {
         primaryImageId: null,
         createdByAi: false,
         publishedAt: null
-      }
+      },
+      select: { id: true }
     });
 
     await transaction.gameCandidate.update({
@@ -206,7 +208,8 @@ export async function persistImportedGameReview(input: {
       data: {
         status: candidateStatus,
         gameId: createdGame.id
-      }
+      },
+      select: { id: true }
     });
 
     if (initialOffer) {
@@ -231,6 +234,10 @@ export async function persistImportedGameReview(input: {
                 status: MediaAssetStatus.approved,
                 usage: MediaAssetUsage.public,
                 attribution: null
+              },
+              select: {
+                id: true,
+                url: true
               }
             })
           )
@@ -249,7 +256,8 @@ export async function persistImportedGameReview(input: {
           imageSourceName: input.source.name,
           imageSourceUrl: input.source.baseUrl,
           imageLicenseNote: null
-        }
+        },
+        select: { id: true }
       });
     }
 
@@ -281,8 +289,15 @@ export async function persistImportedGameReview(input: {
 
 export async function autoCompleteImportedGameWithAi(result: ImportedGameResult): Promise<ImportedGameResult> {
   const [game, candidate] = await Promise.all([
-    gameRepository.getEditorById(result.gameId),
-    gameCandidateRepository.getById(result.candidateId)
+    gameRepository.getById(result.gameId),
+    prisma.gameCandidate.findUnique({
+      where: { id: result.candidateId },
+      select: {
+        title: true,
+        extractedDescription: true,
+        metadata: true
+      }
+    })
   ]);
 
   if (!game || !candidate) {

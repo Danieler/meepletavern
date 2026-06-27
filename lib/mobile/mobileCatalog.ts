@@ -1,4 +1,5 @@
 import { GameStatus, Prisma, TaxonomyType } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { canShowMedia } from "@/lib/mediaSafety";
 import { sanitizeImportedList, sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 import { prisma } from "@/lib/prisma";
@@ -31,6 +32,13 @@ export type MobileGameFilterInput = {
 };
 
 const maxMobilePageSize = 50;
+const mobileApiCacheHeaders = {
+  "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800"
+} as const;
+
+export function mobilePublicCacheHeaders() {
+  return mobileApiCacheHeaders;
+}
 
 const mobileFilters = {
   players: [
@@ -65,7 +73,21 @@ const mobileFilters = {
   ]
 } satisfies MobileFiltersResponse;
 
-const mobileGameSelect = {
+const mobileMediaAssetSelect = {
+  id: true,
+  url: true,
+  status: true,
+  usage: true,
+  attribution: true,
+  source: {
+    select: {
+      name: true,
+      baseUrl: true
+    }
+  }
+} satisfies Prisma.MediaAssetSelect;
+
+const mobileGameListSelect = {
   id: true,
   name: true,
   title: true,
@@ -74,8 +96,6 @@ const mobileGameSelect = {
   imageUrl: true,
   imageStatus: true,
   primaryImageId: true,
-  description: true,
-  review: true,
   shortSummary: true,
   shortDescription: true,
   quickVerdict: true,
@@ -93,24 +113,33 @@ const mobileGameSelect = {
   mechanics: true,
   themes: true,
   ratings: true,
-  buyUrl: true,
   createdAt: true,
   updatedAt: true,
   publishedAt: true,
   mediaAssets: {
-    select: {
-      id: true,
-      url: true,
-      status: true,
-      usage: true,
-      attribution: true,
-      source: {
-        select: {
-          name: true,
-          baseUrl: true
-        }
-      }
-    }
+    where: {
+      status: "approved",
+      usage: "public"
+    },
+    select: mobileMediaAssetSelect,
+    orderBy: [{ updatedAt: "desc" }],
+    take: 1
+  }
+} satisfies Prisma.GameSelect;
+
+const mobileGameSelect = {
+  ...mobileGameListSelect,
+  description: true,
+  review: true,
+  buyUrl: true,
+  mediaAssets: {
+    where: {
+      status: "approved",
+      usage: "public"
+    },
+    select: mobileMediaAssetSelect,
+    orderBy: [{ updatedAt: "desc" }],
+    take: 8
   },
   offers: {
     select: {
@@ -124,10 +153,12 @@ const mobileGameSelect = {
       sourceUrl: true,
       fetchedAt: true
     },
-    orderBy: [{ fetchedAt: "desc" }]
+    orderBy: [{ fetchedAt: "desc" }],
+    take: 12
   }
 } satisfies Prisma.GameSelect;
 
+type MobileListDbGame = Prisma.GameGetPayload<{ select: typeof mobileGameListSelect }>;
 type MobileDbGame = Prisma.GameGetPayload<{ select: typeof mobileGameSelect }>;
 
 type MobileMappedGame = MobileGameDetail & {
@@ -201,16 +232,7 @@ export async function getMobileGameBySlug(slug: string): Promise<MobileGameDetai
     return null;
   }
 
-  const [game, taxonomy] = await Promise.all([
-    prisma.game.findFirst({
-      where: {
-        slug: normalizedSlug,
-        status: GameStatus.published
-      },
-      select: mobileGameSelect
-    }),
-    getMobileTaxonomyLookup()
-  ]);
+  const [game, taxonomy] = await Promise.all([getPublishedMobileDbGameBySlug(normalizedSlug), getMobileTaxonomyLookup()]);
 
   return game ? toMobileGameDetail(toMobileMappedGame(game, taxonomy)) : null;
 }
@@ -232,28 +254,33 @@ export function getMobileFilters(): MobileFiltersResponse {
 }
 
 async function getPublishedMobileDbGames() {
-  return prisma.game.findMany({
-    where: { status: GameStatus.published },
-    select: mobileGameSelect,
-    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
-  });
+  return getCachedPublishedMobileDbGames();
 }
 
-async function getMobileTaxonomyLookup(): Promise<TaxonomyLookup> {
-  const terms = await prisma.taxonomyTerm.findMany({
+const getCachedPublishedMobileDbGames = unstable_cache(
+  async () => prisma.game.findMany({
+    where: { status: GameStatus.published },
+    select: mobileGameListSelect,
+    orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
+  }),
+  ["mobile-published-game-list"],
+  { revalidate: 3600, tags: ["public-games"] }
+);
+
+const getPublishedMobileDbGameBySlug = (slug: string) => unstable_cache(
+  async () => prisma.game.findFirst({
     where: {
-      type: {
-        in: [TaxonomyType.category, TaxonomyType.mechanic, TaxonomyType.theme]
-      }
+      slug,
+      status: GameStatus.published
     },
-    orderBy: [{ name: "asc" }],
-    select: {
-      id: true,
-      type: true,
-      name: true,
-      slug: true
-    }
-  });
+    select: mobileGameSelect
+  }),
+  ["mobile-game-by-slug", slug],
+  { revalidate: 3600, tags: ["public-games"] }
+)();
+
+async function getMobileTaxonomyLookup(): Promise<TaxonomyLookup> {
+  const terms = await getCachedMobileTaxonomyTerms();
 
   const lookup: TaxonomyLookup = {
     category: createTermLookup(),
@@ -270,24 +297,29 @@ async function getMobileTaxonomyLookup(): Promise<TaxonomyLookup> {
   return lookup;
 }
 
+const getCachedMobileTaxonomyTerms = unstable_cache(
+  async () => prisma.taxonomyTerm.findMany({
+    where: {
+      type: {
+        in: [TaxonomyType.category, TaxonomyType.mechanic, TaxonomyType.theme]
+      }
+    },
+    orderBy: [{ name: "asc" }],
+    select: {
+      id: true,
+      type: true,
+      name: true,
+      slug: true
+    }
+  }),
+  ["mobile-taxonomy-terms"],
+  { revalidate: 3600, tags: ["public-taxonomy"] }
+);
+
 async function getMobileTaxonomyFilters(type: TaxonomyType) {
   const [terms, games] = await Promise.all([
-    prisma.taxonomyTerm.findMany({
-      where: { type },
-      orderBy: [{ name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        slug: true
-      }
-    }),
-    prisma.game.findMany({
-      where: { status: GameStatus.published },
-      select: {
-        categories: true,
-        mechanics: true
-      }
-    })
+    getCachedMobileTaxonomyTermsByType(type),
+    getCachedMobileTaxonomyCountRows()
   ]);
 
   const counts = new Map<string, number>();
@@ -308,6 +340,32 @@ async function getMobileTaxonomyFilters(type: TaxonomyType) {
     gamesCount: counts.get(term.name) || 0
   }));
 }
+
+const getCachedMobileTaxonomyTermsByType = (type: TaxonomyType) => unstable_cache(
+  async () => prisma.taxonomyTerm.findMany({
+    where: { type },
+    orderBy: [{ name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      slug: true
+    }
+  }),
+  ["mobile-taxonomy-filter-terms", type],
+  { revalidate: 3600, tags: ["public-taxonomy"] }
+)();
+
+const getCachedMobileTaxonomyCountRows = unstable_cache(
+  async () => prisma.game.findMany({
+    where: { status: GameStatus.published },
+    select: {
+      categories: true,
+      mechanics: true
+    }
+  }),
+  ["mobile-taxonomy-count-rows"],
+  { revalidate: 3600, tags: ["public-games"] }
+);
 
 function filterMobileGames(games: MobileMappedGame[], filters: MobileGameFilterInput, taxonomy: TaxonomyLookup) {
   const query = filters.q?.trim().toLowerCase();
@@ -370,10 +428,12 @@ function filterMobileGames(games: MobileMappedGame[], filters: MobileGameFilterI
   });
 }
 
-function toMobileMappedGame(game: MobileDbGame, taxonomy: TaxonomyLookup): MobileMappedGame {
+function toMobileMappedGame(game: MobileListDbGame | MobileDbGame, taxonomy: TaxonomyLookup): MobileMappedGame {
   const title = sanitizeImportedTitle(game.title || game.name) || game.title || game.name;
   const shortDescription = game.shortDescription || game.shortSummary;
-  const quickVerdict = game.quickVerdict || game.review;
+  const longDescription = "description" in game ? game.description : null;
+  const longReview = "review" in game ? game.review : null;
+  const quickVerdict = game.quickVerdict || longReview;
   const difficulty = game.difficulty || game.complexity;
   const categoryNames = sanitizeImportedList(game.categories, "categories");
   const mechanicNames = sanitizeImportedList(game.mechanics, "mechanics");
@@ -382,14 +442,14 @@ function toMobileMappedGame(game: MobileDbGame, taxonomy: TaxonomyLookup): Mobil
     title,
     shortDescription,
     shortSummary: game.shortSummary,
-    description: game.description,
+    description: longDescription,
     quickVerdict
   });
   const reviewSummary = getPublicReviewSummary({
     title,
     shortDescription,
     shortSummary: game.shortSummary,
-    description: game.description,
+    description: longDescription,
     quickVerdict
   });
   const duration = parseDuration(game.playtime);
@@ -409,7 +469,7 @@ function toMobileMappedGame(game: MobileDbGame, taxonomy: TaxonomyLookup): Mobil
     publisher: game.spanishPublisher || game.publisher,
     categories: categoryNames.map((name) => resolveTaxonomyItem(name, taxonomy.category)),
     mechanics: mechanicNames.map((name) => resolveTaxonomyItem(name, taxonomy.mechanic)),
-    offers: buildMobileOffers(game),
+    offers: "offers" in game ? buildMobileOffers(game) : [],
     reviewSummary,
     complexity: difficulty,
     categoryNames,
@@ -590,7 +650,7 @@ function parsePositiveInteger(value: string | null, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : fallback;
 }
 
-function pickPublicImageUrl(game: MobileDbGame) {
+function pickPublicImageUrl(game: MobileListDbGame | MobileDbGame) {
   const media = getOrderedMedia(game).find((asset) => canShowMedia(asset, asset.source));
 
   if (media) {
@@ -608,7 +668,7 @@ function pickPublicImageUrl(game: MobileDbGame) {
   return null;
 }
 
-function getOrderedMedia(game: MobileDbGame) {
+function getOrderedMedia(game: MobileListDbGame | MobileDbGame) {
   return [...game.mediaAssets].sort((left, right) => {
     if (left.id === game.primaryImageId) {
       return -1;

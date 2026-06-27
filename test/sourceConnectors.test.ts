@@ -288,6 +288,49 @@ test("mapStoreSourceResultToImportCandidate preserves multiple source page image
   assert.equal(candidate.metadata.imageAllowed, true);
 });
 
+test("mapStoreSourceResultToImportCandidate does not persist heavy raw html in metadata", () => {
+  const candidate = mapStoreSourceResultToImportCandidate({
+    sourceName: "dungeon_marvels",
+    sourceDisplayName: "Dungeon Marvels",
+    sourceUrl: "https://dungeonmarvels.com/catan.html",
+    title: "Catan",
+    normalizedTitle: "catan",
+    price: 41.95,
+    currency: "EUR",
+    availability: "En stock",
+    purchaseUrl: "https://dungeonmarvels.com/catan.html",
+    publisher: "Devir",
+    imageUrl: "https://dungeonmarvels.com/catan.jpg",
+    imageAllowed: true,
+    description: "Juego de comercio.",
+    minPlayers: 3,
+    maxPlayers: 4,
+    minPlayTime: 60,
+    maxPlayTime: 90,
+    recommendedAge: 10,
+    language: "Castellano",
+    rawData: {
+      html: "<article>".repeat(500),
+      markdown: "**Catan**".repeat(500),
+      suggestionHtml: "<div>Catan</div>".repeat(500),
+      additionalImageUrls: ["https://dungeonmarvels.com/catan-2.jpg"],
+      facts: {
+        Idioma: "Castellano"
+      },
+      features: ["Negociación y rutas"]
+    },
+    fetchedAt: new Date("2026-06-15T10:00:00.000Z")
+  });
+
+  assert.deepEqual(candidate.metadata.rawData, {
+    additionalImageUrls: ["https://dungeonmarvels.com/catan-2.jpg"],
+    facts: {
+      Idioma: "Castellano"
+    },
+    features: ["Negociación y rutas"]
+  });
+});
+
 function searchResultHtml(url: string) {
   return `
     <article class="product-miniature js-product-miniature">

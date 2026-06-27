@@ -140,7 +140,7 @@ export function mapStoreSourceResultToImportCandidate(result: StoreSourceResult)
       availability: result.availability,
       features,
       facts,
-      rawData: isRecord(result.rawData) ? result.rawData : null,
+      rawData: compactStoreResultRawData(result.rawData),
       fetchedAt: result.fetchedAt.toISOString(),
       imageAllowed: result.imageAllowed,
       language: result.language,
@@ -681,6 +681,57 @@ function getStoreResultImageUrls(result: StoreSourceResult) {
     : [];
 
   return [...new Set([result.imageUrl, ...rawImages].filter((value): value is string => Boolean(value)))].slice(0, 3);
+}
+
+function compactStoreResultRawData(rawData: unknown) {
+  if (!isRecord(rawData)) {
+    return null;
+  }
+
+  const compact: Record<string, unknown> = {};
+  const stringFields = [
+    "platform",
+    "sourceUrl",
+    "sourceUrlClean",
+    "title",
+    "brand",
+    "publisher",
+    "availability",
+    "currency",
+    "amazonTitleOriginal"
+  ];
+
+  for (const field of stringFields) {
+    if (typeof rawData[field] === "string" && rawData[field].trim()) {
+      compact[field] = rawData[field];
+    }
+  }
+
+  if (typeof rawData.price === "number" && Number.isFinite(rawData.price)) {
+    compact.price = rawData.price;
+  }
+
+  if (Array.isArray(rawData.features)) {
+    compact.features = rawData.features
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .slice(0, 12);
+  }
+
+  if (Array.isArray(rawData.additionalImageUrls)) {
+    compact.additionalImageUrls = rawData.additionalImageUrls
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .slice(0, 6);
+  }
+
+  if (isRecord(rawData.facts)) {
+    compact.facts = Object.fromEntries(
+      Object.entries(rawData.facts)
+        .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0)
+        .slice(0, 20)
+    );
+  }
+
+  return Object.keys(compact).length ? compact : null;
 }
 
 async function fetchStoreHtml(url: string, sourceDisplayName: string) {

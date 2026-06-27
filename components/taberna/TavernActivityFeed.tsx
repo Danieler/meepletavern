@@ -199,10 +199,6 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
 
 function ActivityItem({ item }: { item: TavernActivityFeedItem }) {
   const actorName = item.actorUsername || "tabernero";
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const isGameCoverOptimizable = Boolean(
-    item.gameCoverImageUrl && supabaseUrl && item.gameCoverImageUrl.startsWith(supabaseUrl)
-  );
 
   return (
     <li className="flex gap-4 py-4 first:pt-5">
@@ -226,7 +222,7 @@ function ActivityItem({ item }: { item: TavernActivityFeedItem }) {
               fill
               sizes="48px"
               className="object-cover"
-              unoptimized={!isGameCoverOptimizable}
+              unoptimized
             />
           </div>
         </div>
@@ -267,11 +263,6 @@ function RichActivityPreview({ item }: { item: TavernActivityFeedItem }) {
 }
 
 function ActorAvatar({ item, name }: { item: TavernActivityFeedItem; name: string }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const isAvatarOptimizable = Boolean(
-    item.actorAvatarUrl && supabaseUrl && item.actorAvatarUrl.startsWith(supabaseUrl)
-  );
-
   const avatar = (
     <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-walnut/15 bg-parchment text-xs font-black text-walnut/35">
       {item.actorAvatarUrl ? (
@@ -281,7 +272,7 @@ function ActorAvatar({ item, name }: { item: TavernActivityFeedItem; name: strin
           fill
           sizes="40px"
           className="object-cover"
-          unoptimized={!isAvatarOptimizable}
+          unoptimized
         />
       ) : (
         <UserAvatarFallbackArt seed={name} className="h-full w-full" />

@@ -1437,9 +1437,7 @@ function buildSourceEvidence(results: ImportedSourceCandidate[]) {
     sourceUrl: result.candidate.sourceUrl,
     title: result.candidate.title,
     matchedBy: result.matchedBy,
-    confidence: result.confidence,
-    description: result.candidate.extractedDescription,
-    metadata: normalizeCandidateMetadata(result.candidate.metadata)
+    confidence: result.confidence
   }));
 }
 
