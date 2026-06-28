@@ -167,8 +167,8 @@ export default async function GamePage({ params }: GamePageProps) {
                         href={`/juegos/${game.slug}/resena`}
                         intent="review_game"
                         className="button-secondary justify-start"
-                        modalTitle="Comparte tu opinión en la taberna"
-                        modalDescription="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
+                        modalTitle="Guarda tu reseña para este juego"
+                        modalDescription="Entra en segundos y tu opinión quedará junto a este juego para recuperarla después."
                       >
                         <BrandIcon name="document" size={20} />
                         Escribir reseña
@@ -177,8 +177,8 @@ export default async function GamePage({ params }: GamePageProps) {
                         href="#comentarios"
                         intent="comment_game"
                         className="button-secondary justify-start"
-                        modalTitle="Comparte tu opinión en la taberna"
-                        modalDescription="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
+                        modalTitle="Guarda tu comentario en la taberna"
+                        modalDescription="Entra en segundos y tu comentario quedará unido a este juego para no perder el hilo."
                       >
                         <BrandIcon name="chat" size={20} />
                         Comentar

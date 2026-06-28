@@ -148,9 +148,9 @@ export function GameLibraryPanel({ gameId, gameTitle = "este juego" }: GameLibra
 
 function getModalTitleForStatus(key: keyof LibraryState, gameTitle: string) {
   if (key === "owned") return `Guarda ${gameTitle} en tu ludoteca`;
-  if (key === "wantToPlay") return `Añade ${gameTitle} a tu lista de pendientes`;
-  if (key === "played") return `Puntúa ${gameTitle} y ayuda a otros jugadores`;
-  return `Crea tu lista para guardar ${gameTitle}`;
+  if (key === "wantToPlay") return `No pierdas ${gameTitle}: guárdalo para después`;
+  if (key === "played") return `Guarda que ya jugaste a ${gameTitle}`;
+  return `Deja ${gameTitle} preparado en tu lista`;
 }
 
 function ToggleButton({

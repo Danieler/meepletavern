@@ -22,12 +22,12 @@ type AuthCtaButtonProps = {
 };
 
 const defaultLabels: Record<NonNullable<AuthCtaButtonProps["context"]>, string> = {
-  home: "Crear mi ludoteca gratis",
-  catalog: "Crear gratis",
-  game: "Crear mi ludoteca gratis",
-  tavern: "Unirme gratis",
-  review: "Crear mi ludoteca gratis",
-  header: "Crear mi ludoteca gratis"
+  home: "Guardar mi primer juego",
+  catalog: "Guardar para después",
+  game: "Entrar y guardar",
+  tavern: "Guardar mi rincón",
+  review: "Guardar mis opiniones",
+  header: "Guardar mi ludoteca"
 };
 
 export function AuthCtaButton({

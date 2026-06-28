@@ -41,7 +41,7 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
       return (
         <div className="grid gap-3">
           <AuthCtaButton context="header" className="justify-center">
-            Crear cuenta gratis
+            Guardar mi ludoteca
           </AuthCtaButton>
           <AuthCtaButton
             variant="subtle"

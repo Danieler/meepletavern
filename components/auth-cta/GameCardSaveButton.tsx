@@ -47,8 +47,8 @@ export function GameCardSaveButton({ gameId, gameTitle }: { gameId: string; game
       <AuthPromptModal
         isOpen={open}
         onClose={() => setOpen(false)}
-        title={`Guarda ${gameTitle} en tu ludoteca`}
-        description="Crea tu cuenta gratis para guardar juegos, puntuarlos y preparar tu próxima partida."
+        title={`Te guardamos ${gameTitle}`}
+        description="Entra en segundos y este juego quedará en tu ludoteca para recuperarlo después."
         next={next}
         intent="save_game"
         onSuccess={handleAuthSuccess}

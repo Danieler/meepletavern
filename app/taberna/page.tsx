@@ -53,9 +53,9 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
 
         <div className="container-page pt-7">
           <GuestOnlyCta
-            title="Crea tu rincón en la taberna"
-            description="Guarda tus juegos, crea listas y aparece en la actividad de la comunidad."
-            buttonLabel="Unirme gratis"
+            title="Guarda tu rincón en la taberna"
+            description="Entra en segundos para recordar tus juegos, tus listas y lo que quieres sacar a mesa después."
+            buttonLabel="Guardar mi rincón"
             next="/taberna"
             context="tavern"
           />

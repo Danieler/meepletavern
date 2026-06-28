@@ -97,12 +97,14 @@ export function UserGamePlayCount({
       <p className="mt-2 text-xs font-semibold text-walnut/60">
         {isAuthenticated
           ? `Tu contador actual para este juego es ${count}.`
-          : "Inicia sesión para guardar cuántas veces lo has jugado."}
+          : "Entra y guarda cuántas veces lo has sacado a mesa."}
       </p>
       {error ? <p className="mt-2 text-xs font-bold text-ruby">{error}</p> : null}
       <AuthPromptModal
         isOpen={authOpen}
         onClose={() => setAuthOpen(false)}
+        title="Guarda esta partida en tu ludoteca"
+        description="Entra en segundos y tu contador recordará cada vez que este juego volvió a mesa."
         next={`/juegos/${gameSlug}`}
         intent="played_game"
       />

@@ -114,8 +114,8 @@ export function UserRatingVote({
       <AuthPromptModal
         isOpen={authOpen}
         onClose={() => setAuthOpen(false)}
-        title="Puntúa este juego y ayuda a otros jugadores"
-        description="Crea tu cuenta gratis para guardar juegos, puntuarlos y descubrir qué se juega en la taberna."
+        title="Guarda tu nota para este juego"
+        description="Entra en segundos y tu puntuación quedará guardada en tu ludoteca para comparar después."
         next={next}
         intent="rate_game"
         onSuccess={handleAuthSuccess}

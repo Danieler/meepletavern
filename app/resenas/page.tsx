@@ -32,9 +32,9 @@ export default async function ReviewsPage() {
         </section>
         <div className="container-page pt-7">
           <GuestOnlyCta
-            title="Comparte tu opinión en la taberna"
-            description="Crea tu cuenta gratis para comentar, reseñar y guardar tus juegos favoritos."
-            buttonLabel="Crear cuenta gratis"
+            title="Guarda tus opiniones de mesa"
+            description="Entra y deja tus reseñas junto a los juegos que quieres recordar, recomendar o volver a jugar."
+            buttonLabel="Guardar mi opinión"
             next="/resenas"
             context="review"
             intent="review_game"

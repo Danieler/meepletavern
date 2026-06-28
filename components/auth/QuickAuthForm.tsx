@@ -388,7 +388,7 @@ export function QuickAuthForm({
             <Link className="font-bold text-wood underline underline-offset-2 transition hover:text-ember" href="/privacidad" target="_blank">
               política de privacidad
             </Link>
-            . Usaremos tus datos para crear tu cuenta y mantener tu ludoteca.
+            . Entras en segundos y tu ludoteca podrá recordar lo que guardes.
           </p>
         ) : null}
       </div>
@@ -474,7 +474,7 @@ export function QuickAuthForm({
             ) : null}
 
             <button className="button-primary w-full shadow-sm transition min-h-[44px]" disabled={submitting || cooldownSeconds > 0 || !isConfigured} type="submit">
-              {submitting ? "Enviando..." : cooldownSeconds > 0 ? `Espera ${cooldownSeconds}s` : isRegister ? "Crear cuenta" : "Entrar"}
+              {submitting ? "Enviando..." : cooldownSeconds > 0 ? `Espera ${cooldownSeconds}s` : isRegister ? "Guardar mi ludoteca" : "Entrar"}
             </button>
           </form>
         </>
@@ -491,7 +491,7 @@ export function QuickAuthForm({
         <p className="mt-5 text-center text-xs font-semibold text-walnut/60">
           ¿No tienes cuenta?{" "}
           <button type="button" onClick={() => { setMode("register"); setFeedback(null); setFieldErrors({}); }} className="text-ember hover:text-amber-strong transition font-bold underline underline-offset-2">
-            Regístrate gratis
+            Guarda tu ludoteca gratis
           </button>
         </p>
       )}

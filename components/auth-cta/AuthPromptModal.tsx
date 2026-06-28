@@ -20,11 +20,11 @@ type AuthPromptModalProps = {
 export function AuthPromptModal({
   isOpen,
   onClose,
-  title = "Guarda este juego en tu ludoteca",
-  description = "Crea tu cuenta gratis para guardar juegos, hacer listas y descubrir qué se juega en la taberna.",
+  title = "Te lo dejamos preparado",
+  description = "Entra en segundos y lo que quieras guardar quedará en tu ludoteca para después.",
   next,
   intent: _intent,
-  primaryLabel: _primaryLabel = "Crear mi ludoteca gratis",
+  primaryLabel: _primaryLabel = "Entrar y guardar",
   secondaryLabel: _secondaryLabel = "Entrar",
   onSuccess
 }: AuthPromptModalProps) {

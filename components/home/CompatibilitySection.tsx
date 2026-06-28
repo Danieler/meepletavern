@@ -759,7 +759,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                   onClick={handleSignupCta}
                   className="w-full min-h-10 text-sm rounded-lg bg-white text-wood font-black tracking-wide shadow-md hover:bg-parchment focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 transition-all flex items-center justify-center gap-1.5"
                 >
-                  Registrarme y guardar juegos
+                  Guardar mi afinidad
                 </button>
                 <button
                   onClick={handleReset}

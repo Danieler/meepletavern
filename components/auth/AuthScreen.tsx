@@ -7,12 +7,12 @@ import type { AuthActionResult } from "@/hooks/useAuth";
 type AuthContext = "owned" | "wishlist" | "rating" | "list" | "comment" | "table";
 
 const AUTH_CONTEXT_TITLES: Record<AuthContext, string> = {
-  owned: "Crea tu ludoteca para guardar este juego",
-  wishlist: "Crea tu ludoteca para marcar este juego como pendiente",
-  rating: "Crea tu ludoteca para puntuar este juego",
-  list: "Crea tu ludoteca para añadir este juego a una lista",
-  comment: "Crea tu ludoteca para comentar este juego",
-  table: "Crea tu ludoteca para añadir este juego a tu mesa"
+  owned: "Guarda este juego en tu ludoteca",
+  wishlist: "No pierdas este juego: déjalo en pendientes",
+  rating: "Guarda tu nota y ayuda a otros jugadores",
+  list: "Añade este juego a una lista para después",
+  comment: "Guarda tu opinión en la taberna",
+  table: "Prepara este juego para tu próxima mesa"
 };
 
 type AuthScreenProps = {
@@ -48,14 +48,14 @@ export function AuthScreen({
           <div>
             <h1 className="text-4xl font-black leading-tight text-wood md:text-5xl">
               {isRegister
-                ? (authContext ? AUTH_CONTEXT_TITLES[authContext] : "Crea tu ludoteca gratis")
+                ? (authContext ? AUTH_CONTEXT_TITLES[authContext] : "Guarda lo que quieres jugar")
                 : "Entra en tu cuenta"}
             </h1>
             <p className="mt-3 max-w-xl text-base font-semibold leading-7 text-walnut/70">
               {introMessage ??
                 (isRegister
-                  ? "Únete a la taberna de juegos de mesa en español para conectar, jugar y organizar."
-                  : "Accede para gestionar tu perfil, tu ludoteca y tus aportes en MeepleTavern.")}
+                  ? "Tu ludoteca recuerda por ti: juegos para después, listas para tu grupo y partidas que no quieres olvidar."
+                  : "Vuelve a tu ludoteca, tus listas y todo lo que guardaste para jugar después.")}
             </p>
           </div>
 
@@ -63,28 +63,28 @@ export function AuthScreen({
             <>
               {/* Mobile: compact trust signal — no scroll friction */}
               <p className="text-sm font-black text-ember lg:hidden">
-                Gratis · Sin spam · Borra tu cuenta cuando quieras
+                Gratis · Sin spam · Entras en segundos
               </p>
 
               {/* Desktop: full benefit checklist beside the form */}
               <div className="hidden lg:block space-y-4 rounded-xl border border-walnut/12 bg-[#fffcf5] p-5 shadow-sm md:p-6">
-                <p className="text-xs font-black uppercase tracking-wider text-ember">¿Qué consigues al registrarte?</p>
+                <p className="text-xs font-black uppercase tracking-wider text-ember">Lo que guardes se queda contigo</p>
                 <ul className="grid gap-3.5 text-sm font-semibold text-walnut/85">
                   <li className="flex items-start gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>Organiza tu colección:</strong> Guarda tus juegos y lleva la cuenta de tus partidas.</span>
+                    <span><strong>No pierdas descubrimientos:</strong> Guarda juegos para probarlos después.</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>Puntúa y opina:</strong> Valora juegos y comparte tus opiniones con la comunidad.</span>
+                    <span><strong>Tu ludoteca recuerda por ti:</strong> Ten favoritos, pendientes y jugados en un sitio.</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>Conecta con taberneros:</strong> Descubre qué juegan otros y organiza mesas.</span>
+                    <span><strong>Prepara la próxima mesa:</strong> Crea listas y recupera ideas cuando toque jugar.</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>100% Gratis:</strong> Sin anuncios invasivos. Borra tu cuenta cuando quieras.</span>
+                    <span><strong>100% Gratis:</strong> Sin spam. Borra tu cuenta cuando quieras.</span>
                   </li>
                 </ul>
               </div>

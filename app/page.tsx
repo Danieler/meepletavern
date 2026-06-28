@@ -319,8 +319,8 @@ export default async function Home() {
                   Tu próxima partida empieza en la taberna
                 </h2>
                 <p className="tavern-copy mt-3">
-                  Crea tu rincón, guarda tu ludoteca y descubre qué juegos tienen otros jugadores
-                  antes de montar la próxima partida.
+                  Guarda ideas para después, recupera tu ludoteca cuando toque jugar y descubre qué
+                  tienen otros jugadores antes de montar la próxima partida.
                 </p>
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
                   {TAVERN_FEATURES.map((feature) => (
@@ -429,7 +429,7 @@ export default async function Home() {
 const TAVERN_FEATURES = [
   {
     title: "Mi ludoteca",
-    description: "Guarda los juegos que tienes, los que quieres, los que has jugado y los que quieres jugar.",
+    description: "Guarda los juegos que no quieres perder: favoritos, pendientes, jugados y próximos.",
     icon: User,
     href: "/mi-perfil",
     action: "Ver mi rincón"
