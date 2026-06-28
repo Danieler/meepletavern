@@ -464,13 +464,30 @@ async function filterGamesFromDb(input: GameFilterInput) {
   const durations = getFilterValues(input.duration);
   const weights = getFilterValues(input.weight);
   const ages = getFilterValues(input.age);
-
-  if (durations.length || weights.length || ages.length || input.sort === "valoracion" || input.sort === "dificultad") {
-    return null;
-  }
-
   const pageSize = CATALOG_PAGE_SIZE;
   const page = Math.max(1, Number(input.page) || 1);
+  const usesAdvancedFilters =
+    durations.length ||
+    weights.length ||
+    ages.length ||
+    input.sort === "valoracion" ||
+    input.sort === "dificultad";
+
+  if (usesAdvancedFilters) {
+    return filterGamesFromAdvancedDb({
+      query,
+      categories,
+      mechanics,
+      players,
+      durations,
+      weights,
+      ages,
+      sort: input.sort,
+      page,
+      pageSize
+    });
+  }
+
   const where = buildCatalogDbWhere({ query, categories, mechanics, players });
   const orderBy = input.sort === "fecha"
     ? [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }] satisfies Prisma.GameOrderByWithRelationInput[]
@@ -498,6 +515,57 @@ async function filterGamesFromDb(input: GameFilterInput) {
     categoriesCount: categories.length,
     mechanicsCount: mechanics.length,
     playersCount: players.length
+  });
+}
+
+async function filterGamesFromAdvancedDb(filters: {
+  query?: string;
+  categories: string[];
+  mechanics: string[];
+  players: string[];
+  durations: string[];
+  weights: string[];
+  ages: string[];
+  sort?: string;
+  page: number;
+  pageSize: number;
+}) {
+  const where = buildCatalogRawWhere(filters);
+  const orderBy = buildCatalogRawOrderBy(filters.sort);
+  const skip = (filters.page - 1) * filters.pageSize;
+  const [countRows, idRows] = await Promise.all([
+    prisma.$queryRaw<Array<{ total: number | bigint }>>(Prisma.sql`
+      select count(*)::int as total
+      from "Game"
+      where ${where}
+    `),
+    prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      select id
+      from "Game"
+      where ${where}
+      order by ${orderBy}
+      offset ${skip}
+      limit ${filters.pageSize}
+    `)
+  ]);
+  const total = Number(countRows[0]?.total || 0);
+  const games = await getCatalogGamesByIds(idRows.map((row) => row.id));
+
+  return auditDataSource("catalog.filterGames.advancedDb", {
+    games,
+    total,
+    page: filters.page,
+    pageSize: filters.pageSize,
+    totalPages: Math.ceil(total / filters.pageSize)
+  }, {
+    sort: filters.sort || "nombre",
+    hasQuery: Boolean(filters.query),
+    categoriesCount: filters.categories.length,
+    mechanicsCount: filters.mechanics.length,
+    playersCount: filters.players.length,
+    durationsCount: filters.durations.length,
+    weightsCount: filters.weights.length,
+    agesCount: filters.ages.length
   });
 }
 
@@ -782,10 +850,14 @@ function toCatalogCardGame(game: CatalogCardDbGame): CatalogGame {
     buyUrl: null,
     offers: [],
     howToPlayVideos: []
-  });
+  }, { compactRatings: true });
 }
 
-function toCatalogGameShape(game: CatalogCardDbGame, details: CatalogGameDetails): CatalogGame {
+function toCatalogGameShape(
+  game: CatalogCardDbGame,
+  details: CatalogGameDetails,
+  options: { compactRatings?: boolean } = {}
+): CatalogGame {
   const duration = parseDuration(game.playtime);
   const title = sanitizeImportedTitle(game.title || game.name) || game.title || game.name;
   const shortDescription = game.shortDescription || game.shortSummary;
@@ -817,6 +889,7 @@ function toCatalogGameShape(game: CatalogCardDbGame, details: CatalogGameDetails
     themes,
     difficulty
   });
+  const ratings = normalizeGameRatings(game.ratings);
 
   return {
     id: game.id,
@@ -842,7 +915,7 @@ function toCatalogGameShape(game: CatalogCardDbGame, details: CatalogGameDetails
     categories,
     mechanics,
     themes,
-    ratings: normalizeGameRatings(game.ratings),
+    ratings: options.compactRatings ? compactGameRatings(ratings) : ratings,
     description: publicDescription,
     reviewSummary: publicSummary,
     pros: details.pros,
@@ -859,6 +932,36 @@ function toCatalogGameShape(game: CatalogCardDbGame, details: CatalogGameDetails
     seoTitle: game.seoTitle,
     seoDescription: game.seoDescription
   };
+}
+
+function compactGameRatings(ratings: GameRatingsData): GameRatingsData {
+  return {
+    ...(ratings.external ? { external: compactExternalRating(ratings.external) } : {}),
+    ...(ratings.combined ? { combined: compactExternalRating(ratings.combined) } : {}),
+    users: ratings.users
+  };
+}
+
+function compactExternalRating(rating: NonNullable<GameRatingsData["external"]>) {
+  return {
+    ...(typeof rating.score === "number" ? { score: rating.score } : {}),
+    label: rating.label,
+    confidence: rating.confidence,
+    source: rating.source,
+    sourcesCount: rating.sourcesCount,
+    explanation: truncateText(rating.explanation || rating.label, 160),
+    lastCheckedAt: rating.lastCheckedAt,
+    signals: []
+  };
+}
+
+function truncateText(value: string, maxLength: number) {
+  const text = value.trim();
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 function buildBuyLinks(game: Pick<CatalogGameDetails, "buyUrl" | "offers">): BuyLink[] {
@@ -1134,6 +1237,159 @@ function buildCatalogDbWhere({
     status: GameStatus.published,
     ...(and.length ? { AND: and } : {})
   };
+}
+
+function buildCatalogRawWhere(filters: {
+  query?: string;
+  categories: string[];
+  mechanics: string[];
+  players: string[];
+  durations: string[];
+  weights: string[];
+  ages: string[];
+}) {
+  const clauses: Prisma.Sql[] = [Prisma.sql`"status" = ${GameStatus.published}::"GameStatus"`];
+
+  if (filters.query) {
+    const likeQuery = `%${filters.query}%`;
+    clauses.push(Prisma.sql`(
+      "title" ilike ${likeQuery}
+      or "name" ilike ${likeQuery}
+      or "shortSummary" ilike ${likeQuery}
+      or "shortDescription" ilike ${likeQuery}
+      or "quickVerdict" ilike ${likeQuery}
+      or "description" ilike ${likeQuery}
+      or "complexity" ilike ${likeQuery}
+      or "difficulty" ilike ${likeQuery}
+      or exists (select 1 from unnest("categories") as category(value) where category.value ilike ${likeQuery})
+      or exists (select 1 from unnest("mechanics") as mechanic(value) where mechanic.value ilike ${likeQuery})
+    )`);
+  }
+
+  if (filters.categories.length) {
+    clauses.push(Prisma.sql`(${Prisma.join(filters.categories.map(buildCategoryRawClause), " or ")})`);
+  }
+
+  if (filters.mechanics.length) {
+    clauses.push(Prisma.sql`(${Prisma.join(filters.mechanics.map((mechanic) => Prisma.sql`${mechanic} = any("mechanics")`), " or ")})`);
+  }
+
+  const playerClauses = filters.players
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .map((value) => Prisma.sql`(
+      "minPlayers" is null
+      or "maxPlayers" is null
+      or ("minPlayers" <= ${value} and "maxPlayers" >= ${value})
+    )`);
+
+  if (playerClauses.length) {
+    clauses.push(Prisma.sql`(${Prisma.join(playerClauses, " or ")})`);
+  }
+
+  const durationClauses = filters.durations.map(buildDurationRawClause);
+  if (durationClauses.length) {
+    clauses.push(Prisma.sql`(${Prisma.join(durationClauses, " or ")})`);
+  }
+
+  const weightClauses = filters.weights.map(buildWeightRawClause);
+  if (weightClauses.length) {
+    clauses.push(Prisma.sql`(${Prisma.join(weightClauses, " or ")})`);
+  }
+
+  const ageClauses = filters.ages
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .map((value) => {
+      const ageValue = gameAgeValueSql();
+      return Prisma.sql`(${ageValue} is null or ${ageValue} <= ${value})`;
+    });
+
+  if (ageClauses.length) {
+    clauses.push(Prisma.sql`(${Prisma.join(ageClauses, " or ")})`);
+  }
+
+  return Prisma.join(clauses, " and ");
+}
+
+function buildCategoryRawClause(category: string) {
+  if (category.toLowerCase() === "familiar") {
+    return Prisma.sql`"categories" && array[${Prisma.join(["Familiar", "Familiares", category])}]::text[]`;
+  }
+
+  return Prisma.sql`${category} = any("categories")`;
+}
+
+function buildDurationRawClause(duration: string) {
+  const durationMax = gameDurationMaxSql();
+  const numericDuration = Number(duration);
+
+  if (Number.isFinite(numericDuration) && numericDuration > 0) {
+    return Prisma.sql`(${durationMax} is null or ${durationMax} <= ${numericDuration})`;
+  }
+
+  return Prisma.sql`(${durationMax} is null or ${durationMax} > 120)`;
+}
+
+function buildWeightRawClause(weight: string) {
+  const rank = gameComplexityRankSql();
+
+  if (weight === "ligero") {
+    return Prisma.sql`${rank} <= 1`;
+  }
+
+  if (weight === "medio") {
+    return Prisma.sql`(${rank} = 0 or ${rank} = 2)`;
+  }
+
+  return Prisma.sql`(${rank} = 0 or ${rank} >= 3)`;
+}
+
+function buildCatalogRawOrderBy(sort = "nombre") {
+  if (sort === "valoracion") {
+    return Prisma.sql`coalesce(
+      nullif("ratings" #>> '{combined,score}', '')::numeric,
+      nullif("ratings" #>> '{external,score}', '')::numeric
+    ) desc nulls last, "title" asc, "name" asc`;
+  }
+
+  if (sort === "fecha") {
+    return Prisma.sql`"publishedAt" desc nulls last, "updatedAt" desc, "createdAt" desc`;
+  }
+
+  if (sort === "dificultad") {
+    return Prisma.sql`${gameComplexityRankSql()} desc, "title" asc, "name" asc`;
+  }
+
+  return Prisma.sql`"title" asc, "name" asc`;
+}
+
+function gameDurationMaxSql() {
+  return Prisma.sql`case
+    when "playtime" ~ '[0-9]' then coalesce(
+      nullif(substring("playtime" from '[0-9]+[^0-9]+([0-9]+)'), '')::int,
+      nullif(substring("playtime" from '([0-9]+)'), '')::int
+    )
+    else null
+  end`;
+}
+
+function gameAgeValueSql() {
+  return Prisma.sql`coalesce(
+    "minAge",
+    nullif(substring("age" from '([0-9]+)'), '')::int
+  )`;
+}
+
+function gameComplexityRankSql() {
+  const value = Prisma.sql`lower(coalesce(nullif("difficulty", ''), nullif("complexity", ''), ''))`;
+
+  return Prisma.sql`case
+    when ${value} like '%alta%' or ${value} like '%duro%' or ${value} like '%pesad%' then 3
+    when ${value} like '%media ligera%' or ${value} like '%ligera%' or ${value} like '%baja%' or ${value} like '%facil%' or ${value} like '%fácil%' then 1
+    when ${value} like '%media%' then 2
+    else 0
+  end`;
 }
 
 function buildTermRankings(
