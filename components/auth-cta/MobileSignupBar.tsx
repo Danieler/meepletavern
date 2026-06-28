@@ -77,7 +77,7 @@ export function MobileSignupBar() {
         <AuthCtaButton
           context="catalog"
           className="min-h-10 shrink-0 px-4 py-2 text-xs font-black bg-ember border-none hover:bg-ember-strong text-white rounded-md shadow-md transition-all active:scale-[0.98]"
-          next={next}
+          next={copy.intent ? next : undefined}
           intent={copy.intent}
         >
           {copy.button}

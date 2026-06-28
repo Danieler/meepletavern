@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import {
+  buildAuthHref,
+  POST_SIGNUP_ONBOARDING_PATH
+} from "@/components/auth-cta/authCtaUrl";
 import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -23,7 +27,7 @@ export function HomeHeroAuthControls() {
             Ir a mi rincón
           </Link>
         ) : (
-          <AuthCtaButton context="home" variant="hero-primary" next="/">
+          <AuthCtaButton context="home" variant="hero-primary">
             Crear mi ludoteca gratis
           </AuthCtaButton>
         )}
@@ -51,7 +55,9 @@ export function HomeSidebarAuthControls() {
     );
   }
 
-  const profileHref = user ? "/mi-perfil" : "/auth?mode=register&next=%2F";
+  const profileHref = user
+    ? "/mi-perfil"
+    : buildAuthHref({ mode: "register", next: POST_SIGNUP_ONBOARDING_PATH });
   const profileLabel = user ? "Ir a mi rincón" : "Crear mi ludoteca gratis";
 
   return (
@@ -104,7 +110,7 @@ export function HomeFooterSignupCta() {
             </ul>
           </div>
           <aside className="rounded-md border border-white/10 bg-white/8 p-5 text-center">
-            <AuthCtaButton context="home" className="w-full justify-center px-6 py-3 text-base" next="/">
+            <AuthCtaButton context="home" className="w-full justify-center px-6 py-3 text-base">
               Crear mi ludoteca gratis
             </AuthCtaButton>
             <p className="mt-3 text-xs font-bold text-parchment/65">

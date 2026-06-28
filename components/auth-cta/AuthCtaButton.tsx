@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { buildAuthHref, type AuthMode, type AuthContext } from "@/components/auth-cta/authCtaUrl";
+import {
+  buildAuthHref,
+  POST_SIGNUP_ONBOARDING_PATH,
+  type AuthMode,
+  type AuthContext
+} from "@/components/auth-cta/authCtaUrl";
 
 type AuthCtaButtonProps = {
   variant?: "primary" | "secondary" | "subtle" | "hero-primary" | "hero-secondary";
@@ -37,7 +42,11 @@ export function AuthCtaButton({
   "aria-label": ariaLabel
 }: AuthCtaButtonProps) {
   const pathname = usePathname();
-  const resolvedNext = next || pathname || "/";
+  const resolvedNext =
+    next ||
+    (mode === "register" && !intent && !authContext
+      ? POST_SIGNUP_ONBOARDING_PATH
+      : pathname || "/");
   const href = buildAuthHref({ mode, next: resolvedNext, intent, authContext });
   const baseClass =
     variant === "primary"

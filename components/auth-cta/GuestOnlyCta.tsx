@@ -36,7 +36,7 @@ export function GuestOnlyCta({
           <h2 className="font-display mt-2 text-2xl font-bold leading-tight">{title}</h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-parchment/78">{description}</p>
         </div>
-        <AuthCtaButton context={context} className="justify-center" next={next} intent={intent}>
+        <AuthCtaButton context={context} className="justify-center" next={intent ? next : undefined} intent={intent}>
           {buttonLabel}
         </AuthCtaButton>
       </div>

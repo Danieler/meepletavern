@@ -41,10 +41,6 @@ export async function GET(request: Request) {
           source: normalizeOnboardingSource(user.user_metadata?.meepletavern_onboarding_source)
         });
       }
-
-      if (!account.profile?.username) {
-        return NextResponse.redirect(new URL("/mi-perfil/ajustes", url.origin));
-      }
     }
   }
 

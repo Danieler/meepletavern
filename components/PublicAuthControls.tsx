@@ -59,6 +59,7 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
     return (
       <AuthCtaButton
         variant="primary"
+        mode="login"
         context="header"
         className="hidden lg:inline-flex whitespace-nowrap px-5 py-2 text-sm font-extrabold min-h-10"
       >
@@ -94,4 +95,3 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
     </div>
   );
 }
-

@@ -8,6 +8,9 @@ export type AuthContext =
   | "comment"
   | "table";
 
+export const POST_SIGNUP_ONBOARDING_PATH = "/juegos?welcome=true";
+export const POST_COMPATIBILITY_SIGNUP_PATH = "/mi-perfil";
+
 export function buildAuthHref({
   mode = "register",
   next = "/",

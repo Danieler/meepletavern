@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  buildAuthHref,
+  POST_COMPATIBILITY_SIGNUP_PATH
+} from "@/components/auth-cta/authCtaUrl";
 import { useAuth } from "@/hooks/useAuth";
 import { Search, Plus, X, Sparkles, Users, BookOpen, Loader2, Play, Beer, Swords, Clock3 } from "lucide-react";
 import Image from "next/image";
@@ -249,7 +253,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
     const gameIds = selectedGames.map((g) => g.id);
     sessionStorage.setItem("meepletavern_onboarding_games", JSON.stringify(gameIds));
     sessionStorage.setItem("meepletavern_onboarding_source", "compatibility_affinity");
-    router.push("/auth?mode=register&next=%2F");
+    router.push(buildAuthHref({ mode: "register", next: POST_COMPATIBILITY_SIGNUP_PATH }));
   };
 
   // Reset calculator
