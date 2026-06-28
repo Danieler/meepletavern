@@ -45,7 +45,7 @@ export function SettingsPageClient() {
 
   useEffect(() => {
     if (!user && !loading) {
-      router.push("/auth?next=%2Fmi-perfil%2Fajustes");
+      router.push("/auth?mode=login&next=%2Fmi-perfil%2Fajustes");
       return;
     }
 

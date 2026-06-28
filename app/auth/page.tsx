@@ -1,4 +1,4 @@
-import { PublicShell } from "@/components/PublicShell";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthPageClient } from "@/components/auth/AuthPageClient";
 import type { AuthContext } from "@/components/auth-cta/authCtaUrl";
 
@@ -34,11 +34,11 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
     : undefined;
 
   return (
-    <PublicShell>
-      <main className="container-page py-10 lg:py-16">
+    <AuthShell>
+      <main className="container-page pb-10 pt-3 lg:pb-16 lg:pt-8">
         <AuthPageClient initialMode={initialMode} nextPath={redirectPath} authContext={authContext} />
       </main>
-    </PublicShell>
+    </AuthShell>
   );
 }
 

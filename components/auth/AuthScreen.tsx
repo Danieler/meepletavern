@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AuthMode, QuickAuthForm } from "@/components/auth/QuickAuthForm";
 import type { AuthActionResult } from "@/hooks/useAuth";
 
@@ -37,7 +38,8 @@ export function AuthScreen({
   authContext,
   introMessage
 }: AuthScreenProps) {
-  const isRegister = initialMode === "register";
+  const [currentMode, setCurrentMode] = useState<AuthMode>(initialMode);
+  const isRegister = currentMode === "register";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-4 sm:py-8">
@@ -99,6 +101,7 @@ export function AuthScreen({
             onGoogleSignIn={onGoogleSignIn}
             onDiscordSignIn={onDiscordSignIn}
             initialMode={initialMode}
+            onModeChange={setCurrentMode}
             compact={false}
           />
         </section>

@@ -42,7 +42,7 @@ declare global {
 }
 
 export type AuthMode = "login" | "register";
-type FieldErrors = Partial<Record<"name" | "email" | "password" | "terms", string>>;
+type FieldErrors = Partial<Record<"name" | "email" | "password", string>>;
 
 type QuickAuthFormProps = {
   isConfigured: boolean;
@@ -53,6 +53,7 @@ type QuickAuthFormProps = {
   onDiscordSignIn: () => Promise<AuthActionResult>;
   initialMode?: AuthMode;
   onSuccess?: () => void;
+  onModeChange?: (mode: AuthMode) => void;
   compact?: boolean;
 };
 
@@ -76,7 +77,6 @@ function getFieldErrors(input: {
   name: string;
   email: string;
   password: string;
-  acceptedTerms: boolean;
 }) {
   const errors: FieldErrors = {};
   const normalizedEmail = normalizeEmail(input.email);
@@ -97,10 +97,6 @@ function getFieldErrors(input: {
     errors.password = "Debe tener al menos 6 caracteres.";
   }
 
-  if (input.mode === "register" && !input.acceptedTerms) {
-    errors.terms = "Acepta las condiciones y la política de privacidad para crear tu cuenta.";
-  }
-
   return errors;
 }
 
@@ -113,14 +109,13 @@ export function QuickAuthForm({
   onDiscordSignIn,
   initialMode = "register",
   onSuccess,
-  compact = false
+  onModeChange
 }: QuickAuthFormProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackTone, setFeedbackTone] = useState<"error" | "success">("success");
@@ -129,8 +124,8 @@ export function QuickAuthForm({
   const [googleScriptStatus, setGoogleScriptStatus] = useState<"loading" | "ready" | "failed">("loading");
   const [googleButtonReady, setGoogleButtonReady] = useState(false);
   
-  // En modo compacto (modal), ocultamos el formulario de email por defecto para priorizar SSO
-  const [showEmailForm, setShowEmailForm] = useState(!compact);
+  // Priorizamos SSO en todos los contextos; email queda disponible, pero no compite de entrada.
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const parentContainerRef = useRef<HTMLDivElement>(null);
@@ -145,6 +140,10 @@ export function QuickAuthForm({
   useEffect(() => {
     googleIdTokenSignInRef.current = onGoogleIdTokenSignIn;
   }, [onGoogleIdTokenSignIn]);
+
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
 
   useEffect(() => {
     handleGoogleResponseRef.current = handleGoogleCredentialResponse;
@@ -222,8 +221,8 @@ export function QuickAuthForm({
     if (submitting || cooldownSeconds > 0) return;
 
     setFeedback(null);
-    const errors = getFieldErrors({ mode, name, email, password, acceptedTerms });
-    if (errors.name || errors.email || errors.password || errors.terms) {
+    const errors = getFieldErrors({ mode, name, email, password });
+    if (errors.name || errors.email || errors.password) {
       setFieldErrors(errors);
       setFeedbackTone("error");
       setFeedback("Revisa los campos marcados antes de continuar.");
@@ -278,12 +277,6 @@ export function QuickAuthForm({
   async function handleGoogleSignIn() {
     trackEvent("auth_modal_google_clicked");
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
-    if (isRegister && !acceptedTerms) {
-      setFieldErrors((current) => ({ ...current, terms: "Acepta las condiciones y la política de privacidad para continuar." }));
-      setFeedbackTone("error");
-      setFeedback("Revisa los campos marcados antes de continuar.");
-      return;
-    }
     if (isRegister) {
       rememberLegalAcceptance();
     }
@@ -300,12 +293,6 @@ export function QuickAuthForm({
 
   async function handleDiscordSignIn() {
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
-    if (isRegister && !acceptedTerms) {
-      setFieldErrors((current) => ({ ...current, terms: "Acepta las condiciones y la política de privacidad para continuar." }));
-      setFeedbackTone("error");
-      setFeedback("Revisa los campos marcados antes de continuar.");
-      return;
-    }
     if (isRegister) {
       rememberLegalAcceptance();
     }
@@ -326,6 +313,9 @@ export function QuickAuthForm({
       setFeedbackTone("error");
       setFeedback("Google no ha devuelto una credencial válida.");
       return;
+    }
+    if (isRegister) {
+      rememberLegalAcceptance();
     }
     setSubmitting(true);
     setFeedback(null);
@@ -351,37 +341,6 @@ export function QuickAuthForm({
       ) : null}
 
       <div ref={parentContainerRef} className="flex w-full flex-col">
-        {isRegister ? (
-          <div className="mb-4 rounded-md border border-walnut/10 bg-white/70 p-3">
-            <label className="flex cursor-pointer items-start gap-3 text-xs font-semibold leading-5 text-walnut/70">
-              <input
-                checked={acceptedTerms}
-                className="focus-ring mt-0.5 h-4 w-4 shrink-0 rounded border-walnut/20 accent-ember"
-                onChange={(event) => {
-                  setAcceptedTerms(event.target.checked);
-                  setFieldErrors((current) => ({ ...current, terms: undefined }));
-                }}
-                type="checkbox"
-              />
-              <span>
-                Acepto las{" "}
-                <Link className="font-bold text-wood underline underline-offset-2 transition hover:text-ember" href="/aviso-legal" target="_blank">
-                  condiciones de uso
-                </Link>{" "}
-                y la{" "}
-                <Link className="font-bold text-wood underline underline-offset-2 transition hover:text-ember" href="/privacidad" target="_blank">
-                  política de privacidad
-                </Link>
-                .
-              </span>
-            </label>
-            <p className="mt-2 text-[11px] font-semibold leading-5 text-walnut/55">
-              Usaremos tus datos para crear tu cuenta, mantener tu ludoteca y prestar el servicio. La analítica opcional se decide aparte en cookies.
-            </p>
-            {fieldErrors.terms ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.terms}</span> : null}
-          </div>
-        ) : null}
-
         {useGoogleOAuthFallback ? (
           <button
             type="button"
@@ -418,6 +377,20 @@ export function QuickAuthForm({
           </span>
           <span>Continuar con Discord</span>
         </button>
+
+        {isRegister ? (
+          <p className="mb-4 text-center text-[11px] font-semibold leading-5 text-walnut/55">
+            Al continuar aceptas las{" "}
+            <Link className="font-bold text-wood underline underline-offset-2 transition hover:text-ember" href="/aviso-legal" target="_blank">
+              condiciones de uso
+            </Link>{" "}
+            y la{" "}
+            <Link className="font-bold text-wood underline underline-offset-2 transition hover:text-ember" href="/privacidad" target="_blank">
+              política de privacidad
+            </Link>
+            . Usaremos tus datos para crear tu cuenta y mantener tu ludoteca.
+          </p>
+        ) : null}
       </div>
 
       {!showEmailForm ? (
@@ -517,7 +490,7 @@ export function QuickAuthForm({
       ) : (
         <p className="mt-5 text-center text-xs font-semibold text-walnut/60">
           ¿No tienes cuenta?{" "}
-          <button type="button" onClick={() => { setMode("register"); setFeedback(null); setFieldErrors({}); setAcceptedTerms(false); }} className="text-ember hover:text-amber-strong transition font-bold underline underline-offset-2">
+          <button type="button" onClick={() => { setMode("register"); setFeedback(null); setFieldErrors({}); }} className="text-ember hover:text-amber-strong transition font-bold underline underline-offset-2">
             Regístrate gratis
           </button>
         </p>

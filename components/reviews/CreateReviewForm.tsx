@@ -54,7 +54,7 @@ export function CreateReviewForm({
         </p>
         <Link
           className="button-primary mt-5 inline-flex"
-          href={`/auth?next=${encodeURIComponent(`/juegos/${gameSlug}/resena`)}`}
+          href={`/auth?mode=login&next=${encodeURIComponent(`/juegos/${gameSlug}/resena`)}`}
         >
           Entrar
         </Link>

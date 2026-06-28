@@ -2,6 +2,7 @@ import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { ConsentAwareVercelAnalytics } from "@/components/ConsentAwareVercelAnalytics";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { LegalAcceptanceSync } from "@/components/LegalAcceptanceSync";
+import { PendingActionSync } from "@/components/PendingActionSync";
 import { MobileSignupBar } from "@/components/auth-cta/MobileSignupBar";
 import { PublicFooter } from "@/components/PublicFooter";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -17,6 +18,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <FeedbackButton />
       <MobileSignupBar />
       <LegalAcceptanceSync />
+      <PendingActionSync />
       {analyticsEnabled ? (
         <>
           <CookieConsentBanner />

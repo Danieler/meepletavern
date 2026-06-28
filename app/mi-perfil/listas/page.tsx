@@ -15,7 +15,7 @@ export default async function MyListsPage() {
   try {
     appUser = await requireCurrentAppUser();
   } catch {
-    redirect("/auth");
+    redirect("/auth?mode=login&next=%2Fmi-perfil%2Flistas");
   }
   await ensureDefaultGameList(appUser.id);
   const lists = await getMyGameLists(appUser.id);

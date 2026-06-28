@@ -12,7 +12,7 @@ export default async function ProfilePage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth");
+    redirect("/auth?mode=login&next=%2Fmi-perfil");
   }
 
   return (

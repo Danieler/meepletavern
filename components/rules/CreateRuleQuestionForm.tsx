@@ -50,7 +50,7 @@ export function CreateRuleQuestionForm({
         </p>
         <Link
           className="button-primary mt-6 inline-flex"
-          href={`/auth?next=${encodeURIComponent(`/juegos/${gameSlug}/reglas/nueva`)}`}
+          href={`/auth?mode=login&next=${encodeURIComponent(`/juegos/${gameSlug}/reglas/nueva`)}`}
         >
           Entrar a la Taberna
         </Link>

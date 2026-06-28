@@ -16,7 +16,7 @@ export default async function MyListDetailPage({ params }: { params: Promise<{ l
   try {
     appUser = await requireCurrentAppUser();
   } catch {
-    redirect("/auth");
+    redirect(`/auth?mode=login&next=${encodeURIComponent(`/mi-perfil/listas/${listSlug}`)}`);
   }
   const page = await getListDetailForOwner({
     userId: appUser.id,
