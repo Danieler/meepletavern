@@ -35,6 +35,7 @@ export function Pagination({ active, totalPages, currentPage }: PaginationProps)
       {currentPage > 1 ? (
         <Link
           href={buildUrl(currentPage - 1)}
+          prefetch={false}
           aria-label="Página anterior"
           className="inline-flex h-11 w-11 items-center justify-center gap-1 rounded-md border border-ink/10 bg-white p-0 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment sm:h-10 sm:w-auto sm:px-3"
         >
@@ -56,6 +57,7 @@ export function Pagination({ active, totalPages, currentPage }: PaginationProps)
       {currentPage < totalPages ? (
         <Link
           href={buildUrl(currentPage + 1)}
+          prefetch={false}
           aria-label="Página siguiente"
           className="inline-flex h-11 w-11 items-center justify-center gap-1 rounded-md border border-ink/10 bg-white p-0 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment sm:h-10 sm:w-auto sm:px-3"
         >

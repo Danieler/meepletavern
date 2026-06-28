@@ -16,6 +16,7 @@ export async function GameRuleQuestions({ gameId, gameSlug }: { gameId: string; 
         </p>
         <Link 
           href={`/juegos/${gameSlug}/reglas/nueva`} 
+          prefetch={false}
           className="button-secondary mt-4 inline-flex border-walnut/20 bg-white/5"
         >
           Preguntar una duda
@@ -79,12 +80,14 @@ export async function GameRuleQuestions({ gameId, gameSlug }: { gameId: string; 
       <div className="flex items-center justify-between gap-4">
         <Link 
           href={`/juegos/${gameSlug}/reglas`} 
+          prefetch={false}
           className="text-sm font-bold text-ember hover:text-amber-600 transition-colors"
         >
           Ver todas las dudas de este juego →
         </Link>
         <Link 
           href={`/juegos/${gameSlug}/reglas/nueva`} 
+          prefetch={false}
           className="button-secondary text-xs py-1.5 px-3"
         >
           Preguntar duda

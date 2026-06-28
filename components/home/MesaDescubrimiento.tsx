@@ -270,6 +270,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
           {/* Card body */}
           <Link
             href={`/juegos/${activeGame.slug}`}
+            prefetch={false}
             className="group grid grid-cols-[68px_minmax(0,1fr)] gap-3 items-start"
           >
             <div className="relative h-[68px] w-[68px] rounded overflow-hidden border border-walnut/10 bg-walnut/5 shrink-0">

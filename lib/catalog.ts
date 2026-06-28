@@ -11,6 +11,7 @@ import {
 } from "@/lib/publicGameCache";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { isUnavailableOfferAvailability } from "@/lib/gameOffers";
+import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import { getPublishedReviewBySlug, getPublishedReviews } from "@/lib/reviews";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
@@ -103,6 +104,9 @@ export type GameFilterInput = {
   page?: string | number;
   welcome?: string | string[];
 };
+
+const CATALOG_PAGE_SIZE = 12;
+const MAX_PUBLIC_GAME_LIMIT = 60;
 
 const publicMediaAssetSelect = {
   id: true,
@@ -291,9 +295,9 @@ export async function getReviewBySlug(slug: string): Promise<Review | null> {
 }
 
 export async function getRankings() {
-  const games = await getCatalogGames();
-  const categoryRankings = buildTermRankings("category", "Categoría", games, getGameCategories);
-  const mechanicRankings = buildTermRankings("mechanic", "Mecánica", games, getGameMechanics);
+  const [categoryCounts, mechanicCounts] = await Promise.all([getCategoryGameCounts(), getMechanicGameCounts()]);
+  const categoryRankings = buildTermRankingsFromCounts("category", "Categoría", categoryCounts);
+  const mechanicRankings = buildTermRankingsFromCounts("mechanic", "Mecánica", mechanicCounts);
 
   return [
     {
@@ -326,48 +330,84 @@ export async function getRankingGames(ranking: Ranking) {
   return sortGamesByEffectiveRating(games);
 }
 
-const getCachedPopularDbGamesList = unstable_cache(
+export async function getSitemapGames() {
+  return getCachedSitemapGames();
+}
+
+const getCachedPopularDbGamesList = (limit: number) => unstable_cache(
   async () => {
-    const games = await getCatalogGames();
-    return sortGamesByEffectiveRating(games);
+    const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+      select id
+      from "Game"
+      where status = 'published'
+      order by coalesce(
+        nullif(ratings #>> '{combined,score}', '')::numeric,
+        nullif(ratings #>> '{external,score}', '')::numeric
+      ) desc nulls last,
+      title asc,
+      name asc
+      limit ${limit}
+    `;
+
+    return auditDataSource("catalog.popularGames.db", await getCatalogGamesByIds(rows.map((row) => row.id)), { limit });
   },
-  ["all-popular-db-games"],
+  ["popular-db-games-v2", String(limit)],
   { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
-);
+)();
 
 export async function getPopularGames(limit = 6) {
-  const games = await getCachedPopularDbGamesList();
-  return games.slice(0, limit);
+  return getCachedPopularDbGamesList(normalizePublicGameLimit(limit));
 }
 
-const getCachedBeginnerDbGamesList = unstable_cache(
+const getCachedBeginnerDbGamesList = (limit: number) => unstable_cache(
   async () => {
-    const games = await getCatalogGames();
-    return games
-      .filter((game) => game.categories.some(isBeginnerTerm) || isLightComplexity(game.complexity))
-      .sort((a, b) => compareOptionalText(a.complexity, b.complexity) || a.title.localeCompare(b.title, "es"));
+    const games = await prisma.game.findMany({
+      where: {
+        status: GameStatus.published,
+        OR: [
+          { categories: { hasSome: ["Familiar", "Familiares", "Clásico", "Clásicos", "Gateway"] } },
+          { complexity: { contains: "liger", mode: "insensitive" } },
+          { complexity: { contains: "fácil", mode: "insensitive" } },
+          { complexity: { contains: "facil", mode: "insensitive" } },
+          { complexity: { contains: "baja", mode: "insensitive" } },
+          { difficulty: { contains: "liger", mode: "insensitive" } },
+          { difficulty: { contains: "fácil", mode: "insensitive" } },
+          { difficulty: { contains: "facil", mode: "insensitive" } },
+          { difficulty: { contains: "baja", mode: "insensitive" } }
+        ]
+      },
+      select: catalogCardGameSelect,
+      orderBy: [{ title: "asc" }, { name: "asc" }],
+      take: limit
+    });
+
+    return auditDataSource("catalog.beginnerGames.db", games.map(toCatalogCardGame), { limit });
   },
-  ["all-beginner-db-games"],
+  ["beginner-db-games-v2", String(limit)],
   { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
-);
+)();
 
 export async function getBeginnerGames(limit = 5) {
-  const games = await getCachedBeginnerDbGamesList();
-  return games.slice(0, limit);
+  return getCachedBeginnerDbGamesList(normalizePublicGameLimit(limit));
 }
 
-const getCachedNewDbGamesList = unstable_cache(
+const getCachedNewDbGamesList = (limit: number) => unstable_cache(
   async () => {
-    const games = await getCatalogGames();
-    return sortGames(games, "fecha");
+    const games = await prisma.game.findMany({
+      where: { status: GameStatus.published },
+      select: catalogCardGameSelect,
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
+      take: limit
+    });
+
+    return auditDataSource("catalog.newGames.db", games.map(toCatalogCardGame), { limit });
   },
-  ["all-new-db-games"],
+  ["new-db-games-v2", String(limit)],
   { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
-);
+)();
 
 export async function getNewGames(limit = 5) {
-  const games = await getCachedNewDbGamesList();
-  return games.slice(0, limit);
+  return getCachedNewDbGamesList(normalizePublicGameLimit(limit));
 }
 
 
@@ -408,6 +448,60 @@ export async function getRelatedGames(game: CatalogGame) {
 }
 
 export async function filterGames(input: GameFilterInput) {
+  const dbResult = await filterGamesFromDb(input);
+  if (dbResult) {
+    return dbResult;
+  }
+
+  return filterGamesInMemory(input);
+}
+
+async function filterGamesFromDb(input: GameFilterInput) {
+  const query = input.q?.trim().toLowerCase();
+  const categories = normalizeCategories(getFilterValues(input.category));
+  const mechanics = normalizeMechanics(getFilterValues(input.mechanic));
+  const players = getFilterValues(input.players);
+  const durations = getFilterValues(input.duration);
+  const weights = getFilterValues(input.weight);
+  const ages = getFilterValues(input.age);
+
+  if (durations.length || weights.length || ages.length || input.sort === "valoracion" || input.sort === "dificultad") {
+    return null;
+  }
+
+  const pageSize = CATALOG_PAGE_SIZE;
+  const page = Math.max(1, Number(input.page) || 1);
+  const where = buildCatalogDbWhere({ query, categories, mechanics, players });
+  const orderBy = input.sort === "fecha"
+    ? [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }] satisfies Prisma.GameOrderByWithRelationInput[]
+    : [{ title: "asc" }, { name: "asc" }] satisfies Prisma.GameOrderByWithRelationInput[];
+  const [total, games] = await Promise.all([
+    prisma.game.count({ where }),
+    prisma.game.findMany({
+      where,
+      select: catalogCardGameSelect,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize
+    })
+  ]);
+
+  return auditDataSource("catalog.filterGames.db", {
+    games: games.map(toCatalogCardGame),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize)
+  }, {
+    sort: input.sort || "nombre",
+    hasQuery: Boolean(query),
+    categoriesCount: categories.length,
+    mechanicsCount: mechanics.length,
+    playersCount: players.length
+  });
+}
+
+async function filterGamesInMemory(input: GameFilterInput) {
   const query = input.q?.trim().toLowerCase();
   const categories = normalizeCategories(getFilterValues(input.category));
   const mechanics = normalizeMechanics(getFilterValues(input.mechanic));
@@ -460,17 +554,26 @@ export async function filterGames(input: GameFilterInput) {
 
   const sorted = sortGames(filtered, input.sort);
   const total = sorted.length;
-  const pageSize = 12;
+  const pageSize = CATALOG_PAGE_SIZE;
   const page = Math.max(1, Number(input.page) || 1);
   const games = sorted.slice((page - 1) * pageSize, page * pageSize);
 
-  return {
+  return auditDataSource("catalog.filterGames.fallback", {
     games,
     total,
     page,
     pageSize,
     totalPages: Math.ceil(total / pageSize)
-  };
+  }, {
+    sort: input.sort || "nombre",
+    hasQuery: Boolean(query),
+    categoriesCount: categories.length,
+    mechanicsCount: mechanics.length,
+    playersCount: players.length,
+    durationsCount: durations.length,
+    weightsCount: weights.length,
+    agesCount: ages.length
+  });
 }
 
 export function sortGames(games: CatalogGame[], sort = "nombre") {
@@ -542,12 +645,12 @@ export function termHref(type: "category" | "mechanic", term: string) {
 // Public list/ranking/card paths should stay below the Data Cache item limit and avoid detail-page fields.
 const getPublishedDbGamesList = unstable_cache(
   async function getPublishedDbGamesList() {
-    return prisma.game.findMany({
+    return auditDataSource("catalog.publishedGameCards.db", await prisma.game.findMany({
       where: { status: GameStatus.published },
       select: catalogCardGameSelect,
       orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
       take: 2000
-    });
+    }));
   },
   ["published-game-cards"],
   { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
@@ -555,13 +658,13 @@ const getPublishedDbGamesList = unstable_cache(
 
 const getPublishedDbGameBySlug = (slug: string) => unstable_cache(
   async () => {
-    return prisma.game.findFirst({
+    return auditDataSource("catalog.gameBySlug.db", await prisma.game.findFirst({
       where: {
         slug,
         status: GameStatus.published
       },
       select: catalogGameSelect
-    });
+    }), { slug });
   },
   ["published-db-game-by-slug", slug],
   { revalidate: 3600, tags: [publicGameDetailTag(slug)] }
@@ -569,13 +672,31 @@ const getPublishedDbGameBySlug = (slug: string) => unstable_cache(
 
 const getPublishedGameTermCountsRows = unstable_cache(
   async function getPublishedGameTermCountsRows() {
-    return prisma.game.findMany({
+    return auditDataSource("catalog.termCountRows.db", await prisma.game.findMany({
       where: { status: GameStatus.published },
       select: catalogTermCountsSelect
-    });
+    }));
   },
   ["published-game-term-counts"],
   { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG, PUBLIC_GAME_TAXONOMY_TAG] }
+);
+
+const getCachedSitemapGames = unstable_cache(
+  async function getCachedSitemapGames() {
+    return auditDataSource("catalog.sitemapGames.db", await prisma.game.findMany({
+      where: { status: GameStatus.published },
+      select: {
+        slug: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 5000
+    }));
+  },
+  ["sitemap-published-games-v1"],
+  { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
 );
 
 const getRelatedDbGames = (slug: string, categories: string[], mechanics: string[], themes: string[]) => {
@@ -937,6 +1058,84 @@ function getFilterValues(value: string | string[] | undefined) {
   return typeof value === "string" && value.trim() ? [value.trim()] : [];
 }
 
+function normalizePublicGameLimit(limit: number) {
+  if (!Number.isFinite(limit)) {
+    return 6;
+  }
+
+  return Math.min(MAX_PUBLIC_GAME_LIMIT, Math.max(1, Math.trunc(limit)));
+}
+
+function buildCatalogDbWhere({
+  query,
+  categories,
+  mechanics,
+  players
+}: {
+  query?: string;
+  categories: string[];
+  mechanics: string[];
+  players: string[];
+}): Prisma.GameWhereInput {
+  const and: Prisma.GameWhereInput[] = [];
+
+  if (query) {
+    and.push({
+      OR: [
+        { title: { contains: query, mode: "insensitive" } },
+        { name: { contains: query, mode: "insensitive" } },
+        { shortSummary: { contains: query, mode: "insensitive" } },
+        { shortDescription: { contains: query, mode: "insensitive" } },
+        { quickVerdict: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+        { complexity: { contains: query, mode: "insensitive" } },
+        { difficulty: { contains: query, mode: "insensitive" } },
+        { categories: { has: query } },
+        { mechanics: { has: query } }
+      ]
+    });
+  }
+
+  if (categories.length) {
+    and.push({
+      OR: categories.map((category) =>
+        category.toLowerCase() === "familiar"
+          ? { categories: { hasSome: ["Familiar", "Familiares", category] } }
+          : { categories: { has: category } }
+      )
+    });
+  }
+
+  if (mechanics.length) {
+    and.push({ OR: mechanics.map((mechanic) => ({ mechanics: { has: mechanic } })) });
+  }
+
+  const playerFilters = players
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .map((value): Prisma.GameWhereInput => ({
+      OR: [
+        { minPlayers: null },
+        { maxPlayers: null },
+        {
+          AND: [
+            { minPlayers: { lte: value } },
+            { maxPlayers: { gte: value } }
+          ]
+        }
+      ]
+    }));
+
+  if (playerFilters.length) {
+    and.push({ OR: playerFilters });
+  }
+
+  return {
+    status: GameStatus.published,
+    ...(and.length ? { AND: and } : {})
+  };
+}
+
 function buildTermRankings(
   type: "category" | "mechanic",
   label: string,
@@ -946,6 +1145,23 @@ function buildTermRankings(
   return getTerms(games, picker)
     .slice(0, 5)
     .map((term) => ({
+      slug: `${type}-${slugify(term)}`,
+      title: `${label}: ${term}`,
+      description: `Juegos publicados en la base de datos con ${label.toLowerCase()} "${term}".`,
+      type,
+      term
+    }));
+}
+
+function buildTermRankingsFromCounts(
+  type: "category" | "mechanic",
+  label: string,
+  counts: Record<string, number>
+): Ranking[] {
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+    .slice(0, 5)
+    .map(([term]) => ({
       slug: `${type}-${slugify(term)}`,
       title: `${label}: ${term}`,
       description: `Juegos publicados en la base de datos con ${label.toLowerCase()} "${term}".`,

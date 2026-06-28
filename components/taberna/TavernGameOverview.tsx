@@ -144,11 +144,11 @@ export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
 function RecentGameRow({ game }: { game: TavernRecentGame }) {
   return (
     <li className="flex min-w-0 items-center gap-3 rounded-md border border-walnut/10 bg-white/65 p-3">
-      <Link href={`/juegos/${game.slug}`} className="shrink-0">
+      <Link href={`/juegos/${game.slug}`} prefetch={false} className="shrink-0">
         <ListGameThumbnail {...game} size={52} />
       </Link>
       <div className="min-w-0">
-        <Link href={`/juegos/${game.slug}`} className="block truncate text-sm font-black text-wood hover:text-ember">
+        <Link href={`/juegos/${game.slug}`} prefetch={false} className="block truncate text-sm font-black text-wood hover:text-ember">
           {game.title}
         </Link>
         <p className="mt-1 line-clamp-2 text-xs font-semibold leading-4 text-walnut/55">
@@ -181,7 +181,7 @@ function Ranking({
         <ol className="mt-3 space-y-2">
           {games.map((game, index) => (
             <li key={game.gameId}>
-              <Link href={`/juegos/${game.slug}`} className="group flex items-center gap-2 rounded-md border border-walnut/10 bg-white/65 px-3 py-2.5 hover:border-ember/35">
+              <Link href={`/juegos/${game.slug}`} prefetch={false} className="group flex items-center gap-2 rounded-md border border-walnut/10 bg-white/65 px-3 py-2.5 hover:border-ember/35">
                 <span className="font-display w-5 shrink-0 text-center text-lg font-bold text-ember">{index + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black text-wood group-hover:text-ember">{game.title}</span>

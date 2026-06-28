@@ -177,6 +177,7 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
   return (
     <Link
       href={`/juegos/${game.slug}`}
+      prefetch={false}
       className="group flex min-h-0 flex-col overflow-hidden rounded-md border border-[#ebd5bf] bg-[#fffdfa] shadow-[0_4px_10px_rgba(120,53,15,0.08),inset_0_0_0_2px_rgba(218,170,120,0.1)] transition hover:-translate-y-0.5 hover:border-[#d97706] hover:shadow-[0_8px_20px_rgba(217,119,6,0.15)]"
     >
       <div className="relative h-36 sm:h-40 lg:h-auto lg:min-h-32 lg:flex-1">
@@ -223,6 +224,7 @@ function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
   return (
     <Link
       href={`/juegos/${game.slug}`}
+      prefetch={false}
       className="group grid min-h-[84px] grid-cols-[68px_minmax(0,1fr)] overflow-hidden rounded-md border border-[#ebd5bf] bg-[#fffdfa] shadow-[0_2px_6px_rgba(120,53,15,0.06),inset_0_0_0_2px_rgba(218,170,120,0.1)] transition hover:-translate-y-0.5 hover:border-[#d97706] hover:shadow-[0_6px_15px_rgba(217,119,6,0.12)]"
     >
       <div className="relative h-full min-h-[84px]">

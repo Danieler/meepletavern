@@ -41,6 +41,7 @@ export default async function ReglasPage({ params }: ReglasPageProps) {
       <main className="container-page py-10 lg:py-14">
         <Link 
           href={`/juegos/${game.slug}#reglas`}
+          prefetch={false}
           className="inline-flex items-center gap-1 text-sm font-bold text-walnut/70 hover:text-wood mb-6 transition-colors"
         >
           <ChevronLeft size={16} />
@@ -58,6 +59,7 @@ export default async function ReglasPage({ params }: ReglasPageProps) {
           </div>
           <Link 
             href={`/juegos/${game.slug}/reglas/nueva`} 
+            prefetch={false}
             className="button-primary shrink-0"
           >
             Preguntar duda

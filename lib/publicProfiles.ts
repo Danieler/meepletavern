@@ -2,6 +2,7 @@ import { Prisma, ProfileVisibility, type UserProfile } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { getCatalogGamesByIds, type CatalogGame } from "@/lib/catalog";
+import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import { normalizeTavernSearch } from "@/lib/tavernSearch";
 
@@ -142,7 +143,7 @@ export async function queryPublicUsersPage(
     });
   }
 
-  return {
+  return auditDataSource("publicProfiles.usersPage.db", {
     items: visibleProfiles.map((profile) => {
       const hasPublicCollection = profile.collectionVisibility === ProfileVisibility.PUBLIC;
 
@@ -155,7 +156,11 @@ export async function queryPublicUsersPage(
       };
     }),
     nextCursor: hasMore ? visibleProfiles.at(-1)?.id || null : null
-  };
+  }, {
+    hasQuery: Boolean(search),
+    hasCursor: Boolean(input.cursor),
+    limit
+  });
 }
 
 export function getPublicUsersPage(

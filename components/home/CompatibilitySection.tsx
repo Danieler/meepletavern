@@ -430,6 +430,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                     <div className="min-w-0 flex-1 leading-tight">
                       <Link
                         href={`/juegos/${sg.slug}`}
+                        prefetch={false}
                         className="font-extrabold text-walnut hover:text-ember focus-visible:text-ember focus-visible:ring-1 focus-visible:ring-ember focus-visible:outline-none rounded hover:underline truncate block"
                       >
                         {sg.name}
@@ -495,6 +496,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                   </span>
                   <Link
                     href={`/juegos/${firstGame.slug}`}
+                    prefetch={false}
                     className="font-display block text-sm font-extrabold text-wood hover:text-ember focus-visible:text-ember focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none rounded hover:underline truncate mt-0.5 leading-tight"
                   >
                     {firstGame.title}
@@ -533,6 +535,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               <Link
                 key={game.slug}
                 href={`/juegos/${game.slug}`}
+                prefetch={false}
                 className="group flex items-center gap-2.5 rounded-lg border border-white/30 bg-white/90 p-2.5 shadow-md hover:bg-white/95 focus-visible:bg-white/95 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none transition-all text-left hover:-translate-y-0.5 hover:shadow-lg"
               >
                 {game.coverImageUrl && (
@@ -693,6 +696,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               <div className="mt-4">
                 <Link
                   href="/juegos"
+                  prefetch={false}
                   className="flex w-full min-h-10 items-center justify-center rounded-lg bg-white/15 border border-white/25 text-white text-sm font-bold hover:bg-white/25 focus-visible:bg-white/25 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none transition-all shadow-sm"
                 >
                   Explorar catálogo completo
@@ -707,7 +711,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               </div>
 
               <div className="mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between gap-3 text-xs text-white font-black">
-                <Link href="/taberna" className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">
+                <Link href="/taberna" prefetch={false} className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">
                   <Users size={12} aria-hidden="true" /> Ver taberna
                 </Link>
                 <Link href="/mi-perfil" className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">

@@ -27,7 +27,7 @@ export function HomeHeroAuthControls() {
             Crear mi ludoteca gratis
           </AuthCtaButton>
         )}
-        <Link href="/juegos" className="button-hero-secondary">
+        <Link href="/juegos" prefetch={false} className="button-hero-secondary">
           Explorar juegos
         </Link>
       </div>
@@ -69,7 +69,7 @@ export function HomeSidebarAuthControls() {
         <Link href={profileHref} className="button-primary justify-center">
           {profileLabel}
         </Link>
-        <Link href="/taberna" className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
+        <Link href="/taberna" prefetch={false} className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
           Ver la taberna
         </Link>
       </div>

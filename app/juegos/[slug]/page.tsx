@@ -22,7 +22,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { UserGamePlayCount } from "@/components/UserGamePlayCount";
 import { UserRatingVote } from "@/components/UserRatingVote";
 import { GameInteractionProvider } from "@/components/GameInteractionProvider";
-import { getGameBySlug, getRelatedGames, getCatalogGames, type CatalogGame } from "@/lib/catalog";
+import { getGameBySlug, getRelatedGames, type CatalogGame } from "@/lib/catalog";
 import { getGameComments } from "@/lib/gameComments";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
 import { siteConfig } from "@/lib/site";
@@ -74,10 +74,8 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const games = await getCatalogGames();
-  return games.map((game) => ({
-    slug: game.slug
-  }));
+  // Generate game pages on demand instead of warming every public detail page from the database during builds.
+  return [];
 }
 
 export default async function GamePage({ params }: GamePageProps) {
@@ -107,11 +105,11 @@ export default async function GamePage({ params }: GamePageProps) {
         <section className="tavern-breadcrumb-bar text-white">
           <div className="container-page py-4">
             <nav className="flex flex-wrap items-center gap-2 text-sm text-white/70" aria-label="Breadcrumb">
-              <Link href="/" className="hover:text-white">
+              <Link href="/" prefetch={false} className="hover:text-white">
                 Inicio
               </Link>
               <ChevronRight size={15} aria-hidden="true" />
-              <Link href="/juegos" className="hover:text-white">
+              <Link href="/juegos" prefetch={false} className="hover:text-white">
                 Juegos
               </Link>
               <ChevronRight size={15} aria-hidden="true" />

@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { ActivityEventType, ActivityEventVisibility } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { auditDataSource } from "@/lib/egressAudit";
 import { normalizeTavernSearch } from "@/lib/tavernSearch";
 
 export const TAVERN_ACTIVITY_PAGE_SIZE = 8;
@@ -77,7 +78,7 @@ export async function queryTavernActivityFeed(
   const hasMore = rows.length > limit;
   const visibleRows = rows.slice(0, limit);
 
-  return {
+  return auditDataSource("tavern.activityFeed.db", {
     items: visibleRows.map((row) => ({
       id: row.id,
       type: row.type,
@@ -94,7 +95,12 @@ export async function queryTavernActivityFeed(
       createdAt: row.createdAt.toISOString()
     })),
     nextCursor: hasMore ? visibleRows.at(-1)?.id || null : null
-  };
+  }, {
+    limit,
+    hasCursor: Boolean(input.cursor),
+    hasQuery: Boolean(search),
+    hasTypeFilter: Boolean(typeFilter)
+  });
 }
 
 const getCachedTavernActivityFeed = (limit: number, cursor: string | null) => unstable_cache(

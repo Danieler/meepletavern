@@ -1,6 +1,7 @@
 import { GameListVisibility, GameStatus, ProfileVisibility } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import type { TavernOverview, TavernRankedGame } from "@/lib/tavernOverview";
 
@@ -73,7 +74,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
   const ratingProfile = rating?.user.profile;
   const listProfile = list?.user.profile;
 
-  return {
+  return auditDataSource("tavern.nowLatestSignals.db", {
     latestRating: rating && ratingProfile
       ? {
           gameTitle: rating.game.title.trim() || rating.game.name,
@@ -90,9 +91,9 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
           userName: listProfile.username || "tabernero",
           userSlug: listProfile.username || "tabernero",
           gameCount: list._count.items
-        }
+      }
       : null
-  };
+  });
 }
 
 const getCachedLatestTavernNowSignals = unstable_cache(
@@ -104,11 +105,11 @@ const getCachedLatestTavernNowSignals = unstable_cache(
 export async function getTavernNowSummary(overviewPromise: Promise<TavernOverview>): Promise<TavernNowSummary> {
   const [overview, latest] = await Promise.all([overviewPromise, getCachedLatestTavernNowSignals()]);
 
-  return {
+  return auditDataSource("tavern.nowSummary", {
     mostWanted: toNowGameSignal(overview.mostWanted?.[0], "Para tenerlo en el radar."),
     mostOwned: toNowGameSignal(overview.mostOwned?.[0], "Fácil de sacar a mesa."),
     ...latest
-  };
+  });
 }
 
 function toNowGameSignal(game: TavernRankedGame | undefined, tagline: string): TavernNowGameSignal | null {

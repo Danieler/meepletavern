@@ -44,13 +44,13 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [popularGames, compatibilityPopularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
-    getPopularGames(6),
+  const [compatibilityPopularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
     getPopularGames(48),
     getBeginnerGames(4),
     getNewGames(4),
     getCategoryTerms()
   ]);
+  const popularGames = compatibilityPopularGames.slice(0, 6);
 
   const ratedGames = popularGames.filter((game) => typeof getEffectiveRatingScore(game) === "number");
   const showRatingsSection = ratedGames.length >= 3;
@@ -467,6 +467,7 @@ function IntentCard({
   return (
     <Link
       href={href}
+      prefetch={false}
       className="quest-card relative group flex items-center gap-2 sm:gap-3 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-2 sm:p-3.5 border border-[#cfb088]/40 shadow-[0_4px_10px_rgba(0,0,0,0.15)] rounded-md select-none transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffbf2]"
       style={{
         "--card-rotation": `${rotation}deg`
@@ -510,6 +511,7 @@ function TavernFeatureCard({
   return (
     <Link
       href={href}
+      prefetch={false}
       className="group rounded-md border border-[#cfb088]/40 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-ember/45 hover:from-[#fffbf2] hover:to-[#fffdf5]"
     >
       <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-ember/10 text-ember">
@@ -537,7 +539,7 @@ function EmptyStatePanel({
     <div className="tavern-card p-6">
       <h3 className="tavern-title text-2xl">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-walnut/80">{description}</p>
-      <Link href={href} className="mt-5 inline-flex text-sm font-extrabold text-ember transition hover:text-wood">
+      <Link href={href} prefetch={false} className="mt-5 inline-flex text-sm font-extrabold text-ember transition hover:text-wood">
         {linkLabel}
       </Link>
     </div>

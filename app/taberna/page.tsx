@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import { Activity, ChevronRight, Dices, Flame, Gamepad2, Heart } from "lucide-react";
 import { PublicShell } from "@/components/PublicShell";
 import { GuestOnlyCta } from "@/components/auth-cta/GuestOnlyCta";
@@ -24,6 +24,8 @@ export const metadata: Metadata = {
 type TavernPageProps = {
   searchParams?: Promise<{ q?: string }>;
 };
+
+const getTavernOverviewForRequest = cache(() => getTavernOverview());
 
 export default async function TavernPage({ searchParams }: TavernPageProps) {
   const { q } = (await searchParams) || {};
@@ -88,12 +90,12 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
 }
 
 async function TavernHighlightsWrapper() {
-  const overview = await getTavernOverview();
+  const overview = await getTavernOverviewForRequest();
   return <TavernHighlights overview={overview} />;
 }
 
 async function TavernNowSectionWrapper() {
-  const overviewPromise = getTavernOverview();
+  const overviewPromise = getTavernOverviewForRequest();
   const summary = await getTavernNowSummary(overviewPromise);
   return <TavernNowSection summary={summary} />;
 }
@@ -109,7 +111,7 @@ async function PublicUserDirectoryWrapper({ query }: { query: string }) {
 }
 
 async function TavernGameOverviewWrapper() {
-  const overview = await getTavernOverview();
+  const overview = await getTavernOverviewForRequest();
   return <TavernGameOverview overview={overview} />;
 }
 
@@ -367,6 +369,7 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
                   <Link 
                     key={game.gameId}
                     href={`/juegos/${encodeURIComponent(game.slug)}`}
+                    prefetch={false}
                     className="group/game relative grid w-[112px] flex-none grid-cols-[38px_minmax(0,1fr)] items-center gap-2 rounded-md border border-white/5 bg-black/40 p-1.5 transition duration-300 hover:bg-white/10 hover:border-ember/30 snap-start"
                   >
                     <div className="relative h-[38px] w-[38px] overflow-hidden rounded bg-white/5 shadow-inner">

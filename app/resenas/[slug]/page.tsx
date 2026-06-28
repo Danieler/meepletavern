@@ -135,6 +135,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
               <div className="mb-8">
                 <Link
                   href={`/juegos/${review.gameSlug}`}
+                  prefetch={false}
                   className="inline-flex items-center gap-1.5 text-sm font-extrabold text-moss hover:text-wood hover:underline decoration-moss/35 underline-offset-4 transition"
                 >
                   Ver ficha de {review.gameTitle} &rarr;
@@ -166,12 +167,12 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                 <Link href="/resenas" className="button-secondary text-xs">
                   Ver más reseñas
                 </Link>
-                <Link href="/juegos" className="button-secondary text-xs">
+                <Link href="/juegos" prefetch={false} className="button-secondary text-xs">
                   Explorar juegos
                 </Link>
               </div>
               {review.gameSlug && (
-                <Link href={`/juegos/${review.gameSlug}`} className="button-primary text-xs">
+                <Link href={`/juegos/${review.gameSlug}`} prefetch={false} className="button-primary text-xs">
                   Ver ficha del juego
                 </Link>
               )}

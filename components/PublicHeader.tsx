@@ -16,7 +16,7 @@ export function PublicHeader() {
     <header className="tavern-header sticky top-0 z-40 text-white">
       <div className="container-page flex min-h-[72px] flex-col gap-2 py-2 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:py-2.5">
         <div className="flex min-w-0 items-center justify-between gap-3">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             <span className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden sm:h-16 sm:w-16 lg:h-[72px] lg:w-[72px]">
               <Image
                 src={siteConfig.markImage}
@@ -41,7 +41,7 @@ export function PublicHeader() {
           </Link>
           <div className="flex shrink-0 items-center gap-2 lg:hidden">
             {!isSearchPage && (
-              <Link className="header-action w-10 px-0 sm:w-auto sm:px-3" href="/juegos" aria-label="Buscar juegos">
+              <Link className="header-action w-10 px-0 sm:w-auto sm:px-3" href="/juegos" prefetch={false} aria-label="Buscar juegos">
                 <BrandIcon name="search" size={18} />
                 <span className="hidden sm:inline">Buscar</span>
               </Link>

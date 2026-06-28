@@ -20,7 +20,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
   if (poster) {
     return (
       <article className="group min-w-0">
-        <Link href={`/juegos/${game.slug}`} prefetch className="block" aria-label={`Abrir ficha de ${game.title}`}>
+        <Link href={`/juegos/${game.slug}`} prefetch={false} className="block" aria-label={`Abrir ficha de ${game.title}`}>
           <div className="relative overflow-hidden rounded-md border border-walnut/15 bg-walnut/10 shadow-sm transition group-hover:-translate-y-0.5 group-hover:border-ember/45 group-hover:shadow-soft">
             <GameCoverImage
               {...game}
@@ -49,7 +49,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
       <article className="tavern-card h-full min-h-[144px] overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45 xl:min-h-[150px]">
         <Link
           href={`/juegos/${game.slug}`}
-          prefetch
+          prefetch={false}
           className="grid h-full min-h-[144px] grid-cols-[88px_minmax(0,1fr)] items-center gap-4 p-3 touch-manipulation cursor-pointer sm:p-4 xl:min-h-[150px]"
           aria-label={`Abrir ficha de ${game.title}`}
         >
@@ -95,7 +95,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
     <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45">
       <Link
         href={`/juegos/${game.slug}`}
-        prefetch
+        prefetch={false}
         className="block touch-manipulation cursor-pointer"
         aria-label={`Abrir ficha de ${game.title}`}
       >

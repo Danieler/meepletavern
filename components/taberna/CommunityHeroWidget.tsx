@@ -9,6 +9,7 @@ export function CommunityHeroWidget({ users }: { users: PublicUserCard[] }) {
   return (
     <Link 
       href="/taberna"
+      prefetch={false}
       className="group relative flex flex-col gap-4 rounded-xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/10"
     >
       <div className="flex items-center justify-between">

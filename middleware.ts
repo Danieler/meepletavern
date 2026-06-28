@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getRequestAuditSummary, logEgressAudit } from "@/lib/egressAudit";
 
 export function middleware(request: NextRequest) {
+  if (!isAdminPath(request.nextUrl.pathname)) {
+    logEgressAudit("request", getRequestAuditSummary(request));
+    return NextResponse.next();
+  }
+
   return handleRequest(request);
 }
 
@@ -8,6 +14,10 @@ const ADMIN_SESSION_COOKIE = "meepletavern_admin_session";
 const ADMIN_SESSION_MAX_AGE = 60 * 60 * 8;
 const DEFAULT_ADMIN_USERNAME = "admin";
 const DEFAULT_ADMIN_PASSWORD = "meepletavern";
+
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin/");
+}
 
 async function handleRequest(request: NextRequest) {
   const auth = await resolveAdminAuth(request);
@@ -175,6 +185,20 @@ export function readAdminAuthConfig(
 
 export const config = {
   matcher: [
+    "/",
+    "/juegos/:path*",
+    "/taberna",
+    "/categorias/:path*",
+    "/mecanicas/:path*",
+    "/rankings/:path*",
+    "/resenas/:path*",
+    "/guias/:path*",
+    "/u/:path*",
+    "/api/mobile/:path*",
+    "/api/taberna/:path*",
+    "/api/compatibility/:path*",
+    "/sitemap.xml",
+    "/robots.txt",
     "/admin/:path*",
     "/api/admin/:path*"
   ]

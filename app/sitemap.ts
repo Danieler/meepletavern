@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import {
-  getCatalogGames,
   getRankings,
   getReviews,
+  getSitemapGames,
   getCategoryTerms,
   getMechanicTerms
 } from "@/lib/catalog";
@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     mechanics,
     usersPage
   ] = await Promise.all([
-    getCatalogGames(),
+    getSitemapGames(),
     getRankings(),
     getReviews(),
     getGuias(),
@@ -59,7 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...catalogGames.map((game) => ({
       url: `${siteConfig.url}/juegos/${game.slug}`,
-      lastModified: new Date(game.addedAt),
+      lastModified: game.publishedAt || game.updatedAt || game.createdAt,
       changeFrequency: "weekly" as const,
       priority: 0.82
     })),

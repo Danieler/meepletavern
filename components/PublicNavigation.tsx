@@ -69,6 +69,7 @@ export function PublicDesktopNavigation() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   aria-current={active ? "page" : undefined}
                   className={`header-nav-link header-nav-link-${group.tone} ${active ? "header-nav-link-active" : ""}`}
                 >
@@ -161,6 +162,7 @@ export function PublicMobileMenu() {
                         <Link
                           key={item.href}
                           href={item.href}
+                          prefetch={false}
                           aria-current={active ? "page" : undefined}
                           className={`mobile-nav-link mobile-nav-link-${group.tone} ${active ? "mobile-nav-link-active" : ""}`}
                         >

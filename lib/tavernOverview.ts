@@ -7,6 +7,7 @@ import {
   type GameImageStatus
 } from "@prisma/client";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 
 const RECENT_ACTIVITY_SCAN_LIMIT = 18;
@@ -158,7 +159,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
   const mostPlayed = toRanking(playedGroups, gamesById);
   const topWanted = mostWanted[0];
 
-  return {
+  return auditDataSource("tavern.overview.db", {
     recentGames,
     mostWanted,
     mostOwned,
@@ -176,7 +177,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
           }
         : null
     }
-  };
+  });
 }
 
 const getCachedTavernOverview = unstable_cache(

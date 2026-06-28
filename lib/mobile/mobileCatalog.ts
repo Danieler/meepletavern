@@ -8,6 +8,7 @@ import {
   PUBLIC_GAME_TAXONOMY_TAG
 } from "@/lib/publicGameCache";
 import { prisma } from "@/lib/prisma";
+import { auditDataSource } from "@/lib/egressAudit";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import { slugify } from "@/lib/slug";
@@ -209,7 +210,13 @@ export function parseMobileGameFilters(searchParams: URLSearchParams): MobileGam
 }
 
 export async function getMobileGames(filters: MobileGameFilterInput): Promise<MobileGamesResponse> {
-  const [dbGames, taxonomy] = await Promise.all([getPublishedMobileDbGames(), getMobileTaxonomyLookup()]);
+  const taxonomy = await getMobileTaxonomyLookup();
+  const dbResult = await getMobileGamesFromDb(filters, taxonomy);
+  if (dbResult) {
+    return dbResult;
+  }
+
+  const dbGames = await getPublishedMobileDbGames();
   const games = dbGames.map((game) => toMobileMappedGame(game, taxonomy));
   const filteredGames = filterMobileGames(games, filters, taxonomy);
   const sortedGames = sortMobileGames(filteredGames, filters.sort);
@@ -218,7 +225,7 @@ export async function getMobileGames(filters: MobileGameFilterInput): Promise<Mo
   const limit = Math.min(Math.max(1, filters.limit), maxMobilePageSize);
   const offset = (page - 1) * limit;
 
-  return {
+  return auditDataSource("mobile.games.fallback", {
     items: sortedGames.slice(offset, offset + limit).map(toMobileGameListItem),
     pagination: {
       page,
@@ -227,7 +234,51 @@ export async function getMobileGames(filters: MobileGameFilterInput): Promise<Mo
       totalPages: Math.ceil(total / limit)
     },
     appliedFilters: buildAppliedFilters(filters)
-  };
+  }, getMobileFilterAuditPayload(filters));
+}
+
+async function getMobileGamesFromDb(
+  filters: MobileGameFilterInput,
+  taxonomy: TaxonomyLookup
+): Promise<MobileGamesResponse | null> {
+  if (
+    filters.duration.length ||
+    filters.weight.length ||
+    filters.age.length ||
+    filters.sort === "valoracion" ||
+    filters.sort === "dificultad"
+  ) {
+    return null;
+  }
+
+  const page = Math.max(1, filters.page);
+  const limit = Math.min(Math.max(1, filters.limit), maxMobilePageSize);
+  const where = buildMobileCatalogDbWhere(filters, taxonomy);
+  const orderBy = filters.sort === "fecha"
+    ? [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }] satisfies Prisma.GameOrderByWithRelationInput[]
+    : [{ title: "asc" }, { name: "asc" }] satisfies Prisma.GameOrderByWithRelationInput[];
+  const [total, dbGames] = await Promise.all([
+    prisma.game.count({ where }),
+    prisma.game.findMany({
+      where,
+      select: mobileGameListSelect,
+      orderBy,
+      skip: (page - 1) * limit,
+      take: limit
+    })
+  ]);
+  const items = dbGames.map((game) => toMobileGameListItem(toMobileMappedGame(game, taxonomy)));
+
+  return auditDataSource("mobile.games.db", {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    },
+    appliedFilters: buildAppliedFilters(filters)
+  }, getMobileFilterAuditPayload(filters));
 }
 
 export async function getMobileGameBySlug(slug: string): Promise<MobileGameDetail | null> {
@@ -263,23 +314,23 @@ async function getPublishedMobileDbGames() {
 }
 
 const getCachedPublishedMobileDbGames = unstable_cache(
-  async () => prisma.game.findMany({
+  async () => auditDataSource("mobile.publishedGameList.db", await prisma.game.findMany({
     where: { status: GameStatus.published },
     select: mobileGameListSelect,
     orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }]
-  }),
+  })),
   ["mobile-published-game-list"],
   { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG] }
 );
 
 const getPublishedMobileDbGameBySlug = (slug: string) => unstable_cache(
-  async () => prisma.game.findFirst({
+  async () => auditDataSource("mobile.gameBySlug.db", await prisma.game.findFirst({
     where: {
       slug,
       status: GameStatus.published
     },
     select: mobileGameSelect
-  }),
+  }), { slug }),
   ["mobile-game-by-slug", slug],
   { revalidate: 3600, tags: [publicGameDetailTag(slug)] }
 )();
@@ -303,7 +354,7 @@ async function getMobileTaxonomyLookup(): Promise<TaxonomyLookup> {
 }
 
 const getCachedMobileTaxonomyTerms = unstable_cache(
-  async () => prisma.taxonomyTerm.findMany({
+  async () => auditDataSource("mobile.taxonomyTerms.db", await prisma.taxonomyTerm.findMany({
     where: {
       type: {
         in: [TaxonomyType.category, TaxonomyType.mechanic, TaxonomyType.theme]
@@ -316,7 +367,7 @@ const getCachedMobileTaxonomyTerms = unstable_cache(
       name: true,
       slug: true
     }
-  }),
+  })),
   ["mobile-taxonomy-terms"],
   { revalidate: 3600, tags: [PUBLIC_GAME_TAXONOMY_TAG] }
 );
@@ -361,13 +412,13 @@ const getCachedMobileTaxonomyTermsByType = (type: TaxonomyType) => unstable_cach
 )();
 
 const getCachedMobileTaxonomyCountRows = unstable_cache(
-  async () => prisma.game.findMany({
+  async () => auditDataSource("mobile.taxonomyCountRows.db", await prisma.game.findMany({
     where: { status: GameStatus.published },
     select: {
       categories: true,
       mechanics: true
     }
-  }),
+  })),
   ["mobile-taxonomy-count-rows"],
   { revalidate: 3600, tags: [PUBLIC_GAMES_LIST_TAG, PUBLIC_GAME_TAXONOMY_TAG] }
 );
@@ -431,6 +482,74 @@ function filterMobileGames(games: MobileMappedGame[], filters: MobileGameFilterI
       matchesThemes
     );
   });
+}
+
+function buildMobileCatalogDbWhere(filters: MobileGameFilterInput, taxonomy: TaxonomyLookup): Prisma.GameWhereInput {
+  const and: Prisma.GameWhereInput[] = [];
+  const query = filters.q?.trim().toLowerCase();
+  const categories = resolveTaxonomyFilterValues(filters.category, taxonomy.category);
+  const mechanics = resolveTaxonomyFilterValues(filters.mechanic, taxonomy.mechanic);
+  const themes = resolveTaxonomyFilterValues(filters.theme, taxonomy.theme);
+
+  if (query) {
+    and.push({
+      OR: [
+        { title: { contains: query, mode: "insensitive" } },
+        { name: { contains: query, mode: "insensitive" } },
+        { shortSummary: { contains: query, mode: "insensitive" } },
+        { shortDescription: { contains: query, mode: "insensitive" } },
+        { quickVerdict: { contains: query, mode: "insensitive" } },
+        { complexity: { contains: query, mode: "insensitive" } },
+        { difficulty: { contains: query, mode: "insensitive" } },
+        { categories: { has: query } },
+        { mechanics: { has: query } },
+        { themes: { has: query } }
+      ]
+    });
+  }
+
+  if (categories.length) {
+    and.push({
+      OR: categories.map((category) =>
+        normalizeFilterText(category.original) === "familiar"
+          ? { categories: { hasSome: ["Familiar", "Familiares", category.name] } }
+          : { categories: { has: category.name } }
+      )
+    });
+  }
+
+  if (mechanics.length) {
+    and.push({ OR: mechanics.map((mechanic) => ({ mechanics: { has: mechanic.name } })) });
+  }
+
+  if (themes.length) {
+    and.push({ OR: themes.map((theme) => ({ themes: { has: theme.name } })) });
+  }
+
+  const playerFilters = filters.players
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .map((value): Prisma.GameWhereInput => ({
+      OR: [
+        { minPlayers: null },
+        { maxPlayers: null },
+        {
+          AND: [
+            { minPlayers: { lte: value } },
+            { maxPlayers: { gte: value } }
+          ]
+        }
+      ]
+    }));
+
+  if (playerFilters.length) {
+    and.push({ OR: playerFilters });
+  }
+
+  return {
+    status: GameStatus.published,
+    ...(and.length ? { AND: and } : {})
+  };
 }
 
 function toMobileMappedGame(game: MobileListDbGame | MobileDbGame, taxonomy: TaxonomyLookup): MobileMappedGame {
@@ -598,6 +717,22 @@ function buildAppliedFilters(filters: MobileGameFilterInput): MobileAppliedFilte
     ...appliedArrayFilter("weight", filters.weight),
     ...appliedArrayFilter("age", filters.age),
     ...(filters.sort ? { sort: filters.sort } : {})
+  };
+}
+
+function getMobileFilterAuditPayload(filters: MobileGameFilterInput) {
+  return {
+    page: filters.page,
+    limit: filters.limit,
+    sort: filters.sort || "nombre",
+    hasQuery: Boolean(filters.q),
+    categoryCount: filters.category.length,
+    mechanicCount: filters.mechanic.length,
+    themeCount: filters.theme.length,
+    playersCount: filters.players.length,
+    durationCount: filters.duration.length,
+    weightCount: filters.weight.length,
+    ageCount: filters.age.length
   };
 }
 

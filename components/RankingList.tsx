@@ -18,6 +18,7 @@ export function RankingList({ games }: RankingListProps) {
           <li key={game.slug}>
             <Link
               href={`/juegos/${game.slug}`}
+              prefetch={false}
               className="grid gap-4 p-4 transition hover:bg-ember/5 sm:grid-cols-[54px_70px_minmax(0,1fr)] sm:items-center touch-manipulation cursor-pointer"
               aria-label={`Abrir ficha de ${game.title}`}
             >

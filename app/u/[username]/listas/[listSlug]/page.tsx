@@ -49,9 +49,9 @@ export default async function PublicListPage({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {page.items.map((item) => (
                 <article key={item.itemId} className="tavern-card flex min-w-0 items-center gap-3 p-3">
-                  <Link href={`/juegos/${item.slug}`} className="shrink-0"><ListGameThumbnail {...item} size={72} /></Link>
+                  <Link href={`/juegos/${item.slug}`} prefetch={false} className="shrink-0"><ListGameThumbnail {...item} size={72} /></Link>
                   <div className="min-w-0">
-                    <Link href={`/juegos/${item.slug}`} className="line-clamp-2 text-sm font-extrabold leading-5 text-wood hover:text-ember">{item.title}</Link>
+                    <Link href={`/juegos/${item.slug}`} prefetch={false} className="line-clamp-2 text-sm font-extrabold leading-5 text-wood hover:text-ember">{item.title}</Link>
                     <p className="mt-2 text-xs font-semibold text-walnut/50">{item.year || "Año pendiente"}</p>
                   </div>
                 </article>

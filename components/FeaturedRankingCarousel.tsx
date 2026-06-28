@@ -25,6 +25,7 @@ export function FeaturedRankingCarousel({ games }: { games: CatalogGame[] }) {
           <li key={game.slug} className="flex w-[84vw] max-w-[340px] shrink-0 snap-start md:h-full md:w-auto md:max-w-none md:shrink">
             <Link
               href={`/juegos/${game.slug}`}
+              prefetch={false}
               className={`tavern-card relative grid h-full min-h-[164px] grid-cols-[76px_minmax(0,1fr)] items-center gap-3 p-3.5 pl-14 transition hover:-translate-y-0.5 hover:border-ember/55 sm:grid-cols-[88px_minmax(0,1fr)] md:min-h-[144px] xl:min-h-[150px] touch-manipulation cursor-pointer ${cardStyle}`}
               aria-label={`Abrir ficha de ${game.title}`}
             >

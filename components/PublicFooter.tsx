@@ -61,7 +61,7 @@ function FooterColumn({ title, links }: { title: string; links: Array<{ href: st
       <ul className="mt-3 space-y-1.5 text-sm">
         {links.map((link) => (
           <li key={`${link.href}-${link.label}`}>
-            <Link className="footer-link" href={link.href}>
+            <Link className="footer-link" href={link.href} prefetch={false}>
               {link.label}
             </Link>
           </li>

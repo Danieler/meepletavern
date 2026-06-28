@@ -100,6 +100,7 @@ export function GameFilters({
             <Link
               className="inline-flex h-9 items-center px-2 text-sm font-bold text-moss transition hover:text-wood hover:underline"
               href="/juegos"
+              prefetch={false}
             >
               Limpiar {activeCount > 0 && `(${activeCount})`}
             </Link>
@@ -210,6 +211,7 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
   return (
     <Link
       href={`/juegos?${params.toString()}`}
+      prefetch={false}
       className={`inline-flex min-h-9 items-center rounded-md px-3 py-1.5 text-sm font-extrabold leading-none transition ${
         isActive ? "bg-ink text-white shadow-sm" : "border border-ink/5 bg-ink/5 text-ink/70 hover:border-moss/20 hover:bg-moss/10 hover:text-moss"
       }`}
