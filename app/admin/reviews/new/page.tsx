@@ -42,7 +42,8 @@ export default async function AdminNewReviewPage({ searchParams }: AdminNewRevie
             title: "",
             summary: "",
             body: "",
-            isApproved: false
+            isApproved: false,
+            instagramHashtags: ""
           }}
         />
       )}

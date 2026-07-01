@@ -330,6 +330,7 @@ model Review {
   body            String
   isApproved      Boolean  @default(false)
   instagramPostId String?
+  instagramHashtags String?
   createdByAdmin  Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

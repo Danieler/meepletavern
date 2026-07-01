@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useRef } from "react";
 import Link from "next/link";
-import { Save, Loader2 } from "lucide-react";
+import { Hash, Loader2, Save } from "lucide-react";
 import { ReviewBodyEditor } from "@/components/reviews/ReviewBodyEditor";
 import { REVIEW_SUMMARY_MAX_LENGTH, REVIEW_TITLE_MAX_LENGTH } from "@/lib/reviewContent";
 import {
@@ -27,6 +27,7 @@ type ReviewFormValue = {
   body: string;
   isApproved?: boolean;
   instagramPostId?: string | null;
+  instagramHashtags?: string | null;
 };
 
 export function CreateAdminReviewForm({
@@ -174,6 +175,31 @@ function AdminReviewFields({
               <ReviewBodyEditor value={body} onChange={setBody} required />
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-md border border-moss/15 bg-[#f3faf7] p-5 shadow-soft">
+        <div className="flex items-start gap-3">
+          <span className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-moss text-white">
+            <Hash size={18} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-ink">Instagram</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-ink/60">
+              Hashtags separados por espacios o comas. Se combinarán con hashtags base de MeepleTavern y el juego.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5">
+          <Field label="Hashtags">
+            <textarea
+              className="field-input min-h-24 py-3"
+              name="instagramHashtags"
+              defaultValue={initialValue.instagramHashtags || ""}
+              maxLength={420}
+              placeholder="#eurogames #juegosdemesa #resena"
+            />
+          </Field>
         </div>
       </section>
     </>

@@ -21,6 +21,17 @@ test("analytics removes queries and redacts public profile identifiers", () => {
   );
 });
 
+test("analytics keeps safe campaign parameters for public attribution", () => {
+  assert.equal(
+    sanitizeAnalyticsUrl("https://meepletavern.com/resenas/azul?utm_source=instagram&utm_medium=social&utm_campaign=review&utm_content=azul&q=Daniel"),
+    "https://meepletavern.com/resenas/azul?utm_source=instagram&utm_medium=social&utm_campaign=review&utm_content=azul"
+  );
+  assert.equal(
+    sanitizeAnalyticsUrl("/instagram?utm_source=instagram&utm_campaign=link_in_bio&utm_content=<script>"),
+    "/instagram?utm_source=instagram&utm_campaign=link_in_bio"
+  );
+});
+
 test("analytics drops private URLs and safely normalizes relative paths", () => {
   assert.equal(sanitizeAnalyticsUrl("https://meepletavern.com/auth/callback?code=secret"), null);
   assert.equal(sanitizeAnalyticsUrl("/categorias?origen=menu"), "/categorias");

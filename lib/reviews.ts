@@ -11,6 +11,7 @@ export type ReviewPayload = {
   summary: string;
   body: string;
   isApproved?: boolean;
+  instagramHashtags?: string | null;
   createdByAdmin?: boolean;
 };
 
@@ -58,6 +59,7 @@ const adminReviewSelect = {
   createdByAdmin: true,
   isApproved: true,
   instagramPostId: true,
+  instagramHashtags: true,
   createdAt: true,
   updatedAt: true,
   publishedAt: true,
@@ -154,6 +156,7 @@ export async function createReview(input: ReviewPayload) {
       summary,
       body,
       isApproved: input.isApproved ?? false,
+      instagramHashtags: normalizeOptionalText(input.instagramHashtags),
       createdByAdmin: input.createdByAdmin ?? false,
       publishedAt: new Date()
     },
@@ -179,6 +182,7 @@ export async function updateReview(
     body: string;
     isApproved?: boolean;
     instagramPostId?: string | null;
+    instagramHashtags?: string | null;
     publishedAt?: Date | null;
   }
 ) {
@@ -211,6 +215,7 @@ export async function updateReview(
       body,
       isApproved: input.isApproved,
       instagramPostId: input.instagramPostId,
+      instagramHashtags: normalizeOptionalText(input.instagramHashtags),
       publishedAt: input.publishedAt ?? currentDate()
     },
     select: {
@@ -249,6 +254,11 @@ export async function deleteReview(id: string) {
 
 function currentDate() {
   return new Date();
+}
+
+function normalizeOptionalText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 async function ensureUniqueReviewSlug(baseSlug: string, ignoreId?: string) {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createReview, deleteReview, updateReview, getAdminReviewById, updateReviewInstagramPostId } from "@/lib/reviews";
 import { publishToInstagram } from "@/lib/instagram";
+import { buildReviewInstagramCaption } from "@/lib/instagramSharing";
 import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
 import { parseReviewContent } from "@/lib/reviewContent";
 
@@ -27,6 +28,7 @@ export async function createAdminReviewAction(
       summary: requiredString(formData.get("summary"), "El resumen es obligatorio."),
       body: requiredString(formData.get("body"), "La reseña es obligatoria."),
       isApproved,
+      instagramHashtags: optionalString(formData.get("instagramHashtags")),
       createdByAdmin: true
     });
 
@@ -59,7 +61,8 @@ export async function updateAdminReviewAction(
       title: requiredString(formData.get("title"), "El título es obligatorio."),
       summary: requiredString(formData.get("summary"), "El resumen es obligatorio."),
       body: requiredString(formData.get("body"), "La reseña es obligatoria."),
-      isApproved
+      isApproved,
+      instagramHashtags: optionalString(formData.get("instagramHashtags"))
     });
 
     let instagramError = "";
@@ -141,13 +144,13 @@ async function tryPublishToInstagram(reviewId: string): Promise<{ success: boole
       }
 
       if (imageUrls.length > 0) {
-        const siteUrl = "https://meepletavern.com";
-        const authorUsername = review.user?.profile?.username;
-        const authorText = authorUsername
-          ? `${review.authorName} (${siteUrl}/u/${authorUsername})`
-          : review.authorName;
-
-        const caption = `Nueva reseña de ${review.game.title || review.game.name} por ${authorText}.\n\n${review.summary}\n\n¡Entra en la web, regístrate y crea tus propias reseñas como esta!`;
+        const caption = buildReviewInstagramCaption({
+          authorName: review.authorName,
+          gameTitle: review.game.title || review.game.name,
+          hashtags: review.instagramHashtags,
+          reviewTitle: review.title,
+          summary: review.summary
+        });
         try {
           const postId = await publishToInstagram(imageUrls, caption);
           if (postId) {
