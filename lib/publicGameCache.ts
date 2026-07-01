@@ -2,6 +2,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 
 export const PUBLIC_GAMES_LIST_TAG = "public-games-list";
 export const PUBLIC_GAME_TAXONOMY_TAG = "public-game-taxonomy";
+export const PUBLIC_REVIEWS_TAG = "public-games";
 
 export function publicGameDetailTag(slug: string) {
   return `public-game:${slug}`;
@@ -9,8 +10,11 @@ export function publicGameDetailTag(slug: string) {
 
 export function revalidatePublicGameDetail(slug: string) {
   revalidateTag(publicGameDetailTag(slug));
+  revalidateTag(PUBLIC_REVIEWS_TAG);
   revalidatePath(`/api/mobile/v1/games/${encodeURIComponent(slug)}`);
   revalidatePath(`/juegos/${slug}`);
+  revalidatePath("/resenas");
+  revalidatePath("/instagram");
 }
 
 export function revalidatePublicGameCollections() {

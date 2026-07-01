@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { BrandIcon } from "@/components/BrandIcon";
 import { GameCoverImage } from "@/components/GameCoverImage";
+import { ReviewRatingBadge } from "@/components/reviews/ReviewRatingBadge";
 import type { Review } from "@/lib/catalog";
 
 type ReviewCardProps = {
   review: Review;
   compact?: boolean;
   list?: boolean;
+  featured?: boolean;
   href?: string;
 };
 
-export function ReviewCard({ review, compact = false, list = false, href = `/resenas/${review.slug}` }: ReviewCardProps) {
+export function ReviewCard({ review, compact = false, list = false, featured = false, href = `/resenas/${review.slug}` }: ReviewCardProps) {
   if (list) {
     return (
       <article className="border-b border-walnut/10 pb-3 last:border-b-0 last:pb-0">
@@ -26,8 +28,59 @@ export function ReviewCard({ review, compact = false, list = false, href = `/res
           </span>
           <span className="rating-chip self-start">
             <BrandIcon name="star" size={14} />
-            MT
+            {formatRating(review.rating)}
           </span>
+        </Link>
+      </article>
+    );
+  }
+
+  if (featured) {
+    return (
+      <article className="review-card-featured review-card-premium group relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#c9821f,#2f6f62,#8b6f7a)]" />
+        <Link
+          href={href}
+          className="grid min-w-0 gap-0 touch-manipulation cursor-pointer md:grid-cols-[minmax(0,380px)_minmax(0,1fr)]"
+          aria-label={`Abrir reseña de ${review.title}`}
+        >
+          <div className="relative min-h-64 overflow-hidden bg-ink/5 md:min-h-80">
+            <GameCoverImage
+              {...review}
+              gameTitle={review.gameTitle}
+              variant="detail"
+              className="h-full rounded-none transition duration-500 group-hover:scale-[1.03]"
+              imageSizes="(max-width: 768px) 100vw, 380px"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_50%,rgba(0,0,0,0.15))]" />
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md border border-[#eab35c]/30 bg-[#eab35c]/15 px-2.5 py-1 text-[11px] font-black uppercase leading-4 tracking-[0.12em] text-[#eab35c] backdrop-blur">
+              <BrandIcon name="star" size={13} />
+              Destacada
+            </span>
+            <ReviewRatingBadge rating={review.rating} size="lg" tone="dark" className="absolute bottom-3 right-3" />
+          </div>
+          <div className="flex min-w-0 flex-col p-5 sm:p-7">
+            <div className="flex-1">
+              <span className="tavern-eyebrow">{review.gameTitle}</span>
+              <h2 className="font-display mt-3 text-2xl font-bold leading-tight text-wood transition group-hover:text-moss sm:text-3xl">
+                {review.title}
+              </h2>
+              <p className="tavern-meta mt-2">Por {review.authorName}</p>
+              <p className="mt-4 line-clamp-4 text-sm font-medium leading-7 text-walnut/82 sm:text-base">
+                {review.summary}
+              </p>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <p className="tavern-meta inline-flex items-center gap-2">
+                <BrandIcon name="calendar" size={16} />
+                {formatDate(review.publishedAt)}
+              </p>
+              <span className="inline-flex items-center gap-2 rounded-md border border-moss/20 bg-moss px-4 py-2 text-sm font-black text-white shadow-sm transition group-hover:bg-wood">
+                Leer reseña completa
+                <span aria-hidden="true">-&gt;</span>
+              </span>
+            </div>
+          </div>
         </Link>
       </article>
     );
@@ -38,7 +91,7 @@ export function ReviewCard({ review, compact = false, list = false, href = `/res
     : "grid min-w-0 gap-0 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]";
 
   return (
-    <article className="group relative overflow-hidden rounded-md border border-walnut/15 bg-[linear-gradient(135deg,#fffaf0_0%,#f6fbf8_54%,#f4eef3_100%)] shadow-soft transition hover:-translate-y-0.5 hover:border-moss/35 hover:shadow-tavern">
+    <article className="review-card-premium group relative overflow-hidden rounded-md border border-walnut/15 bg-[linear-gradient(135deg,#fffaf0_0%,#f6fbf8_54%,#f4eef3_100%)] shadow-soft">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#c9821f,#2f6f62,#8b6f7a)]" />
       <Link
         href={href}
@@ -56,8 +109,9 @@ export function ReviewCard({ review, compact = false, list = false, href = `/res
           <span className="absolute left-3 top-3 rounded-md border border-white/20 bg-ink/75 px-2.5 py-1 text-[11px] font-black uppercase leading-4 tracking-[0.12em] text-white backdrop-blur">
             Reseña
           </span>
+          <ReviewRatingBadge rating={review.rating} size="sm" tone="dark" className="absolute bottom-3 right-3" />
         </div>
-        <div className="flex min-w-0 flex-col p-4 sm:p-5">
+          <div className="flex min-w-0 flex-col p-4 sm:p-5">
           <div className="flex flex-1 flex-col">
             <div className="min-w-0">
               <p className="tavern-eyebrow">{review.gameTitle}</p>
@@ -80,6 +134,10 @@ export function ReviewCard({ review, compact = false, list = false, href = `/res
       </Link>
     </article>
   );
+}
+
+function formatRating(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function formatDate(value: string) {

@@ -2,6 +2,7 @@ import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { AdminReviewsTable } from "@/components/AdminReviewsTable";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
+import { getEffectiveReviewRating } from "@/lib/reviewRating";
 import { getAdminReviews } from "@/lib/reviews";
 import Link from "next/link";
 
@@ -27,6 +28,7 @@ export default async function AdminReviewsPage() {
             id: review.id,
             title: review.title,
             slug: review.slug,
+            rating: getEffectiveReviewRating(review.game.ratings, review.rating),
             authorName: review.authorName,
             createdByAdmin: review.createdByAdmin,
             isApproved: review.isApproved,

@@ -13,6 +13,7 @@ import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEd
 import { isUnavailableOfferAvailability } from "@/lib/gameOffers";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
+import { getEffectiveReviewRating } from "@/lib/reviewRating";
 import { getPublishedReviewBySlug, getPublishedReviews } from "@/lib/reviews";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import type { GameRatingsData } from "@/lib/ratings/types";
@@ -79,6 +80,7 @@ export type Review = GameImageFields & {
   gameTitle: string;
   summary: string;
   body: string;
+  rating: number;
   authorName: string;
   authorUsername?: string | null;
   publishedAt: string;
@@ -1064,6 +1066,7 @@ function toPublishedReview(review: PublicReviewSource): Review | null {
     placeholderKind: "board-game",
     summary: review.summary,
     body: "body" in review ? review.body : "",
+    rating: getEffectiveReviewRating(review.game.ratings, review.rating),
     authorName: review.authorName,
     authorUsername: review.user?.profile?.username || null,
     publishedAt: toIsoString(review.publishedAt) || new Date().toISOString()

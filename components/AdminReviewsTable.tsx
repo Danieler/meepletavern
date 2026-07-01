@@ -9,6 +9,7 @@ type AdminReviewRow = {
   id: string;
   title: string;
   slug: string;
+  rating: number;
   authorName: string;
   createdByAdmin: boolean;
   isApproved: boolean;
@@ -83,6 +84,7 @@ export function AdminReviewsTable({
               </ThCheckbox>
               <th className="px-4 py-3">Reseña</th>
               <th className="px-4 py-3">Juego</th>
+              <th className="px-4 py-3">Nota ficha</th>
               <th className="px-4 py-3">Autor</th>
               <th className="px-4 py-3">Tipo</th>
               <th className="px-4 py-3">Estado</th>
@@ -118,6 +120,11 @@ export function AdminReviewsTable({
                     <Link className="font-semibold text-moss hover:text-ink" href={`/admin/games/${review.game.id}`}>
                       {review.game.title}
                     </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center rounded-md border border-ember/20 bg-ember/10 px-2 py-1 text-xs font-black text-wood">
+                      {formatRating(review.rating)}/10
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-ink/70">{review.authorName}</td>
                   <td className="px-4 py-3 text-ink/70">
@@ -163,7 +170,7 @@ export function AdminReviewsTable({
             })}
             {!reviews.length ? (
               <tr>
-                <td className="px-4 py-10 text-center text-ink/60" colSpan={6}>
+                <td className="px-4 py-10 text-center text-ink/60" colSpan={9}>
                   <div className="flex flex-col items-center gap-3">
                     <p>Todavía no hay reseñas creadas.</p>
                     <Link className="button-secondary" href="/admin/games">
@@ -187,6 +194,10 @@ function formatDate(value: string) {
     month: "2-digit",
     year: "numeric"
   }).format(new Date(value));
+}
+
+function formatRating(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function ThCheckbox({ children }: { children: React.ReactNode }) {

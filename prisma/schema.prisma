@@ -328,6 +328,7 @@ model Review {
   slug            String   @unique
   summary         String
   body            String
+  rating          Float
   isApproved      Boolean  @default(false)
   instagramPostId String?
   instagramHashtags String?

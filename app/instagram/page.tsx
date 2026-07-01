@@ -3,6 +3,7 @@ import Link from "next/link";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { PublicShell } from "@/components/PublicShell";
 import { ReviewCard } from "@/components/ReviewCard";
+import { ReviewRatingBadge } from "@/components/reviews/ReviewRatingBadge";
 import { GuestOnlyCta } from "@/components/auth-cta/GuestOnlyCta";
 import { getReviews, type Review } from "@/lib/catalog";
 import { buildInstagramReviewHref } from "@/lib/instagramSharing";
@@ -114,6 +115,7 @@ function InstagramFeaturedReview({ review }: { review: Review }) {
             imageSizes="(max-width: 1024px) 50vw, 460px"
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.35))]" />
+          <ReviewRatingBadge rating={review.rating} size="lg" tone="dark" className="absolute bottom-3 right-3" />
         </div>
         <div className="min-w-0 p-5">
           <p className="text-[11px] font-black uppercase leading-4 tracking-[0.14em] text-[#eab35c]">

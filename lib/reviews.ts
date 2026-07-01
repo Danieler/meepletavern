@@ -1,5 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_REVIEWS_TAG } from "@/lib/publicGameCache";
+import { getEffectiveReviewRating, normalizeReviewRatingValue } from "@/lib/reviewRating";
 import { validateReviewContent } from "@/lib/reviewContent";
 import { slugify } from "@/lib/slug";
 
@@ -10,6 +12,7 @@ export type ReviewPayload = {
   title: string;
   summary: string;
   body: string;
+  rating?: number | null;
   isApproved?: boolean;
   instagramHashtags?: string | null;
   createdByAdmin?: boolean;
@@ -20,6 +23,7 @@ const publicReviewListSelect = {
   slug: true,
   title: true,
   summary: true,
+  rating: true,
   authorName: true,
   publishedAt: true,
   game: {
@@ -30,7 +34,8 @@ const publicReviewListSelect = {
       coverImageUrl: true,
       imageUrl: true,
       coverImageAlt: true,
-      imageStatus: true
+      imageStatus: true,
+      ratings: true
     }
   },
   user: {
@@ -55,6 +60,7 @@ const adminReviewSelect = {
   title: true,
   summary: true,
   body: true,
+  rating: true,
   authorName: true,
   createdByAdmin: true,
   isApproved: true,
@@ -72,7 +78,8 @@ const adminReviewSelect = {
       name: true,
       slug: true,
       coverImageUrl: true,
-      imageUrl: true
+      imageUrl: true,
+      ratings: true
     }
   },
   user: {
@@ -108,7 +115,7 @@ const getCachedPublishedReviews = unstable_cache(
     });
   },
   ["published-reviews"],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_REVIEWS_TAG] }
 );
 
 const getCachedPublishedReviewBySlug = (slug: string) => unstable_cache(
@@ -119,7 +126,7 @@ const getCachedPublishedReviewBySlug = (slug: string) => unstable_cache(
     });
   },
   ["published-review-by-slug", slug],
-  { revalidate: 3600, tags: ["public-games"] }
+  { revalidate: 3600, tags: [PUBLIC_REVIEWS_TAG] }
 )();
 
 const { body: _body, summary: _summary, ...adminReviewListSelect } = adminReviewSelect;
@@ -143,6 +150,7 @@ export async function createReview(input: ReviewPayload) {
   const title = input.title.trim();
   const summary = input.summary.trim();
   const body = input.body.trim();
+  const rating = await resolveStoredReviewRating(input.gameId, input.rating);
   validateReviewContent({ title, summary, body });
   const slug = await ensureUniqueReviewSlug(slugify(title) || slugify(`resena-${input.gameId}`));
 
@@ -155,6 +163,7 @@ export async function createReview(input: ReviewPayload) {
       slug,
       summary,
       body,
+      rating,
       isApproved: input.isApproved ?? false,
       instagramHashtags: normalizeOptionalText(input.instagramHashtags),
       createdByAdmin: input.createdByAdmin ?? false,
@@ -180,6 +189,7 @@ export async function updateReview(
     title: string;
     summary: string;
     body: string;
+    rating?: number | null;
     isApproved?: boolean;
     instagramPostId?: string | null;
     instagramHashtags?: string | null;
@@ -188,7 +198,7 @@ export async function updateReview(
 ) {
   const current = await prisma.review.findUnique({
     where: { id },
-    select: { id: true, slug: true, title: true }
+    select: { id: true, slug: true, title: true, gameId: true, rating: true }
   });
 
   if (!current) {
@@ -198,6 +208,8 @@ export async function updateReview(
   const nextTitle = input.title.trim();
   const summary = input.summary.trim();
   const body = input.body.trim();
+  const nextGameId = input.gameId ?? current.gameId;
+  const rating = await resolveStoredReviewRating(nextGameId, input.rating, current.rating);
   validateReviewContent({ title: nextTitle, summary, body });
   const nextSlug =
     current.title.trim() === nextTitle
@@ -213,6 +225,7 @@ export async function updateReview(
       slug: nextSlug,
       summary,
       body,
+      rating,
       isApproved: input.isApproved,
       instagramPostId: input.instagramPostId,
       instagramHashtags: normalizeOptionalText(input.instagramHashtags),
@@ -279,4 +292,25 @@ async function ensureUniqueReviewSlug(baseSlug: string, ignoreId?: string) {
     slug = `${cleanBase}-${counter}`;
     counter += 1;
   }
+}
+
+async function resolveStoredReviewRating(
+  gameId: string,
+  preferredRating?: number | null,
+  fallbackRating?: number | null
+) {
+  if (preferredRating !== undefined && preferredRating !== null) {
+    return normalizeReviewRatingValue(preferredRating);
+  }
+
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+    select: { ratings: true }
+  });
+
+  if (!game) {
+    throw new Error("Ese juego no existe.");
+  }
+
+  return getEffectiveReviewRating(game.ratings, fallbackRating);
 }

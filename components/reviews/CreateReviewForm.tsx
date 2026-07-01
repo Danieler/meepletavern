@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ReviewBodyEditor } from "@/components/reviews/ReviewBodyEditor";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +15,6 @@ export function CreateReviewForm({
   gameSlug: string;
   gameTitle: string;
 }) {
-  const router = useRouter();
   const { user, loading, isConfigured } = useAuth();
   const [title, setTitle] = useState(`Mi opinión sobre ${gameTitle}`);
   const [summary, setSummary] = useState("");

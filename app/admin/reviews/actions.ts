@@ -6,6 +6,7 @@ import { createReview, deleteReview, updateReview, getAdminReviewById, updateRev
 import { publishToInstagram } from "@/lib/instagram";
 import { buildReviewInstagramCaption } from "@/lib/instagramSharing";
 import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
+import { getEffectiveReviewRating } from "@/lib/reviewRating";
 import { parseReviewContent } from "@/lib/reviewContent";
 
 export type AdminReviewActionState = {
@@ -52,7 +53,6 @@ export async function updateAdminReviewAction(
   try {
     const intentVal = formData.get("intent");
     const isApproved = intentVal === "publish" || intentVal === "save";
-    console.log("updateAdminReviewAction -> intentVal:", intentVal, "isApproved:", isApproved);
     const existingReview = await getAdminReviewById(id);
 
     const review = await updateReview(id, {
@@ -78,7 +78,7 @@ export async function updateAdminReviewAction(
     if (instagramError) {
       return { error: `Guardado en la web, pero falló Instagram: ${instagramError}` };
     }
-    return { message: `Reseña guardada y publicada. (intentVal: ${String(intentVal)}, isApproved: ${isApproved})` };
+    return { message: isApproved ? "Reseña guardada y publicada." : "Reseña guardada como borrador." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "No se pudo guardar la reseña." };
   }
@@ -148,6 +148,7 @@ async function tryPublishToInstagram(reviewId: string): Promise<{ success: boole
           authorName: review.authorName,
           gameTitle: review.game.title || review.game.name,
           hashtags: review.instagramHashtags,
+          rating: getEffectiveReviewRating(review.game.ratings, review.rating),
           reviewTitle: review.title,
           summary: review.summary
         });

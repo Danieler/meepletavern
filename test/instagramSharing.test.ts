@@ -13,12 +13,14 @@ test("instagram review caption includes hashtags and finishes with link in bio",
     authorName: "Admin MeepleTavern",
     gameTitle: "Azul: Pabellon de Verano",
     hashtags: "#eurogames, juegosdemesa #MesaBonita",
+    rating: 8.4,
     reviewTitle: "Azul Pabellon de Verano: resena",
     summary: "Una reseña directa para saber si encaja en tu mesa."
   });
 
   assert.match(caption, /Link in bio\./);
   assert.ok(caption.trim().endsWith("Link in bio."));
+  assert.match(caption, /Nota MeepleTavern: 8\.4\/10/);
   assert.match(caption, /#eurogames/);
   assert.match(caption, /#juegosdemesa/);
   assert.match(caption, /#MeepleTavern/);
