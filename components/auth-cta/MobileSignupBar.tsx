@@ -100,8 +100,8 @@ function getMobileBarCopy(pathname: string): MobileBarCopy | null {
   if (pathname === "/taberna") {
     return { text: "Guarda tu rincón en la taberna.", button: "Entrar" };
   }
-  if (pathname === "/resenas") {
-    return { text: "Guarda opiniones para tu próxima partida.", button: "Entrar" };
+  if (pathname === "/resenas" || pathname.startsWith("/resenas/")) {
+    return null;
   }
   if (pathname === "/rankings") {
     return { text: "No pierdas tus favoritos.", button: "Guardar" };

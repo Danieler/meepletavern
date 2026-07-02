@@ -38,7 +38,7 @@ export function ReviewCard({ review, compact = false, list = false, featured = f
   if (featured) {
     return (
       <article className="review-card-featured review-card-premium group relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#c9821f,#2f6f62,#8b6f7a)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-moss/70" />
         <Link
           href={href}
           className="grid min-w-0 gap-0 touch-manipulation cursor-pointer md:grid-cols-[minmax(0,380px)_minmax(0,1fr)]"
@@ -88,17 +88,17 @@ export function ReviewCard({ review, compact = false, list = false, featured = f
 
   const linkClassName = compact
     ? "block"
-    : "grid min-w-0 gap-0 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]";
+    : "grid min-w-0 gap-0 md:grid-cols-[minmax(0,190px)_minmax(0,1fr)]";
 
   return (
-    <article className="review-card-premium group relative overflow-hidden rounded-md border border-walnut/15 bg-[linear-gradient(135deg,#fffaf0_0%,#f6fbf8_54%,#f4eef3_100%)] shadow-soft">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#c9821f,#2f6f62,#8b6f7a)]" />
+    <article className="review-card-premium group relative overflow-hidden rounded-md border border-walnut/12 bg-white shadow-soft">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-moss/70" />
       <Link
         href={href}
         className={`${linkClassName} touch-manipulation cursor-pointer`}
         aria-label={`Abrir reseña de ${review.title}`}
       >
-        <div className="relative min-h-52 overflow-hidden bg-ink/5">
+        <div className="relative min-h-48 overflow-hidden bg-ink/5">
           <GameCoverImage
             {...review}
             gameTitle={review.gameTitle}
@@ -111,11 +111,11 @@ export function ReviewCard({ review, compact = false, list = false, featured = f
           </span>
           <ReviewRatingBadge rating={review.rating} size="sm" tone="dark" className="absolute bottom-3 right-3" />
         </div>
-          <div className="flex min-w-0 flex-col p-4 sm:p-5">
+        <div className="flex min-w-0 flex-col p-4 sm:p-5">
           <div className="flex flex-1 flex-col">
             <div className="min-w-0">
               <p className="tavern-eyebrow">{review.gameTitle}</p>
-              <h2 className="font-display mt-2 text-2xl font-bold leading-tight text-wood transition group-hover:text-moss">{review.title}</h2>
+              <h2 className="font-display mt-2 text-xl font-bold leading-tight text-wood transition group-hover:text-moss sm:text-2xl">{review.title}</h2>
               <p className="tavern-meta mt-2">Por {review.authorName}</p>
             </div>
             <p className="mt-4 line-clamp-3 text-sm font-medium leading-6 text-walnut/82">{review.summary}</p>

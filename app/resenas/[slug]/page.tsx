@@ -107,43 +107,42 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
 
   return (
     <PublicShell>
-      <main className="min-h-screen">
+      <main className="min-h-screen bg-[#fbf7ee]">
         <ReadingProgressBar />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <article>
-          <header className="relative overflow-hidden border-b border-moss/25 bg-[#16211d] text-white">
-            <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(201,130,31,0.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_42%),repeating-linear-gradient(90deg,rgba(255,255,255,0.035)_0_1px,transparent_1px_42px)]" />
-            <div className="container-page relative grid gap-8 py-9 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(340px,430px)] lg:items-end">
+          <header className="relative overflow-hidden border-b border-walnut/12 bg-[#fbf7ee]">
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(47,111,98,0.12),transparent_48%),linear-gradient(180deg,#fbf7ee_0%,#f2f8f4_100%)]" />
+            <div className="container-page relative grid gap-8 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(340px,460px)] lg:items-center lg:py-12">
               <div className="min-w-0">
-                <nav className="flex flex-wrap items-center gap-1.5 animate-fade-in-up" aria-label="Breadcrumb">
-                  <Link href="/resenas" className="rounded-md border border-white/12 bg-white/8 px-2.5 py-1 text-[11px] font-black uppercase leading-4 tracking-[0.14em] text-parchment/86 transition hover:border-[#eab35c]/45 hover:text-white">
+                <nav className="flex flex-wrap items-center gap-1.5" aria-label="Breadcrumb">
+                  <Link href="/resenas" className="rounded-md border border-walnut/12 bg-white/70 px-2.5 py-1 text-[11px] font-black uppercase leading-4 tracking-[0.14em] text-walnut/68 shadow-sm transition hover:border-moss/35 hover:text-moss">
                     Reseñas
                   </Link>
-                  <span className="text-parchment/40" aria-hidden="true">/</span>
-                  <span className="rounded-md border border-[#eab35c]/25 bg-[#eab35c]/12 px-2.5 py-1 text-[11px] font-black uppercase leading-4 tracking-[0.14em] text-[#eab35c]">
+                  <span className="text-walnut/35" aria-hidden="true">/</span>
+                  <span className="rounded-md border border-moss/20 bg-moss/8 px-2.5 py-1 text-[11px] font-black uppercase leading-4 tracking-[0.14em] text-moss">
                     {review.gameTitle}
                   </span>
                 </nav>
 
-                <h1 className="font-display mt-5 max-w-5xl text-4xl font-black leading-tight text-white sm:text-5xl lg:text-6xl animate-fade-in-up-delay-1">
+                <h1 className="font-display mt-5 max-w-5xl text-3xl font-black leading-[1.02] text-wood sm:text-5xl sm:leading-[0.98]">
                   {review.title}
                 </h1>
 
-                <p className="mt-5 max-w-3xl border-l-4 border-[#eab35c] pl-5 text-lg font-semibold leading-8 text-parchment/88 sm:text-xl animate-fade-in-up-delay-2">
+                <p className="mt-5 max-w-3xl border-l-4 border-moss/50 pl-5 text-base font-semibold leading-8 text-walnut/78 sm:text-lg">
                   {review.summary}
                 </p>
 
-                {/* Meta chips */}
-                <div className="mt-6 flex flex-wrap items-center gap-3 animate-fade-in-up-delay-3">
-                  <ReviewRatingBadge rating={review.rating} size="hero" tone="dark" />
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <ReviewRatingBadge rating={review.rating} size="md" tone="dark" />
                   <MetaChip>
-                    <BrandIcon name="user" size={14} className="text-[#eab35c]" />
+                    <BrandIcon name="user" size={14} className="text-moss" />
                     Por{" "}
                     {review.authorUsername ? (
-                      <Link href={`/u/${review.authorUsername}`} className="underline decoration-white/30 underline-offset-4 hover:text-white">
+                      <Link href={`/u/${review.authorUsername}`} className="underline decoration-walnut/30 underline-offset-4 hover:text-moss">
                         {review.authorName}
                       </Link>
                     ) : (
@@ -151,44 +150,65 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                     )}
                   </MetaChip>
                   <MetaChip>
-                    <BrandIcon name="calendar" size={14} className="text-[#eab35c]" />
+                    <BrandIcon name="calendar" size={14} className="text-moss" />
                     {formatDate(review.publishedAt)}
                   </MetaChip>
                   <MetaChip>
-                    <BrandIcon name="clock" size={14} className="text-[#eab35c]" />
+                    <BrandIcon name="clock" size={14} className="text-moss" />
                     {readingTime} min de lectura
                   </MetaChip>
                 </div>
 
-                <div className="mt-7 flex flex-wrap gap-3 animate-fade-in-up-delay-3">
-                  {review.gameSlug ? (
-                    <Link href={`/juegos/${review.gameSlug}`} prefetch={false} className="button-primary">
-                      Ver ficha del juego
-                    </Link>
-                  ) : null}
-                  <Link href="/resenas" className="button-secondary bg-white/92">
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link href="#analisis" className="button-primary">
+                    <BrandIcon name="book" size={16} />
+                    Leer análisis
+                  </Link>
+                  <Link href="/resenas" className="button-secondary">
+                    <BrandIcon name="document" size={16} />
                     Más reseñas
                   </Link>
                 </div>
               </div>
 
-              <div className="min-w-0 animate-fade-in-up-delay-2">
-                <div className="overflow-hidden rounded-md border border-white/12 bg-white/8 p-2 shadow-[0_24px_60px_rgba(0,0,0,0.28)] backdrop-blur">
+              <aside className="min-w-0 overflow-hidden rounded-md border border-walnut/15 bg-[#12221d] text-white shadow-[0_18px_42px_rgba(28,42,36,0.18)] lg:justify-self-end">
+                <div className="relative">
                   <GameCoverImage
                     {...review}
                     gameTitle={review.gameTitle}
-                    variant="detail"
+                    variant="card"
                     priority
-                    className="w-full rounded-md"
-                    imageSizes="(max-width: 1024px) 90vw, 430px"
+                    className="rounded-none lg:aspect-[2/1]"
+                    imageSizes="(max-width: 1024px) 100vw, 460px"
                   />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_52%,rgba(18,34,29,0.88))]" />
+                  <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-md border border-[#eab35c]/30 bg-[#1b2d27]/80 px-2.5 py-1 text-[11px] font-black uppercase leading-4 tracking-[0.12em] text-[#eab35c] backdrop-blur">
+                    <BrandIcon name="book" size={13} />
+                    Juego reseñado
+                  </span>
                 </div>
-              </div>
+                <div className="grid gap-3 p-4 sm:p-5">
+                  <p className="text-xs font-black uppercase leading-4 tracking-[0.12em] text-[#eab35c]">
+                    {review.gameTitle}
+                  </p>
+                  <p className="text-sm font-semibold leading-6 text-parchment/78">
+                    Ficha viva del juego, con nota sincronizada.
+                  </p>
+                  <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
+                    {review.gameSlug ? (
+                      <Link href={`/juegos/${review.gameSlug}`} prefetch={false} className="inline-flex items-center gap-2 rounded-md bg-[#eab35c] px-3.5 py-2 text-sm font-black text-[#1f160f] transition hover:bg-white">
+                        Ver ficha
+                        <span aria-hidden="true">-&gt;</span>
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              </aside>
             </div>
           </header>
 
-          <section className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,860px)_minmax(260px,1fr)] lg:items-start lg:py-14">
-            <div className="min-w-0 rounded-md border border-walnut/12 bg-white/72 p-5 shadow-soft sm:p-8 lg:p-10">
+          <section id="analisis" className="container-page grid scroll-mt-24 gap-8 py-10 lg:grid-cols-[minmax(0,860px)_minmax(280px,1fr)] lg:items-start lg:py-12">
+            <div className="min-w-0 rounded-md border border-walnut/12 bg-white p-5 shadow-soft sm:p-8 lg:p-10">
               <ReviewContent body={review.body} className="text-[#1f1f1f]/90" />
             </div>
 
@@ -306,7 +326,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
 
 function MetaChip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-white/12 bg-white/8 px-3 py-1 text-xs font-black uppercase leading-4 tracking-[0.11em] text-parchment/80">
+    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-walnut/12 bg-white/70 px-3 py-1 text-xs font-black uppercase leading-4 tracking-[0.11em] text-walnut/68 shadow-sm">
       {children}
     </span>
   );
