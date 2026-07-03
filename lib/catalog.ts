@@ -449,8 +449,31 @@ export async function getRelatedGames(game: CatalogGame) {
     .slice(0, 4);
 }
 
+function getDeterministicFilterKey(input: GameFilterInput) {
+  const params = new URLSearchParams();
+  for (const key of Object.keys(input).sort()) {
+    const value = input[key as keyof GameFilterInput];
+    if (Array.isArray(value)) {
+      for (const v of [...value].sort()) {
+        if (v) params.append(key, v);
+      }
+    } else if (value) {
+      params.set(key, String(value));
+    }
+  }
+  return params.toString();
+}
+
+const getCachedFilterGamesFromDb = unstable_cache(
+  async (cacheKey: string, input: GameFilterInput) => filterGamesFromDb(input),
+  ["catalog-filter-games-db"],
+  { revalidate: 3600, tags: ["catalog-filters"] }
+);
+
 export async function filterGames(input: GameFilterInput) {
-  const dbResult = await filterGamesFromDb(input);
+  const cacheKey = getDeterministicFilterKey(input);
+  const dbResult = await getCachedFilterGamesFromDb(cacheKey, input);
+  
   if (dbResult) {
     return dbResult;
   }
