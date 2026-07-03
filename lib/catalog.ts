@@ -488,6 +488,7 @@ async function filterGamesFromDb(input: GameFilterInput) {
   const pageSize = CATALOG_PAGE_SIZE;
   const page = Math.max(1, Number(input.page) || 1);
   const usesAdvancedFilters =
+    Boolean(query) ||
     durations.length ||
     weights.length ||
     ages.length ||
@@ -1215,10 +1216,15 @@ function buildCatalogRawWhere(filters: {
   const clauses: Prisma.Sql[] = [Prisma.sql`"status" = ${GameStatus.published}::"GameStatus"`];
 
   if (filters.query) {
+    const cleanQuery = filters.query.replace(/[\s-]/g, "");
     const likeQuery = `%${filters.query}%`;
+    const cleanLikeQuery = `%${cleanQuery}%`;
+
     clauses.push(Prisma.sql`(
       "title" ilike ${likeQuery}
       or "name" ilike ${likeQuery}
+      or replace(replace(lower("title"), ' ', ''), '-', '') ilike ${cleanLikeQuery}
+      or replace(replace(lower("name"), ' ', ''), '-', '') ilike ${cleanLikeQuery}
       or "shortSummary" ilike ${likeQuery}
       or "shortDescription" ilike ${likeQuery}
       or "quickVerdict" ilike ${likeQuery}

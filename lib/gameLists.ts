@@ -35,7 +35,7 @@ const tinyGameSelect = {
 } satisfies Prisma.GameSelect;
 
 type TinyGameRow = Prisma.GameGetPayload<{ select: typeof tinyGameSelect }>;
-type GameSearchDb = Pick<typeof prisma, "game">;
+type GameSearchDb = Pick<typeof prisma, "game"> & { $queryRaw?: typeof prisma.$queryRaw };
 
 export type ListGameSummary = {
   itemId: string;
@@ -324,18 +324,40 @@ export async function searchGamesForList(
   const search = normalizeGameSearch(query);
   if (!search) return [];
 
-  const games = await db.game.findMany({
-    where: {
-      status: GameStatus.published,
-      OR: [
-        { title: { contains: search, mode: "insensitive" } },
-        { name: { contains: search, mode: "insensitive" } }
-      ]
-    },
-    orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
-    take: GAME_LIST_SEARCH_LIMIT,
-    select: tinyGameSelect
-  });
+  let games: TinyGameRow[];
+
+  if (typeof db.$queryRaw === "function") {
+    const cleanQuery = search.replace(/[\s-]/g, "");
+    const likeQuery = `%${search}%`;
+    const cleanLikeQuery = `%${cleanQuery}%`;
+
+    games = await db.$queryRaw<TinyGameRow[]>`
+      SELECT id, title, name, slug, "coverImageUrl", "coverImageAlt", "imageStatus", year
+      FROM "Game"
+      WHERE status = ${GameStatus.published}::"GameStatus"
+        AND (
+          title ILIKE ${likeQuery}
+          OR name ILIKE ${likeQuery}
+          OR replace(replace(lower(title), ' ', ''), '-', '') LIKE ${cleanLikeQuery}
+          OR replace(replace(lower(name), ' ', ''), '-', '') LIKE ${cleanLikeQuery}
+        )
+      ORDER BY "publishedAt" DESC NULLS LAST, id DESC
+      LIMIT ${GAME_LIST_SEARCH_LIMIT}
+    `;
+  } else {
+    games = await db.game.findMany({
+      where: {
+        status: GameStatus.published,
+        OR: [
+          { title: { contains: search, mode: "insensitive" } },
+          { name: { contains: search, mode: "insensitive" } }
+        ]
+      },
+      orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+      take: GAME_LIST_SEARCH_LIMIT,
+      select: tinyGameSelect
+    });
+  }
 
   return games.map(toGameSearchResult);
 }

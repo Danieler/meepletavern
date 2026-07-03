@@ -11,26 +11,31 @@ export async function GET(request: Request) {
       return NextResponse.json({ games: [] });
     }
 
-    const games = await prisma.game.findMany({
-      where: {
-        status: GameStatus.published,
-        OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { name: { contains: query, mode: "insensitive" } }
-        ]
-      },
-      orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
-      take: 8,
-      select: {
-        id: true,
-        title: true,
-        name: true,
-        slug: true,
-        coverImageUrl: true,
-        imageUrl: true,
-        year: true
-      }
-    });
+    const cleanQuery = query.replace(/[\s-]/g, "");
+    const likeQuery = `%${query}%`;
+    const cleanLikeQuery = `%${cleanQuery}%`;
+
+    const games = await prisma.$queryRaw<Array<{
+      id: string;
+      title: string;
+      name: string;
+      slug: string;
+      coverImageUrl: string | null;
+      imageUrl: string | null;
+      year: number | null;
+    }>>`
+      SELECT id, title, name, slug, "coverImageUrl", "imageUrl", year
+      FROM "Game"
+      WHERE status = ${GameStatus.published}::"GameStatus"
+        AND (
+          title ILIKE ${likeQuery}
+          OR name ILIKE ${likeQuery}
+          OR replace(replace(lower(title), ' ', ''), '-', '') LIKE ${cleanLikeQuery}
+          OR replace(replace(lower(name), ' ', ''), '-', '') LIKE ${cleanLikeQuery}
+        )
+      ORDER BY "publishedAt" DESC NULLS LAST, id DESC
+      LIMIT 8
+    `;
 
     // Map to a unified format for client-side search autocomplete
     const formattedGames = games.map((game) => ({
