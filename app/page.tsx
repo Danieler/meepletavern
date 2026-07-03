@@ -22,6 +22,7 @@ import {
 } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 import { rotateDaily } from "@/lib/dailyRotation";
+import { slugify } from "@/lib/slug";
 
 export const metadata: Metadata = {
   title: "MeepleTavern - Juegos de mesa, reseñas y recomendaciones",
@@ -463,16 +464,13 @@ function IntentCard({
 }) {
   // Generar una inclinación orgánica determinista basada en el título del contrato (-0.6deg a 0.6deg)
   const rotation = ((title.charCodeAt(0) + title.charCodeAt(title.length - 1)) % 5) * 0.3 - 0.6;
-
-  return (
-    <Link
-      href={href}
-      prefetch={false}
-      className="quest-card relative group flex items-center gap-2 sm:gap-3 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-2 sm:p-3.5 border border-[#cfb088]/40 shadow-[0_4px_10px_rgba(0,0,0,0.15)] rounded-md select-none transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffbf2]"
-      style={{
-        "--card-rotation": `${rotation}deg`
-      } as React.CSSProperties}
-    >
+  const cardClassName =
+    "quest-card relative group flex w-full items-center gap-2 sm:gap-3 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-2 sm:p-3.5 border border-[#cfb088]/40 shadow-[0_4px_10px_rgba(0,0,0,0.15)] rounded-md select-none text-left transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffbf2]";
+  const cardStyle = {
+    "--card-rotation": `${rotation}deg`
+  } as React.CSSProperties;
+  const content = (
+    <>
       {/* Chincheta de Latón Grande en el centro superior */}
       <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[#ffd26a] via-[#c29c47] to-[#7c5e21] border border-[#5c4015]/40 shadow-[0_2px_4px_rgba(0,0,0,0.35)] z-20 flex items-center justify-center">
         <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-tl from-[#ffffff]/70 to-[#ffffff]/0 absolute top-0.5 left-0.5" />
@@ -491,6 +489,32 @@ function IntentCard({
           {description}
         </p>
       </div>
+    </>
+  );
+
+  if (href.startsWith("/juegos?")) {
+    const params = new URLSearchParams(href.slice(href.indexOf("?") + 1));
+
+    return (
+      <form action="/juegos" method="get" className="contents">
+        {Array.from(params.entries()).map(([name, value], index) => (
+          <input key={`${name}-${value}-${index}`} type="hidden" name={name} value={value} />
+        ))}
+        <button type="submit" className={cardClassName} style={cardStyle}>
+          {content}
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      prefetch={false}
+      className={cardClassName}
+      style={cardStyle}
+    >
+      {content}
     </Link>
   );
 }
@@ -625,6 +649,10 @@ function getCategoryMatchHref(
   extraFilters: Partial<GameFilterInput> = {}
 ) {
   const match = findMatchingTerm(terms, needles);
+  if (match && !Object.keys(extraFilters).length) {
+    return `/categorias/${slugify(match)}`;
+  }
+
   return match ? buildCatalogHref({ category: match, ...extraFilters }) : buildCatalogHref(fallbackFilters);
 }
 

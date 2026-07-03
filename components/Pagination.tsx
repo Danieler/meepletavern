@@ -6,17 +6,27 @@ type PaginationProps = {
   active: GameFilterInput;
   totalPages: number;
   currentPage: number;
+  basePath?: string;
+  omitQueryKeys?: Array<keyof GameFilterInput>;
 };
 
-export function Pagination({ active, totalPages, currentPage }: PaginationProps) {
+export function Pagination({
+  active,
+  totalPages,
+  currentPage,
+  basePath = "/juegos",
+  omitQueryKeys = []
+}: PaginationProps) {
   if (totalPages <= 1) {
     return null;
   }
 
+  const omitted = new Set<string>(omitQueryKeys);
+
   const buildUrl = (page: number) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(active)) {
-      if (!value || key === "page") continue;
+      if (!value || key === "page" || omitted.has(key)) continue;
       
       if (Array.isArray(value)) {
         for (const entry of value) {
@@ -26,8 +36,12 @@ export function Pagination({ active, totalPages, currentPage }: PaginationProps)
         params.set(key, value);
       }
     }
-    params.set("page", String(page));
-    return `/juegos?${params.toString()}`;
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+
+    const query = params.toString();
+    return query ? `${basePath}?${query}` : basePath;
   };
 
   return (

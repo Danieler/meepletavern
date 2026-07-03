@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Fragment } from "react";
 import { PublicShell } from "@/components/PublicShell";
-import { SectionHeader } from "@/components/SectionHeader";
 import { GameCard } from "@/components/GameCard";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { filterGames, getMechanicTerms } from "@/lib/catalog";
@@ -116,7 +114,13 @@ export default async function MechanicPage({ params, searchParams }: MechanicPag
           
           <div className="mt-10">
             {totalPages > 1 ? (
-              <Pagination active={{ mechanic: term }} totalPages={totalPages} currentPage={currentPage} />
+              <Pagination
+                active={{ mechanic: term }}
+                totalPages={totalPages}
+                currentPage={currentPage}
+                basePath={`/mecanicas/${slug}`}
+                omitQueryKeys={["mechanic"]}
+              />
             ) : null}
           </div>
         </section>

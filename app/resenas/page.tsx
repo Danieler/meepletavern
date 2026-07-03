@@ -66,7 +66,7 @@ function ReviewsHero({
                 <BrandIcon name="document" size={17} />
                 Ver archivo de reseñas
               </Link>
-              <Link href="/juegos?sort=valoracion" className="button-secondary">
+              <Link href="/juegos" className="button-secondary">
                 <BrandIcon name="sliders" size={17} />
                 Explorar catálogo
               </Link>

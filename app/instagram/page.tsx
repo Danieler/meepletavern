@@ -43,7 +43,7 @@ export default async function InstagramPage() {
                   Ver todas las reseñas
                 </Link>
                 <Link
-                  href="/juegos?utm_source=instagram&utm_medium=social&utm_campaign=link_in_bio&utm_content=catalog"
+                  href="/juegos"
                   className="button-secondary bg-white/92"
                 >
                   Explorar catálogo

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
 
@@ -183,6 +184,7 @@ function FilterGroup({ title, icon, children }: { title: string; icon: BrandIcon
 }
 
 function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInput }) {
+  const router = useRouter();
   const currentValues = getFilterValues(active[item.param]);
   const isMultiSelect = item.param !== "sort";
   const isActive = currentValues.includes(item.value);
@@ -208,16 +210,20 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
     params.set(item.param, item.value);
   }
 
+  const query = params.toString();
+  const targetHref = query ? `/juegos?${query}` : "/juegos";
+
   return (
-    <Link
-      href={`/juegos?${params.toString()}`}
-      prefetch={false}
+    <button
+      type="button"
+      aria-pressed={isActive}
+      onClick={() => router.push(targetHref, { scroll: false })}
       className={`inline-flex min-h-9 items-center rounded-md px-3 py-1.5 text-sm font-extrabold leading-none transition ${
         isActive ? "bg-ink text-white shadow-sm" : "border border-ink/5 bg-ink/5 text-ink/70 hover:border-moss/20 hover:bg-moss/10 hover:text-moss"
       }`}
     >
       {item.label}
-    </Link>
+    </button>
   );
 }
 

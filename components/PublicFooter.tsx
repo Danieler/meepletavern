@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCategoryTerms, getPopularGames } from "@/lib/catalog";
+import { getCategoryTerms, getPopularGames, termHref } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
 export async function PublicFooter() {
@@ -38,7 +38,7 @@ export async function PublicFooter() {
         <FooterColumn
           title="Categorías populares"
           links={categoryTerms.slice(0, 5).map((term) => ({
-            href: `/juegos?category=${encodeURIComponent(term)}`,
+            href: termHref("category", term),
             label: term
           }))}
         />

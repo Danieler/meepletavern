@@ -3,11 +3,89 @@ import { getRequestAuditSummary, logEgressAudit } from "@/lib/egressAudit";
 
 export function middleware(request: NextRequest) {
   if (!isAdminPath(request.nextUrl.pathname)) {
-    logEgressAudit("request", getRequestAuditSummary(request));
-    return NextResponse.next();
+    const auditSummary = getRequestAuditSummary(request);
+    logEgressAudit("request", auditSummary);
+
+    const catalogGuardResponse = getCatalogFilterGuardResponse(request, auditSummary);
+    if (catalogGuardResponse) {
+      return catalogGuardResponse;
+    }
+
+    const response = NextResponse.next();
+    if (isFilteredCatalogPath(request)) {
+      response.headers.set("X-Robots-Tag", "noindex, nofollow");
+      response.headers.set("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
+    }
+    return response;
   }
 
   return handleRequest(request);
+}
+
+const CATALOG_FILTER_FAMILIES = ["q", "players", "duration", "weight", "age", "category", "mechanic"] as const;
+const MAX_CATALOG_FILTER_FAMILIES = 3;
+const MAX_CATALOG_FILTER_VALUES = 8;
+
+function isFilteredCatalogPath(request: NextRequest) {
+  return request.nextUrl.pathname === "/juegos" && request.nextUrl.searchParams.size > 0;
+}
+
+function getCatalogFilterGuardResponse(request: NextRequest, auditSummary: Record<string, unknown>) {
+  if (request.nextUrl.pathname !== "/juegos" || request.method !== "GET") {
+    return null;
+  }
+
+  const searchParams = request.nextUrl.searchParams;
+  const activeFamilies = CATALOG_FILTER_FAMILIES.filter((family) => searchParams.has(family));
+  const filterValueCount = activeFamilies.reduce((count, family) => count + searchParams.getAll(family).filter(Boolean).length, 0);
+
+  if (activeFamilies.length <= MAX_CATALOG_FILTER_FAMILIES && filterValueCount <= MAX_CATALOG_FILTER_VALUES) {
+    return null;
+  }
+
+  logEgressAudit("catalog-filter-guard", {
+    ...auditSummary,
+    activeFilterFamilies: activeFamilies,
+    activeFilterFamilyCount: activeFamilies.length,
+    filterValueCount,
+    maxFilterFamilies: MAX_CATALOG_FILTER_FAMILIES,
+    maxFilterValues: MAX_CATALOG_FILTER_VALUES
+  });
+
+  return new NextResponse(buildCatalogFilterGuardHtml(), {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+      "X-Robots-Tag": "noindex, nofollow",
+      "X-Content-Type-Options": "nosniff"
+    }
+  });
+}
+
+function buildCatalogFilterGuardHtml() {
+  return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Filtros demasiado específicos | MeepleTavern</title>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fbf7ee;color:#2d1a12;display:grid;min-height:100vh;place-items:center;padding:24px}
+    main{max-width:560px;border:1px solid rgba(69,40,26,.16);background:#fffaf0;border-radius:8px;padding:28px;box-shadow:0 12px 32px rgba(45,26,18,.08)}
+    p{font-size:16px;line-height:1.55;color:rgba(45,26,18,.72)}
+    a{display:inline-flex;margin-top:12px;border-radius:6px;background:#d8892b;color:#21140d;text-decoration:none;font-weight:800;padding:10px 14px}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Demasiados filtros combinados</h1>
+    <p>Para proteger la velocidad de la taberna, empieza con menos filtros y afina la búsqueda desde el catálogo.</p>
+    <a href="/juegos">Volver al catálogo</a>
+  </main>
+</body>
+</html>`;
 }
 
 const ADMIN_SESSION_COOKIE = "meepletavern_admin_session";

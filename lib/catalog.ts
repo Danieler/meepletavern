@@ -708,8 +708,8 @@ export async function getMechanicGameCounts() {
 }
 
 export function termHref(type: "category" | "mechanic", term: string) {
-  const key = type === "category" ? "category" : "mechanic";
-  return `/juegos?${key}=${encodeURIComponent(term)}`;
+  const basePath = type === "category" ? "/categorias" : "/mecanicas";
+  return `${basePath}/${slugify(term)}`;
 }
 
 // Public list/ranking/card paths should stay below the Data Cache item limit and avoid detail-page fields.
