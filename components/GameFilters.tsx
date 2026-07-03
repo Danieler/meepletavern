@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
@@ -71,6 +70,7 @@ export function GameFilters({
   categoryTerms: string[];
   mechanicTerms: string[];
 }) {
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showAllMechanics, setShowAllMechanics] = useState(false);
@@ -98,13 +98,13 @@ export function GameFilters({
         
         <div className="flex shrink-0 items-center gap-2">
           {activeCount > 0 && (
-            <Link
+            <button
+              type="button"
+              onClick={() => router.push("/juegos", { scroll: false })}
               className="inline-flex h-9 items-center px-2 text-sm font-bold text-moss transition hover:text-wood hover:underline"
-              href="/juegos"
-              prefetch={false}
             >
               Limpiar {activeCount > 0 && `(${activeCount})`}
-            </Link>
+            </button>
           )}
           
           <button

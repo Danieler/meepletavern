@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { BrandIcon } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
 
@@ -17,6 +19,8 @@ export function Pagination({
   basePath = "/juegos",
   omitQueryKeys = []
 }: PaginationProps) {
+  const router = useRouter();
+
   if (totalPages <= 1) {
     return null;
   }
@@ -47,15 +51,15 @@ export function Pagination({
   return (
     <nav className="mt-10 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center justify-center gap-2 border-t border-ink/5 pt-8 sm:flex" aria-label="Paginación">
       {currentPage > 1 ? (
-        <Link
-          href={buildUrl(currentPage - 1)}
-          prefetch={false}
+        <button
+          type="button"
+          onClick={() => router.push(buildUrl(currentPage - 1), { scroll: false })}
           aria-label="Página anterior"
           className="inline-flex h-11 w-11 items-center justify-center gap-1 rounded-md border border-ink/10 bg-white p-0 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment sm:h-10 sm:w-auto sm:px-3"
         >
           <BrandIcon name="chevron-left" size={16} />
           <span className="sr-only sm:not-sr-only">Anterior</span>
-        </Link>
+        </button>
       ) : (
         <span aria-label="No hay página anterior" className="inline-flex h-11 w-11 cursor-not-allowed items-center justify-center gap-1 rounded-md border border-ink/5 bg-ink/5 p-0 text-sm font-bold text-ink/30 sm:h-10 sm:w-auto sm:px-3">
           <BrandIcon name="chevron-left" size={16} />
@@ -69,15 +73,15 @@ export function Pagination({
       </div>
 
       {currentPage < totalPages ? (
-        <Link
-          href={buildUrl(currentPage + 1)}
-          prefetch={false}
+        <button
+          type="button"
+          onClick={() => router.push(buildUrl(currentPage + 1), { scroll: false })}
           aria-label="Página siguiente"
           className="inline-flex h-11 w-11 items-center justify-center gap-1 rounded-md border border-ink/10 bg-white p-0 text-sm font-bold text-ink transition hover:border-moss/30 hover:bg-parchment sm:h-10 sm:w-auto sm:px-3"
         >
           <span className="sr-only sm:not-sr-only">Siguiente</span>
           <BrandIcon name="chevron-right" size={16} />
-        </Link>
+        </button>
       ) : (
         <span aria-label="No hay página siguiente" className="inline-flex h-11 w-11 cursor-not-allowed items-center justify-center gap-1 rounded-md border border-ink/5 bg-ink/5 p-0 text-sm font-bold text-ink/30 sm:h-10 sm:w-auto sm:px-3">
           <span className="sr-only sm:not-sr-only">Siguiente</span>

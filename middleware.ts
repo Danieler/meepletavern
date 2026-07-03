@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestAuditSummary, logEgressAudit } from "@/lib/egressAudit";
 
 export function middleware(request: NextRequest) {
+  const canonicalHostResponse = getCanonicalHostResponse(request);
+  if (canonicalHostResponse) {
+    return canonicalHostResponse;
+  }
+
   if (!isAdminPath(request.nextUrl.pathname)) {
     const auditSummary = getRequestAuditSummary(request);
     logEgressAudit("request", auditSummary);
@@ -25,6 +30,29 @@ export function middleware(request: NextRequest) {
 const CATALOG_FILTER_FAMILIES = ["q", "players", "duration", "weight", "age", "category", "mechanic"] as const;
 const MAX_CATALOG_FILTER_FAMILIES = 3;
 const MAX_CATALOG_FILTER_VALUES = 8;
+const CANONICAL_HOST = "www.meepletavern.com";
+
+function getCanonicalHostResponse(request: NextRequest) {
+  const vercelEnvironment = process.env.VERCEL_ENV;
+  if (process.env.NODE_ENV !== "production" || (vercelEnvironment && vercelEnvironment !== "production")) {
+    return null;
+  }
+
+  const host = request.nextUrl.hostname.toLowerCase();
+  if (!host.endsWith(".vercel.app")) {
+    return null;
+  }
+
+  const targetUrl = request.nextUrl.clone();
+  targetUrl.protocol = "https:";
+  targetUrl.hostname = CANONICAL_HOST;
+  targetUrl.port = "";
+
+  const response = NextResponse.redirect(targetUrl, 308);
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  response.headers.set("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
+  return response;
+}
 
 function isFilteredCatalogPath(request: NextRequest) {
   return request.nextUrl.pathname === "/juegos" && request.nextUrl.searchParams.size > 0;

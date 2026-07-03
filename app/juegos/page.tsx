@@ -45,6 +45,8 @@ export const revalidate = 3600;
 
 export default async function GamesPage({ searchParams }: GamesPageProps) {
   const filters = (await searchParams) || {};
+  const hasSearchParams = hasActiveSearchParams(filters);
+
   return (
     <PublicShell>
       <main>
@@ -87,11 +89,13 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
                 </div>
               </div>
               
-              <div className="w-full lg:w-[380px] shrink-0">
-                <Suspense fallback={<div className="h-[120px] rounded-xl bg-black/5 animate-pulse" />}>
-                  <CommunityHeroWidgetWrapper />
-                </Suspense>
-              </div>
+              {!hasSearchParams ? (
+                <div className="w-full lg:w-[380px] shrink-0">
+                  <Suspense fallback={<div className="h-[120px] rounded-xl bg-black/5 animate-pulse" />}>
+                    <CommunityHeroWidgetWrapper />
+                  </Suspense>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -173,4 +177,14 @@ function CatalogSignupCta() {
 async function CommunityHeroWidgetWrapper() {
   const usersPage = await getPublicUsersPage();
   return <CommunityHeroWidget users={usersPage.items.slice(0, 6)} />;
+}
+
+function hasActiveSearchParams(filters: GameFilterInput) {
+  return Object.values(filters).some((value) => {
+    if (Array.isArray(value)) {
+      return value.some(Boolean);
+    }
+
+    return value !== undefined && value !== null && value !== "";
+  });
 }
