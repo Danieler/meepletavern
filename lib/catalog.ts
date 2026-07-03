@@ -138,9 +138,6 @@ const catalogCardGameSelect = {
   imageLicenseNote: true,
   imageStatus: true,
   primaryImageId: true,
-  shortSummary: true,
-  shortDescription: true,
-  quickVerdict: true,
   minPlayers: true,
   maxPlayers: true,
   playtime: true,
@@ -162,13 +159,16 @@ const catalogCardGameSelect = {
   },
   createdAt: true,
   updatedAt: true,
-  seoTitle: true,
-  seoDescription: true,
   publishedAt: true
 } satisfies Prisma.GameSelect;
 
 const catalogGameSelect = {
   ...catalogCardGameSelect,
+  shortSummary: true,
+  shortDescription: true,
+  quickVerdict: true,
+  seoTitle: true,
+  seoDescription: true,
   description: true,
   review: true,
   pros: true,
@@ -474,11 +474,7 @@ export async function filterGames(input: GameFilterInput) {
   const cacheKey = getDeterministicFilterKey(input);
   const dbResult = await getCachedFilterGamesFromDb(cacheKey, input);
   
-  if (dbResult) {
-    return dbResult;
-  }
-
-  return filterGamesInMemory(input);
+  return dbResult;
 }
 
 async function filterGamesFromDb(input: GameFilterInput) {
@@ -594,80 +590,7 @@ async function filterGamesFromAdvancedDb(filters: {
   });
 }
 
-async function filterGamesInMemory(input: GameFilterInput) {
-  const query = input.q?.trim().toLowerCase();
-  const categories = normalizeCategories(getFilterValues(input.category));
-  const mechanics = normalizeMechanics(getFilterValues(input.mechanic));
-  const players = getFilterValues(input.players);
-  const durations = getFilterValues(input.duration);
-  const weights = getFilterValues(input.weight);
-  const ages = getFilterValues(input.age);
-  const catalogGames = await getCatalogGames();
 
-  const filtered = catalogGames.filter((game) => {
-    const matchesQuery = query
-      ? [
-          game.title,
-          game.description,
-          game.reviewSummary,
-          game.complexity,
-          ...game.categories,
-          ...game.mechanics
-        ]
-          .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
-      : true;
-    const matchesPlayers = players.length ? players.some((value) => matchesPlayerFilter(game, value)) : true;
-    const matchesDuration = durations.length ? durations.some((value) => matchesDurationFilter(game, value)) : true;
-    const matchesWeight = weights.length ? weights.some((value) => matchesWeightFilter(game, value)) : true;
-    const matchesAge = ages.length
-      ? ages.some((value) => (game.ageValue ? game.ageValue <= Number(value) : true))
-      : true;
-    const matchesCategories = categories.length
-      ? categories.some((category) =>
-          category.toLowerCase() === "familiar"
-            ? game.categories.some((value) => normalizeFilterText(value).includes("familiar"))
-            : game.categories.includes(category)
-        )
-      : true;
-    const matchesMechanics = mechanics.length ? mechanics.some((value) => game.mechanics.includes(value)) : true;
-
-    return (
-      matchesQuery &&
-      matchesPlayers &&
-      matchesDuration &&
-      matchesWeight &&
-      matchesAge &&
-      matchesCategories &&
-      matchesMechanics
-    );
-  });
-
-  const sorted = sortGames(filtered, input.sort);
-  const total = sorted.length;
-  const pageSize = CATALOG_PAGE_SIZE;
-  const page = Math.max(1, Number(input.page) || 1);
-  const games = sorted.slice((page - 1) * pageSize, page * pageSize);
-
-  return auditDataSource("catalog.filterGames.fallback", {
-    games,
-    total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize)
-  }, {
-    sort: input.sort || "nombre",
-    hasQuery: Boolean(query),
-    categoriesCount: categories.length,
-    mechanicsCount: mechanics.length,
-    playersCount: players.length,
-    durationsCount: durations.length,
-    weightsCount: weights.length,
-    agesCount: ages.length
-  });
-}
 
 export function sortGames(games: CatalogGame[], sort = "nombre") {
   const sorted = [...games];
@@ -829,6 +752,11 @@ const getRelatedDbGames = (slug: string, categories: string[], mechanics: string
 };
 
 type CatalogGameDetails = {
+  shortSummary: string | null;
+  shortDescription: string | null;
+  quickVerdict: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
   description: string | null;
   review: string | null;
   pros: string[];
@@ -850,6 +778,11 @@ type CatalogGamePlayerFields = Pick<CatalogCardDbGame, "minPlayers" | "maxPlayer
 
 function toCatalogGame(game: CatalogDbGame): CatalogGame {
   return toCatalogGameShape(game, {
+    shortSummary: game.shortSummary,
+    shortDescription: game.shortDescription,
+    quickVerdict: game.quickVerdict,
+    seoTitle: game.seoTitle,
+    seoDescription: game.seoDescription,
     description: game.description,
     review: game.review,
     pros: game.pros,
@@ -865,6 +798,11 @@ function toCatalogGame(game: CatalogDbGame): CatalogGame {
 
 function toCatalogCardGame(game: CatalogCardDbGame): CatalogGame {
   return toCatalogGameShape(game, {
+    shortSummary: null,
+    shortDescription: null,
+    quickVerdict: null,
+    seoTitle: null,
+    seoDescription: null,
     description: null,
     review: null,
     pros: [],
@@ -885,8 +823,8 @@ function toCatalogGameShape(
 ): CatalogGame {
   const duration = parseDuration(game.playtime);
   const title = sanitizeImportedTitle(game.title || game.name) || game.title || game.name;
-  const shortDescription = game.shortDescription || game.shortSummary;
-  const quickVerdict = game.quickVerdict || details.review;
+  const shortDescription = details.shortDescription || details.shortSummary;
+  const quickVerdict = details.quickVerdict || details.review;
   const difficulty = game.difficulty || game.complexity;
   const categories = sanitizeImportedList(game.categories, "categories");
   const mechanics = sanitizeImportedList(game.mechanics, "mechanics");
@@ -894,14 +832,14 @@ function toCatalogGameShape(
   const publicSummary = getPublicReviewSummary({
     title,
     shortDescription,
-    shortSummary: game.shortSummary,
+    shortSummary: details.shortSummary,
     description: details.description,
     quickVerdict
   });
   const publicDescription = getPublicGameDescription({
     title,
     shortDescription,
-    shortSummary: game.shortSummary,
+    shortSummary: details.shortSummary,
     description: details.description,
     quickVerdict
   });
@@ -954,8 +892,8 @@ function toCatalogGameShape(
     addedAt: toIsoString(game.createdAt) || new Date().toISOString(),
     updatedAt: toIsoString(game.updatedAt) || new Date().toISOString(),
     publishedAt: toIsoString(game.publishedAt),
-    seoTitle: game.seoTitle,
-    seoDescription: game.seoDescription
+    seoTitle: details.seoTitle,
+    seoDescription: details.seoDescription
   };
 }
 
