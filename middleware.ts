@@ -16,6 +16,11 @@ export function middleware(request: NextRequest) {
       return catalogGuardResponse;
     }
 
+    const canonicalCatalogQueryResponse = getCanonicalCatalogQueryResponse(request, auditSummary);
+    if (canonicalCatalogQueryResponse) {
+      return canonicalCatalogQueryResponse;
+    }
+
     const response = NextResponse.next();
     if (isFilteredCatalogPath(request)) {
       response.headers.set("X-Robots-Tag", "noindex, nofollow");
@@ -28,8 +33,10 @@ export function middleware(request: NextRequest) {
 }
 
 const CATALOG_FILTER_FAMILIES = ["q", "players", "duration", "weight", "age", "category", "mechanic"] as const;
+const CATALOG_QUERY_KEYS = [...CATALOG_FILTER_FAMILIES, "sort", "page", "welcome"] as const;
 const MAX_CATALOG_FILTER_FAMILIES = 3;
-const MAX_CATALOG_FILTER_VALUES = 8;
+const MAX_CATALOG_FILTER_VALUES = 6;
+const MAX_CATALOG_VALUES_PER_FAMILY = 3;
 const CANONICAL_HOST = "www.meepletavern.com";
 
 function getCanonicalHostResponse(request: NextRequest) {
@@ -66,8 +73,13 @@ function getCatalogFilterGuardResponse(request: NextRequest, auditSummary: Recor
   const searchParams = request.nextUrl.searchParams;
   const activeFamilies = CATALOG_FILTER_FAMILIES.filter((family) => searchParams.has(family));
   const filterValueCount = activeFamilies.reduce((count, family) => count + searchParams.getAll(family).filter(Boolean).length, 0);
+  const overloadedFamilies = activeFamilies.filter((family) => searchParams.getAll(family).filter(Boolean).length > MAX_CATALOG_VALUES_PER_FAMILY);
 
-  if (activeFamilies.length <= MAX_CATALOG_FILTER_FAMILIES && filterValueCount <= MAX_CATALOG_FILTER_VALUES) {
+  if (
+    activeFamilies.length <= MAX_CATALOG_FILTER_FAMILIES &&
+    filterValueCount <= MAX_CATALOG_FILTER_VALUES &&
+    overloadedFamilies.length === 0
+  ) {
     return null;
   }
 
@@ -75,9 +87,11 @@ function getCatalogFilterGuardResponse(request: NextRequest, auditSummary: Recor
     ...auditSummary,
     activeFilterFamilies: activeFamilies,
     activeFilterFamilyCount: activeFamilies.length,
+    overloadedFilterFamilies: overloadedFamilies,
     filterValueCount,
     maxFilterFamilies: MAX_CATALOG_FILTER_FAMILIES,
-    maxFilterValues: MAX_CATALOG_FILTER_VALUES
+    maxFilterValues: MAX_CATALOG_FILTER_VALUES,
+    maxValuesPerFamily: MAX_CATALOG_VALUES_PER_FAMILY
   });
 
   return new NextResponse(buildCatalogFilterGuardHtml(), {
@@ -89,6 +103,60 @@ function getCatalogFilterGuardResponse(request: NextRequest, auditSummary: Recor
       "X-Content-Type-Options": "nosniff"
     }
   });
+}
+
+function getCanonicalCatalogQueryResponse(request: NextRequest, auditSummary: Record<string, unknown>) {
+  if (request.nextUrl.pathname !== "/juegos" || request.method !== "GET" || request.nextUrl.searchParams.size === 0) {
+    return null;
+  }
+
+  const canonicalParams = new URLSearchParams();
+
+  for (const key of CATALOG_QUERY_KEYS) {
+    const values = request.nextUrl.searchParams
+      .getAll(key)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (!values.length) {
+      continue;
+    }
+
+    if (key === "sort" && values.at(-1) === "nombre") {
+      continue;
+    }
+
+    if (key === "page" && values.at(-1) === "1") {
+      continue;
+    }
+
+    if (key === "q" || key === "sort" || key === "page" || key === "welcome") {
+      canonicalParams.set(key, values.at(-1) || "");
+      continue;
+    }
+
+    for (const value of [...new Set(values)].sort((left, right) => left.localeCompare(right, "es"))) {
+      canonicalParams.append(key, value);
+    }
+  }
+
+  const targetUrl = request.nextUrl.clone();
+  targetUrl.search = canonicalParams.toString();
+
+  if (`${targetUrl.pathname}${targetUrl.search}` === `${request.nextUrl.pathname}${request.nextUrl.search}`) {
+    return null;
+  }
+
+  logEgressAudit("catalog-query-canonicalized", {
+    ...auditSummary,
+    canonicalPath: targetUrl.pathname,
+    canonicalQueryParamCount: canonicalParams.size
+  });
+
+  const response = NextResponse.redirect(targetUrl, 308);
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  response.headers.set("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
+  return response;
 }
 
 function buildCatalogFilterGuardHtml() {
