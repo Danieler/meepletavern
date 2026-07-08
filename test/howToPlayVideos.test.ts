@@ -66,3 +66,21 @@ test("selectHowToPlayVideos descarta variantes sospechosas del juego base", () =
 
   assert.deepEqual(selected.map((video) => video.url), ["https://www.youtube.com/watch?v=base"]);
 });
+
+test("selectHowToPlayVideos acepta tutorial oficial en inglés cuando no hay alternativa española", () => {
+  const selected = selectHowToPlayVideos([
+    {
+      title: "Pigeon Explosion TUTORIAL",
+      url: "https://www.youtube.com/watch?v=BJMHKcuUvRU",
+      source: "Cranio Creations Uncut"
+    }
+  ], {
+    title: "Pigeon Explosion",
+    name: "Pigeon Explosion",
+    originalTitle: null,
+    publisher: "Tranjis Games"
+  } as Game);
+
+  assert.equal(selected[0]?.url, "https://www.youtube.com/watch?v=BJMHKcuUvRU");
+  assert.equal(selected[0]?.confidence, "medium");
+});

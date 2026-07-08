@@ -25,6 +25,7 @@ import { sanitizeImportedTitle } from "@/lib/importedTextSanitizer";
 import { buildStoreOfferInputFromCandidate, getBestOffer, isUnavailableOfferAvailability, type NormalizedStoreOffer, upsertStoreOfferRecordDetailed } from "@/lib/gameOffers";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
 import { prisma } from "@/lib/prisma";
+import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
 import { slugify } from "@/lib/slug";
 import { normalizeCategories, normalizeMechanics } from "@/lib/taxonomy";
 import { sourceRepository } from "@/lib/editorialRepositories";
@@ -39,6 +40,7 @@ import {
   type ExternalCallDiagnostic,
   type ImportExecutionContext
 } from "@/lib/import/importExecutionContext";
+import { mergeHowToPlayVideoSuggestions } from "@/lib/videos/howToPlayVideos";
 import {
   buildImageDiagnostics,
   collectImageEvidence,
@@ -221,6 +223,7 @@ type MasterImporterDeps = {
   persistCandidate(input: {
     resolved: ResolvedCandidateData;
     duplicateMatch: DuplicateMatch;
+    context: ImportExecutionContext;
     dryRun: boolean;
   }): Promise<PersistenceResult | null>;
   upsertOffer(input: {
@@ -481,6 +484,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
       persisted = await deps.persistCandidate({
         resolved,
         duplicateMatch: duplicates,
+        context,
         dryRun: false
       });
 
@@ -1908,6 +1912,7 @@ function createDefaultDeps(): MasterImporterDeps {
         return { candidate, game };
       });
 
+      const videoWarnings = await maybeAttachMasterImportVideos(persisted.game.id, input.context);
       const finalization = await finalizeMasterImportedGame(persisted.game.id);
 
       // Ya no guardamos la propuesta duplicada en BBDD porque ya se han aplicado
@@ -1919,7 +1924,7 @@ function createDefaultDeps(): MasterImporterDeps {
         action: input.duplicateMatch.exactCandidate || input.duplicateMatch.exactGame ? "updated" : "created",
         status: finalization.status,
         missingFields: finalization.missingFields,
-        warnings: finalization.warnings
+        warnings: dedupeStrings([...finalization.warnings, ...videoWarnings])
       };
     },
     async upsertOffer(input) {
@@ -1961,6 +1966,45 @@ function createDefaultDeps(): MasterImporterDeps {
       return result;
     }
   };
+}
+
+async function maybeAttachMasterImportVideos(gameId: string, context: ImportExecutionContext) {
+  const game = await prisma.game.findUnique({ where: { id: gameId } });
+  if (!game) {
+    return [];
+  }
+
+  try {
+    const videoSearch = await runTrackedExternalCall(context, {
+      type: "video_search",
+      reason: "Añadir vídeos de cómo se juega al juego importado.",
+      cacheKey: `videos:${canonicalGameTitleKey(game.title || game.name)}`,
+      timeoutMs: 12000,
+      requireExplicitAllowance: true
+    }, async () => {
+      const { searchHowToPlayVideosWithTavily } = await import("@/lib/videos/howToPlayVideoSearch");
+      return searchHowToPlayVideosWithTavily(game);
+    });
+
+    if (videoSearch.videos.length) {
+      await prisma.game.update({
+        where: { id: gameId },
+        data: {
+          howToPlayVideos: mergeHowToPlayVideoSuggestions(game.howToPlayVideos, videoSearch.videos) as unknown as Prisma.InputJsonValue
+        }
+      });
+      revalidatePublicGameDetail(game.slug);
+    }
+
+    return videoSearch.warning ? [videoSearch.warning] : [];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/video_search bloqueado/i.test(message)) {
+      return [];
+    }
+
+    return [`No se pudieron añadir vídeos: ${message}`];
+  }
 }
 
 async function attachMasterImportImages(

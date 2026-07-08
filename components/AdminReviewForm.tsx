@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useRef } from "react";
 import Link from "next/link";
-import { Hash, Loader2, Save } from "lucide-react";
+import { CheckCircle2, CircleDashed, Hash, Loader2, Save } from "lucide-react";
 import { ReviewBodyEditor } from "@/components/reviews/ReviewBodyEditor";
 import { REVIEW_SUMMARY_MAX_LENGTH, REVIEW_TITLE_MAX_LENGTH } from "@/lib/reviewContent";
 import {
@@ -44,7 +44,7 @@ export function CreateAdminReviewForm({
     <form action={action} className="space-y-6">
       <input type="hidden" name="intent" ref={intentRef} defaultValue="draft" />
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-3 z-20 flex flex-wrap gap-3 rounded-md border border-ink/10 bg-white/95 p-3 shadow-soft backdrop-blur">
         <button className="button-secondary" onClick={() => { if(intentRef.current) intentRef.current.value="draft"; }} disabled={isPending} type="submit">
           {isPending && (!intentRef.current || intentRef.current.value === "draft") ? <Loader2 size={18} className="animate-spin" /> : null}
           {isPending && (!intentRef.current || intentRef.current.value === "draft") ? "Guardando..." : "Guardar borrador"}
@@ -77,7 +77,7 @@ export function EditAdminReviewForm({
       <input type="hidden" name="id" value={initialValue.id} />
       <input type="hidden" name="intent" ref={intentRef} defaultValue={initialValue.isApproved ? "publish" : "draft"} />
       <AdminReviewFields initialValue={initialValue} gameOptions={gameOptions} />
-      <div className="flex flex-wrap gap-3">
+      <div className="sticky bottom-3 z-20 flex flex-wrap gap-3 rounded-md border border-ink/10 bg-white/95 p-3 shadow-soft backdrop-blur">
         {initialValue.isApproved ? (
           <>
             <button className="button-primary" onClick={() => { if(intentRef.current) intentRef.current.value="publish"; }} disabled={isPending} type="submit">
@@ -118,11 +118,20 @@ function AdminReviewFields({
   gameOptions: ReviewGameOption[];
 }) {
   const [body, setBody] = useState(initialValue.body);
+  const [title, setTitle] = useState(initialValue.title);
+  const [summary, setSummary] = useState(initialValue.summary);
+  const [instagramHashtags, setInstagramHashtags] = useState(initialValue.instagramHashtags || "");
 
   return (
     <>
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h2 className="text-xl font-bold text-ink">Datos básicos</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-ink">Datos básicos</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-ink/55">Juego, autor y titular público de la reseña.</p>
+          </div>
+          {initialValue.id ? <PublicationStatus published={Boolean(initialValue.instagramPostId)} /> : null}
+        </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <Field label="Juego">
             <select className="field-input" name="gameId" defaultValue={initialValue.gameId} required>
@@ -137,34 +146,36 @@ function AdminReviewFields({
           <Field label="Autor visible">
             <input className="field-input" name="authorName" defaultValue={initialValue.authorName} required />
           </Field>
-          <Field label="Título">
-            <input className="field-input" name="title" defaultValue={initialValue.title} maxLength={REVIEW_TITLE_MAX_LENGTH} required />
+          <Field label="Título" meta={<CharacterCount value={title} max={REVIEW_TITLE_MAX_LENGTH} />}>
+            <input
+              className="field-input"
+              name="title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              maxLength={REVIEW_TITLE_MAX_LENGTH}
+              required
+            />
           </Field>
-          {initialValue.id && (
-            <div className="flex flex-col justify-center mt-6">
-              <span className="text-sm font-bold text-ink/60 mb-1">Estado en Instagram</span>
-              {initialValue.instagramPostId ? (
-                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-moss">
-                  ✅ Publicado
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-ink/40">
-                  ⚪ No publicado
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </section>
 
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-        <h2 className="text-xl font-bold text-ink">Contenido</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-ink">Contenido</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-ink/55">Resumen editorial y cuerpo completo.</p>
+          </div>
+          <span className="rounded-md border border-ink/10 bg-parchment px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-ink/55">
+            {body.trim() ? `${body.trim().split(/\s+/).length.toLocaleString("es-ES")} palabras` : "0 palabras"}
+          </span>
+        </div>
         <div className="mt-5 space-y-4">
-          <Field label="Resumen">
+          <Field label="Resumen" meta={<CharacterCount value={summary} max={REVIEW_SUMMARY_MAX_LENGTH} />}>
             <textarea
               className="field-input min-h-28 py-3"
               name="summary"
-              defaultValue={initialValue.summary}
+              value={summary}
+              onChange={(event) => setSummary(event.target.value)}
               maxLength={REVIEW_SUMMARY_MAX_LENGTH}
               required
             />
@@ -191,11 +202,12 @@ function AdminReviewFields({
           </div>
         </div>
         <div className="mt-5">
-          <Field label="Hashtags">
+          <Field label="Hashtags" meta={<CharacterCount value={instagramHashtags} max={420} />}>
             <textarea
               className="field-input min-h-24 py-3"
               name="instagramHashtags"
-              defaultValue={initialValue.instagramHashtags || ""}
+              value={instagramHashtags}
+              onChange={(event) => setInstagramHashtags(event.target.value)}
               maxLength={420}
               placeholder="#eurogames #juegosdemesa #resena"
             />
@@ -206,12 +218,36 @@ function AdminReviewFields({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, meta, children }: { label: string; meta?: React.ReactNode; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-sm font-bold text-ink/60">{label}</span>
+      <span className="flex items-center justify-between gap-3 text-sm font-bold text-ink/60">
+        <span>{label}</span>
+        {meta}
+      </span>
       <div className="mt-1">{children}</div>
     </label>
+  );
+}
+
+function CharacterCount({ value, max }: { value: string; max: number }) {
+  const remaining = max - value.length;
+
+  return (
+    <span className={`text-xs font-bold ${remaining < 20 ? "text-ruby" : "text-ink/40"}`}>
+      {value.length.toLocaleString("es-ES")} / {max.toLocaleString("es-ES")}
+    </span>
+  );
+}
+
+function PublicationStatus({ published }: { published: boolean }) {
+  return (
+    <div className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-bold ${
+      published ? "border-moss/20 bg-moss/10 text-moss" : "border-ink/10 bg-parchment text-ink/50"
+    }`}>
+      {published ? <CheckCircle2 size={16} aria-hidden="true" /> : <CircleDashed size={16} aria-hidden="true" />}
+      <span>Instagram: {published ? "publicado" : "pendiente"}</span>
+    </div>
   );
 }
 

@@ -2,7 +2,20 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { Brain, Clock3, House, Shield, Users, Users2, Sparkles, Swords, User, Beer } from "lucide-react";
+import {
+  Beer,
+  BookOpenText,
+  Brain,
+  Clock3,
+  House,
+  LibraryBig,
+  Shield,
+  Sparkles,
+  Swords,
+  User,
+  Users,
+  Users2
+} from "lucide-react";
 import { GameCard } from "@/components/GameCard";
 import { GameSearch } from "@/components/GameSearch";
 import { PublicShell } from "@/components/PublicShell";
@@ -23,6 +36,7 @@ import {
 import { siteConfig } from "@/lib/site";
 import { rotateDaily } from "@/lib/dailyRotation";
 import { slugify } from "@/lib/slug";
+import { getPublicSiteStats, type PublicSiteStats } from "@/lib/publicSiteStats";
 
 export const metadata: Metadata = {
   title: "MeepleTavern - Juegos de mesa, reseñas y recomendaciones",
@@ -45,11 +59,12 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [compatibilityPopularGames, beginnerGames, newGames, categoryTerms] = await Promise.all([
+  const [compatibilityPopularGames, beginnerGames, newGames, categoryTerms, siteStats] = await Promise.all([
     getPopularGames(48),
     getBeginnerGames(4),
     getNewGames(4),
-    getCategoryTerms()
+    getCategoryTerms(),
+    getPublicSiteStats()
   ]);
   const popularGames = compatibilityPopularGames.slice(0, 6);
 
@@ -93,6 +108,8 @@ export default async function Home() {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <HomeStatsStrip stats={siteStats} />
+
         <section className="container-page pt-5">
           <div className="tavern-panel relative min-h-[460px] overflow-hidden p-5 sm:p-6 lg:p-8">
             <Image
@@ -311,18 +328,40 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="container-page py-7 lg:py-8">
+        <section className="container-page py-7 lg:py-8" aria-labelledby="home-tavern-pulse-title">
           <div className="overflow-hidden rounded-lg border border-walnut/12 bg-[linear-gradient(135deg,#fffaf0,#f5e9d6)] shadow-soft">
             <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="p-5 sm:p-6">
                 <p className="tavern-eyebrow">La taberna está abierta</p>
-                <h2 className="tavern-title mt-2 text-3xl sm:text-4xl">
+                <h2 id="home-tavern-pulse-title" className="tavern-title mt-2 text-3xl sm:text-4xl">
                   Tu próxima partida empieza en la taberna
                 </h2>
                 <p className="tavern-copy mt-3">
                   Guarda ideas para después, recupera tu ludoteca cuando toque jugar y descubre qué
                   tienen otros jugadores antes de montar la próxima partida.
                 </p>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <HomePulseStat
+                    icon={LibraryBig}
+                    value={siteStats.publishedGames}
+                    label="Fichas"
+                    description="juegos publicados para explorar"
+                  />
+                  <HomePulseStat
+                    icon={BookOpenText}
+                    value={siteStats.approvedReviews}
+                    label="Reseñas"
+                    description="lecturas con criterio de mesa"
+                  />
+                  <HomePulseStat
+                    icon={Users}
+                    value={siteStats.publicProfiles}
+                    label="Taberneros"
+                    description="perfiles públicos en la taberna"
+                  />
+                </div>
+
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
                   {TAVERN_FEATURES.map((feature) => (
                     <TavernFeatureCard
@@ -450,6 +489,87 @@ const TAVERN_FEATURES = [
     action: "Descubrir juegos"
   }
 ] as const;
+
+function HomeStatsStrip({ stats }: { stats: PublicSiteStats }) {
+  const items = buildStatsStripItems(stats);
+
+  return (
+    <section className="border-y border-ember/20 bg-[#20120c] text-parchment" aria-label="MeepleTavern en cifras">
+      <div className="container-page">
+        <div className="scrollbar-hide flex min-h-10 items-center gap-5 overflow-x-auto py-2 text-[10px] font-black uppercase tracking-[0.14em] sm:text-[11px]">
+          {items.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              prefetch={false}
+              className="group inline-flex shrink-0 items-center gap-2 text-parchment/78 transition hover:text-white"
+            >
+              <span className={`h-2 w-2 rounded-full ${item.dotClass}`} aria-hidden="true" />
+              <span className="sm:hidden">{item.shortLabel}</span>
+              <span className="hidden sm:inline">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HomePulseStat({
+  icon: Icon,
+  value,
+  label,
+  description
+}: {
+  icon: LucideIcon;
+  value: number;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-md border border-walnut/12 bg-white/70 p-3 shadow-sm">
+      <div className="flex items-center gap-2">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-ember/10 text-ember">
+          <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="font-display text-2xl font-bold leading-none text-wood">{value}</p>
+          <p className="mt-1 text-[10px] font-black uppercase leading-tight tracking-[0.12em] text-walnut/58">
+            {label}
+          </p>
+        </div>
+      </div>
+      <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-walnut/70">{description}</p>
+    </div>
+  );
+}
+
+function buildStatsStripItems(stats: PublicSiteStats) {
+  return [
+    {
+      label: `${formatCount(stats.publishedGames)} fichas añadidas`,
+      shortLabel: `${formatCount(stats.publishedGames)} fichas`,
+      href: "/juegos",
+      dotClass: "bg-ember"
+    },
+    {
+      label: `${formatCount(stats.approvedReviews)} reseñas publicadas`,
+      shortLabel: `${formatCount(stats.approvedReviews)} reseñas`,
+      href: "/resenas",
+      dotClass: "bg-moss"
+    },
+    {
+      label: `${formatCount(stats.publicProfiles)} taberneros`,
+      shortLabel: `${formatCount(stats.publicProfiles)} taberneros`,
+      href: "/taberna",
+      dotClass: "bg-parchment"
+    }
+  ];
+}
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat("es-ES").format(value);
+}
 
 function IntentCard({
   title,

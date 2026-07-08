@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { gameCandidateRepository } from "@/lib/editorialRepositories";
+import { autoApplyGameWebAutofill } from "@/lib/ai/gameWebAutofill";
 import { autoCompleteImportedGameWithAi, cleanupImportedCandidate, type ImportedGameResult } from "@/lib/import/importedGame";
 import { importSourceProductReview } from "@/lib/import/importSourceProduct";
 import { initialMasterImportBatchState, type MasterImportBatchState } from "@/lib/import/masterImportBatchShared";
@@ -22,6 +23,7 @@ export async function importSourceAction(_state: ImportSourceState, formData: Fo
       sourceInput: formData.get("sourceInput")
     });
     const result = await autoCompleteImportedGameWithAi(imported);
+    await autoApplyGameWebAutofill(result.gameId);
     await cleanupImportedCandidate(imported.candidateId);
 
     revalidatePath("/admin/import");
@@ -49,6 +51,7 @@ export async function importSourceAndOpenGameAction(formData: FormData) {
       sourceInput: formData.get("sourceInput")
     });
     result = await autoCompleteImportedGameWithAi(imported);
+    await autoApplyGameWebAutofill(result.gameId);
     await cleanupImportedCandidate(imported.candidateId);
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo importar el juego.";
