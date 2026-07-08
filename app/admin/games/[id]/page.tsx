@@ -20,14 +20,13 @@ export default async function GameEditorPage({ params }: GameEditorPageProps) {
   const { id } = await params;
 
   try {
-    const [game, pendingProposal] = await Promise.all([
-      gameRepository.getEditorById(id),
-      getPendingGameImportProposal(id)
-    ]);
+    const game = await gameRepository.getEditorById(id);
 
     if (!game) {
       notFound();
     }
+
+    const pendingProposal = await getOptionalPendingGameImportProposal(id);
 
     return (
       <div>
@@ -56,5 +55,23 @@ export default async function GameEditorPage({ params }: GameEditorPageProps) {
     }
 
     return <AdminDatabaseNotice error={databaseError} />;
+  }
+}
+
+async function getOptionalPendingGameImportProposal(gameId: string) {
+  try {
+    return await getPendingGameImportProposal(gameId);
+  } catch (error) {
+    const databaseError = getAdminDatabaseError(error);
+
+    if (databaseError) {
+      console.warn("[admin-games] editor opened without pending AI proposal", {
+        gameId,
+        target: databaseError.target
+      });
+      return null;
+    }
+
+    throw error;
   }
 }
