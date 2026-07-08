@@ -1,5 +1,11 @@
 import { mobileOpenApiSpec } from "@/lib/mobile/openapi";
 
+export const revalidate = 86400;
+
+const staticPublicCacheHeaders = {
+  "cache-control": "public, s-maxage=86400, stale-while-revalidate=604800"
+} as const;
+
 type OpenApiOperation = {
   summary?: string;
   description?: string;
@@ -27,7 +33,7 @@ export async function GET() {
   return new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store"
+      ...staticPublicCacheHeaders
     }
   });
 }

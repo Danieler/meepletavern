@@ -11,6 +11,8 @@ import { getPublicUsersPage } from "@/lib/publicProfiles";
 import { siteConfig } from "@/lib/site";
 import { slugify } from "@/lib/slug";
 
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const [

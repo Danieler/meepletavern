@@ -2,13 +2,24 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GameStatus } from "@prisma/client";
 
+const publicSearchCacheHeaders = {
+  "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600"
+} as const;
+
 export async function GET(request: Request) {
   try {
     const rawQuery = new URL(request.url).searchParams.get("q") || "";
     const query = rawQuery.trim().toLowerCase();
 
     if (!query || query.length < 2) {
-      return NextResponse.json({ games: [] });
+      return NextResponse.json({ games: [] }, { headers: publicSearchCacheHeaders });
+    }
+
+    if (query.length > 60) {
+      return NextResponse.json(
+        { error: "La búsqueda es demasiado larga." },
+        { status: 400, headers: publicSearchCacheHeaders }
+      );
     }
 
     const cleanQuery = query.replace(/[\s-]/g, "");
@@ -46,7 +57,7 @@ export async function GET(request: Request) {
       year: game.year
     }));
 
-    return NextResponse.json({ games: formattedGames });
+    return NextResponse.json({ games: formattedGames }, { headers: publicSearchCacheHeaders });
   } catch (error) {
     console.error("Error in public game search endpoint:", error);
     return NextResponse.json(

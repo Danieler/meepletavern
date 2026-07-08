@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { getPublicUsersPage, PUBLIC_USER_PAGE_SIZE } from "@/lib/publicProfiles";
 import { isValidTavernSearch, normalizeTavernSearch } from "@/lib/tavernSearch";
 
+const publicCommunityFirstPageCacheHeaders = {
+  "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400"
+} as const;
+
+const publicCommunityInteractiveCacheHeaders = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300"
+} as const;
+
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   const cursor = searchParams.get("cursor")?.trim() || null;
@@ -18,10 +26,10 @@ export async function GET(request: Request) {
 
   try {
     const page = await getPublicUsersPage({ limit: PUBLIC_USER_PAGE_SIZE, cursor, query });
+    const cacheHeaders = cursor || query ? publicCommunityInteractiveCacheHeaders : publicCommunityFirstPageCacheHeaders;
+
     return NextResponse.json(page, {
-      headers: {
-        "Cache-Control": query ? "no-store" : "public, s-maxage=60, stale-while-revalidate=300"
-      }
+      headers: cacheHeaders
     });
   } catch {
     return NextResponse.json({ error: "No se pudieron cargar los taberneros." }, { status: 400 });

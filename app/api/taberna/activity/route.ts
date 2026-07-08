@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { getTavernActivityFeed, TAVERN_ACTIVITY_PAGE_SIZE } from "@/lib/activity/feed";
 import { isValidTavernSearch, normalizeTavernSearch } from "@/lib/tavernSearch";
 
+const publicCommunityFirstPageCacheHeaders = {
+  "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400"
+} as const;
+
+const publicCommunityInteractiveCacheHeaders = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300"
+} as const;
+
 export async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams;
   const cursor = searchParams.get("cursor")?.trim() || null;
@@ -19,10 +27,10 @@ export async function GET(request: Request) {
 
   try {
     const feed = await getTavernActivityFeed({ limit: TAVERN_ACTIVITY_PAGE_SIZE, cursor, query, type });
+    const cacheHeaders = cursor || query || type ? publicCommunityInteractiveCacheHeaders : publicCommunityFirstPageCacheHeaders;
+
     return NextResponse.json(feed, {
-      headers: {
-        "Cache-Control": (query || type) ? "no-store" : "public, s-maxage=60, stale-while-revalidate=300"
-      }
+      headers: cacheHeaders
     });
   } catch {
     return NextResponse.json({ error: "No se pudo cargar más actividad." }, { status: 400 });

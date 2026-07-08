@@ -1,8 +1,26 @@
 import type { NextConfig } from "next";
 
+const CANONICAL_HOST = "www.meepletavern.com";
+const VERCEL_PRODUCTION_HOST = "meepletavern.vercel.app";
+
 const nextConfig: NextConfig = {
   images: {
     unoptimized: true
+  },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: VERCEL_PRODUCTION_HOST.replaceAll(".", "\\.")
+          }
+        ],
+        destination: `https://${CANONICAL_HOST}/:path*`,
+        permanent: true
+      }
+    ];
   },
   async headers() {
     return [

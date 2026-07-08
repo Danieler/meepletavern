@@ -39,6 +39,7 @@ export type PublicUserPage = {
 
 export const PUBLIC_USER_PAGE_SIZE = 8;
 const MAX_PUBLIC_USER_PAGE_SIZE = 12;
+const PUBLIC_USERS_REVALIDATE_SECONDS = 3600;
 
 const publicProfileSelect = {
   userId: true,
@@ -179,7 +180,7 @@ export function getPublicUsersPage(
 const getCachedPublicUsersFirstPage = unstable_cache(
   () => queryPublicUsersPage({ limit: PUBLIC_USER_PAGE_SIZE }),
   ["public-tavern-users-first-page-v1"],
-  { revalidate: 180, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
+  { revalidate: PUBLIC_USERS_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
 );
 
 export function getPublicProfileName(profile: Pick<UserProfile, "displayName" | "username">) {

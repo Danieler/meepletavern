@@ -5,7 +5,7 @@ import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import type { TavernOverview, TavernRankedGame } from "@/lib/tavernOverview";
 
-const TAVERN_NOW_REVALIDATE_SECONDS = 600;
+const TAVERN_NOW_REVALIDATE_SECONDS = 3600;
 
 export type TavernNowGameSignal = {
   gameTitle: string;

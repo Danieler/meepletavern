@@ -11,7 +11,7 @@ export type PublicSiteStats = {
   publicProfiles: number;
 };
 
-const PUBLIC_SITE_STATS_REVALIDATE_SECONDS = 600;
+const PUBLIC_SITE_STATS_REVALIDATE_SECONDS = 3600;
 
 const getCachedPublicSiteStats = unstable_cache(
   async function getCachedPublicSiteStats(): Promise<PublicSiteStats> {

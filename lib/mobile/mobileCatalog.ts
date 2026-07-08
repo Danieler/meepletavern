@@ -39,7 +39,7 @@ export type MobileGameFilterInput = {
 
 const maxMobilePageSize = 50;
 const mobileApiCacheHeaders = {
-  "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800"
+  "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400"
 } as const;
 
 export function mobilePublicCacheHeaders() {

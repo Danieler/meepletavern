@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicShell } from "@/components/PublicShell";
 import { RankingList } from "@/components/RankingList";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
-import { getRankingBySlug, getRankingGames } from "@/lib/catalog";
+import { getRankingBySlug, getRankingGames, getRankings } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
 
 type RankingPageProps = {
@@ -13,6 +13,13 @@ type RankingPageProps = {
 };
 
 export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const rankings = await getRankings();
+  return rankings.map((ranking) => ({
+    slug: ranking.slug
+  }));
+}
 
 export async function generateMetadata({ params }: RankingPageProps): Promise<Metadata> {
   const { slug } = await params;

@@ -7,7 +7,7 @@ import { normalizeTavernSearch } from "@/lib/tavernSearch";
 
 export const TAVERN_ACTIVITY_PAGE_SIZE = 8;
 const MAX_TAVERN_ACTIVITY_PAGE_SIZE = 12;
-const TAVERN_ACTIVITY_REVALIDATE_SECONDS = 180;
+const TAVERN_ACTIVITY_REVALIDATE_SECONDS = 3600;
 
 export type TavernActivityFeedItem = {
   id: string;

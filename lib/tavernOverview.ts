@@ -13,7 +13,7 @@ import { prisma } from "@/lib/prisma";
 const RECENT_ACTIVITY_SCAN_LIMIT = 18;
 export const TAVERN_RECENT_GAMES_LIMIT = 6;
 export const TAVERN_RANKING_LIMIT = 5;
-const TAVERN_OVERVIEW_REVALIDATE_SECONDS = 600;
+const TAVERN_OVERVIEW_REVALIDATE_SECONDS = 3600;
 
 export type TavernOverviewGame = {
   gameId: string;

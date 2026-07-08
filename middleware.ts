@@ -24,7 +24,6 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.next();
     if (isFilteredCatalogPath(request)) {
       response.headers.set("X-Robots-Tag", "noindex, nofollow");
-      response.headers.set("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
     }
     return response;
   }
@@ -359,20 +358,96 @@ export function readAdminAuthConfig(
 
 export const config = {
   matcher: [
-    "/",
-    "/juegos/:path*",
-    "/taberna",
-    "/categorias/:path*",
-    "/mecanicas/:path*",
-    "/rankings/:path*",
-    "/resenas/:path*",
-    "/guias/:path*",
-    "/u/:path*",
-    "/api/mobile/:path*",
-    "/api/taberna/:path*",
-    "/api/compatibility/:path*",
-    "/sitemap.xml",
-    "/robots.txt",
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "q" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "players" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "duration" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "weight" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "age" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "category" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "mechanic" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "sort" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "page" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
+    {
+      source: "/juegos",
+      has: [{ type: "query", key: "welcome" }],
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "sec-purpose", value: "prefetch" }
+      ]
+    },
     "/admin/:path*",
     "/api/admin/:path*"
   ]

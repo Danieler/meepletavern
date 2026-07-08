@@ -19,6 +19,14 @@ type ReviewPageProps = {
 };
 
 export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const reviews = await getReviews();
+  return reviews.map((review) => ({
+    slug: review.slug
+  }));
+}
+
 export async function generateMetadata({ params }: ReviewPageProps): Promise<Metadata> {
   const { slug } = await params;
   const review = await getReviewBySlug(slug);
