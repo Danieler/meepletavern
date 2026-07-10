@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BookmarkCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { useAuth } from "@/hooks/useAuth";
@@ -70,8 +71,8 @@ export function MobileSignupBar() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
       <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-ember/25 bg-[#251610]/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ember/20 text-ember text-sm leading-none">
-          ✨
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ember/20 text-ember">
+          <BookmarkCheck className="h-4 w-4" aria-hidden="true" />
         </div>
         <p className="min-w-0 flex-1 text-sm font-extrabold leading-snug">{copy.text}</p>
         <AuthCtaButton

@@ -15,6 +15,15 @@ const AUTH_CONTEXT_TITLES: Record<AuthContext, string> = {
   table: "Prepara este juego para tu próxima mesa"
 };
 
+const AUTH_CONTEXT_INTROS: Record<AuthContext, string> = {
+  owned: "Crea tu cuenta en segundos y este juego quedará guardado para cuando vuelvas a preparar partida.",
+  wishlist: "Lo dejamos en pendientes para que no desaparezca entre pestañas, recomendaciones y conversaciones.",
+  rating: "Tu valoración se guarda en tu perfil y te ayuda a recordar qué merece volver a mesa.",
+  list: "Mantén tus ideas ordenadas por grupo, ocasión o ganas de jugar, sin reconstruir la lista cada vez.",
+  comment: "Entra para publicar con tu perfil y conservar tus aportes dentro de la taberna.",
+  table: "Guarda esta idea y recupera rápido lo que encaja con la mesa que tienes en mente."
+};
+
 type AuthScreenProps = {
   isConfigured: boolean;
   onSignIn: (email: string, password: string) => Promise<AuthActionResult>;
@@ -54,7 +63,7 @@ export function AuthScreen({
             <p className="mt-3 max-w-xl text-base font-semibold leading-7 text-walnut/70">
               {introMessage ??
                 (isRegister
-                  ? "Tu ludoteca recuerda por ti: juegos para después, listas para tu grupo y partidas que no quieres olvidar."
+                  ? (authContext ? AUTH_CONTEXT_INTROS[authContext] : "Crea una ludoteca gratis para guardar juegos, listas y valoraciones sin depender de memoria o capturas sueltas.")
                   : "Vuelve a tu ludoteca, tus listas y todo lo que guardaste para jugar después.")}
             </p>
           </div>
@@ -68,23 +77,19 @@ export function AuthScreen({
 
               {/* Desktop: full benefit checklist beside the form */}
               <div className="hidden lg:block space-y-4 rounded-xl border border-walnut/12 bg-[#fffcf5] p-5 shadow-sm md:p-6">
-                <p className="text-xs font-black uppercase tracking-wider text-ember">Lo que guardes se queda contigo</p>
+                <p className="text-xs font-black uppercase tracking-wider text-ember">Valor inmediato</p>
                 <ul className="grid gap-3.5 text-sm font-semibold text-walnut/85">
                   <li className="flex items-start gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>No pierdas descubrimientos:</strong> Guarda juegos para probarlos después.</span>
+                    <span><strong>Guarda sin interrumpir:</strong> Vuelve luego al juego, lista o nota que te trajo aquí.</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>Tu ludoteca recuerda por ti:</strong> Ten favoritos, pendientes y jugados en un sitio.</span>
+                    <span><strong>Orden para decidir:</strong> Pendientes, favoritos y jugados viven en una ludoteca sencilla.</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>Prepara la próxima mesa:</strong> Crea listas y recupera ideas cuando toque jugar.</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-moss/10 text-moss text-xs font-black">✓</span>
-                    <span><strong>100% Gratis:</strong> Sin spam. Borra tu cuenta cuando quieras.</span>
+                    <span><strong>Sin ruido:</strong> Gratis, sin newsletter y con perfil editable cuando quieras.</span>
                   </li>
                 </ul>
               </div>

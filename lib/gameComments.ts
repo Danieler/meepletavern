@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { getSafePublicDisplayName } from "@/lib/publicIdentity";
 
 export type PublicGameComment = {
   id: string;
@@ -59,7 +60,6 @@ const getCachedGameComments = (gameId: string, limit = 12) => unstable_cache(
         updatedAt: true,
         user: {
           select: {
-            email: true,
             displayName: true
           }
         }
@@ -69,7 +69,7 @@ const getCachedGameComments = (gameId: string, limit = 12) => unstable_cache(
     return comments.map((comment) => ({
       id: comment.id,
       body: comment.body,
-      authorName: comment.user.displayName?.trim() || comment.user.email.split("@")[0] || "Usuario",
+      authorName: getSafePublicDisplayName(comment.user.displayName),
       createdAt: comment.createdAt.toISOString(),
       updatedAt: comment.updatedAt.toISOString()
     }));

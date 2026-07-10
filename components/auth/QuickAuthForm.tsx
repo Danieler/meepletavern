@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, LockKeyhole, Mail, UserRound, ChevronDown } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import type { AuthActionResult } from "@/hooks/useAuth";
 import { rememberLegalAcceptance, syncPendingLegalAcceptance } from "@/lib/legalAcceptanceClient";
@@ -42,7 +42,7 @@ declare global {
 }
 
 export type AuthMode = "login" | "register";
-type FieldErrors = Partial<Record<"name" | "email" | "password", string>>;
+type FieldErrors = Partial<Record<"email" | "password", string>>;
 
 type QuickAuthFormProps = {
   isConfigured: boolean;
@@ -55,6 +55,7 @@ type QuickAuthFormProps = {
   onSuccess?: () => void;
   onModeChange?: (mode: AuthMode) => void;
   compact?: boolean;
+  surface?: "page" | "modal";
 };
 
 const configMessage =
@@ -68,22 +69,12 @@ function normalizeEmail(value: string) {
     .toLowerCase();
 }
 
-function normalizeName(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
 function getFieldErrors(input: {
-  mode: AuthMode;
-  name: string;
   email: string;
   password: string;
 }) {
   const errors: FieldErrors = {};
   const normalizedEmail = normalizeEmail(input.email);
-
-  if (input.mode === "register" && input.name.trim().length < 2) {
-    errors.name = "Escribe al menos 2 caracteres.";
-  }
 
   if (!normalizedEmail) {
     errors.email = "Escribe tu email.";
@@ -109,10 +100,10 @@ export function QuickAuthForm({
   onDiscordSignIn,
   initialMode = "register",
   onSuccess,
-  onModeChange
+  onModeChange,
+  surface = "page"
 }: QuickAuthFormProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -136,6 +127,7 @@ export function QuickAuthForm({
   const isRegister = mode === "register";
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
   const useGoogleOAuthFallback = true;
+  const authEventProperties = { mode, surface };
 
   useEffect(() => {
     googleIdTokenSignInRef.current = onGoogleIdTokenSignIn;
@@ -221,22 +213,24 @@ export function QuickAuthForm({
     if (submitting || cooldownSeconds > 0) return;
 
     setFeedback(null);
-    const errors = getFieldErrors({ mode, name, email, password });
-    if (errors.name || errors.email || errors.password) {
+    const errors = getFieldErrors({ email, password });
+    if (errors.email || errors.password) {
       setFieldErrors(errors);
       setFeedbackTone("error");
       setFeedback("Revisa los campos marcados antes de continuar.");
+      trackEvent("auth_email_submit_blocked", authEventProperties);
       return;
     }
     setFieldErrors({});
     setSubmitting(true);
+    trackEvent("auth_email_submit_attempted", authEventProperties);
 
     if (isRegister) {
       rememberLegalAcceptance();
     }
 
     const result = isRegister
-      ? await onSignUp(normalizeEmail(email), password, normalizeName(name))
+      ? await onSignUp(normalizeEmail(email), password)
       : await onSignIn(normalizeEmail(email), password);
 
     setSubmitting(false);
@@ -250,25 +244,29 @@ export function QuickAuthForm({
       }
       setFeedbackTone("error");
       setFeedback(result.message ?? "Algo no ha ido bien. Inténtalo otra vez.");
+      trackEvent("auth_email_submit_failed", {
+        ...authEventProperties,
+        code: result.code ?? "unknown"
+      });
       return;
     }
 
     if (isRegister && result.requiresEmailConfirmation) {
       setMode("login");
       setPassword("");
-      setName("");
       setFeedbackTone("success");
       setFeedback(result.message ?? "Confirma tu email.");
+      trackEvent("auth_email_confirmation_required", authEventProperties);
       return; // Stop here, don't call onSuccess because they need to confirm
     }
 
     if (onSuccess) {
       await syncPendingLegalAcceptance().catch(() => undefined);
-      trackEvent("auth_completed");
+      trackEvent("auth_completed", { ...authEventProperties, method: "email" });
       onSuccess();
     } else if (result.message) {
       await syncPendingLegalAcceptance().catch(() => undefined);
-      trackEvent("auth_completed");
+      trackEvent("auth_completed", { ...authEventProperties, method: "email" });
       setFeedbackTone("success");
       setFeedback(result.message);
     }
@@ -276,6 +274,7 @@ export function QuickAuthForm({
 
   async function handleGoogleSignIn() {
     trackEvent("auth_modal_google_clicked");
+    trackEvent("auth_provider_clicked", { ...authEventProperties, provider: "google" });
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
     if (isRegister) {
       rememberLegalAcceptance();
@@ -288,10 +287,12 @@ export function QuickAuthForm({
     if (!result.ok) {
       setFeedbackTone("error");
       setFeedback(result.message ?? "No hemos podido iniciar sesión con Google.");
+      trackEvent("auth_provider_failed", { ...authEventProperties, provider: "google", code: result.code ?? "unknown" });
     }
   }
 
   async function handleDiscordSignIn() {
+    trackEvent("auth_provider_clicked", { ...authEventProperties, provider: "discord" });
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
     if (isRegister) {
       rememberLegalAcceptance();
@@ -304,6 +305,7 @@ export function QuickAuthForm({
     if (!result.ok) {
       setFeedbackTone("error");
       setFeedback(result.message ?? "No hemos podido iniciar sesión con Discord.");
+      trackEvent("auth_provider_failed", { ...authEventProperties, provider: "discord", code: result.code ?? "unknown" });
     }
   }
 
@@ -326,10 +328,17 @@ export function QuickAuthForm({
     if (!result.ok) {
       setFeedbackTone("error");
       setFeedback(result.message ?? "No hemos podido iniciar sesión con Google.");
+      trackEvent("auth_provider_failed", { ...authEventProperties, provider: "google_id_token", code: result.code ?? "unknown" });
     } else if (onSuccess) {
       await syncPendingLegalAcceptance().catch(() => undefined);
+      trackEvent("auth_completed", { ...authEventProperties, method: "google" });
       onSuccess();
     }
+  }
+
+  function revealEmailForm() {
+    setShowEmailForm(true);
+    trackEvent("auth_email_form_revealed", authEventProperties);
   }
 
   return (
@@ -394,13 +403,14 @@ export function QuickAuthForm({
       </div>
 
       {!showEmailForm ? (
-        <button 
-          type="button" 
-          onClick={() => setShowEmailForm(true)}
-          className="flex w-full items-center justify-center gap-2 text-xs font-semibold text-walnut/60 transition hover:text-wood"
+        <button
+          type="button"
+          onClick={revealEmailForm}
+          className="focus-ring flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-walnut/15 bg-walnut/[0.03] px-4 text-sm font-extrabold text-walnut/75 transition hover:border-walnut/25 hover:bg-walnut/[0.06] hover:text-wood"
         >
-          <span>O continuar con email</span>
-          <ChevronDown size={14} />
+          <Mail className="h-4 w-4" aria-hidden="true" />
+          <span>Continuar con email</span>
+          <ChevronDown className="h-4 w-4 text-walnut/45" aria-hidden="true" />
         </button>
       ) : (
         <>
@@ -411,23 +421,6 @@ export function QuickAuthForm({
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
-            {isRegister ? (
-              <label className="block">
-                <span className="text-xs font-extrabold text-wood">Nombre</span>
-                <span className="relative mt-1.5 flex items-center">
-                  <UserRound className="pointer-events-none absolute left-3.5 h-4 w-4 text-walnut/40" aria-hidden="true" />
-                  <input
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    className="focus-ring min-h-[40px] w-full rounded-md border border-walnut/20 bg-white pl-10 pr-3 text-sm text-ink shadow-sm transition hover:border-walnut/35"
-                    placeholder="Tu nombre"
-                    autoComplete="name"
-                  />
-                </span>
-                {fieldErrors.name ? <span className="mt-1 block text-xs font-semibold text-ruby">{fieldErrors.name}</span> : null}
-              </label>
-            ) : null}
-
             <label className="block">
               <span className="text-xs font-extrabold text-wood">Email</span>
               <span className="relative mt-1.5 flex items-center">
@@ -474,8 +467,15 @@ export function QuickAuthForm({
             ) : null}
 
             <button className="button-primary w-full shadow-sm transition min-h-[44px]" disabled={submitting || cooldownSeconds > 0 || !isConfigured} type="submit">
-              {submitting ? "Enviando..." : cooldownSeconds > 0 ? `Espera ${cooldownSeconds}s` : isRegister ? "Guardar mi ludoteca" : "Entrar"}
+              {submitting ? "Enviando..." : cooldownSeconds > 0 ? `Espera ${cooldownSeconds}s` : isRegister ? "Crear cuenta y guardar" : "Entrar"}
             </button>
+
+            {isRegister ? (
+              <p className="flex items-center justify-center gap-1.5 text-center text-[11px] font-bold leading-5 text-walnut/55">
+                <ShieldCheck className="h-3.5 w-3.5 text-moss" aria-hidden="true" />
+                Sin newsletter. Podrás ajustar tu perfil después.
+              </p>
+            ) : null}
           </form>
         </>
       )}

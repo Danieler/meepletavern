@@ -8,6 +8,7 @@ import {
   type AuthMode,
   type AuthContext
 } from "@/components/auth-cta/authCtaUrl";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type AuthCtaButtonProps = {
   variant?: "primary" | "secondary" | "subtle" | "hero-primary" | "hero-secondary";
@@ -59,8 +60,18 @@ export function AuthCtaButton({
             ? "button-hero-secondary"
             : "inline-flex min-h-10 items-center text-sm font-extrabold text-parchment/85 transition hover:text-white hover:underline";
 
+  function handleClick() {
+    trackEvent("auth_cta_clicked", {
+      context,
+      mode,
+      variant,
+      hasIntent: Boolean(intent),
+      hasAuthContext: Boolean(authContext)
+    });
+  }
+
   return (
-    <Link className={[baseClass, className].filter(Boolean).join(" ")} href={href} aria-label={ariaLabel}>
+    <Link className={[baseClass, className].filter(Boolean).join(" ")} href={href} aria-label={ariaLabel} onClick={handleClick}>
       {children || defaultLabels[context]}
     </Link>
   );

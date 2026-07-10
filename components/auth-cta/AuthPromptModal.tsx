@@ -110,6 +110,7 @@ export function AuthPromptModal({
           onDiscordSignIn={() => signInWithDiscord(next)}
           initialMode="register"
           compact={true}
+          surface="modal"
           onSuccess={onSuccess ? onSuccess : onClose}
         />
         

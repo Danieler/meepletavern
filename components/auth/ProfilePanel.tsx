@@ -9,6 +9,7 @@ import { UserRatingsPanel } from "@/components/account/UserRatingsPanel";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { GameSuggestionForm } from "@/components/GameSuggestionForm";
 import { useAuth } from "@/hooks/useAuth";
+import { getSafePublicDisplayName } from "@/lib/publicIdentity";
 
 type AccountProfile = {
   id: string;
@@ -167,7 +168,7 @@ export function ProfilePanel() {
     );
   }
 
-  const displayName = profile?.displayName || user.email?.split("@")[0] || "Usuario";
+  const displayName = getSafePublicDisplayName(profile?.displayName);
   const username = profile?.profile?.username;
   const profileName = profile?.profile?.displayName || displayName;
   const avatarUrl = profile?.profile?.avatarUrl;

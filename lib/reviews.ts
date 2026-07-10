@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_REVIEWS_TAG } from "@/lib/publicGameCache";
+import { getSafePublicDisplayName } from "@/lib/publicIdentity";
 import { getEffectiveReviewRating, normalizeReviewRatingValue } from "@/lib/reviewRating";
 import { validateReviewContent } from "@/lib/reviewContent";
 import { slugify } from "@/lib/slug";
@@ -108,11 +109,13 @@ export async function getPublishedReviewBySlug(slug: string) {
 
 const getCachedPublishedReviews = unstable_cache(
   async function getCachedPublishedReviews() {
-    return prisma.review.findMany({
+    const reviews = await prisma.review.findMany({
       where: { isApproved: true },
       select: publicReviewListSelect,
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }]
     });
+
+    return reviews.map(withSafePublicAuthorName);
   },
   ["published-reviews"],
   { revalidate: 3600, tags: [PUBLIC_REVIEWS_TAG] }
@@ -120,10 +123,12 @@ const getCachedPublishedReviews = unstable_cache(
 
 const getCachedPublishedReviewBySlug = (slug: string) => unstable_cache(
   async () => {
-    return prisma.review.findFirst({
+    const review = await prisma.review.findFirst({
       where: { slug, isApproved: true },
       select: publicReviewSelect
     });
+
+    return review ? withSafePublicAuthorName(review) : null;
   },
   ["published-review-by-slug", slug],
   { revalidate: 3600, tags: [PUBLIC_REVIEWS_TAG] }
@@ -272,6 +277,13 @@ function currentDate() {
 function normalizeOptionalText(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function withSafePublicAuthorName<T extends { authorName: string }>(review: T): T {
+  return {
+    ...review,
+    authorName: getSafePublicDisplayName(review.authorName)
+  };
 }
 
 async function ensureUniqueReviewSlug(baseSlug: string, ignoreId?: string) {

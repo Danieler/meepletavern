@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Check, Eye, EyeOff, ImagePlus, Link2, Loader2, Lock, Save, Trash2, UploadCloud, UserRound } from "lucide-react";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { useAuth } from "@/hooks/useAuth";
+import { getSafePublicDisplayName } from "@/lib/publicIdentity";
 import { MAX_AVATAR_SIZE, avatarMimeTypes } from "@/lib/supabase/avatarStorage";
 
 const PROFILE_VISIBILITY = {
@@ -98,7 +99,7 @@ export function SettingsPageClient() {
     }
   };
 
-  const displayName = formData.displayName.trim() || user?.email?.split("@")[0] || "Usuario";
+  const displayName = getSafePublicDisplayName(formData.displayName);
   const username = formData.username.trim() || "usuario";
   const publicHref = `/u/${username}`;
   const previewAvatarUrl = avatarPreviewUrl || formData.avatarUrl;

@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { LEGAL_VERSION } from "@/lib/legalConstants";
 import { prisma } from "@/lib/prisma";
 
+const DEFAULT_USERNAME_BASE = "meeple";
+
 function normalizeDisplayName(value: unknown) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
 }
@@ -16,7 +18,12 @@ export function getSupabaseDisplayName(user: Pick<SupabaseUser, "email" | "user_
     return displayName;
   }
 
-  return user.email?.split("@")[0]?.trim() || null;
+  return null;
+}
+
+function getGeneratedUsernameBase(authUserId: string) {
+  const suffix = authUserId.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
+  return suffix ? `${DEFAULT_USERNAME_BASE}-${suffix}` : DEFAULT_USERNAME_BASE;
 }
 
 function getLegalAcceptanceFromMetadata(metadata: SupabaseUser["user_metadata"]) {
@@ -64,8 +71,7 @@ export async function upsertAppUserFromAuthUser(user: Pick<SupabaseUser, "id" | 
   });
 
   if (!appUser.profile) {
-    const baseUsername = user.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
-    const username = await ensureUniqueUsername(baseUsername);
+    const username = await ensureUniqueUsername(getGeneratedUsernameBase(user.id));
 
     await prisma.userProfile.create({
       data: {
@@ -85,12 +91,13 @@ export async function upsertAppUserFromAuthUser(user: Pick<SupabaseUser, "id" | 
 }
 
 async function ensureUniqueUsername(base: string) {
-  let username = base || "usuario";
+  const safeBase = base || DEFAULT_USERNAME_BASE;
+  let username = safeBase;
   let counter = 1;
   while (true) {
     const existing = await prisma.userProfile.findUnique({ where: { username } });
     if (!existing) return username;
-    username = `${base}${counter++}`;
+    username = `${safeBase}-${counter++}`;
   }
 }
 

@@ -4,18 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCtaButton } from "@/components/auth-cta/AuthCtaButton";
 import { useAuth } from "@/hooks/useAuth";
+import { getSafePublicDisplayName } from "@/lib/publicIdentity";
 
-function getDisplayName(email: string | undefined, displayName: unknown, name: unknown) {
+function getDisplayName(displayName: unknown, name: unknown) {
   if (typeof displayName === "string" && displayName.trim()) {
-    return displayName.trim();
+    return getSafePublicDisplayName(displayName, "Mi perfil");
   }
 
   if (typeof name === "string" && name.trim()) {
-    return name.trim();
-  }
-
-  if (email) {
-    return email.split("@")[0];
+    return getSafePublicDisplayName(name, "Mi perfil");
   }
 
   return "Mi perfil";
@@ -69,7 +66,6 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
   }
 
   const label = getDisplayName(
-    user.email,
     user.user_metadata?.display_name,
     user.user_metadata?.name
   );

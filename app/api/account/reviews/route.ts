@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { prisma } from "@/lib/prisma";
+import { getSafePublicDisplayName } from "@/lib/publicIdentity";
 import { revalidatePublicGameDetail } from "@/lib/publicGameCache";
 import { createReview } from "@/lib/reviews";
 import { validateReviewContent } from "@/lib/reviewContent";
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     const review = await createReview({
       gameId,
       userId: appUser.id,
-      authorName: appUser.displayName || appUser.email.split("@")[0] || "Usuario",
+      authorName: getSafePublicDisplayName(appUser.displayName),
       title,
       summary,
       body: content,
