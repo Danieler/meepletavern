@@ -25,8 +25,8 @@ export const metadata: Metadata = {
   },
   description: siteConfig.subclaim,
   icons: {
-    icon: siteConfig.markImage,
-    apple: siteConfig.markImage
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png"
   },
   openGraph: {
     title: `${siteConfig.name} - ${siteConfig.claim}`,
@@ -34,7 +34,21 @@ export const metadata: Metadata = {
     url: siteConfig.url,
     siteName: siteConfig.name,
     locale: "es_ES",
-    type: "website"
+    type: "website",
+    images: [
+      {
+        url: siteConfig.logoImage,
+        width: 1200,
+        height: 630,
+        alt: `${siteConfig.name} - ${siteConfig.claim}`
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteConfig.name} - ${siteConfig.claim}`,
+    description: siteConfig.subclaim,
+    images: [siteConfig.logoImage]
   }
 };
 

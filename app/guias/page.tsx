@@ -5,9 +5,20 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { getGuias } from "@/lib/guias";
 
+import { siteConfig } from "@/lib/site";
+
 export const metadata: Metadata = {
   title: "Guías de compra y recomendaciones de juegos de mesa",
-  description: "Descubre los mejores juegos de mesa con nuestras guías temáticas: para dos jugadores, familiares, cooperativos, party games y mucho más."
+  description: "Descubre los mejores juegos de mesa con nuestras guías temáticas: para dos jugadores, familiares, cooperativos, party games y mucho más.",
+  alternates: {
+    canonical: "/guias"
+  },
+  openGraph: {
+    title: "Guías de compra y recomendaciones de juegos de mesa | MeepleTavern",
+    description: "Descubre los mejores juegos de mesa con nuestras guías temáticas: para dos jugadores, familiares, cooperativos, party games y mucho más.",
+    url: "/guias",
+    type: "website"
+  }
 };
 
 export const revalidate = 3600;
@@ -15,9 +26,29 @@ export const revalidate = 3600;
 export default async function GuiasIndexPage() {
   const guias = await getGuias();
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Guías de compra y recomendaciones de juegos de mesa",
+    description: "Colecciones y listas curadas para ayudarte a encontrar el juego de mesa perfecto para tu grupo y ocasión.",
+    url: `${siteConfig.url}/guias`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: guias.map((guia, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteConfig.url}/guias/${guia.slug}`
+      }))
+    }
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="page-hero">
           <div className="container-page">
             <p className="tavern-eyebrow">Selecciones de la Taberna</p>

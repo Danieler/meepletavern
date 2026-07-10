@@ -6,8 +6,38 @@ import { PublicShell } from "@/components/PublicShell";
 import { PublicListsSection } from "@/components/lists/PublicListsSection";
 import { getPublicUserListsPage } from "@/lib/gameLists";
 import { getPublicProfileByUsername } from "@/lib/publicProfiles";
+import { siteConfig } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Listas públicas - MeepleTavern" };
+type ListsPageProps = {
+  params: Promise<{ username: string }>;
+};
+
+export async function generateMetadata({ params }: ListsPageProps): Promise<Metadata> {
+  const { username } = await params;
+  const profile = await getPublicProfileByUsername(username);
+
+  if (!profile || profile.profileVisibility !== ProfileVisibility.PUBLIC) {
+    return { title: "Perfil privado - MeepleTavern", robots: { index: false, follow: false } };
+  }
+
+  const title = `Listas de juegos de @${profile.username} - MeepleTavern`;
+  const description = `Explora las listas de juegos de mesa públicas creadas por @${profile.username} en MeepleTavern.`;
+  const url = `${siteConfig.url}/u/${profile.username}/listas`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url
+    }
+  };
+}
 
 export default async function PublicUserListsPage({
   params,
@@ -28,9 +58,29 @@ export default async function PublicUserListsPage({
   const page = await getPublicUserListsPage({ username: profile.username, cursor });
   const displayName = profile.username;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `Listas de juegos de @${profile.username}`,
+    description: `Explora las listas de juegos de mesa públicas creadas por @${profile.username} en MeepleTavern.`,
+    url: `${siteConfig.url}/u/${profile.username}/listas`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: page.items.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteConfig.url}/u/${profile.username}/listas/${item.slug}`
+      }))
+    }
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="bg-wood text-white">
           <div className="container-page py-10 lg:py-14">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-ember">@{profile.username}</p>

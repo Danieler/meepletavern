@@ -36,6 +36,11 @@ export async function generateMetadata({ params }: GuiaPageProps): Promise<Metad
       description: guia.description,
       type: "article",
       url: `${siteConfig.url}/guias/${guia.slug}`
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: guia.title,
+      description: guia.description
     }
   };
 }

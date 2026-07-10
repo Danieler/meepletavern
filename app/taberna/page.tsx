@@ -15,10 +15,21 @@ import { normalizeTavernSearch } from "@/lib/tavernSearch";
 import { getTavernOverview, type TavernActivityHighlights } from "@/lib/tavernOverview";
 import { getTavernNowSummary } from "@/lib/tavernNow";
 
+import { siteConfig } from "@/lib/site";
+
 export const metadata: Metadata = {
   title: "La taberna - MeepleTavern",
   description:
-    "Descubre a otros jugadores en la taberna de MeepleTavern y explora sus ludotecas públicas."
+    "Descubre a otros jugadores en la taberna de MeepleTavern y explora sus ludotecas públicas.",
+  alternates: {
+    canonical: "/taberna"
+  },
+  openGraph: {
+    title: "La taberna - MeepleTavern",
+    description: "Descubre a otros jugadores en la taberna de MeepleTavern y explora sus ludotecas públicas.",
+    url: "/taberna",
+    type: "website"
+  }
 };
 
 type TavernPageProps = {
@@ -30,10 +41,22 @@ const getTavernOverviewForRequest = cache(() => getTavernOverview());
 export default async function TavernPage({ searchParams }: TavernPageProps) {
   const { q } = (await searchParams) || {};
   const query = normalizeTavernSearch(q);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "La Taberna - MeepleTavern",
+    description: "Descubre a otros jugadores en la taberna de MeepleTavern y explora sus ludotecas públicas.",
+    url: `${siteConfig.url}/taberna`
+  };
   
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="page-hero !py-2 sm:!py-3">
           <div className="container-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
             <div>

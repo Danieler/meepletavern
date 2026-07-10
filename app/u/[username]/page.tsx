@@ -10,6 +10,7 @@ import { PublicListsSection } from "@/components/lists/PublicListsSection";
 import { getPublicUserLists } from "@/lib/gameLists";
 import { getPublicProfileByUsername, getPublicUserCollection, type PublicCollectionEntry } from "@/lib/publicProfiles";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import { siteConfig } from "@/lib/site";
 
 type ProfilePageProps = {
   params: Promise<{ username: string }>;
@@ -32,9 +33,26 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
     return { title: "Perfil privado - MeepleTavern", robots: { index: false, follow: false } };
   }
 
+  const title = `@${profile.username} - MeepleTavern`;
+  const description = profile.bio || `Perfil de @${profile.username} en MeepleTavern`;
+  const profileUrl = `${siteConfig.url}/u/${profile.username}`;
+
   return {
-    title: `@${profile.username} - MeepleTavern`,
-    description: profile.bio || `Perfil de @${profile.username} en MeepleTavern`
+    title,
+    description,
+    alternates: {
+      canonical: profileUrl
+    },
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      username: profile.username,
+      url: profileUrl,
+      ...(profile.avatarUrl && {
+        images: [{ url: profile.avatarUrl }]
+      })
+    }
   };
 }
 
@@ -89,9 +107,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     .filter((entry, index, all) => all.findIndex((candidate) => candidate.gameId === entry.gameId) === index)
     .slice(0, 4);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    name: profile.username,
+    url: `${siteConfig.url}/u/${profile.username}`,
+    mainEntity: {
+      "@type": "Person",
+      name: profile.username,
+      identifier: profile.username,
+      ...(profile.avatarUrl && { image: profile.avatarUrl }),
+      description: profile.bio || undefined
+    }
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="relative overflow-hidden bg-wood text-white">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(201,130,31,0.36),transparent_30rem),linear-gradient(135deg,rgba(54,32,22,0.98),rgba(31,31,31,0.96)_56%,rgba(47,79,111,0.46))]" />
           <div className="container-page relative grid gap-8 py-10 sm:py-14 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">

@@ -9,10 +9,21 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { getReviews, type Review } from "@/lib/catalog";
 
+import { siteConfig } from "@/lib/site";
+
 export const metadata: Metadata = {
   title: "Reseñas de juegos de mesa",
   description:
-    "Reseñas de juegos de mesa en español con puntuación, resumen, opinión, pros, contras y recomendaciones para distintas mesas."
+    "Reseñas de juegos de mesa en español con puntuación, resumen, opinión, pros, contras y recomendaciones para distintas mesas.",
+  alternates: {
+    canonical: "/resenas"
+  },
+  openGraph: {
+    title: "Reseñas de juegos de mesa | MeepleTavern",
+    description: "Reseñas de juegos de mesa en español con puntuación, resumen, opinión, pros, contras y recomendaciones para distintas mesas.",
+    url: "/resenas",
+    type: "website"
+  }
 };
 
 export const revalidate = 3600;
@@ -20,9 +31,29 @@ export const revalidate = 3600;
 export default async function ReviewsPage() {
   const reviews = await getReviews();
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Reseñas de juegos de mesa",
+    description: "Reseñas de juegos de mesa en español con puntuación, resumen, opinión, pros, contras y recomendaciones para distintas mesas.",
+    url: `${siteConfig.url}/resenas`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: reviews.map((review, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteConfig.url}/resenas/${review.slug}`
+      }))
+    }
+  };
+
   return (
     <PublicShell>
       <main className="bg-[#fbf7ee]">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <ReviewsHero featured={reviews[0]} recentReviews={reviews.slice(1, 3)} />
         <ReviewsResults reviews={reviews} />
         <section className="container-page pb-14">

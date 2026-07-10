@@ -5,10 +5,21 @@ import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { getCategoryGameCounts, getCategoryTerms } from "@/lib/catalog";
 import { slugify } from "@/lib/slug";
 
+import { siteConfig } from "@/lib/site";
+
 export const metadata: Metadata = {
   title: "Categorías de juegos de mesa",
   description:
-    "Explora categorías de juegos de mesa como familiar, estrategia, party, cooperativo, narrativo, dungeon crawler, eurogame, ameritrash o abstracto."
+    "Explora categorías de juegos de mesa como familiar, estrategia, party, cooperativo, narrativo, dungeon crawler, eurogame, ameritrash o abstracto.",
+  alternates: {
+    canonical: "/categorias"
+  },
+  openGraph: {
+    title: "Categorías de juegos de mesa | MeepleTavern",
+    description: "Explora categorías de juegos de mesa como familiar, estrategia, party, cooperativo, narrativo, dungeon crawler, eurogame, ameritrash o abstracto.",
+    url: "/categorias",
+    type: "website"
+  }
 };
 
 export const revalidate = 3600;
@@ -16,8 +27,28 @@ export const revalidate = 3600;
 export default async function CategoriesPage() {
   const [terms, counts] = await Promise.all([getCategoryTerms(), getCategoryGameCounts()]);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Categorías de juegos de mesa",
+    description: "Explora categorías de juegos de mesa en MeepleTavern.",
+    url: `${siteConfig.url}/categorias`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: terms.map((term, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteConfig.url}/categorias/${slugify(term)}`
+      }))
+    }
+  };
+
   return (
     <PublicShell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <TermPage
         eyebrow="Mapas de la taberna"
         title="Categorías de juegos de mesa"

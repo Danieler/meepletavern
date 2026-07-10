@@ -8,11 +8,21 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { SEOTextBlock } from "@/components/SEOTextBlock";
 import { RankingsResultsSkeleton } from "@/components/loading/PublicPageSkeletons";
 import { getRankingGames, getRankings } from "@/lib/catalog";
+import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Rankings de juegos de mesa",
   description:
-    "Rankings de MeepleTavern con top juegos de mesa, familiares, cooperativos, party, narrativos, estratégicos, para dos y para principiantes."
+    "Rankings de MeepleTavern con top juegos de mesa, familiares, cooperativos, party, narrativos, estratégicos, para dos y para principiantes.",
+  alternates: {
+    canonical: "/rankings"
+  },
+  openGraph: {
+    title: "Rankings de juegos de mesa | MeepleTavern",
+    description: "Rankings de MeepleTavern con top juegos de mesa, familiares, cooperativos, party, narrativos, estratégicos, para dos y para principiantes.",
+    url: "/rankings",
+    type: "website"
+  }
 };
 
 export const revalidate = 3600;
@@ -54,8 +64,28 @@ async function RankingsResults() {
     rankings.map(async (ranking) => ({ ranking, games: (await getRankingGames(ranking)).slice(0, 5) }))
   );
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Rankings de juegos de mesa",
+    description: "Listas editoriales para comparar por tipo de mesa, momento, género y nivel de experiencia.",
+    url: `${siteConfig.url}/rankings`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: rankings.map((ranking, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteConfig.url}/rankings/${ranking.slug}`
+      }))
+    }
+  };
+
   return (
     <section className="container-page grid gap-8 py-12 lg:grid-cols-2">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {rankingSections.map(({ ranking, games }) => (
         <article key={ranking.slug} className="space-y-5">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between sm:gap-4">

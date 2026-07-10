@@ -5,8 +5,46 @@ import { ChevronRight } from "lucide-react";
 import { PublicShell } from "@/components/PublicShell";
 import { ListGameThumbnail } from "@/components/lists/ListGameThumbnail";
 import { GAME_LIST_ITEM_PAGE_SIZE, getPublicListDetail } from "@/lib/gameLists";
+import { cache } from "react";
+import { siteConfig } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Lista pública - MeepleTavern" };
+const getCachedPublicListDetail = cache((username: string, listSlug: string, cursor: string | null) =>
+  getPublicListDetail({ username, listSlug, cursor, limit: GAME_LIST_ITEM_PAGE_SIZE })
+);
+
+type ListPageProps = {
+  params: Promise<{ username: string; listSlug: string }>;
+};
+
+export async function generateMetadata({ params }: ListPageProps): Promise<Metadata> {
+  const { username, listSlug } = await params;
+  const page = await getCachedPublicListDetail(username, listSlug, null);
+
+  if (!page) {
+    return {
+      title: "Lista no encontrada - MeepleTavern",
+      robots: { index: false, follow: false }
+    };
+  }
+
+  const title = `${page.list.name} por @${page.list.owner.username} - MeepleTavern`;
+  const description = page.list.description || `Lista de juegos de mesa "${page.list.name}" por @${page.list.owner.username} en MeepleTavern.`;
+  const url = `${siteConfig.url}/u/${page.list.owner.username}/listas/${page.list.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url
+    }
+  };
+}
 
 export default async function PublicListPage({
   params,
@@ -21,16 +59,36 @@ export default async function PublicListPage({
   ]);
   const rawCursor = query.cursor?.trim() || null;
   const cursor = rawCursor && rawCursor.length <= 64 && /^[a-zA-Z0-9_-]+$/.test(rawCursor) ? rawCursor : null;
-  const page = await getPublicListDetail({ username, listSlug, cursor, limit: GAME_LIST_ITEM_PAGE_SIZE });
+  const page = await getCachedPublicListDetail(username, listSlug, cursor);
   if (!page) notFound();
 
   const nextUrl = page.nextCursor
     ? `/u/${encodeURIComponent(page.list.owner.username)}/listas/${encodeURIComponent(page.list.slug)}?cursor=${encodeURIComponent(page.nextCursor)}`
     : null;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: page.list.name,
+    description: page.list.description || undefined,
+    url: `${siteConfig.url}/u/${page.list.owner.username}/listas/${page.list.slug}`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: page.items.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${siteConfig.url}/juegos/${item.slug}`
+      }))
+    }
+  };
+
   return (
     <PublicShell>
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <section className="bg-wood text-white">
           <div className="container-page py-10 lg:py-14">
             <Link href={`/u/${encodeURIComponent(page.list.owner.username)}`} className="text-xs font-black uppercase tracking-[0.12em] text-ember hover:text-white">

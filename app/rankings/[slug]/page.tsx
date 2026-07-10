@@ -43,6 +43,11 @@ export async function generateMetadata({ params }: RankingPageProps): Promise<Me
       description: ranking.description,
       type: "website",
       url: `${siteConfig.url}/rankings/${ranking.slug}`
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ranking.title,
+      description: ranking.description
     }
   };
 }
