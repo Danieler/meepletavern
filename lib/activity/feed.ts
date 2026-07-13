@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { auditDataSource } from "@/lib/egressAudit";
 import { normalizeTavernSearch } from "@/lib/tavernSearch";
+import { GENERATED_USERNAME_PREFIX } from "@/lib/usernames";
 
 export const TAVERN_ACTIVITY_PAGE_SIZE = 8;
 const MAX_TAVERN_ACTIVITY_PAGE_SIZE = 12;
@@ -42,6 +43,7 @@ export async function queryTavernActivityFeed(
   const rows = await db.activityEvent.findMany({
     where: {
       visibility: ActivityEventVisibility.PUBLIC,
+      NOT: { actorUsernameSnapshot: { startsWith: GENERATED_USERNAME_PREFIX } },
       ...(typeFilter ? { type: { in: typeFilter } } : {}),
       ...(search
         ? {
@@ -105,7 +107,7 @@ export async function queryTavernActivityFeed(
 
 const getCachedTavernActivityFeed = (limit: number, cursor: string | null) => unstable_cache(
   () => queryTavernActivityFeed({ limit, cursor }),
-  ["tavern-activity-feed-v2", String(limit), cursor || ""],
+  ["tavern-activity-feed-v3", String(limit), cursor || ""],
   { revalidate: TAVERN_ACTIVITY_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
 )();
 

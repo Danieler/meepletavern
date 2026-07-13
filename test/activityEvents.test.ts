@@ -79,6 +79,35 @@ test("recordPublicActivityEvent removes stale collection activity when the colle
   assert.equal(deletedKey, "COLLECTION_ADDED:user-1:game-1");
 });
 
+test("system-generated usernames never create public activity", async () => {
+  let upsertCalls = 0;
+  const db = {
+    activityEvent: {
+      async upsert() {
+        upsertCalls += 1;
+        return {};
+      },
+      async deleteMany() {
+        return { count: 0 };
+      }
+    }
+  } as unknown as NonNullable<Parameters<typeof recordPublicActivityEvent>[1]>;
+  const incompleteActor = actor();
+  incompleteActor.profile.username = "meeple-a96d3388";
+
+  const changed = await recordPublicActivityEvent(
+    {
+      type: ActivityEventType.PLAYED,
+      actor: incompleteActor,
+      game: { id: "game-1", slug: "heat", title: "Heat", name: "Heat" }
+    },
+    db
+  );
+
+  assert.equal(changed, false);
+  assert.equal(upsertCalls, 0);
+});
+
 test("truncateActivityComment normalizes whitespace and truncates snippets", () => {
   assert.equal(truncateActivityComment("  Muy bueno\n  a cuatro jugadores  "), "Muy bueno a cuatro jugadores");
   assert.equal(truncateActivityComment("123456789", 8), "12345...");

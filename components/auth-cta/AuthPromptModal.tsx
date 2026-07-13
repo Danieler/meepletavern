@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { QuickAuthForm } from "@/components/auth/QuickAuthForm";
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/privacySafeAnalytics";
+import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 type AuthPromptModalProps = {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export function AuthPromptModal({
   intent: _intent,
   primaryLabel: _primaryLabel = "Entrar y guardar",
   secondaryLabel: _secondaryLabel = "Entrar",
-  onSuccess
+  onSuccess: _onSuccess
 }: AuthPromptModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -71,6 +72,11 @@ export function AuthPromptModal({
     return null;
   }
 
+  const finishAuthentication = () => {
+    onClose();
+    window.location.assign(buildUsernameOnboardingPath(next));
+  };
+
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/45 px-0 pb-0 sm:px-3 sm:items-center sm:pb-6" role="presentation" onMouseDown={() => { trackEvent("modal_closed"); onClose(); }}>
       <div
@@ -111,7 +117,7 @@ export function AuthPromptModal({
           initialMode="register"
           compact={true}
           surface="modal"
-          onSuccess={onSuccess ? onSuccess : onClose}
+          onSuccess={finishAuthentication}
         />
         
         <div className="mt-5 text-center">

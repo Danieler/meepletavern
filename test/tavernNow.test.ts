@@ -46,6 +46,10 @@ test("queryLatestTavernNowSignals reads one tiny public rating and list", async 
     game?: { status?: string };
   };
   assert.equal(ratingWhere.user?.profile?.is?.profileVisibility, ProfileVisibility.PUBLIC);
+  assert.deepEqual(
+    (ratingWhere.user?.profile?.is as { NOT?: unknown })?.NOT,
+    { username: { startsWith: "meeple-" } }
+  );
   assert.equal(ratingWhere.game?.status, GameStatus.published);
   assert.deepEqual(Object.keys(ratingArgs?.select as Record<string, unknown>).sort(), ["game", "score", "user"]);
 
@@ -55,5 +59,9 @@ test("queryLatestTavernNowSignals reads one tiny public rating and list", async 
   };
   assert.equal(listWhere.visibility, GameListVisibility.PUBLIC);
   assert.equal(listWhere.user?.profile?.is?.profileVisibility, ProfileVisibility.PUBLIC);
+  assert.deepEqual(
+    (listWhere.user?.profile?.is as { NOT?: unknown })?.NOT,
+    { username: { startsWith: "meeple-" } }
+  );
   assert.deepEqual(Object.keys(listArgs?.select as Record<string, unknown>).sort(), ["_count", "name", "slug", "user"]);
 });

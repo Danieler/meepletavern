@@ -55,7 +55,13 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
   assert.equal(overview.mostPlayed[0]?.count, 2);
   assert.equal(overview.highlights.weeklyLibraryAdds, 4);
   assert.equal(overview.highlights.weeklyActivityCount, 9);
-  assert.deepEqual(overview.highlights.topWantedGame, { title: "Ark Nova", slug: "ark-nova", count: 3 });
+  assert.deepEqual(overview.highlights.topWantedGame, {
+    title: "Ark Nova",
+    slug: "ark-nova",
+    count: 3,
+    coverImageUrl: null,
+    coverImageAlt: ""
+  });
   assert.equal(activityArgs?.take, 18);
   assert.deepEqual((activityArgs?.where as { visibility?: string }).visibility, ActivityEventVisibility.PUBLIC);
   assert.equal(groupArgs.length, 3);
@@ -69,6 +75,10 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
   assert.equal(wantedWhere.wantToPlay, true);
   assert.equal(wantedWhere.user?.profile?.is?.profileVisibility, ProfileVisibility.PUBLIC);
   assert.equal(wantedWhere.user?.profile?.is?.collectionVisibility, ProfileVisibility.PUBLIC);
+  assert.deepEqual(
+    (wantedWhere.user?.profile?.is as { NOT?: unknown })?.NOT,
+    { username: { startsWith: "meeple-" } }
+  );
   assert.deepEqual((gameArgs?.where as { status?: string }).status, GameStatus.published);
   assert.deepEqual(Object.keys(gameArgs?.select as Record<string, boolean>).sort(), [
     "coverImageAlt",

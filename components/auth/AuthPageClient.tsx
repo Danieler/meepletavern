@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { useAuth } from "@/hooks/useAuth";
 import type { AuthContext } from "@/components/auth-cta/authCtaUrl";
-import { executePendingAction } from "@/lib/pendingActions";
 import { syncPendingLegalAcceptance } from "@/lib/legalAcceptanceClient";
+import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 type AuthPageClientProps = {
   nextPath: string;
@@ -56,9 +56,8 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
     syncPendingLegalAcceptance()
       .catch((err) => console.error("Error syncing legal acceptance:", err))
       .then(syncOnboardingGames)
-      .then(() => executePendingAction())
       .then(() => {
-        router.replace(nextPath);
+        router.replace(buildUsernameOnboardingPath(nextPath));
       });
   }, [loading, nextPath, router, user]);
 

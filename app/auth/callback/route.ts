@@ -8,11 +8,13 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
 import { getSafeInternalPath } from "@/lib/safeNextPath";
+import { buildUsernameOnboardingPath, isSystemGeneratedUsername } from "@/lib/usernames";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const next = getSafeInternalPath(url.searchParams.get("next"));
+  let destination = next;
 
   if (code) {
     const cookieStore = await cookies();
@@ -38,8 +40,11 @@ export async function GET(request: Request) {
           source: normalizeOnboardingSource(user.user_metadata?.meepletavern_onboarding_source)
         });
       }
+      if (isSystemGeneratedUsername(account.profile?.username)) {
+        destination = buildUsernameOnboardingPath(next);
+      }
     }
   }
 
-  return NextResponse.redirect(new URL(next, url.origin));
+  return NextResponse.redirect(new URL(destination, url.origin));
 }

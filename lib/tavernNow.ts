@@ -4,6 +4,7 @@ import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import type { TavernOverview, TavernRankedGame } from "@/lib/tavernOverview";
+import { GENERATED_USERNAME_PREFIX } from "@/lib/usernames";
 
 const TAVERN_NOW_REVALIDATE_SECONDS = 3600;
 
@@ -39,7 +40,10 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
   const [rating, list] = await Promise.all([
     db.userGameRating.findFirst({
       where: {
-        user: { profile: { is: { profileVisibility: ProfileVisibility.PUBLIC } } },
+        user: { profile: { is: {
+          profileVisibility: ProfileVisibility.PUBLIC,
+          NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } }
+        } } },
         game: { status: GameStatus.published }
       },
       orderBy: [{ updatedAt: "desc" }, { userId: "asc" }, { gameId: "asc" }],
@@ -56,7 +60,10 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
     db.gameList.findFirst({
       where: {
         visibility: GameListVisibility.PUBLIC,
-        user: { profile: { is: { profileVisibility: ProfileVisibility.PUBLIC } } }
+        user: { profile: { is: {
+          profileVisibility: ProfileVisibility.PUBLIC,
+          NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } }
+        } } }
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       select: {
@@ -98,7 +105,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
 
 const getCachedLatestTavernNowSignals = unstable_cache(
   () => queryLatestTavernNowSignals(),
-  ["tavern-now-latest-signals-v1"],
+  ["tavern-now-latest-signals-v2"],
   { revalidate: TAVERN_NOW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
 );
 

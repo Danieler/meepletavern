@@ -61,6 +61,10 @@ test("getGameTavernSummary returns public counts and at most three tiny profile 
   assert.equal(where.gameId, "game-1");
   assert.equal(where.user?.profile?.is?.profileVisibility, ProfileVisibility.PUBLIC);
   assert.equal(where.user?.profile?.is?.collectionVisibility, ProfileVisibility.PUBLIC);
+  assert.deepEqual(
+    (where.user?.profile?.is as { NOT?: unknown })?.NOT,
+    { username: { startsWith: "meeple-" } }
+  );
   assert.equal(findManyArgs?.take, GAME_TAVERN_SAMPLE_LIMIT);
 
   const select = findManyArgs?.select as {

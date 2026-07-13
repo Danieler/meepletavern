@@ -1,18 +1,18 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PublicShell } from "@/components/PublicShell";
 import { ProfilePanel } from "@/components/auth/ProfilePanel";
-import { createClient } from "@/lib/supabase/server";
+import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import { buildUsernameOnboardingPath, isSystemGeneratedUsername } from "@/lib/usernames";
 
 export default async function ProfilePage() {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  let account: Awaited<ReturnType<typeof requireCurrentAppUser>>;
+  try {
+    account = await requireCurrentAppUser();
+  } catch {
     redirect("/auth?mode=login&next=%2Fmi-perfil");
+  }
+  if (isSystemGeneratedUsername(account.profile?.username)) {
+    redirect(buildUsernameOnboardingPath("/mi-perfil"));
   }
 
   return (

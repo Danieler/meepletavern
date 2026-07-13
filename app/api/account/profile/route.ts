@@ -6,12 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
 import { revalidateTag } from "next/cache";
 import { TAVERN_ACTIVITY_CACHE_TAG, trySyncActivityActorProfile } from "@/lib/activity/events";
-
-const RESERVED_USERNAMES = [
-  "admin", "api", "juegos", "usuarios", "taberna", "mi-ludoteca",
-  "login", "register", "settings", "profile", "account",
-  "u", "auth", "legal", "privacy", "cookies", "tavern", "meeple"
-];
+import { getUsernameValidationError, normalizeUsername } from "@/lib/usernames";
 
 function parseProfileVisibility(value: unknown) {
   return value === ProfileVisibility.PUBLIC || value === ProfileVisibility.PRIVATE ? value : undefined;
@@ -57,7 +52,7 @@ export async function PATCH(request: Request) {
   } | null;
 
   const displayName = typeof body?.displayName === "string" ? body.displayName.trim().replace(/\s+/g, " ") : undefined;
-  const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : undefined;
+  const username = typeof body?.username === "string" ? normalizeUsername(body.username) : undefined;
   const bio = typeof body?.bio === "string" ? body.bio.trim() : undefined;
   const avatarUrl = typeof body?.avatarUrl === "string" ? body.avatarUrl.trim() : undefined;
   const profileVisibility = parseProfileVisibility(body?.profileVisibility);
@@ -68,15 +63,8 @@ export async function PATCH(request: Request) {
   }
 
   if (username !== undefined) {
-    if (username.length < 3 || username.length > 20) {
-      return NextResponse.json({ error: "El nombre de usuario debe tener entre 3 y 20 caracteres." }, { status: 400 });
-    }
-    if (!/^[a-z0-9_-]+$/.test(username)) {
-      return NextResponse.json({ error: "El nombre de usuario solo puede contener letras, números, guiones y guiones bajos." }, { status: 400 });
-    }
-    if (RESERVED_USERNAMES.includes(username)) {
-      return NextResponse.json({ error: "Este nombre de usuario no está disponible." }, { status: 400 });
-    }
+    const validationError = getUsernameValidationError(username);
+    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
 
     const existing = await prisma.userProfile.findFirst({
       where: {

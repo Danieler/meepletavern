@@ -9,6 +9,7 @@ import {
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
+import { GENERATED_USERNAME_PREFIX } from "@/lib/usernames";
 
 const RECENT_ACTIVITY_SCAN_LIMIT = 18;
 export const TAVERN_RECENT_GAMES_LIMIT = 6;
@@ -59,6 +60,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const publicRecentWhere = {
     visibility: ActivityEventVisibility.PUBLIC,
+    NOT: { actorUsernameSnapshot: { startsWith: GENERATED_USERNAME_PREFIX } },
     createdAt: { gte: since }
   } as const;
   const publicCollectionWhere = {
@@ -66,7 +68,8 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
       profile: {
         is: {
           profileVisibility: ProfileVisibility.PUBLIC,
-          collectionVisibility: ProfileVisibility.PUBLIC
+          collectionVisibility: ProfileVisibility.PUBLIC,
+          NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } }
         }
       }
     }
@@ -76,6 +79,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
     db.activityEvent.findMany({
       where: {
         visibility: ActivityEventVisibility.PUBLIC,
+        NOT: { actorUsernameSnapshot: { startsWith: GENERATED_USERNAME_PREFIX } },
         type: { in: [ActivityEventType.COLLECTION_ADDED, ActivityEventType.LIST_GAME_ADDED] },
         gameId: { not: null }
       },
@@ -185,7 +189,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
 
 const getCachedTavernOverview = unstable_cache(
   () => queryTavernOverview(),
-  ["tavern-overview-v3"],
+  ["tavern-overview-v4"],
   { revalidate: TAVERN_OVERVIEW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
 );
 
