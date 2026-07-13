@@ -17,7 +17,7 @@ export async function GameCommunitySection({ gameId }: GameCommunitySectionProps
         <div>
           <p className="tavern-eyebrow">Comunidad</p>
           <h2 id="game-tavern-title" className="font-display mt-2 text-2xl font-bold text-wood sm:text-3xl">
-            En la taberna
+            En la comunidad
           </h2>
         </div>
         {hasAny ? <p className="text-xs font-bold text-walnut/50">Última actividad pública</p> : null}

@@ -7,15 +7,12 @@ import {
 } from "@/lib/onboardingGames";
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
-
-function getSafeNextPath(value: string | null) {
-  return value && value.startsWith("/") ? value : "/mi-perfil";
-}
+import { getSafeInternalPath } from "@/lib/safeNextPath";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const next = getSafeNextPath(url.searchParams.get("next"));
+  const next = getSafeInternalPath(url.searchParams.get("next"));
 
   if (code) {
     const cookieStore = await cookies();

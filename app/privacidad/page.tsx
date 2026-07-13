@@ -25,7 +25,7 @@ export default function PrivacyPage() {
           <li><strong>Cuenta:</strong> email, identificador de usuario y datos necesarios para autenticarte. La contraseña es gestionada por el proveedor de autenticación y MeepleTavern no puede verla.</li>
           <li><strong>Acceso con terceros:</strong> si entras con Google o Discord, recibimos los datos mínimos que el proveedor entregue para identificar la cuenta, normalmente email, identificador y nombre visible.</li>
           <li><strong>Perfil:</strong> nombre visible, alias, biografía, avatar y preferencias de visibilidad.</li>
-          <li><strong>Uso y contenido:</strong> ludoteca, listas, valoraciones, reseñas, comentarios, sugerencias y actividad que decidas realizar.</li>
+          <li><strong>Uso y contenido:</strong> ludoteca, listas, valoraciones, reseñas, comentarios, sugerencias, tabernas privadas, membresías y partidas de grupo que decidas registrar.</li>
           <li><strong>Datos técnicos:</strong> dirección IP, navegador, dispositivo, registros de seguridad y datos imprescindibles para mantener la sesión y prevenir abusos.</li>
         </ul>
       </section>
@@ -36,6 +36,7 @@ export default function PrivacyPage() {
           <li><strong>Crear y gestionar tu cuenta y prestar el servicio:</strong> ejecución de las condiciones de uso.</li>
           <li><strong>Acreditar la aceptación de condiciones y privacidad:</strong> cumplimiento de obligaciones legales e interés legítimo en poder demostrar la versión aceptada.</li>
           <li><strong>Publicar tu perfil y aportaciones cuando los marcas como públicos:</strong> ejecución del servicio solicitado por ti. Puedes cambiar su visibilidad o eliminarlos cuando la función lo permita.</li>
+          <li><strong>Compartir una ludoteca dentro de una taberna privada:</strong> al aceptar una invitación, los juegos que tengas marcados como “En casa” serán visibles para los miembros de ese grupo hasta que salgas o seas eliminado. No se comparten tus listas, valoraciones ni contadores personales de partidas.</li>
           <li><strong>Proteger la plataforma, prevenir fraude y moderar abusos:</strong> interés legítimo en mantener un servicio seguro, ponderado frente a tus derechos.</li>
           <li><strong>Atender solicitudes y cumplir obligaciones legales:</strong> cumplimiento de obligaciones legales e interés legítimo en responder y defender reclamaciones.</li>
         </ul>

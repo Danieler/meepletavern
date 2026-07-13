@@ -23,7 +23,7 @@ export default function LegalNoticePage() {
         <h2>Qué ofrece MeepleTavern</h2>
         <p className="mt-3">
           MeepleTavern es un servicio informativo y comunitario sobre juegos de mesa: catálogo,
-          reseñas, rankings, perfiles, ludotecas, listas, valoraciones, comentarios y actividad de
+          reseñas, rankings, perfiles, ludotecas, listas, tabernas privadas, partidas de grupo, valoraciones, comentarios y actividad de
           la comunidad. MeepleTavern no vende directamente los productos enlazados ni forma parte
           de los contratos que el usuario pueda celebrar con una tienda externa.
         </p>

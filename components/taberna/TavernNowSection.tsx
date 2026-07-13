@@ -10,9 +10,9 @@ export function TavernNowSection({ summary }: { summary: TavernNowSummary }) {
     <section className="container-page pt-8 sm:pt-10" aria-labelledby="tavern-now-title">
       <div className="tavern-panel p-4 sm:p-6">
         <div>
-          <p className="tavern-eyebrow">La sala común</p>
+          <p className="tavern-eyebrow">La plaza</p>
           <h2 id="tavern-now-title" className="font-display mt-2 text-3xl font-bold text-wood sm:text-4xl">
-            Ahora en la taberna
+            Ahora en la comunidad
           </h2>
           <p className="mt-2 text-sm font-semibold text-walnut/60">
             Lo que más se está moviendo entre los taberneros.
@@ -43,7 +43,7 @@ export function TavernNowSection({ summary }: { summary: TavernNowSummary }) {
           </ScrollCarousel>
         ) : (
           <p className="mt-6 rounded-md border border-walnut/10 bg-white/60 p-5 text-sm font-semibold text-walnut/60">
-            La taberna acaba de abrir. Añade juegos a tu ludoteca para empezar a moverla.
+            La comunidad acaba de abrir. Añade juegos a tu ludoteca para empezar a moverla.
           </p>
         )}
       </div>

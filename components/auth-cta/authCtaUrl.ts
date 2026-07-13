@@ -1,5 +1,6 @@
-export type AuthMode = "login" | "register";
+import { getSafeInternalPath } from "@/lib/safeNextPath";
 
+export type AuthMode = "login" | "register";
 export type AuthContext =
   | "owned"
   | "wishlist"
@@ -24,7 +25,7 @@ export function buildAuthHref({
 }) {
   const params = new URLSearchParams();
   params.set("mode", mode);
-  params.set("next", next.startsWith("/") ? next : "/");
+  params.set("next", getSafeInternalPath(next, "/"));
 
   if (intent) {
     params.set("intent", intent);

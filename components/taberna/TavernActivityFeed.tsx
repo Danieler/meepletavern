@@ -106,7 +106,7 @@ export function TavernActivityFeed({ initialFeed }: TavernActivityFeedProps) {
       <div className="border-b border-walnut/10 pb-4">
         <p className="tavern-eyebrow">Ahora mismo</p>
         <h2 id="tavern-activity-title" className="font-display mt-2 text-3xl font-bold text-wood">
-          Última actividad en la taberna
+          Última actividad en la comunidad
         </h2>
         <form className="mt-4 flex flex-col gap-2 sm:flex-row" onSubmit={submitSearch}>
           <label className="relative min-w-0 flex-1">
@@ -157,7 +157,7 @@ export function TavernActivityFeed({ initialFeed }: TavernActivityFeedProps) {
           <p className="mx-auto mt-3 max-w-xl text-sm font-semibold leading-6 text-walnut/60">
             {query
               ? "Prueba con otro jugador o título de juego."
-              : "La taberna acaba de abrir. Añade juegos a tu ludoteca para que aparezcan aquí."}
+              : "La comunidad acaba de abrir. Añade juegos a tu ludoteca para que aparezcan aquí."}
           </p>
         </div>
       )}

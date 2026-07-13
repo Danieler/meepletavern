@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Eye, EyeOff, ListPlus, LogOut, Mail, Settings, UserRound } from "lucide-react";
+import { Copy, Eye, EyeOff, ListPlus, LogOut, Mail, Settings, UserRound, UsersRound } from "lucide-react";
 import { LibraryPanel } from "@/components/account/LibraryPanel";
 import { UserRatingsPanel } from "@/components/account/UserRatingsPanel";
 import { UserAvatar } from "@/components/account/UserAvatar";
@@ -214,6 +214,10 @@ export function ProfilePanel() {
                 <Link className="button-secondary bg-white" href="/mi-perfil/ajustes">
                   <Settings size={17} />
                   Ajustes
+                </Link>
+                <Link className="button-secondary bg-white" href="/comunidad/tabernas">
+                  <UsersRound size={17} />
+                  Mis tabernas
                 </Link>
               </div>
             </div>

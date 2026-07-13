@@ -98,8 +98,8 @@ function getMobileBarCopy(pathname: string): MobileBarCopy | null {
   if (pathname.startsWith("/juegos/")) {
     return { text: "Déjalo en tu ludoteca para después.", button: "Guardar", intent: "save_game" };
   }
-  if (pathname === "/taberna") {
-    return { text: "Guarda tu rincón en la taberna.", button: "Entrar" };
+  if (pathname === "/comunidad") {
+    return { text: "Guarda tu rincón en la comunidad.", button: "Entrar" };
   }
   if (pathname === "/resenas" || pathname.startsWith("/resenas/")) {
     return null;

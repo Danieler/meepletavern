@@ -1,2 +1,2 @@
-export const LEGAL_VERSION = "2026-06-26";
-export const LEGAL_UPDATED_AT = "26 de junio de 2026";
+export const LEGAL_VERSION = "2026-07-13";
+export const LEGAL_UPDATED_AT = "13 de julio de 2026";

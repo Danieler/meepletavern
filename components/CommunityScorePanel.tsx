@@ -34,12 +34,12 @@ export function CommunityScorePanel({ initialRatings }: { initialRatings: GameRa
         </p>
         <p className="mt-2 text-sm leading-6 text-walnut/70">
           {votesCount
-            ? `La media de jugadores es ${userAverage?.toFixed(1)}/10 y ya se suma a la nota de la taberna.`
+            ? `La media de jugadores es ${userAverage?.toFixed(1)}/10 y ya se suma a la nota de la comunidad.`
             : "Sé el primero en dejar tu nota y estrenar la media de jugadores."}
         </p>
         {typeof combinedScore === "number" ? (
           <div className="mt-3 rounded-xl border border-ember/20 bg-ember/10 px-3 py-2 text-sm font-black text-wood">
-            Nota de la taberna: {combinedScore.toFixed(1)}/10
+            Nota de la comunidad: {combinedScore.toFixed(1)}/10
           </div>
         ) : null}
       </div>

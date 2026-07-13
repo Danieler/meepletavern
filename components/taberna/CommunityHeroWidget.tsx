@@ -8,14 +8,14 @@ export function CommunityHeroWidget({ users }: { users: PublicUserCard[] }) {
 
   return (
     <Link 
-      href="/taberna"
+      href="/comunidad"
       prefetch={false}
       className="group relative flex flex-col gap-4 rounded-xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/10"
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display text-base font-bold text-white flex items-center gap-2">
           <Users size={16} className="text-amber-500" />
-          La taberna te espera
+          La comunidad te espera
         </h3>
         <ChevronRight size={18} className="text-white/40 transition-transform group-hover:translate-x-1 group-hover:text-amber-500" />
       </div>

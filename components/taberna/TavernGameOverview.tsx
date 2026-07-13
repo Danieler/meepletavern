@@ -19,7 +19,7 @@ export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
             Lo último de la comunidad
           </h2>
         </div>
-        <EmptyState>Aún no hay suficientes movimientos en la taberna.</EmptyState>
+        <EmptyState>Aún no hay suficientes movimientos en la comunidad.</EmptyState>
       </section>
     );
   }
@@ -83,7 +83,7 @@ export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
                 {overview.recentGames.map((game) => <RecentGameRow key={game.gameId} game={game} />)}
               </ul>
             ) : (
-              <EmptyState>La taberna acaba de abrir. Añade juegos a tu ludoteca.</EmptyState>
+              <EmptyState>La comunidad acaba de abrir. Añade juegos a tu ludoteca.</EmptyState>
             )}
           </div>
         )}
@@ -118,7 +118,7 @@ export function TavernGameOverview({ overview }: { overview: TavernOverview }) {
               {overview.recentGames.map((game) => <RecentGameRow key={game.gameId} game={game} />)}
             </ul>
           ) : (
-            <EmptyState>La taberna acaba de abrir. Añade juegos a tu ludoteca para que aparezcan aquí.</EmptyState>
+            <EmptyState>La comunidad acaba de abrir. Añade juegos a tu ludoteca para que aparezcan aquí.</EmptyState>
           )}
         </div>
 
@@ -192,7 +192,7 @@ function Ranking({
           ))}
         </ol>
       ) : (
-        <EmptyState>Aún no hay suficientes movimientos en la taberna.</EmptyState>
+        <EmptyState>Aún no hay suficientes movimientos en la comunidad.</EmptyState>
       )}
     </div>
   );

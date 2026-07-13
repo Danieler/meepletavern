@@ -72,28 +72,28 @@ enum GameImportProposalStatus {
 }
 
 model Game {
-  id                    String          @id @default(cuid())
+  id                    String               @id @default(cuid())
   name                  String
-  slug                  String          @unique
-  status                GameStatus      @default(draft)
-  title                 String          @default("")
+  slug                  String               @unique
+  status                GameStatus           @default(draft)
+  title                 String               @default("")
   originalTitle         String?
   year                  Int?
-  players               Json            @default("{}")
+  players               Json                 @default("{}")
   imageUrl              String?
   coverImageUrl         String?
-  coverImageAlt         String          @default("")
+  coverImageAlt         String               @default("")
   imageSourceName       String?
   imageSourceUrl        String?
   imageLicenseNote      String?
-  imageStatus           GameImageStatus @default(missing)
+  imageStatus           GameImageStatus      @default(missing)
   description           String?
   review                String?
   shortSummary          String?
   shortDescription      String?
   quickVerdict          String?
-  pros                  String[]        @default([])
-  cons                  String[]        @default([])
+  pros                  String[]             @default([])
+  cons                  String[]             @default([])
   bestFor               String?
   notFor                String?
   minPlayers            Int?
@@ -103,26 +103,26 @@ model Game {
   minAge                Int?
   complexity            String?
   difficulty            String?
-  categories            String[]        @default([])
-  mechanics             String[]        @default([])
-  themes                String[]        @default([])
+  categories            String[]             @default([])
+  mechanics             String[]             @default([])
+  themes                String[]             @default([])
   publisher             String?
   spanishPublisher      String?
-  similarGames          String[]        @default([])
+  similarGames          String[]             @default([])
   faqs                  Json?
   faq                   Json?
   seoTitle              String?
   seoDescription        String?
   buyUrl                String?
-  ratings               Json            @default("{}")
-  howToPlayVideos       Json            @default("[]")
+  ratings               Json                 @default("{}")
+  howToPlayVideos       Json                 @default("[]")
   sources               Json?
-  sourceIds             String[]        @default([])
+  sourceIds             String[]             @default([])
   primaryImageId        String?
-  imageFallbackAccepted Boolean         @default(false)
-  createdByAi           Boolean         @default(false)
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  imageFallbackAccepted Boolean              @default(false)
+  createdByAi           Boolean              @default(false)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
   publishedAt           DateTime?
   mediaAssets           MediaAsset[]
   candidates            GameCandidate[]
@@ -136,6 +136,7 @@ model Game {
   ruleQuestions         RuleQuestion[]
   importProposals       GameImportProposal[]
   offers                GameOffer[]
+  tavernGroupPlays      TavernGroupPlay[]
 
   @@index([status])
   @@index([createdAt])
@@ -144,16 +145,16 @@ model Game {
 }
 
 model GameImportProposal {
-  id               String                 @id @default(cuid())
+  id               String                   @id @default(cuid())
   gameId           String
-  game             Game                   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  game             Game                     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   provider         String
   status           GameImportProposalStatus @default(pending)
   query            String
   rawSearchResults Json
   extractedFields  Json
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 
   @@index([gameId, status])
   @@index([createdAt])
@@ -165,35 +166,134 @@ enum ProfileVisibility {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  authUserId  String   @unique
-  email       String   @unique
-  displayName String?
-  termsAcceptedAt   DateTime?
-  termsVersion      String?
-  privacyAcceptedAt DateTime?
-  privacyVersion    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  profile     UserProfile?
-  library     UserLibraryGame[]
-  gameRatings UserGameRating[]
-  gamePlayCounts UserGamePlayCount[]
-  reviews     Review[]
-  comments    GameComment[]
-  activityEvents ActivityEvent[]
-  gameLists   GameList[]
-  gameSuggestions GameSuggestion[]
-  ruleQuestions RuleQuestion[]
-  ruleAnswers   RuleAnswer[]
+  id                             String                       @id @default(cuid())
+  authUserId                     String                       @unique
+  email                          String                       @unique
+  displayName                    String?
+  termsAcceptedAt                DateTime?
+  termsVersion                   String?
+  privacyAcceptedAt              DateTime?
+  privacyVersion                 String?
+  createdAt                      DateTime                     @default(now())
+  updatedAt                      DateTime                     @updatedAt
+  profile                        UserProfile?
+  library                        UserLibraryGame[]
+  gameRatings                    UserGameRating[]
+  gamePlayCounts                 UserGamePlayCount[]
+  reviews                        Review[]
+  comments                       GameComment[]
+  activityEvents                 ActivityEvent[]
+  gameLists                      GameList[]
+  gameSuggestions                GameSuggestion[]
+  ruleQuestions                  RuleQuestion[]
+  ruleAnswers                    RuleAnswer[]
+  createdTavernGroups            TavernGroup[]                @relation("TavernGroupCreator")
+  tavernGroupMemberships         TavernGroupMember[]
+  receivedTavernGroupInvitations TavernGroupInvitation[]      @relation("TavernGroupInvitationTarget")
+  sentTavernGroupInvitations     TavernGroupInvitation[]      @relation("TavernGroupInvitationSender")
+  recordedTavernGroupPlays       TavernGroupPlay[]            @relation("TavernGroupPlayRecorder")
+  tavernGroupPlayParticipations  TavernGroupPlayParticipant[]
+}
+
+enum TavernMemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum TavernInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+  EXPIRED
+}
+
+model TavernGroup {
+  id              String   @id @default(cuid())
+  name            String
+  createdByUserId String?
+  createdBy       User?    @relation("TavernGroupCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  members     TavernGroupMember[]
+  invitations TavernGroupInvitation[]
+  plays       TavernGroupPlay[]
+
+  @@index([createdByUserId, createdAt(sort: Desc)])
+  @@index([updatedAt(sort: Desc), id(sort: Desc)])
+}
+
+model TavernGroupMember {
+  id       String           @id @default(cuid())
+  tavernId String
+  userId   String
+  role     TavernMemberRole @default(MEMBER)
+  joinedAt DateTime         @default(now())
+  tavern   TavernGroup      @relation(fields: [tavernId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([tavernId, userId])
+  @@index([userId, joinedAt(sort: Desc)])
+  @@index([tavernId, role])
+}
+
+model TavernGroupInvitation {
+  id              String                 @id @default(cuid())
+  tavernId        String
+  targetUserId    String
+  invitedByUserId String?
+  status          TavernInvitationStatus @default(PENDING)
+  expiresAt       DateTime
+  respondedAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  tavern          TavernGroup            @relation(fields: [tavernId], references: [id], onDelete: Cascade)
+  targetUser      User                   @relation("TavernGroupInvitationTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  invitedByUser   User?                  @relation("TavernGroupInvitationSender", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId, status, createdAt(sort: Desc)])
+  @@index([tavernId, status, createdAt(sort: Desc)])
+}
+
+model TavernGroupPlay {
+  id                String                       @id @default(cuid())
+  tavernId          String
+  gameId            String?
+  gameTitleSnapshot String
+  gameSlugSnapshot  String?
+  recordedByUserId  String?
+  playedAt          DateTime                     @db.Date
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  tavern            TavernGroup                  @relation(fields: [tavernId], references: [id], onDelete: Cascade)
+  game              Game?                        @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  recordedByUser    User?                        @relation("TavernGroupPlayRecorder", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+  participants      TavernGroupPlayParticipant[]
+
+  @@index([tavernId, gameId, playedAt(sort: Desc), id(sort: Desc)])
+  @@index([tavernId, playedAt(sort: Desc), id(sort: Desc)])
+  @@index([recordedByUserId, createdAt(sort: Desc)])
+}
+
+model TavernGroupPlayParticipant {
+  id        String          @id @default(cuid())
+  playId    String
+  userId    String?
+  play      TavernGroupPlay @relation(fields: [playId], references: [id], onDelete: Cascade)
+  user      User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime        @default(now())
+
+  @@unique([playId, userId])
+  @@index([userId])
 }
 
 model UserProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  username    String @unique
+  username    String  @unique
   displayName String?
   bio         String?
   avatarUrl   String?
@@ -320,24 +420,24 @@ model GameSuggestion {
 }
 
 model Review {
-  id             String   @id @default(cuid())
-  gameId          String
-  userId          String?
-  authorName      String
-  title           String
-  slug            String   @unique
-  summary         String
-  body            String
-  rating          Float
-  isApproved      Boolean  @default(false)
-  instagramPostId String?
+  id                String   @id @default(cuid())
+  gameId            String
+  userId            String?
+  authorName        String
+  title             String
+  slug              String   @unique
+  summary           String
+  body              String
+  rating            Float
+  isApproved        Boolean  @default(false)
+  instagramPostId   String?
   instagramHashtags String?
-  createdByAdmin  Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  publishedAt     DateTime @default(now())
-  game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdByAdmin    Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  publishedAt       DateTime @default(now())
+  game              Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([gameId, publishedAt])
   @@index([userId, createdAt])
@@ -374,10 +474,10 @@ model UserGameRating {
 }
 
 model UserLibraryGame {
-  id        String   @id @default(cuid())
-  userId    String
-  gameId    String
-  
+  id     String @id @default(cuid())
+  userId String
+  gameId String
+
   owned      Boolean @default(false)
   wantToPlay Boolean @default(false)
   wantToBuy  Boolean @default(false)
@@ -413,12 +513,12 @@ model UserGamePlayCount {
 }
 
 model Source {
-  id         String          @id @default(cuid())
-  name       String
-  baseUrl    String
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  candidates GameCandidate[]
+  id          String          @id @default(cuid())
+  name        String
+  baseUrl     String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  candidates  GameCandidate[]
   mediaAssets MediaAsset[]
   offers      GameOffer[]
 
@@ -522,32 +622,32 @@ model TaxonomyTerm {
 }
 
 model RuleQuestion {
-  id        String       @id @default(cuid())
+  id        String   @id @default(cuid())
   gameId    String
   userId    String
-  title     String       @db.VarChar(150)
-  body      String?      @db.Text
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  title     String   @db.VarChar(150)
+  body      String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  game      Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  answers   RuleAnswer[]
+  game    Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers RuleAnswer[]
 
   @@index([gameId, createdAt(sort: Desc)])
 }
 
 model RuleAnswer {
-  id         String       @id @default(cuid())
+  id         String   @id @default(cuid())
   questionId String
   userId     String
-  body       String       @db.Text
-  isAccepted Boolean      @default(false)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  body       String   @db.Text
+  isAccepted Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  question   RuleQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question RuleQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([questionId, createdAt(sort: Asc)])
 }

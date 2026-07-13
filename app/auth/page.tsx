@@ -1,6 +1,7 @@
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthPageClient } from "@/components/auth/AuthPageClient";
 import type { AuthContext } from "@/components/auth-cta/authCtaUrl";
+import { getSafeInternalPath } from "@/lib/safeNextPath";
 
 const VALID_AUTH_CONTEXTS: AuthContext[] = ["owned", "wishlist", "rating", "list", "comment", "table"];
 
@@ -20,10 +21,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
   const intentValue = Array.isArray(params?.intent) ? params?.intent[0] : params?.intent;
   const authContextValue = Array.isArray(params?.authContext) ? params?.authContext[0] : params?.authContext;
 
-  const nextPath =
-    typeof nextValue === "string" && nextValue.startsWith("/")
-      ? nextValue
-      : "/mi-perfil";
+  const nextPath = getSafeInternalPath(typeof nextValue === "string" ? nextValue : null);
 
   // Por defecto mostramos register (la página es principalmente de registro)
   const initialMode = modeValue === "login" ? "login" : "register";

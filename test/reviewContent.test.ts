@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ReviewContent } from "@/components/reviews/ReviewContent";
@@ -59,4 +60,16 @@ test("the lightweight editor exposes formatting, image and preview controls", ()
   assert.match(html, /Vista/);
   assert.match(html, /Dividir/);
   assert.match(html, /name="body"/);
+});
+
+test("the image tool uses a simple inline template without a nested form", () => {
+  const editorSource = readFileSync(
+    new URL("../components/reviews/ReviewBodyEditor.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.doesNotMatch(editorSource, /<form\b/);
+  assert.doesNotMatch(editorSource, /imagePanelOpen|insertImageFromPanel/);
+  assert.match(editorSource, /onClick=\{insertImageTemplate\}/);
+  assert.match(editorSource, /https:\/\/ejemplo\.com\/imagen\.jpg/);
 });

@@ -72,7 +72,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
     }
   } as const;
 
-  const [recentEvents, wantedGroups, ownedGroups, playedGroups, weeklyLibraryAdds, weeklyActivityCount] = await Promise.all([
+  const [recentEvents, weeklyLibraryAdds, weeklyActivityCount] = await Promise.all([
     db.activityEvent.findMany({
       where: {
         visibility: ActivityEventVisibility.PUBLIC,
@@ -88,6 +88,16 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
         listTitleSnapshot: true
       }
     }),
+    db.activityEvent.count({
+      where: {
+        ...publicRecentWhere,
+        type: { in: [ActivityEventType.COLLECTION_ADDED, ActivityEventType.LIST_GAME_ADDED] }
+      }
+    }),
+    db.activityEvent.count({ where: publicRecentWhere })
+  ]);
+
+  const [wantedGroups, ownedGroups, playedGroups] = await Promise.all([
     db.userLibraryGame.groupBy({
       by: ["gameId"],
       where: { wantToPlay: true, ...publicCollectionWhere },
@@ -108,14 +118,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
       _count: { gameId: true },
       orderBy: { _count: { gameId: "desc" } },
       take: TAVERN_RANKING_LIMIT
-    }),
-    db.activityEvent.count({
-      where: {
-        ...publicRecentWhere,
-        type: { in: [ActivityEventType.COLLECTION_ADDED, ActivityEventType.LIST_GAME_ADDED] }
-      }
-    }),
-    db.activityEvent.count({ where: publicRecentWhere })
+    })
   ]);
 
   const gameIds = [...new Set([

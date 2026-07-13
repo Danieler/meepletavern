@@ -332,9 +332,9 @@ export default async function Home() {
           <div className="overflow-hidden rounded-lg border border-walnut/12 bg-[linear-gradient(135deg,#fffaf0,#f5e9d6)] shadow-soft">
             <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="p-5 sm:p-6">
-                <p className="tavern-eyebrow">La taberna está abierta</p>
+                <p className="tavern-eyebrow">La comunidad está abierta</p>
                 <h2 id="home-tavern-pulse-title" className="tavern-title mt-2 text-3xl sm:text-4xl">
-                  Tu próxima partida empieza en la taberna
+                  Tu próxima partida empieza en la comunidad
                 </h2>
                 <p className="tavern-copy mt-3">
                   Guarda ideas para después, recupera tu ludoteca cuando toque jugar y descubre qué
@@ -358,7 +358,7 @@ export default async function Home() {
                     icon={Users}
                     value={siteStats.publicProfiles}
                     label="Taberneros"
-                    description="perfiles públicos en la taberna"
+                    description="perfiles públicos en la comunidad"
                   />
                 </div>
 
@@ -417,7 +417,7 @@ export default async function Home() {
                   <SectionHeader
                     eyebrow="Valoraciones con contexto"
                     title="Juegos mejor valorados por ahora"
-                    description="Una lectura rápida de lo que mejor está funcionando ahora mismo en la taberna."
+                    description="Una lectura rápida de lo que mejor está funcionando ahora mismo en la comunidad."
                   />
                   <FeaturedRankingCarousel games={ratedGames.slice(0, 6)} />
                 </div>
@@ -478,7 +478,7 @@ const TAVERN_FEATURES = [
     title: "Otros taberneros",
     description: "Explora perfiles públicos, descubre colecciones reales y encuentra jugadores con gustos parecidos.",
     icon: Users,
-    href: "/taberna",
+    href: "/comunidad",
     action: "Ver perfiles"
   },
   {
@@ -561,7 +561,7 @@ function buildStatsStripItems(stats: PublicSiteStats) {
     {
       label: `${formatCount(stats.publicProfiles)} taberneros`,
       shortLabel: `${formatCount(stats.publicProfiles)} taberneros`,
-      href: "/taberna",
+      href: "/comunidad",
       dotClass: "bg-parchment"
     }
   ];

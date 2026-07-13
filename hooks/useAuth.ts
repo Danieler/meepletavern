@@ -4,6 +4,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { LEGAL_VERSION } from "@/lib/legalConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { getSafeInternalPath } from "@/lib/safeNextPath";
 
 export type AuthActionResult = {
   ok: boolean;
@@ -44,11 +45,7 @@ function getEmailRedirectTo() {
 }
 
 function normalizeNextPath(value?: string | null) {
-  if (!value || !value.startsWith("/")) {
-    return "/mi-perfil";
-  }
-
-  return value;
+  return getSafeInternalPath(value);
 }
 
 function getOAuthRedirectTo(nextPath?: string) {

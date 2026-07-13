@@ -75,8 +75,8 @@ export function HomeSidebarAuthControls() {
         <Link href={profileHref} className="button-primary justify-center">
           {profileLabel}
         </Link>
-        <Link href="/taberna" prefetch={false} className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
-          Ver la taberna
+        <Link href="/comunidad" prefetch={false} className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
+          Ver la comunidad
         </Link>
       </div>
     </>

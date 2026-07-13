@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/taberna/:path*",
+        destination: "/comunidad/:path*",
+        permanent: true
+      },
+      {
         source: "/:path*",
         has: [
           {

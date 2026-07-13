@@ -1,4 +1,4 @@
-const PRIVATE_PATH_PREFIXES = ["/admin", "/auth", "/mi-perfil", "/api"];
+const PRIVATE_PATH_PREFIXES = ["/admin", "/auth", "/mi-perfil", "/api", "/comunidad/tabernas", "/comunidad/invitaciones"];
 const SAFE_CAMPAIGN_PARAMS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 const SAFE_CAMPAIGN_VALUE = /^[a-zA-Z0-9._~-]{1,96}$/;
 

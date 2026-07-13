@@ -6,6 +6,7 @@ test("analytics excludes private and authoring routes", () => {
   assert.equal(shouldTrackAnalyticsPath("/admin/games"), false);
   assert.equal(shouldTrackAnalyticsPath("/auth"), false);
   assert.equal(shouldTrackAnalyticsPath("/mi-perfil/listas"), false);
+  assert.equal(shouldTrackAnalyticsPath("/comunidad/tabernas/grupo-privado"), false);
   assert.equal(shouldTrackAnalyticsPath("/juegos/carcassonne/resena"), false);
   assert.equal(shouldTrackAnalyticsPath("/juegos/carcassonne"), true);
 });

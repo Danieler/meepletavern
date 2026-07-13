@@ -15,6 +15,8 @@
     "dev": "next dev --turbopack",
     "build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

@@ -614,7 +614,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
                 Calculando afinidades...
               </p>
               <p className="mt-1 text-xs text-white/70">
-                Comparando mecánicas y ludotecas en la taberna
+                Comparando mecánicas y ludotecas en la comunidad
               </p>
             </div>
           ) : authLibraryEmpty ? (
@@ -715,7 +715,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               </div>
 
               <div className="mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between gap-3 text-xs text-white font-black">
-                <Link href="/taberna" prefetch={false} className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">
+                <Link href="/comunidad" prefetch={false} className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">
                   <Users size={12} aria-hidden="true" /> Ver taberna
                 </Link>
                 <Link href="/mi-perfil" className="hover:underline hover:text-[#fffaf0] focus-visible:underline focus-visible:text-[#fffaf0] focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none rounded flex items-center gap-1">
@@ -774,7 +774,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
             <div className="flex flex-col justify-between flex-1 min-h-0">
               <div className="flex-1 overflow-x-hidden overflow-y-auto pr-1">
                 <p className="text-sm leading-relaxed text-[#fffaf0]/95 font-semibold">
-                  Dinos 3 juegos que hayas disfrutado y te diremos con quién compartir mesa en la taberna.
+                  Dinos 3 juegos que hayas disfrutado y te diremos con quién compartir mesa en la comunidad.
                 </p>
 
                 {/* Slots */}

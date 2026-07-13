@@ -26,7 +26,7 @@ const navGroups: NavGroup[] = [
     tone: "primary",
     items: [
       { href: "/juegos", label: "Juegos", icon: "dice" },
-      { href: "/taberna", label: "La taberna", icon: "users" }
+      { href: "/comunidad", label: "Comunidad", icon: "users" }
     ]
   },
   {

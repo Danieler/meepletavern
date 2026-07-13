@@ -26,7 +26,7 @@ export function GameRatings({ game, compact = false }: { game: CatalogGame; comp
         <div className="relative flex items-start gap-3">
           {showScore ? <RatingBadge rating={visibleRating.score as number} size="md" label="MT" /> : null}
           <div className="min-w-0">
-            <p className="tavern-eyebrow">Nota de la taberna</p>
+            <p className="tavern-eyebrow">Nota de la comunidad</p>
             <h2 className="font-display mt-1 text-2xl font-bold leading-tight text-wood">
               {showScore ? visibleRating.label : "Por descubrir"}
             </h2>
@@ -45,7 +45,7 @@ export function GameRatings({ game, compact = false }: { game: CatalogGame; comp
             helper={externalRating?.sourcesCount ? `${externalRating.sourcesCount} señales encontradas` : "Sin señales suficientes"}
           />
           <RatingLine
-            label="La taberna"
+            label="La comunidad"
             value={typeof userAverage === "number" ? `${userAverage.toFixed(1)}/10` : "Sin votos aún"}
             helper={userVotes ? `${userVotes} ${userVotes === 1 ? "jugador ha votado" : "jugadores han votado"}` : "Sé quien estrene la mesa"}
           />

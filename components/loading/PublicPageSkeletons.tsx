@@ -128,7 +128,7 @@ export function CatalogResultsSkeleton() {
 
 export function TavernPageSkeleton() {
   return (
-    <LoadingShell label="Cargando la taberna">
+    <LoadingShell label="Cargando la comunidad">
       <PageHeroSkeleton split compact />
       <section className="container-page pt-8 sm:pt-10" aria-hidden="true">
         <div className="tavern-panel p-4 sm:p-6">

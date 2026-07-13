@@ -9,6 +9,7 @@ import { PublicUserDirectory } from "@/components/taberna/PublicUserDirectory";
 import { TavernActivityFeed } from "@/components/taberna/TavernActivityFeed";
 import { TavernGameOverview } from "@/components/taberna/TavernGameOverview";
 import { TavernNowSection } from "@/components/taberna/TavernNowSection";
+import { CommunitySectionNav } from "@/components/taverns/CommunitySectionNav";
 import { getTavernActivityFeed } from "@/lib/activity/feed";
 import { getPublicUsersPage } from "@/lib/publicProfiles";
 import { normalizeTavernSearch } from "@/lib/tavernSearch";
@@ -18,16 +19,16 @@ import { getTavernNowSummary } from "@/lib/tavernNow";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "La taberna - MeepleTavern",
+  title: "La plaza de la comunidad - MeepleTavern",
   description:
-    "Descubre a otros jugadores en la taberna de MeepleTavern y explora sus ludotecas públicas.",
+    "Descubre la actividad pública de la comunidad de MeepleTavern y entra en tus tabernas privadas.",
   alternates: {
-    canonical: "/taberna"
+    canonical: "/comunidad"
   },
   openGraph: {
-    title: "La taberna - MeepleTavern",
-    description: "Descubre a otros jugadores en la taberna de MeepleTavern y explora sus ludotecas públicas.",
-    url: "/taberna",
+    title: "La plaza de la comunidad - MeepleTavern",
+    description: "Descubre la actividad pública de la comunidad de MeepleTavern y entra en tus tabernas privadas.",
+    url: "/comunidad",
     type: "website"
   }
 };
@@ -45,9 +46,9 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "La Taberna - MeepleTavern",
-    description: "Descubre a otros jugadores en la taberna de MeepleTavern y explora sus ludotecas públicas.",
-    url: `${siteConfig.url}/taberna`
+    name: "La plaza de la comunidad - MeepleTavern",
+    description: "Descubre la actividad pública de la comunidad de MeepleTavern y entra en tus tabernas privadas.",
+    url: `${siteConfig.url}/comunidad`
   };
   
   return (
@@ -60,10 +61,10 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
         <section className="page-hero !py-2 sm:!py-3">
           <div className="container-page grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
             <div>
-              <p className="tavern-eyebrow">La taberna</p>
-              <h1 className="page-hero-title !mt-1">La Taberna</h1>
+              <p className="tavern-eyebrow">Comunidad</p>
+              <h1 className="page-hero-title !mt-1">La plaza</h1>
               <p className="page-hero-copy !mt-2 max-w-xl text-sm sm:text-base">
-                Mira qué están jugando, probando y recomendando otros taberneros.
+                Mira qué está jugando la comunidad o entra en una de tus tabernas privadas.
               </p>
             </div>
             <div className="w-full min-w-0">
@@ -74,12 +75,14 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
           </div>
         </section>
 
+        <CommunitySectionNav />
+
         <div className="container-page pt-7">
           <GuestOnlyCta
-            title="Guarda tu rincón en la taberna"
+            title="Guarda tu rincón en la comunidad"
             description="Entra en segundos para recordar tus juegos, tus listas y lo que quieres sacar a mesa después."
             buttonLabel="Guardar mi rincón"
-            next="/taberna"
+            next="/comunidad"
             context="tavern"
           />
         </div>
@@ -328,7 +331,7 @@ function TavernHighlights({ overview }: { overview: TavernOverview }) {
             </div>
             <div className="min-w-0">
               <h2 className="max-w-full break-words font-display text-[11px] font-black uppercase leading-tight tracking-[0.06em] text-parchment/90 sm:text-xs sm:tracking-[0.1em]">
-                El pulso de la taberna
+                El pulso de la comunidad
               </h2>
               <p className="text-[10px] font-bold text-parchment/50 uppercase tracking-wider mt-0.5">Últimos 7 días</p>
             </div>
