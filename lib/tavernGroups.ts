@@ -6,7 +6,6 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { TavernGroupError } from "@/lib/tavernGroupError";
-import { isSystemGeneratedUsername } from "@/lib/usernames";
 
 export { TavernGroupError } from "@/lib/tavernGroupError";
 
@@ -56,13 +55,10 @@ function publicUser(user: {
   displayName: string | null;
   profile: { username: string; displayName: string | null } | null;
 }) {
-  const generatedUsername = isSystemGeneratedUsername(user.profile?.username);
   return {
     id: user.id,
-    username: generatedUsername ? "" : user.profile?.username || "usuario",
-    displayName: generatedUsername
-      ? user.profile?.displayName || user.displayName || "Miembro nuevo"
-      : tavernDisplayName(user)
+    username: user.profile?.username || "usuario",
+    displayName: tavernDisplayName(user)
   };
 }
 

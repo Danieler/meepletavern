@@ -5,7 +5,6 @@ import { getCatalogGamesByIds, type CatalogGame } from "@/lib/catalog";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import { normalizeTavernSearch } from "@/lib/tavernSearch";
-import { GENERATED_USERNAME_PREFIX, isSystemGeneratedUsername } from "@/lib/usernames";
 
 type LibraryFlags = {
   owned: boolean;
@@ -55,7 +54,6 @@ const publicProfileSelect = {
 export type PublicProfile = Prisma.UserProfileGetPayload<{ select: typeof publicProfileSelect }>;
 
 export async function getPublicProfileByUsername(username: string) {
-  if (isSystemGeneratedUsername(username.toLowerCase())) return null;
   return prisma.userProfile.findUnique({
     where: { username: username.toLowerCase() },
     select: publicProfileSelect
@@ -102,7 +100,6 @@ export async function queryPublicUsersPage(
   const profiles = await db.userProfile.findMany({
     where: {
       profileVisibility: ProfileVisibility.PUBLIC,
-      NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } },
       ...(search
         ? {
             OR: [
@@ -182,7 +179,7 @@ export function getPublicUsersPage(
 
 const getCachedPublicUsersFirstPage = unstable_cache(
   () => queryPublicUsersPage({ limit: PUBLIC_USER_PAGE_SIZE }),
-  ["public-tavern-users-first-page-v2"],
+  ["public-tavern-users-first-page-v3"],
   { revalidate: PUBLIC_USERS_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
 );
 

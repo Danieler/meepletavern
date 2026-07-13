@@ -5,7 +5,6 @@ import {
   MIN_TAVERN_MEMBER_QUERY_LENGTH,
   normalizeTavernMemberSearch
 } from "@/lib/tavernMemberSearchQuery";
-import { GENERATED_USERNAME_PREFIX } from "@/lib/usernames";
 
 const MAX_SUGGESTIONS = 8;
 
@@ -31,7 +30,6 @@ export async function searchTavernInviteCandidates(actorUserId: string, tavernId
   const candidates = await prisma.userProfile.findMany({
     where: {
       userId: { not: actorUserId },
-      NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } },
       OR: matches,
       user: {
         tavernGroupMemberships: { none: { tavernId } },

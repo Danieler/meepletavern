@@ -77,7 +77,8 @@ export async function upsertAppUserFromAuthUser(user: Pick<SupabaseUser, "id" | 
       data: {
         userId: appUser.id,
         username,
-        displayName: appUser.displayName
+        displayName: appUser.displayName,
+        usernameSetupRequired: true
       }
     });
 

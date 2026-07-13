@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { TavernGroupHeader } from "@/components/taverns/TavernGroupHeader";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { getTavernGroupSummary, TavernGroupError } from "@/lib/tavernGroups";
-import { buildUsernameOnboardingPath, isSystemGeneratedUsername } from "@/lib/usernames";
+import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function TavernLayout({ children, params }: { children: Rea
     redirect(`/auth?mode=login&next=${encodeURIComponent(`/comunidad/tabernas/${tavernId}`)}`);
   }
   const { tavernId } = await params;
-  if (isSystemGeneratedUsername(user.profile?.username)) {
+  if (user.profile?.usernameSetupRequired === true) {
     redirect(buildUsernameOnboardingPath(`/comunidad/tabernas/${tavernId}`));
   }
   try {

@@ -7,7 +7,7 @@ import {
   normalizeUsername
 } from "@/lib/usernames";
 
-test("generated usernames require the mandatory choice step", () => {
+test("system-generated usernames are recognized without exposing email", () => {
   assert.equal(isSystemGeneratedUsername("meeple-a96d3388"), true);
   assert.equal(isSystemGeneratedUsername("meeple-a96d3388-2"), true);
   assert.equal(isSystemGeneratedUsername("daniel_juega"), false);

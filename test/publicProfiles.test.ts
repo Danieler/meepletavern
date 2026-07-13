@@ -51,7 +51,6 @@ test("queryPublicUsersPage uses a bounded cursor page and aggregates only visibl
   assert.deepEqual(findManyArgs?.orderBy, [{ updatedAt: "desc" }, { id: "desc" }]);
   assert.deepEqual(findManyArgs?.where, {
     profileVisibility: ProfileVisibility.PUBLIC,
-    NOT: { username: { startsWith: "meeple-" } },
     OR: [
       { username: { contains: "Daniel", mode: "insensitive" } },
       { displayName: { contains: "Daniel", mode: "insensitive" } }

@@ -4,7 +4,6 @@ import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import type { TavernOverview, TavernRankedGame } from "@/lib/tavernOverview";
-import { GENERATED_USERNAME_PREFIX } from "@/lib/usernames";
 
 const TAVERN_NOW_REVALIDATE_SECONDS = 3600;
 
@@ -41,8 +40,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
     db.userGameRating.findFirst({
       where: {
         user: { profile: { is: {
-          profileVisibility: ProfileVisibility.PUBLIC,
-          NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } }
+          profileVisibility: ProfileVisibility.PUBLIC
         } } },
         game: { status: GameStatus.published }
       },
@@ -61,8 +59,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
       where: {
         visibility: GameListVisibility.PUBLIC,
         user: { profile: { is: {
-          profileVisibility: ProfileVisibility.PUBLIC,
-          NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } }
+          profileVisibility: ProfileVisibility.PUBLIC
         } } }
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -105,7 +102,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
 
 const getCachedLatestTavernNowSignals = unstable_cache(
   () => queryLatestTavernNowSignals(),
-  ["tavern-now-latest-signals-v2"],
+  ["tavern-now-latest-signals-v3"],
   { revalidate: TAVERN_NOW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
 );
 

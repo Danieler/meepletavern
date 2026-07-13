@@ -75,10 +75,6 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
   assert.equal(wantedWhere.wantToPlay, true);
   assert.equal(wantedWhere.user?.profile?.is?.profileVisibility, ProfileVisibility.PUBLIC);
   assert.equal(wantedWhere.user?.profile?.is?.collectionVisibility, ProfileVisibility.PUBLIC);
-  assert.deepEqual(
-    (wantedWhere.user?.profile?.is as { NOT?: unknown })?.NOT,
-    { username: { startsWith: "meeple-" } }
-  );
   assert.deepEqual((gameArgs?.where as { status?: string }).status, GameStatus.published);
   assert.deepEqual(Object.keys(gameArgs?.select as Record<string, boolean>).sort(), [
     "coverImageAlt",

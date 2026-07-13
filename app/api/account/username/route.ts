@@ -6,7 +6,6 @@ import { TAVERN_ACTIVITY_CACHE_TAG, trySyncActivityActorProfile } from "@/lib/ac
 import { prisma } from "@/lib/prisma";
 import {
   getUsernameValidationError,
-  isSystemGeneratedUsername,
   normalizeUsername
 } from "@/lib/usernames";
 
@@ -16,7 +15,7 @@ export async function GET() {
   try {
     const account = await requireCurrentAppUser();
     return NextResponse.json(
-      { required: isSystemGeneratedUsername(account.profile?.username) },
+      { required: account.profile?.usernameSetupRequired === true },
       { headers: privateHeaders }
     );
   } catch {
@@ -43,7 +42,7 @@ export async function PATCH(request: Request) {
     const updatedAccount = await prisma.user.update({
       where: { id: account.id },
       include: { profile: true },
-      data: { profile: { update: { username } } }
+      data: { profile: { update: { username, usernameSetupRequired: false } } }
     });
     const activityChanged = await trySyncActivityActorProfile(updatedAccount);
     if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);

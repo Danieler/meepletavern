@@ -6,7 +6,6 @@ import {
   type Prisma
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isSystemGeneratedUsername } from "@/lib/usernames";
 
 export const TAVERN_ACTIVITY_CACHE_TAG = "tavern-activity";
 export const ACTIVITY_COMMENT_SNIPPET_LENGTH = 140;
@@ -55,7 +54,6 @@ export async function recordPublicActivityEvent(
   const dedupeKey = buildActivityDedupeKey(input.type, input.actor.id, input.game.id);
   const profile = input.actor.profile;
   const isPublic =
-    !isSystemGeneratedUsername(profile?.username) &&
     profile?.profileVisibility === ProfileVisibility.PUBLIC &&
     (!input.requiresPublicCollection || profile.collectionVisibility === ProfileVisibility.PUBLIC);
 
@@ -179,7 +177,6 @@ export async function recordPublicListActivityEvent(
   const profile = input.actor.profile;
   if (
     !profile ||
-    isSystemGeneratedUsername(profile.username) ||
     profile.profileVisibility !== ProfileVisibility.PUBLIC ||
     input.list.visibility !== GameListVisibility.PUBLIC
   ) {

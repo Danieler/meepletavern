@@ -2,7 +2,6 @@ import { Prisma, ProfileVisibility } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { prisma } from "@/lib/prisma";
-import { GENERATED_USERNAME_PREFIX } from "@/lib/usernames";
 
 export const GAME_TAVERN_SAMPLE_LIMIT = 3;
 
@@ -82,8 +81,7 @@ export async function queryGameTavernSummary(
       profile: {
         is: {
           profileVisibility: ProfileVisibility.PUBLIC,
-          collectionVisibility: ProfileVisibility.PUBLIC,
-          NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } }
+          collectionVisibility: ProfileVisibility.PUBLIC
         }
       }
     }
@@ -173,8 +171,7 @@ async function queryPublicRatingAggregate(gameId: string, db: GameTavernDb): Pro
           user: {
             profile: {
               is: {
-                profileVisibility: ProfileVisibility.PUBLIC,
-                NOT: { username: { startsWith: GENERATED_USERNAME_PREFIX } }
+                profileVisibility: ProfileVisibility.PUBLIC
               }
             }
           }
@@ -266,7 +263,7 @@ function numberOrNull(value: number | string | null | undefined) {
 
 const getCachedGameTavernSummary = (gameId: string) => unstable_cache(
   () => queryGameTavernSummary(gameId),
-  ["game-tavern-summary-v2", gameId],
+  ["game-tavern-summary-v3", gameId],
   { revalidate: 180, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
 )();
 

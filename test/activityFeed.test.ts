@@ -38,8 +38,7 @@ test("queryTavernActivityFeed reads a minimal bounded cursor page", async () => 
   assert.equal(feed.items[0]?.actorName, "Usuario 0");
   assert.equal(feed.items[0]?.createdAt, "2026-06-20T12:00:00.000Z");
   assert.deepEqual(findManyArgs?.where, {
-    visibility: ActivityEventVisibility.PUBLIC,
-    NOT: { actorUsernameSnapshot: { startsWith: "meeple-" } }
+    visibility: ActivityEventVisibility.PUBLIC
   });
   assert.equal(findManyArgs?.take, TAVERN_ACTIVITY_PAGE_SIZE + 1);
   assert.deepEqual(findManyArgs?.cursor, { id: "previous-event" });
@@ -80,7 +79,6 @@ test("queryTavernActivityFeed searches public actor and game snapshots in the da
 
   assert.deepEqual(findManyArgs?.where, {
     visibility: ActivityEventVisibility.PUBLIC,
-    NOT: { actorUsernameSnapshot: { startsWith: "meeple-" } },
     OR: [
       { actorNameSnapshot: { contains: "Toma 6", mode: "insensitive" } },
       { actorUsernameSnapshot: { contains: "Toma 6", mode: "insensitive" } },

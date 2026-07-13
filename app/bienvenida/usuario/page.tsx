@@ -4,7 +4,6 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { ChooseUsernameClient } from "@/components/auth/ChooseUsernameClient";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { getSafeInternalPath } from "@/lib/safeNextPath";
-import { isSystemGeneratedUsername } from "@/lib/usernames";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -26,7 +25,7 @@ export default async function ChooseUsernamePage({
   } catch {
     redirect(`/auth?mode=login&next=${encodeURIComponent(nextPath)}`);
   }
-  if (!isSystemGeneratedUsername(account.profile?.username)) redirect(nextPath);
+  if (account.profile?.usernameSetupRequired !== true) redirect(nextPath);
 
   return <AuthShell><ChooseUsernameClient nextPath={nextPath} /></AuthShell>;
 }

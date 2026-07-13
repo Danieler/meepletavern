@@ -6,7 +6,6 @@ import {
   type GameImageStatus
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isSystemGeneratedUsername } from "@/lib/usernames";
 import { slugify } from "@/lib/slug";
 
 export const DEFAULT_GAME_LIST_NAME = "Mis favoritos";
@@ -218,9 +217,6 @@ export async function getPublicUserListsPage(input: {
   cursor?: string | null;
   limit?: number;
 }): Promise<PublicGameListsPage> {
-  if (isSystemGeneratedUsername(input.username.toLowerCase())) {
-    return { items: [], nextCursor: null };
-  }
   const limit = Math.min(PUBLIC_LIST_OVERVIEW_LIMIT, Math.max(1, input.limit || PUBLIC_LIST_OVERVIEW_LIMIT));
   const lists = await prisma.gameList.findMany({
     where: {
@@ -272,7 +268,6 @@ export async function getPublicListDetail(input: {
   cursor?: string | null;
   limit?: number;
 }): Promise<PublicGameListPage | null> {
-  if (isSystemGeneratedUsername(input.username.toLowerCase())) return null;
   const list = await prisma.gameList.findFirst({
     where: {
       slug: input.listSlug,

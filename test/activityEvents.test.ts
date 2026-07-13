@@ -79,7 +79,7 @@ test("recordPublicActivityEvent removes stale collection activity when the colle
   assert.equal(deletedKey, "COLLECTION_ADDED:user-1:game-1");
 });
 
-test("system-generated usernames never create public activity", async () => {
+test("legacy system-generated usernames remain visible in public activity", async () => {
   let upsertCalls = 0;
   const db = {
     activityEvent: {
@@ -92,20 +92,20 @@ test("system-generated usernames never create public activity", async () => {
       }
     }
   } as unknown as NonNullable<Parameters<typeof recordPublicActivityEvent>[1]>;
-  const incompleteActor = actor();
-  incompleteActor.profile.username = "meeple-a96d3388";
+  const legacyActor = actor();
+  legacyActor.profile.username = "meeple-a96d3388";
 
   const changed = await recordPublicActivityEvent(
     {
       type: ActivityEventType.PLAYED,
-      actor: incompleteActor,
+      actor: legacyActor,
       game: { id: "game-1", slug: "heat", title: "Heat", name: "Heat" }
     },
     db
   );
 
-  assert.equal(changed, false);
-  assert.equal(upsertCalls, 0);
+  assert.equal(changed, true);
+  assert.equal(upsertCalls, 1);
 });
 
 test("truncateActivityComment normalizes whitespace and truncates snippets", () => {

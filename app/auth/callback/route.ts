@@ -8,7 +8,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
 import { getSafeInternalPath } from "@/lib/safeNextPath";
-import { buildUsernameOnboardingPath, isSystemGeneratedUsername } from "@/lib/usernames";
+import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
           source: normalizeOnboardingSource(user.user_metadata?.meepletavern_onboarding_source)
         });
       }
-      if (isSystemGeneratedUsername(account.profile?.username)) {
+      if (account.profile?.usernameSetupRequired === true) {
         destination = buildUsernameOnboardingPath(next);
       }
     }

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PublicShell } from "@/components/PublicShell";
 import { ProfilePanel } from "@/components/auth/ProfilePanel";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
-import { buildUsernameOnboardingPath, isSystemGeneratedUsername } from "@/lib/usernames";
+import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 export default async function ProfilePage() {
   let account: Awaited<ReturnType<typeof requireCurrentAppUser>>;
@@ -11,7 +11,7 @@ export default async function ProfilePage() {
   } catch {
     redirect("/auth?mode=login&next=%2Fmi-perfil");
   }
-  if (isSystemGeneratedUsername(account.profile?.username)) {
+  if (account.profile?.usernameSetupRequired === true) {
     redirect(buildUsernameOnboardingPath("/mi-perfil"));
   }
 

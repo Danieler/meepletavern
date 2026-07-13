@@ -299,6 +299,7 @@ model UserProfile {
 
   profileVisibility    ProfileVisibility @default(PUBLIC)
   collectionVisibility ProfileVisibility @default(PUBLIC)
+  usernameSetupRequired Boolean          @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
