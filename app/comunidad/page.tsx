@@ -4,12 +4,12 @@ import Link from "next/link";
 import { cache, Suspense } from "react";
 import { Activity, ChevronRight, Dices, Flame, Gamepad2, Heart } from "lucide-react";
 import { PublicShell } from "@/components/PublicShell";
-import { GuestOnlyCta } from "@/components/auth-cta/GuestOnlyCta";
 import { PublicUserDirectory } from "@/components/taberna/PublicUserDirectory";
 import { TavernActivityFeed } from "@/components/taberna/TavernActivityFeed";
 import { TavernGameOverview } from "@/components/taberna/TavernGameOverview";
 import { TavernNowSection } from "@/components/taberna/TavernNowSection";
 import { CommunitySectionNav } from "@/components/taverns/CommunitySectionNav";
+import { TavernDiscoveryCard } from "@/components/taverns/TavernDiscoveryCard";
 import { getTavernActivityFeed } from "@/lib/activity/feed";
 import { getPublicUsersPage } from "@/lib/publicProfiles";
 import { normalizeTavernSearch } from "@/lib/tavernSearch";
@@ -64,7 +64,7 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
               <p className="tavern-eyebrow">Comunidad</p>
               <h1 className="page-hero-title !mt-1">La plaza</h1>
               <p className="page-hero-copy !mt-2 max-w-xl text-sm sm:text-base">
-                Mira qué está jugando la comunidad o entra en una de tus tabernas privadas.
+                Descubre qué está jugando la comunidad y crea un espacio privado para reunir la ludoteca de tu grupo.
               </p>
             </div>
             <div className="w-full min-w-0">
@@ -76,16 +76,7 @@ export default async function TavernPage({ searchParams }: TavernPageProps) {
         </section>
 
         <CommunitySectionNav />
-
-        <div className="container-page pt-7">
-          <GuestOnlyCta
-            title="Guarda tu rincón en la comunidad"
-            description="Entra en segundos para recordar tus juegos, tus listas y lo que quieres sacar a mesa después."
-            buttonLabel="Guardar mi rincón"
-            next="/comunidad"
-            context="tavern"
-          />
-        </div>
+        <TavernDiscoveryCard />
 
         <Suspense fallback={<TavernNowSectionSkeleton />}>
           <TavernNowSectionWrapper />

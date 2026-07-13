@@ -74,14 +74,19 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
 
   return (
     <div className="space-y-8">
-      <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+      <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
         <div>
-          <p className="tavern-eyebrow">Grupos privados</p>
+          <p className="tavern-eyebrow">Ludotecas de grupo</p>
           <h1 className="font-display mt-2 text-4xl font-bold text-wood sm:text-5xl">Mis tabernas</h1>
           <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-walnut/68">
-            Reúne las ludotecas de tu grupo y lleva un historial de partidas que no altera los contadores personales.
+            Una taberna es un grupo privado que reúne automáticamente los juegos que cada miembro tiene “En casa”. Así podéis ver qué tenéis entre todos y guardar vuestras partidas de grupo por separado.
           </p>
         </div>
+        <ol className="grid gap-2 rounded-md border border-walnut/12 bg-white/65 p-4 shadow-sm" aria-label="Cómo empezar una taberna">
+          <DashboardStep number="1" text="Ponle un nombre a vuestro grupo." />
+          <DashboardStep number="2" text="Invita a tus compañeros por usuario." />
+          <DashboardStep number="3" text="Elegid entre todos los juegos disponibles." />
+        </ol>
       </header>
 
       {error ? <p className="rounded-md border border-ruby/20 bg-ruby/8 px-4 py-3 text-sm font-bold text-ruby" role="alert">{error}</p> : null}
@@ -141,24 +146,21 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
             ))}
           </div>
         </section>
-      ) : (
-        <section className="tavern-card p-7 text-center">
-          <UsersRound className="mx-auto text-ember" size={34} />
-          <h2 className="font-display mt-4 text-3xl font-bold text-wood">Tu primera taberna empieza aquí</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm font-semibold leading-6 text-walnut/65">
-            Ponle un nombre y después invita a tus compañeros de mesa.
-          </p>
-        </section>
-      )}
+      ) : null}
 
       <section className="tavern-panel p-5 sm:p-6" aria-labelledby="create-tavern-title">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-ember/10 text-ember"><Plus size={20} /></span>
           <div>
             <p className="tavern-eyebrow">Crear grupo</p>
-            <h2 id="create-tavern-title" className="font-display mt-1 text-2xl font-bold text-wood">Nueva taberna</h2>
+            <h2 id="create-tavern-title" className="font-display mt-1 text-2xl font-bold text-wood">
+              {initialDashboard.taverns.length ? "Nueva taberna" : "Crea tu primera taberna"}
+            </h2>
           </div>
         </div>
+        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-walnut/62">
+          Empieza con un nombre reconocible para el grupo. Cuando esté creada podrás invitar miembros; sus juegos no aparecerán hasta que acepten.
+        </p>
         <form className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={createTavern}>
           <label>
             <span className="field-label">Nombre de la taberna</span>
@@ -171,6 +173,15 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
         </form>
       </section>
     </div>
+  );
+}
+
+function DashboardStep({ number, text }: { number: string; text: string }) {
+  return (
+    <li className="grid grid-cols-[28px_minmax(0,1fr)] items-center gap-2.5 text-sm font-bold text-walnut/68">
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ember/12 text-xs font-black text-ember">{number}</span>
+      {text}
+    </li>
   );
 }
 
