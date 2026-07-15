@@ -11,6 +11,7 @@ import {
   Flame,
   Gauge,
   LayoutGrid,
+  LogOut,
   Menu,
   MessageSquareText,
   Search,
@@ -41,6 +42,7 @@ export type BrandIconName =
   | "flame"
   | "gauge"
   | "grid"
+  | "logout"
   | "meeple"
   | "menu"
   | "search"
@@ -77,6 +79,7 @@ const iconMap: Record<BrandIconName, LucideIcon> = {
   flame: Flame,
   gauge: Gauge,
   grid: LayoutGrid,
+  logout: LogOut,
   meeple: Users,
   menu: Menu,
   search: Search,

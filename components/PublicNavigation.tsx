@@ -28,7 +28,7 @@ export function PublicDesktopNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="header-nav-shell hidden lg:flex" aria-label="Navegación principal">
+    <nav className="header-nav-shell hidden min-[1120px]:flex" aria-label="Navegación principal">
       <div className="header-nav-list">
         {navItems.map((item) => {
           const active = isActivePath(pathname, item.href);
@@ -41,7 +41,6 @@ export function PublicDesktopNavigation() {
               aria-current={active ? "page" : undefined}
               className={`header-nav-link ${active ? "header-nav-link-active" : ""}`}
             >
-              <BrandIcon name={item.icon} size={16} className="hidden xl:inline-flex" />
               <span>{item.label}</span>
             </Link>
           );
@@ -53,6 +52,7 @@ export function PublicDesktopNavigation() {
 
 export function PublicMobileMenu() {
   const panelId = "mobile-menu-panel";
+  const panelTitleId = "mobile-menu-title";
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -125,7 +125,7 @@ export function PublicMobileMenu() {
   }, [open]);
 
   return (
-    <div className="lg:hidden">
+    <div className="min-[1120px]:hidden">
       <button
         ref={buttonRef}
         type="button"
@@ -152,9 +152,23 @@ export function PublicMobileMenu() {
             id={panelId}
             role="dialog"
             aria-modal="true"
-            aria-label="Menú de navegación"
+            aria-labelledby={panelTitleId}
             className="mobile-nav-panel"
           >
+            <div className="mobile-nav-panel-header">
+              <div>
+                <p className="mobile-nav-label">MeepleTavern</p>
+                <h2 id={panelTitleId} className="mobile-nav-panel-title">Menú</h2>
+              </div>
+              <button
+                type="button"
+                className="mobile-nav-close"
+                aria-label="Cerrar menú"
+                onClick={() => setOpen(false)}
+              >
+                <BrandIcon name="x" size={19} />
+              </button>
+            </div>
             <nav aria-label="Navegación principal" className="grid gap-6">
               <section className="mobile-nav-group">
                 <p className="mobile-nav-label">Explorar</p>
@@ -182,7 +196,7 @@ export function PublicMobileMenu() {
               <section className="mobile-nav-account">
                 <p className="mobile-nav-label">Tu espacio</p>
                 <div className="mt-2">
-                  <PublicAuthControls profileLabel="Mi perfil" vertical={true} />
+                  <PublicAuthControls profileLabel="Mi ludoteca" vertical={true} />
                 </div>
               </section>
             </nav>

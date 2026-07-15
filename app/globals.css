@@ -270,34 +270,66 @@ dd {
       inset 0 -1px 0 rgba(201, 130, 31, 0.18);
   }
 
+  .public-header-layout {
+    @apply flex min-h-16 items-center justify-between gap-3 py-1.5;
+  }
+
+  .public-header-brand {
+    @apply flex min-w-0 flex-1 items-center justify-between gap-3;
+  }
+
+  .public-header-utilities {
+    @apply min-w-0 items-center justify-end gap-2 border-l border-white/10 pl-3;
+  }
+
+  @media (min-width: 1120px) {
+    .public-header-layout {
+      display: grid;
+      min-height: 68px;
+      grid-template-columns: minmax(210px, 1fr) auto minmax(210px, 1fr);
+      gap: 1rem;
+      padding-top: 0.375rem;
+      padding-bottom: 0.375rem;
+    }
+
+    .public-header-brand {
+      min-width: 0;
+      justify-self: start;
+    }
+
+    .public-header-utilities {
+      justify-self: end;
+    }
+  }
+
   .header-nav-shell {
-    @apply min-w-0 flex-1 items-center justify-center;
+    @apply min-w-0 items-center justify-center;
   }
 
   .header-nav-list {
-    @apply inline-flex max-w-full min-w-0 items-center gap-0.5;
+    @apply inline-flex max-w-full min-w-0 items-center gap-1;
   }
 
   .header-nav-link {
-    @apply relative inline-flex min-h-11 min-w-0 shrink-0 items-center justify-center gap-2 rounded-lg px-2.5 py-2 text-center text-[13px] font-extrabold leading-none text-parchment/70 transition focus:outline-none focus:ring-2 focus:ring-ember/70 focus:ring-offset-2 focus:ring-offset-[#24150f] xl:px-3.5 xl:text-sm;
+    @apply relative inline-flex min-h-10 min-w-0 shrink-0 items-center justify-center rounded-lg px-3.5 py-2 text-center text-sm font-bold leading-none text-parchment/70 transition focus:outline-none focus:ring-2 focus:ring-ember/70 focus:ring-offset-2 focus:ring-offset-[#24150f];
   }
 
   .header-nav-link:hover {
     color: #fff1cf;
-    background: rgba(255, 248, 232, 0.07);
+    background: rgba(255, 248, 232, 0.055);
   }
 
   .header-nav-link-active {
     color: #ffd27a;
-    background: rgba(201, 130, 31, 0.1);
+    background: transparent;
   }
 
   .header-nav-link-active::after {
     content: "";
     position: absolute;
-    right: 0.75rem;
-    bottom: 0.2rem;
-    left: 0.75rem;
+    right: 0.875rem;
+    bottom: 0.15rem;
+    left: 0.875rem;
     height: 2px;
     border-radius: 999px;
     background: #e9a43f;
@@ -307,16 +339,46 @@ dd {
     @apply focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-ember/25 bg-[#fff8e80c] px-3 text-sm font-extrabold leading-none text-parchment shadow-sm transition hover:border-ember/55 hover:bg-[#c9821f24] hover:text-white;
   }
 
-  .header-profile-link {
-    @apply focus-ring max-w-32 truncate rounded-md px-2.5 py-2 text-sm font-extrabold text-parchment/80 transition hover:bg-[#fff8e80c] hover:text-[#ffd27a];
+  .header-search-button {
+    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-parchment/60 transition hover:bg-[#fff8e80a] hover:text-[#ffd27a] focus:outline-none focus:ring-2 focus:ring-ember/70 focus:ring-offset-2 focus:ring-offset-[#24150f];
   }
 
-  .header-account-controls {
-    @apply flex items-center gap-1 border-l border-white/10 pl-3;
+  .header-account-menu {
+    @apply relative;
   }
 
-  .header-signout-button {
-    @apply focus-ring min-h-10 rounded-md px-2.5 text-sm font-bold text-parchment/55 transition hover:bg-[#fff8e80a] hover:text-white;
+  .header-account-trigger {
+    @apply inline-flex min-h-11 max-w-52 items-center gap-2 rounded-full border border-white/10 bg-[#fff8e808] py-1 pl-1.5 pr-2.5 text-sm font-bold text-parchment/80 transition hover:border-ember/30 hover:bg-[#fff8e80d] hover:text-white focus:outline-none focus:ring-2 focus:ring-ember/70 focus:ring-offset-2 focus:ring-offset-[#24150f];
+  }
+
+  .header-account-avatar {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-ember/25 bg-ember/15 text-[#ffd27a];
+  }
+
+  .header-account-popover {
+    @apply absolute right-0 top-[calc(100%+0.6rem)] z-[70] w-64 overflow-hidden rounded-xl border border-ember/20 p-2 text-white shadow-tavern;
+    background:
+      radial-gradient(280px 100px at 10% 0%, rgba(201, 130, 31, 0.2), transparent 68%),
+      linear-gradient(145deg, #332016, #21120c 70%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 250, 240, 0.08),
+      0 18px 48px rgba(0, 0, 0, 0.34);
+  }
+
+  .header-account-popover-label {
+    @apply px-2.5 pt-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-parchment/45;
+  }
+
+  .header-account-item {
+    @apply flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-bold text-parchment/80 transition hover:bg-[#fff8e80a] hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ember/60;
+  }
+
+  .header-account-popover-footer {
+    @apply mt-2 border-t border-white/10 pt-2;
+  }
+
+  .header-account-signout {
+    @apply flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-semibold text-parchment/50 transition hover:bg-[#fff8e808] hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ember/60;
   }
 
   .mobile-nav-panel {
@@ -330,6 +392,18 @@ dd {
       0 20px 60px rgba(0, 0, 0, 0.34);
   }
 
+  .mobile-nav-panel-header {
+    @apply mb-5 flex items-center justify-between border-b border-white/10 pb-4;
+  }
+
+  .mobile-nav-panel-title {
+    @apply font-display mt-1 text-2xl font-bold leading-none text-white;
+  }
+
+  .mobile-nav-close {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#fff8e808] text-parchment/70 transition hover:border-ember/30 hover:bg-[#fff8e80d] hover:text-white focus:outline-none focus:ring-2 focus:ring-ember/70 focus:ring-offset-2 focus:ring-offset-[#24150f];
+  }
+
   .mobile-nav-group {
     @apply min-w-0;
   }
@@ -338,12 +412,8 @@ dd {
     @apply border-t border-white/10 pt-5;
   }
 
-  .mobile-nav-account > div > .header-action {
+  .mobile-nav-account .header-action {
     @apply min-h-11 w-full;
-  }
-
-  .mobile-nav-account .header-profile-link {
-    @apply inline-flex min-h-11 min-w-0 flex-1 items-center bg-[#fff8e80c] text-white;
   }
 
   .mobile-nav-label {
@@ -362,11 +432,11 @@ dd {
   }
 
   .mobile-account-link {
-    @apply focus-ring flex min-h-12 items-center rounded-lg px-3 text-sm font-extrabold text-parchment/80 transition hover:bg-[#fff8e80a] hover:text-white;
+    @apply flex min-h-12 items-center gap-3 rounded-lg px-3 text-sm font-extrabold text-parchment/80 transition hover:bg-[#fff8e80a] hover:text-white focus:outline-none focus:ring-2 focus:ring-ember/70 focus:ring-offset-2 focus:ring-offset-[#24150f];
   }
 
   .mobile-account-signout {
-    @apply focus-ring flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm font-bold text-parchment/50 transition hover:bg-[#fff8e80a] hover:text-white;
+    @apply flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold text-parchment/50 transition hover:bg-[#fff8e80a] hover:text-white focus:outline-none focus:ring-2 focus:ring-ember/70 focus:ring-offset-2 focus:ring-offset-[#24150f];
   }
 
   .tavern-title {
