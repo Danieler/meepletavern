@@ -1,4 +1,4 @@
-export const MIN_TAVERN_MEMBER_QUERY_LENGTH = 2;
+export const MIN_TAVERN_MEMBER_QUERY_LENGTH = 3;
 export const MAX_TAVERN_MEMBER_QUERY_LENGTH = 40;
 
 export function normalizeTavernMemberSearch(value: unknown) {

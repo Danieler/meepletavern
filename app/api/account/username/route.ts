@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
-import { TAVERN_ACTIVITY_CACHE_TAG, trySyncActivityActorProfile } from "@/lib/activity/events";
+import { trySyncActivityActorProfile } from "@/lib/activity/events";
+import { revalidateCommunityProfileCaches } from "@/lib/communityCache";
 import { prisma } from "@/lib/prisma";
 import {
   getUsernameValidationError,
@@ -45,7 +45,7 @@ export async function PATCH(request: Request) {
       data: { profile: { update: { username, usernameSetupRequired: false } } }
     });
     const activityChanged = await trySyncActivityActorProfile(updatedAccount);
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityProfileCaches();
 
     return NextResponse.json({ username }, { headers: privateHeaders });
   } catch (error) {

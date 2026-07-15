@@ -1,6 +1,6 @@
 import { GameStatus, ProfileVisibility } from "@prisma/client";
 import { unstable_cache } from "next/cache";
-import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { COMMUNITY_PROFILES_CACHE_TAG } from "@/lib/communityCache";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_GAMES_LIST_TAG, PUBLIC_REVIEWS_TAG } from "@/lib/publicGameCache";
@@ -32,7 +32,7 @@ const getCachedPublicSiteStats = unstable_cache(
   ["public-site-stats-v3"],
   {
     revalidate: PUBLIC_SITE_STATS_REVALIDATE_SECONDS,
-    tags: [PUBLIC_GAMES_LIST_TAG, PUBLIC_REVIEWS_TAG, TAVERN_ACTIVITY_CACHE_TAG]
+    tags: [PUBLIC_GAMES_LIST_TAG, PUBLIC_REVIEWS_TAG, COMMUNITY_PROFILES_CACHE_TAG]
   }
 );
 

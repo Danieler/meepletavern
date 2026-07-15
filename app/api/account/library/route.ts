@@ -1,13 +1,13 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { ActivityEventType } from "@prisma/client";
 import { accountApiErrorResponse, accountApiJson } from "@/lib/accountErrors";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import {
-  TAVERN_ACTIVITY_CACHE_TAG,
   tryRecordPublicActivityEvent,
   tryRemoveActivityEvent
 } from "@/lib/activity/events";
+import { revalidateCommunityActivityCaches } from "@/lib/communityCache";
 
 export async function GET(request: Request) {
   try {
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
         current,
         next: { owned, wantToPlay, played }
       });
-      if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+      if (activityChanged) revalidateCommunityActivityCaches();
       revalidatePath(`/juegos/${game.slug}`);
       return accountApiJson({ ok: true, entry: null });
     }
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
       current,
       next: { owned, wantToPlay, played }
     });
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityActivityCaches();
     revalidatePath(`/juegos/${game.slug}`);
     return accountApiJson({ ok: true, entry });
   } catch (error) {
@@ -221,7 +221,7 @@ export async function DELETE(request: Request) {
       current,
       next: { owned: false, wantToPlay: false, played: false }
     });
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityActivityCaches();
     revalidatePath(`/juegos/${game.slug}`);
     return accountApiJson({ ok: true });
   } catch (error) {

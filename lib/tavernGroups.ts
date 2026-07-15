@@ -14,8 +14,9 @@ export const MAX_TAVERNS_PER_USER = 10;
 export const MAX_TAVERN_MEMBERS = 50;
 export const MAX_PENDING_TAVERN_INVITATIONS = 50;
 export const TAVERN_INVITATION_DAYS = 14;
-export const MAX_TAVERN_LIBRARY_ITEMS = 120;
-export const MAX_TAVERN_PLAYS = 100;
+export const MAX_TAVERN_LIBRARY_ITEMS = 48;
+export const MAX_TAVERN_PLAY_OPTIONS = 80;
+export const MAX_TAVERN_PLAYS = 25;
 
 export type TavernRole = "ADMIN" | "MEMBER";
 
@@ -246,6 +247,10 @@ type TavernLibrarySqlRow = {
 
 export async function getTavernGroupLibrary(userId: string, tavernId: string, searchValue?: string | null) {
   await requireTavernMembership(userId, tavernId);
+  return getTavernGroupLibraryPreviewForMember(tavernId, searchValue);
+}
+
+export async function getTavernGroupLibraryForMember(tavernId: string, searchValue?: string | null) {
   const search = typeof searchValue === "string" ? searchValue.trim().replace(/\s+/g, " ").slice(0, 80) : "";
   const pattern = `%${search}%`;
   const rows = await prisma.$queryRaw<TavernLibrarySqlRow[]>(Prisma.sql`
@@ -279,7 +284,21 @@ export async function getTavernGroupLibrary(userId: string, tavernId: string, se
     LIMIT ${MAX_TAVERN_LIBRARY_ITEMS}
   `);
 
-  const gameIds = rows.map((row) => row.gameId);
+  return rows.map((row) => ({
+    gameId: row.gameId,
+    title: row.title,
+    slug: row.slug,
+    coverImageUrl: row.coverImageUrl,
+    copyCount: row.copyCount,
+    playCount: row.playCount,
+    lastPlayedAt: row.lastPlayedAt?.toISOString().slice(0, 10) || null,
+    owners: []
+  }));
+}
+
+export async function getTavernGroupLibraryPreviewForMember(tavernId: string, searchValue?: string | null) {
+  const games = await getTavernGroupLibraryForMember(tavernId, searchValue);
+  const gameIds = games.map((game) => game.gameId);
   const ownerships = gameIds.length
     ? await prisma.userLibraryGame.findMany({
         where: {
@@ -287,6 +306,7 @@ export async function getTavernGroupLibrary(userId: string, tavernId: string, se
           owned: true,
           user: { tavernGroupMemberships: { some: { tavernId } } }
         },
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
         select: {
           gameId: true,
           user: {
@@ -299,26 +319,55 @@ export async function getTavernGroupLibrary(userId: string, tavernId: string, se
       })
     : [];
   const ownersByGame = new Map<string, Array<{ displayName: string }>>();
+
   for (const ownership of ownerships) {
     const owners = ownersByGame.get(ownership.gameId) || [];
-    owners.push({ displayName: tavernDisplayName(ownership.user) });
+    if (owners.length < 2) owners.push({ displayName: tavernDisplayName(ownership.user) });
     ownersByGame.set(ownership.gameId, owners);
   }
 
-  return rows.map((row) => ({
-    gameId: row.gameId,
-    title: row.title,
-    slug: row.slug,
-    coverImageUrl: row.coverImageUrl,
-    copyCount: row.copyCount,
-    playCount: row.playCount,
-    lastPlayedAt: row.lastPlayedAt?.toISOString().slice(0, 10) || null,
-    owners: ownersByGame.get(row.gameId) || []
+  return games.map((game) => ({
+    ...game,
+    owners: ownersByGame.get(game.gameId) || []
   }));
+}
+
+type TavernGameOptionRow = {
+  gameId: string;
+  title: string;
+  slug: string;
+  copyCount: number;
+};
+
+export async function getTavernGroupGameOptionsForMember(tavernId: string) {
+  return prisma.$queryRaw<TavernGameOptionRow[]>(Prisma.sql`
+    SELECT
+      game.id AS "gameId",
+      COALESCE(NULLIF(game.title, ''), game.name) AS title,
+      game.slug,
+      COUNT(*)::int AS "copyCount"
+    FROM "TavernGroupMember" member
+    JOIN "UserLibraryGame" ulg
+      ON ulg."userId" = member."userId" AND ulg."owned" = true
+    JOIN "Game" game
+      ON game.id = ulg."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
+    WHERE member."tavernId" = ${tavernId}
+    GROUP BY game.id, game.title, game.name, game.slug
+    ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
+    LIMIT ${MAX_TAVERN_PLAY_OPTIONS}
+  `);
 }
 
 export async function getTavernGroupMembers(userId: string, tavernId: string) {
   const membership = await requireTavernMembership(userId, tavernId);
+  return getTavernGroupMembersForMember(tavernId, membership.role, { includeInvitations: true });
+}
+
+export async function getTavernGroupMembersForMember(
+  tavernId: string,
+  currentRole: TavernRole,
+  options: { includeInvitations?: boolean } = {}
+) {
   const [members, invitations] = await Promise.all([
     prisma.tavernGroupMember.findMany({
       where: { tavernId },
@@ -336,7 +385,7 @@ export async function getTavernGroupMembers(userId: string, tavernId: string) {
         }
       }
     }),
-    membership.role === TavernMemberRole.ADMIN
+    options.includeInvitations !== false && currentRole === TavernMemberRole.ADMIN
       ? prisma.tavernGroupInvitation.findMany({
           where: {
             tavernId,
@@ -360,7 +409,7 @@ export async function getTavernGroupMembers(userId: string, tavernId: string) {
   ]);
 
   return {
-    currentRole: membership.role,
+    currentRole,
     members: members.map((member) => ({
       id: member.id,
       role: member.role,
@@ -721,6 +770,15 @@ export async function createTavernGroupPlay(
 
 export async function getTavernGroupPlays(userId: string, tavernId: string, gameId?: string | null) {
   const membership = await requireTavernMembership(userId, tavernId);
+  return getTavernGroupPlaysForMember(userId, tavernId, membership.role, gameId);
+}
+
+export async function getTavernGroupPlaysForMember(
+  userId: string,
+  tavernId: string,
+  currentRole: TavernRole,
+  gameId?: string | null
+) {
   const plays = await prisma.tavernGroupPlay.findMany({
     where: { tavernId, ...(gameId ? { gameId } : {}) },
     orderBy: [{ playedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
@@ -758,7 +816,7 @@ export async function getTavernGroupPlays(userId: string, tavernId: string, game
   });
 
   return {
-    currentRole: membership.role,
+    currentRole,
     items: plays.map((play) => ({
       id: play.id,
       gameId: play.gameId,
@@ -770,7 +828,7 @@ export async function getTavernGroupPlays(userId: string, tavernId: string, game
       recordedBy: play.recordedByUser ? publicUser(play.recordedByUser) : null,
       canDelete: canEditTavernPlay({
         actorUserId: userId,
-        actorRole: membership.role,
+        actorRole: currentRole,
         recordedByUserId: play.recordedByUserId
       }),
       participants: play.participants.map((participant) =>

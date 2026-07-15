@@ -7,7 +7,7 @@ import {
   normalizeTavernMemberSearch
 } from "@/lib/tavernMemberSearchQuery";
 
-const SEARCH_DELAY_MS = 250;
+const SEARCH_DELAY_MS = 375;
 const MAX_CACHED_QUERIES = 20;
 
 export type TavernMemberSuggestion = {

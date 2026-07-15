@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Dices, LibraryBig, Search, UsersRound } from "lucide-react";
-import { requireCurrentAppUser } from "@/lib/accountLibrary";
-import { getTavernGroupLibrary } from "@/lib/tavernGroups";
+import { getTavernGroupLibraryPreviewForMember } from "@/lib/tavernGroups";
+import { getTavernGroupSummaryForRsc, requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
 
 type Props = {
   params: Promise<{ tavernId: string }>;
@@ -10,15 +10,16 @@ type Props = {
 };
 
 export default async function TavernLibraryPage({ params, searchParams }: Props) {
-  let user: Awaited<ReturnType<typeof requireCurrentAppUser>>;
+  let user: Awaited<ReturnType<typeof requireCurrentAppUserForRsc>>;
   const { tavernId } = await params;
   try {
-    user = await requireCurrentAppUser();
+    user = await requireCurrentAppUserForRsc();
   } catch {
     redirect(`/auth?mode=login&next=${encodeURIComponent(`/comunidad/tabernas/${tavernId}`)}`);
   }
   const q = (await searchParams)?.q || "";
-  const games = await getTavernGroupLibrary(user.id, tavernId, q);
+  await getTavernGroupSummaryForRsc(user.id, tavernId);
+  const games = await getTavernGroupLibraryPreviewForMember(tavernId, q);
 
   return (
     <section className="space-y-6">
@@ -48,7 +49,7 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
                 <div className="aspect-[4/3] overflow-hidden bg-walnut/8">
                   {game.coverImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={game.coverImageUrl} alt="" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
+                    <img src={game.coverImageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-walnut/20"><LibraryBig size={44} /></div>
                   )}
@@ -66,7 +67,7 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
                   <UsersRound size={15} className="mt-0.5 shrink-0" />
                   <span>{formatOwners(game.owners.map((owner) => owner.displayName))}</span>
                 </div>
-                <Link className="button-primary mt-4 w-full" href={`/comunidad/tabernas/${tavernId}/partidas?gameId=${encodeURIComponent(game.gameId)}`}>
+                <Link className="button-primary mt-4 w-full" prefetch={false} href={`/comunidad/tabernas/${tavernId}/partidas?gameId=${encodeURIComponent(game.gameId)}`}>
                   <Dices size={17} /> Registrar partida
                 </Link>
               </div>

@@ -1,8 +1,8 @@
 import "server-only";
 
-import { revalidateTag } from "next/cache";
 import { ActivityEventType } from "@prisma/client";
-import { tryRecordPublicActivityEvent, TAVERN_ACTIVITY_CACHE_TAG, type RecordActivityEventInput } from "@/lib/activity/events";
+import { tryRecordPublicActivityEvent, type RecordActivityEventInput } from "@/lib/activity/events";
+import { revalidateCommunityActivityCaches } from "@/lib/communityCache";
 import { compatibilityCache } from "@/lib/compatibility";
 import { prisma } from "@/lib/prisma";
 
@@ -111,7 +111,7 @@ export async function syncOnboardingGamesForUser(input: {
   compatibilityCache.delete(input.appUser.id);
 
   if (activityRecorded) {
-    revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    revalidateCommunityActivityCaches();
   }
 
   return { ok: games.length > 0, gamesCount: games.length, activityRecorded };

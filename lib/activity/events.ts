@@ -7,7 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export const TAVERN_ACTIVITY_CACHE_TAG = "tavern-activity";
+export { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/communityCache";
 export const ACTIVITY_COMMENT_SNIPPET_LENGTH = 140;
 
 type ActivityActor = {

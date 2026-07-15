@@ -43,7 +43,6 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
       const payload = (await response.json().catch(() => null)) as { tavern?: { id: string }; error?: string } | null;
       if (!response.ok || !payload?.tavern) throw new Error(payload?.error || "No se pudo crear la taberna.");
       router.push(`/comunidad/tabernas/${payload.tavern.id}/miembros`);
-      router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "No se pudo crear la taberna.");
       setPending(false);
@@ -63,8 +62,9 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
       if (!response.ok) throw new Error(payload?.error || "No se pudo responder.");
       if (action === "accept" && payload?.tavernId) {
         router.push(`/comunidad/tabernas/${payload.tavernId}`);
+      } else {
+        router.refresh();
       }
-      router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "No se pudo responder.");
     } finally {
@@ -126,7 +126,7 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
           </div>
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {initialDashboard.taverns.map((tavern) => (
-              <Link key={tavern.id} href={`/comunidad/tabernas/${tavern.id}`} className="tavern-card group p-5 transition hover:-translate-y-0.5 hover:border-ember/45">
+              <Link key={tavern.id} href={`/comunidad/tabernas/${tavern.id}`} prefetch={false} className="tavern-card group p-5 transition hover:-translate-y-0.5 hover:border-ember/45">
                 <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-ember">
                   {tavern.role === "ADMIN" ? <Crown size={15} /> : <UsersRound size={15} />}
                   {tavern.role === "ADMIN" ? "Administrador" : "Miembro"}

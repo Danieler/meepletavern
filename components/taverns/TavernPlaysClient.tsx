@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 import { CalendarDays, Dices, Loader2, Trash2, UserRound, UsersRound } from "lucide-react";
 
 type Person = { id: string; username: string; displayName: string };
-type LibraryGame = { gameId: string; title: string; copyCount: number };
+type LibraryGame = { gameId: string; title: string; slug: string; copyCount: number };
 type Member = { user: Person };
 type Play = {
   id: string;
@@ -33,7 +32,6 @@ export function TavernPlaysClient({
   initialPlays: Play[];
   initialGameId?: string;
 }) {
-  const router = useRouter();
   const validInitialGame = games.some((game) => game.gameId === initialGameId) ? initialGameId || "" : games[0]?.gameId || "";
   const [gameId, setGameId] = useState(validInitialGame);
   const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10));
@@ -41,7 +39,9 @@ export function TavernPlaysClient({
   const [pending, setPending] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [plays, setPlays] = useState(initialPlays);
   const sortedMembers = useMemo(() => [...members].sort((a, b) => a.user.displayName.localeCompare(b.user.displayName, "es")), [members]);
+  const currentUser = useMemo(() => members.find((member) => member.user.id === currentUserId)?.user || null, [currentUserId, members]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,10 +54,28 @@ export function TavernPlaysClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gameId, playedAt, participantUserIds: participants })
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as { play?: { id: string; playedAt: string }; error?: string } | null;
       if (!response.ok) throw new Error(payload?.error || "No se pudo registrar la partida.");
+      const createdPlay = payload?.play;
+      const selectedGame = games.find((game) => game.gameId === gameId);
+      const selectedParticipants = sortedMembers
+        .filter((member) => participants.includes(member.user.id))
+        .map((member) => member.user);
+      if (createdPlay && selectedGame) {
+        setPlays((current) => [
+          {
+            id: createdPlay.id,
+            title: selectedGame.title,
+            slug: selectedGame.slug,
+            playedAt: createdPlay.playedAt,
+            recordedBy: currentUser,
+            canDelete: true,
+            participants: selectedParticipants
+          },
+          ...current
+        ]);
+      }
       setFeedback({ tone: "success", text: "Partida registrada solo para esta taberna." });
-      router.refresh();
     } catch (caught) {
       setFeedback({ tone: "error", text: caught instanceof Error ? caught.message : "No se pudo registrar la partida." });
     } finally {
@@ -77,7 +95,7 @@ export function TavernPlaysClient({
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(payload?.error || "No se pudo eliminar la partida.");
-      router.refresh();
+      setPlays((current) => current.filter((play) => play.id !== playId));
     } catch (caught) {
       setFeedback({ tone: "error", text: caught instanceof Error ? caught.message : "No se pudo eliminar la partida." });
     } finally {
@@ -137,9 +155,9 @@ export function TavernPlaysClient({
       <section>
         <p className="tavern-eyebrow">Historial del grupo</p>
         <h2 className="font-display mt-2 text-3xl font-bold text-wood">Partidas de la taberna</h2>
-        {initialPlays.length ? (
+        {plays.length ? (
           <div className="mt-5 grid gap-4">
-            {initialPlays.map((play) => (
+            {plays.map((play) => (
               <article key={play.id} className="tavern-card p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">

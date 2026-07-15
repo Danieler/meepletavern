@@ -1,6 +1,6 @@
 import { GameListVisibility, GameStatus, ProfileVisibility } from "@prisma/client";
 import { unstable_cache } from "next/cache";
-import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { COMMUNITY_NOW_CACHE_TAG } from "@/lib/communityCache";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 import type { TavernOverview, TavernRankedGame } from "@/lib/tavernOverview";
@@ -108,7 +108,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
 const getCachedLatestTavernNowSignals = unstable_cache(
   () => queryLatestTavernNowSignals(),
   ["tavern-now-latest-signals-v4"],
-  { revalidate: TAVERN_NOW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
+  { revalidate: TAVERN_NOW_REVALIDATE_SECONDS, tags: [COMMUNITY_NOW_CACHE_TAG, "public-games"] }
 );
 
 export async function getTavernNowSummary(overviewPromise: Promise<TavernOverview>): Promise<TavernNowSummary> {

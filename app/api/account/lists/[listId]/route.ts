@@ -1,13 +1,13 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { ActivityEventType, GameListVisibility } from "@prisma/client";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import {
-  TAVERN_ACTIVITY_CACHE_TAG,
   tryRecordPublicListActivityEvent,
   tryRemoveListActivityEvents,
   trySyncListActivityVisibility
 } from "@/lib/activity/events";
+import { revalidateCommunityActivityCaches } from "@/lib/communityCache";
 import { deleteGameList, GameListError, updateGameList } from "@/lib/gameLists";
 
 type RouteContext = { params: Promise<{ listId: string }> };
@@ -30,7 +30,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const activityChanged = becamePublic
       ? await tryRecordPublicListActivityEvent({ type: ActivityEventType.LIST_CREATED, actor: appUser, list })
       : await trySyncListActivityVisibility(appUser.id, list);
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityActivityCaches();
     revalidateListPaths(appUser.profile?.username, list.slug);
 
     return NextResponse.json({ list }, { headers: { "Cache-Control": "no-store" } });
@@ -45,7 +45,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     const { listId } = await params;
     const list = await deleteGameList(appUser.id, listId);
     const activityChanged = await tryRemoveListActivityEvents(appUser.id, list.id);
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityActivityCaches();
     revalidateListPaths(appUser.profile?.username, list.slug);
 
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });

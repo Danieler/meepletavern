@@ -4,8 +4,8 @@ import { ProfileVisibility } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
-import { revalidateTag } from "next/cache";
-import { TAVERN_ACTIVITY_CACHE_TAG, trySyncActivityActorProfile } from "@/lib/activity/events";
+import { trySyncActivityActorProfile } from "@/lib/activity/events";
+import { revalidateCommunityProfileCaches } from "@/lib/communityCache";
 import { getUsernameValidationError, normalizeUsername } from "@/lib/usernames";
 
 function parseProfileVisibility(value: unknown) {
@@ -118,7 +118,7 @@ export async function PATCH(request: Request) {
     profileVisibility,
     collectionVisibility
   ].some((value) => value !== undefined);
-  if (activityChanged || publicProfileChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+  if (activityChanged || publicProfileChanged) revalidateCommunityProfileCaches();
 
   return NextResponse.json({ account: updatedAccount });
 }

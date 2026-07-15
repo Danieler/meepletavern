@@ -1,12 +1,12 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { ActivityEventType } from "@prisma/client";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import {
-  TAVERN_ACTIVITY_CACHE_TAG,
   tryRecordPublicListActivityEvent,
   tryRemoveListActivityEvents
 } from "@/lib/activity/events";
+import { revalidateCommunityActivityCaches } from "@/lib/communityCache";
 import {
   addGameToList,
   GAME_LIST_ITEM_PAGE_SIZE,
@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       list: result.list,
       game: result.game
     });
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityActivityCaches();
     revalidateListPaths(appUser.profile?.username, result.list.slug);
 
     return NextResponse.json({ ok: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
@@ -73,7 +73,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
 
     const list = await removeGameFromList(appUser.id, listId, gameId);
     const activityChanged = await tryRemoveListActivityEvents(appUser.id, list.id, gameId);
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityActivityCaches();
     revalidateListPaths(appUser.profile?.username, list.slug);
 
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });

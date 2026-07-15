@@ -1,6 +1,6 @@
 import { Prisma, ProfileVisibility } from "@prisma/client";
 import { unstable_cache } from "next/cache";
-import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { COMMUNITY_GAME_SUMMARY_CACHE_TAG } from "@/lib/communityCache";
 import { prisma } from "@/lib/prisma";
 
 export const GAME_TAVERN_SAMPLE_LIMIT = 3;
@@ -264,7 +264,7 @@ function numberOrNull(value: number | string | null | undefined) {
 const getCachedGameTavernSummary = (gameId: string) => unstable_cache(
   () => queryGameTavernSummary(gameId),
   ["game-tavern-summary-v3", gameId],
-  { revalidate: 180, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
+  { revalidate: 180, tags: [COMMUNITY_GAME_SUMMARY_CACHE_TAG] }
 )();
 
 export function getGameTavernSummary(gameId: string) {

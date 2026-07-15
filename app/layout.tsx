@@ -3,6 +3,8 @@ import { Lora, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/lib/site";
 
+export const preferredRegion = "fra1";
+
 const bodyFont = Source_Sans_3({
   subsets: ["latin"],
   display: "swap",

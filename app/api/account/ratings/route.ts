@@ -1,12 +1,11 @@
-import { revalidateTag } from "next/cache";
 import { ActivityEventType } from "@prisma/client";
 import { accountApiErrorResponse, accountApiJson } from "@/lib/accountErrors";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import {
-  TAVERN_ACTIVITY_CACHE_TAG,
   tryRecordPublicActivityEvent,
   tryRemoveActivityEvent
 } from "@/lib/activity/events";
+import { revalidateCommunityRatingCaches } from "@/lib/communityCache";
 import { prisma } from "@/lib/prisma";
 import { revalidatePublishedGame } from "@/lib/publicGameCache";
 import {
@@ -65,7 +64,7 @@ export async function DELETE(request: Request) {
     const activityChanged = await tryRemoveActivityEvent(ActivityEventType.RATED, appUser.id, game.id);
 
     revalidatePublishedGame(game.slug);
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityRatingCaches();
 
     return accountApiJson({
       ok: true,
@@ -105,7 +104,7 @@ async function saveRating(request: Request) {
     });
 
     revalidatePublishedGame(game.slug);
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+    if (activityChanged) revalidateCommunityRatingCaches();
 
     return accountApiJson({
       ok: true,

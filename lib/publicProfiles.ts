@@ -1,6 +1,6 @@
 import { ActivityEventVisibility, GameListVisibility, Prisma, ProfileVisibility, type UserProfile } from "@prisma/client";
 import { unstable_cache } from "next/cache";
-import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { COMMUNITY_PROFILES_CACHE_TAG } from "@/lib/communityCache";
 import { getCatalogGamesByIds, type CatalogGame } from "@/lib/catalog";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
@@ -235,7 +235,7 @@ export function getPublicUsersPage(
 const getCachedPublicUsersFirstPage = unstable_cache(
   () => queryPublicUsersPage({ limit: PUBLIC_USER_PAGE_SIZE }),
   ["public-tavern-users-first-page-v3"],
-  { revalidate: PUBLIC_USERS_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
+  { revalidate: PUBLIC_USERS_REVALIDATE_SECONDS, tags: [COMMUNITY_PROFILES_CACHE_TAG] }
 );
 
 export function getPublicProfileName(profile: Pick<UserProfile, "displayName" | "username">) {

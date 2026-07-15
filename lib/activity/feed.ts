@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { ActivityEventType, ActivityEventVisibility } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { COMMUNITY_FEED_CACHE_TAG } from "@/lib/communityCache";
 import { auditDataSource } from "@/lib/egressAudit";
 import { normalizeTavernSearch } from "@/lib/tavernSearch";
 
@@ -106,7 +106,7 @@ export async function queryTavernActivityFeed(
 const getCachedTavernActivityFeed = (limit: number, cursor: string | null) => unstable_cache(
   () => queryTavernActivityFeed({ limit, cursor }),
   ["tavern-activity-feed-v4", String(limit), cursor || ""],
-  { revalidate: TAVERN_ACTIVITY_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG] }
+  { revalidate: TAVERN_ACTIVITY_REVALIDATE_SECONDS, tags: [COMMUNITY_FEED_CACHE_TAG] }
 )();
 
 export function getTavernActivityFeed(

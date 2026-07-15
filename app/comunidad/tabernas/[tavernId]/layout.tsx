@@ -1,15 +1,15 @@
 import { notFound, redirect } from "next/navigation";
 import { TavernGroupHeader } from "@/components/taverns/TavernGroupHeader";
-import { requireCurrentAppUser } from "@/lib/accountLibrary";
-import { getTavernGroupSummary, TavernGroupError } from "@/lib/tavernGroups";
+import { TavernGroupError } from "@/lib/tavernGroups";
+import { getTavernGroupSummaryForRsc, requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
 import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 export const dynamic = "force-dynamic";
 
 export default async function TavernLayout({ children, params }: { children: React.ReactNode; params: Promise<{ tavernId: string }> }) {
-  let user: Awaited<ReturnType<typeof requireCurrentAppUser>>;
+  let user: Awaited<ReturnType<typeof requireCurrentAppUserForRsc>>;
   try {
-    user = await requireCurrentAppUser();
+    user = await requireCurrentAppUserForRsc();
   } catch {
     const { tavernId } = await params;
     redirect(`/auth?mode=login&next=${encodeURIComponent(`/comunidad/tabernas/${tavernId}`)}`);
@@ -19,7 +19,7 @@ export default async function TavernLayout({ children, params }: { children: Rea
     redirect(buildUsernameOnboardingPath(`/comunidad/tabernas/${tavernId}`));
   }
   try {
-    const tavern = await getTavernGroupSummary(user.id, tavernId);
+    const tavern = await getTavernGroupSummaryForRsc(user.id, tavernId);
     return (
       <div className="space-y-7">
         <TavernGroupHeader tavern={tavern} />

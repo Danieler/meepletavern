@@ -7,7 +7,7 @@ import {
   Prisma,
   type GameImageStatus
 } from "@prisma/client";
-import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
+import { COMMUNITY_OVERVIEW_CACHE_TAG } from "@/lib/communityCache";
 import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 
@@ -171,7 +171,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
 const getCachedTavernOverview = unstable_cache(
   () => queryTavernOverview(),
   ["tavern-overview-v6"],
-  { revalidate: TAVERN_OVERVIEW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
+  { revalidate: TAVERN_OVERVIEW_REVALIDATE_SECONDS, tags: [COMMUNITY_OVERVIEW_CACHE_TAG, "public-games"] }
 );
 
 export function getTavernOverview() {
