@@ -183,16 +183,23 @@ export async function getMyTavernDashboard(userId: string) {
       LEFT JOIN member_counts mc ON mc."tavernId" = tavern.id
       LEFT JOIN play_counts pc ON pc."tavernId" = tavern.id
       LEFT JOIN unique_game_counts ugc ON ugc."tavernId" = tavern.id
-    ), invitation_tavern_ids AS (
-      SELECT DISTINCT invitation."tavernId"
+    ), pending_invitation_base AS (
+      SELECT
+        invitation.id,
+        invitation."tavernId",
+        invitation."expiresAt",
+        invitation."createdAt",
+        invitation."invitedByUserId"
       FROM "TavernGroupInvitation" invitation
       WHERE invitation."targetUserId" = ${userId}
         AND invitation.status = ${TavernInvitationStatus.PENDING}::"TavernInvitationStatus"
         AND invitation."expiresAt" > ${now}
+      ORDER BY invitation."createdAt" DESC, invitation.id DESC
+      LIMIT 30
     ), invitation_member_counts AS (
       SELECT "tavernId", COUNT(*)::int AS cnt
       FROM "TavernGroupMember"
-      WHERE "tavernId" IN (SELECT "tavernId" FROM invitation_tavern_ids)
+      WHERE "tavernId" IN (SELECT "tavernId" FROM pending_invitation_base)
       GROUP BY "tavernId"
     ), pending_invitations AS (
       SELECT
@@ -206,16 +213,11 @@ export async function getMyTavernDashboard(userId: string) {
         invited_profile.username AS "invitedByUsername",
         invited_profile."displayName" AS "invitedByProfileDisplayName",
         invited_by."displayName" AS "invitedByDisplayName"
-      FROM "TavernGroupInvitation" invitation
+      FROM pending_invitation_base invitation
       JOIN "TavernGroup" tavern ON tavern.id = invitation."tavernId"
       LEFT JOIN "User" invited_by ON invited_by.id = invitation."invitedByUserId"
       LEFT JOIN "UserProfile" invited_profile ON invited_profile."userId" = invited_by.id
       LEFT JOIN invitation_member_counts imc ON imc."tavernId" = tavern.id
-      WHERE invitation."targetUserId" = ${userId}
-        AND invitation.status = ${TavernInvitationStatus.PENDING}::"TavernInvitationStatus"
-        AND invitation."expiresAt" > ${now}
-      ORDER BY invitation."createdAt" DESC, invitation.id DESC
-      LIMIT 30
     )
     SELECT
       0::int AS "sortGroup",
@@ -427,55 +429,63 @@ async function queryTavernGroupLibraryRows(
         ON ulg."userId" = member."userId" AND ulg."owned" = true
       WHERE member."tavernId" = ${tavernId}
       GROUP BY ulg."gameId"
-    ), plays AS (
-      SELECT "gameId", COUNT(*)::int AS "playCount", MAX("playedAt") AS "lastPlayedAt"
-      FROM "TavernGroupPlay"
-      WHERE "tavernId" = ${tavernId} AND "gameId" IS NOT NULL
-      GROUP BY "gameId"
-    ), owner_ranked AS (
+    ), page_games AS (
       SELECT
-        owner_library."gameId",
-        COALESCE(
-          NULLIF(profile."displayName", ''),
-          NULLIF(owner_user."displayName", ''),
-          profile.username,
-          'Usuario'
-        ) AS "ownerName",
-        ROW_NUMBER() OVER (
-          PARTITION BY owner_library."gameId"
-          ORDER BY owner_library."updatedAt" DESC, owner_library.id DESC
-        ) AS rn
-      FROM "TavernGroupMember" owner_member
-      JOIN "UserLibraryGame" owner_library
-        ON owner_library."userId" = owner_member."userId"
-        AND owner_library."owned" = true
-      JOIN "User" owner_user ON owner_user.id = owner_member."userId"
-      LEFT JOIN "UserProfile" profile ON profile."userId" = owner_user.id
-      WHERE owner_member."tavernId" = ${tavernId}
-    ), owner_names AS (
-      SELECT "gameId", ARRAY_AGG("ownerName" ORDER BY rn) AS "ownerNames"
-      FROM owner_ranked
-      WHERE rn <= 2
-      GROUP BY "gameId"
+        game.id AS "gameId",
+        COALESCE(NULLIF(game.title, ''), game.name) AS title,
+        game.slug,
+        game."coverImageUrl",
+        copies."copyCount",
+        lower(COALESCE(NULLIF(game.title, ''), game.name)) AS "sortTitle"
+      FROM copies
+      JOIN "Game" game ON game.id = copies."gameId"
+      WHERE game.status = ${GameStatus.published}::"GameStatus"
+        AND (${search} = '' OR game.title ILIKE ${pattern} OR game.name ILIKE ${pattern})
+      ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
+      LIMIT ${pagination.take}
+      OFFSET ${pagination.skip}
     )
     SELECT
-      game.id AS "gameId",
-      COALESCE(NULLIF(game.title, ''), game.name) AS title,
-      game.slug,
-      game."coverImageUrl",
-      copies."copyCount",
-      COALESCE(plays."playCount", 0)::int AS "playCount",
-      plays."lastPlayedAt",
-      COALESCE(on2."ownerNames", ARRAY[]::text[]) AS "ownerNames"
-    FROM copies
-    JOIN "Game" game ON game.id = copies."gameId"
-    LEFT JOIN plays ON plays."gameId" = copies."gameId"
-    LEFT JOIN owner_names on2 ON on2."gameId" = copies."gameId"
-    WHERE game.status = ${GameStatus.published}::"GameStatus"
-      AND (${search} = '' OR game.title ILIKE ${pattern} OR game.name ILIKE ${pattern})
-    ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
-    LIMIT ${pagination.take}
-    OFFSET ${pagination.skip}
+      page_games."gameId",
+      page_games.title,
+      page_games.slug,
+      page_games."coverImageUrl",
+      page_games."copyCount",
+      COALESCE(play_stats."playCount", 0)::int AS "playCount",
+      play_stats."lastPlayedAt",
+      COALESCE(owner_names."ownerNames", ARRAY[]::text[]) AS "ownerNames"
+    FROM page_games
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS "playCount", MAX(play."playedAt") AS "lastPlayedAt"
+      FROM "TavernGroupPlay" play
+      WHERE play."tavernId" = ${tavernId}
+        AND play."gameId" = page_games."gameId"
+    ) play_stats ON true
+    LEFT JOIN LATERAL (
+      SELECT ARRAY_AGG(owner_rows."ownerName" ORDER BY owner_rows."updatedAt" DESC, owner_rows.id DESC) AS "ownerNames"
+      FROM (
+        SELECT
+          COALESCE(
+            NULLIF(profile."displayName", ''),
+            NULLIF(owner_user."displayName", ''),
+            profile.username,
+            'Usuario'
+          ) AS "ownerName",
+          owner_library."updatedAt",
+          owner_library.id
+        FROM "TavernGroupMember" owner_member
+        JOIN "UserLibraryGame" owner_library
+          ON owner_library."userId" = owner_member."userId"
+          AND owner_library."owned" = true
+          AND owner_library."gameId" = page_games."gameId"
+        JOIN "User" owner_user ON owner_user.id = owner_member."userId"
+        LEFT JOIN "UserProfile" profile ON profile."userId" = owner_user.id
+        WHERE owner_member."tavernId" = ${tavernId}
+        ORDER BY owner_library."updatedAt" DESC, owner_library.id DESC
+        LIMIT 2
+      ) owner_rows
+    ) owner_names ON true
+    ORDER BY page_games."sortTitle" ASC, page_games."gameId" ASC
   `);
 }
 
@@ -581,6 +591,137 @@ export async function getTavernGroupPlayFormOptionsForMember(tavernId: string) {
       : []),
     members: rows.flatMap((row) => row.kind === "member" && row.userId && row.username && row.displayName
       ? [{ user: { id: row.userId, username: row.username, displayName: row.displayName } }]
+      : [])
+  };
+}
+
+type TavernMembersPageRow = {
+  kind: "member" | "invitation";
+  currentRole: TavernMemberRole;
+  memberId: string | null;
+  memberRole: TavernMemberRole | null;
+  joinedAt: Date | null;
+  invitationId: string | null;
+  expiresAt: Date | null;
+  userId: string;
+  username: string;
+  displayName: string;
+};
+
+/**
+ * Loads the members page in one authorized round trip. The actor CTE is the
+ * data boundary: non-members produce no rows, and invitations are read only
+ * when the database-confirmed role is ADMIN.
+ */
+export async function getTavernGroupMembersPageData(userId: string, tavernId: string) {
+  const now = new Date();
+  const rows = await prisma.$queryRaw<TavernMembersPageRow[]>(Prisma.sql`
+    WITH actor AS (
+      SELECT membership.role
+      FROM "TavernGroupMember" membership
+      WHERE membership."tavernId" = ${tavernId}
+        AND membership."userId" = ${userId}
+      LIMIT 1
+    ), member_rows AS (
+      SELECT
+        0::int AS "sortGroup",
+        CASE WHEN member.role = ${TavernMemberRole.ADMIN}::"TavernMemberRole" THEN 0 ELSE 1 END AS "sortRole",
+        member."joinedAt" AS "sortAt",
+        member.id AS "stableId",
+        'member'::text AS kind,
+        actor.role::text AS "currentRole",
+        member.id AS "memberId",
+        member.role::text AS "memberRole",
+        member."joinedAt",
+        NULL::text AS "invitationId",
+        NULL::timestamp AS "expiresAt",
+        app_user.id AS "userId",
+        COALESCE(profile.username, 'usuario') AS username,
+        COALESCE(
+          NULLIF(profile."displayName", ''),
+          NULLIF(app_user."displayName", ''),
+          profile.username,
+          'Usuario'
+        ) AS "displayName"
+      FROM actor
+      JOIN LATERAL (
+        SELECT selected_member.*
+        FROM "TavernGroupMember" selected_member
+        WHERE selected_member."tavernId" = ${tavernId}
+        ORDER BY selected_member.role ASC, selected_member."joinedAt" ASC, selected_member.id ASC
+        LIMIT ${MAX_TAVERN_MEMBERS}
+      ) member ON true
+      JOIN "User" app_user ON app_user.id = member."userId"
+      LEFT JOIN "UserProfile" profile ON profile."userId" = app_user.id
+    ), invitation_rows AS (
+      SELECT
+        1::int AS "sortGroup",
+        0::int AS "sortRole",
+        invitation."createdAt" AS "sortAt",
+        invitation.id AS "stableId",
+        'invitation'::text AS kind,
+        actor.role::text AS "currentRole",
+        NULL::text AS "memberId",
+        NULL::text AS "memberRole",
+        NULL::timestamp AS "joinedAt",
+        invitation.id AS "invitationId",
+        invitation."expiresAt",
+        target_user.id AS "userId",
+        COALESCE(target_profile.username, 'usuario') AS username,
+        COALESCE(
+          NULLIF(target_profile."displayName", ''),
+          NULLIF(target_user."displayName", ''),
+          target_profile.username,
+          'Usuario'
+        ) AS "displayName"
+      FROM actor
+      JOIN LATERAL (
+        SELECT pending.*
+        FROM "TavernGroupInvitation" pending
+        WHERE actor.role = ${TavernMemberRole.ADMIN}::"TavernMemberRole"
+          AND pending."tavernId" = ${tavernId}
+          AND pending.status = ${TavernInvitationStatus.PENDING}::"TavernInvitationStatus"
+          AND pending."expiresAt" > ${now}
+        ORDER BY pending."createdAt" DESC, pending.id DESC
+        LIMIT ${MAX_PENDING_TAVERN_INVITATIONS}
+      ) invitation ON true
+      JOIN "User" target_user ON target_user.id = invitation."targetUserId"
+      LEFT JOIN "UserProfile" target_profile ON target_profile."userId" = target_user.id
+    )
+    SELECT * FROM (
+      SELECT * FROM member_rows
+      UNION ALL
+      SELECT * FROM invitation_rows
+    ) combined_rows
+    ORDER BY
+      "sortGroup" ASC,
+      "sortRole" ASC,
+      CASE WHEN "sortGroup" = 0 THEN "sortAt" END ASC,
+      CASE WHEN "sortGroup" = 1 THEN "sortAt" END DESC,
+      "stableId" ASC
+  `);
+
+  const currentRole = rows[0]?.currentRole;
+  if (!currentRole) {
+    throw new TavernGroupError("La taberna no existe.", 404, "TAVERN_NOT_FOUND");
+  }
+
+  return {
+    currentRole,
+    members: rows.flatMap((row) => row.kind === "member" && row.memberId && row.memberRole && row.joinedAt
+      ? [{
+          id: row.memberId,
+          role: row.memberRole,
+          joinedAt: row.joinedAt.toISOString(),
+          user: { id: row.userId, username: row.username, displayName: row.displayName }
+        }]
+      : []),
+    invitations: rows.flatMap((row) => row.kind === "invitation" && row.invitationId && row.expiresAt
+      ? [{
+          id: row.invitationId,
+          expiresAt: row.expiresAt.toISOString(),
+          user: { id: row.userId, username: row.username, displayName: row.displayName }
+        }]
       : [])
   };
 }
@@ -1125,6 +1266,299 @@ export async function getTavernGroupPlayHistoryForMember(
     })),
     page,
     hasNext: plays.length > TAVERN_PLAYS_PAGE_SIZE
+  };
+}
+
+type TavernPlaysPageRow = {
+  kind: "game" | "member" | "play" | "participant";
+  currentRole: TavernMemberRole;
+  position: number;
+  parentPosition: number | null;
+  gameId: string | null;
+  title: string | null;
+  slug: string | null;
+  copyCount: number | null;
+  memberUserId: string | null;
+  memberUsername: string | null;
+  memberDisplayName: string | null;
+  playId: string | null;
+  playedAt: Date | null;
+  recordedByUserId: string | null;
+  recordedByUsername: string | null;
+  recordedByDisplayName: string | null;
+  canDelete: boolean | null;
+  participantId: string | null;
+  participantUserId: string | null;
+  participantUsername: string | null;
+  participantDisplayName: string | null;
+};
+
+/**
+ * Loads options and the bounded play history in one authorized round trip.
+ * Every branch starts from actor, so a guessed tavern id cannot read private
+ * members, games or plays before membership has been established.
+ */
+export async function getTavernGroupPlaysPageData(
+  userId: string,
+  tavernId: string,
+  pageValue?: unknown
+) {
+  const page = normalizeTavernPage(pageValue);
+  const rows = await prisma.$queryRaw<TavernPlaysPageRow[]>(Prisma.sql`
+    WITH actor AS (
+      SELECT membership.role
+      FROM "TavernGroupMember" membership
+      WHERE membership."tavernId" = ${tavernId}
+        AND membership."userId" = ${userId}
+      LIMIT 1
+    ), game_option_base AS (
+      SELECT
+        actor.role::text AS "currentRole",
+        game.id AS "gameId",
+        COALESCE(NULLIF(game.title, ''), game.name) AS title,
+        game.slug,
+        COUNT(*)::int AS "copyCount",
+        lower(COALESCE(NULLIF(game.title, ''), game.name)) AS "sortTitle"
+      FROM actor
+      JOIN "TavernGroupMember" member ON member."tavernId" = ${tavernId}
+      JOIN "UserLibraryGame" library
+        ON library."userId" = member."userId" AND library."owned" = true
+      JOIN "Game" game
+        ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
+      GROUP BY actor.role, game.id, game.title, game.name, game.slug
+      ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
+      LIMIT ${MAX_TAVERN_PLAY_OPTIONS}
+    ), game_options AS (
+      SELECT
+        game_option_base.*,
+        (ROW_NUMBER() OVER (ORDER BY "sortTitle" ASC, "gameId" ASC))::int AS position
+      FROM game_option_base
+    ), member_option_base AS (
+      SELECT
+        actor.role::text AS "currentRole",
+        app_user.id AS "memberUserId",
+        COALESCE(profile.username, 'usuario') AS "memberUsername",
+        COALESCE(
+          NULLIF(profile."displayName", ''),
+          NULLIF(app_user."displayName", ''),
+          profile.username,
+          'Usuario'
+        ) AS "memberDisplayName"
+      FROM actor
+      JOIN "TavernGroupMember" member ON member."tavernId" = ${tavernId}
+      JOIN "User" app_user ON app_user.id = member."userId"
+      LEFT JOIN "UserProfile" profile ON profile."userId" = app_user.id
+      ORDER BY lower(COALESCE(NULLIF(profile."displayName", ''), NULLIF(app_user."displayName", ''), profile.username, 'Usuario')) ASC,
+        app_user.id ASC
+      LIMIT ${MAX_TAVERN_MEMBERS}
+    ), member_options AS (
+      SELECT
+        member_option_base.*,
+        (ROW_NUMBER() OVER (ORDER BY lower("memberDisplayName") ASC, "memberUserId" ASC))::int AS position
+      FROM member_option_base
+    ), play_base AS (
+      SELECT
+        actor.role::text AS "currentRole",
+        play.id AS "playId",
+        COALESCE(NULLIF(game.title, ''), NULLIF(game.name, ''), play."gameTitleSnapshot") AS title,
+        COALESCE(game.slug, play."gameSlugSnapshot") AS slug,
+        play."playedAt",
+        play."createdAt" AS "sortCreatedAt",
+        play."recordedByUserId",
+        CASE WHEN recorded_by.id IS NULL THEN NULL ELSE COALESCE(recorded_profile.username, 'usuario') END AS "recordedByUsername",
+        CASE WHEN recorded_by.id IS NULL THEN NULL ELSE COALESCE(
+          NULLIF(recorded_profile."displayName", ''),
+          NULLIF(recorded_by."displayName", ''),
+          recorded_profile.username,
+          'Usuario'
+        ) END AS "recordedByDisplayName",
+        (actor.role = ${TavernMemberRole.ADMIN}::"TavernMemberRole" OR play."recordedByUserId" = ${userId}) AS "canDelete"
+      FROM actor
+      JOIN "TavernGroupPlay" play ON play."tavernId" = ${tavernId}
+      LEFT JOIN "Game" game ON game.id = play."gameId"
+      LEFT JOIN "User" recorded_by ON recorded_by.id = play."recordedByUserId"
+      LEFT JOIN "UserProfile" recorded_profile ON recorded_profile."userId" = recorded_by.id
+      ORDER BY play."playedAt" DESC, play."createdAt" DESC, play.id DESC
+      LIMIT ${TAVERN_PLAYS_PAGE_SIZE + 1}
+      OFFSET ${(page - 1) * TAVERN_PLAYS_PAGE_SIZE}
+    ), plays AS (
+      SELECT
+        play_base.*,
+        (ROW_NUMBER() OVER (ORDER BY "playedAt" DESC, "sortCreatedAt" DESC, "playId" DESC))::int AS position
+      FROM play_base
+    ), play_participants AS (
+      SELECT
+        plays."currentRole",
+        plays.position AS "parentPosition",
+        (ROW_NUMBER() OVER (
+          PARTITION BY participant."playId"
+          ORDER BY participant."createdAt" ASC, participant.id ASC
+        ))::int AS position,
+        plays."playId",
+        participant.id AS "participantId",
+        participant_user.id AS "participantUserId",
+        CASE WHEN participant_user.id IS NULL THEN NULL ELSE COALESCE(participant_profile.username, 'usuario') END AS "participantUsername",
+        CASE WHEN participant_user.id IS NULL THEN NULL ELSE COALESCE(
+          NULLIF(participant_profile."displayName", ''),
+          NULLIF(participant_user."displayName", ''),
+          participant_profile.username,
+          'Usuario'
+        ) END AS "participantDisplayName"
+      FROM plays
+      JOIN "TavernGroupPlayParticipant" participant ON participant."playId" = plays."playId"
+      LEFT JOIN "User" participant_user ON participant_user.id = participant."userId"
+      LEFT JOIN "UserProfile" participant_profile ON participant_profile."userId" = participant_user.id
+    )
+    SELECT
+      0::int AS "sortGroup",
+      game_options.position,
+      NULL::int AS "parentPosition",
+      'game'::text AS kind,
+      game_options."currentRole",
+      game_options."gameId",
+      game_options.title,
+      game_options.slug,
+      game_options."copyCount",
+      NULL::text AS "memberUserId",
+      NULL::text AS "memberUsername",
+      NULL::text AS "memberDisplayName",
+      NULL::text AS "playId",
+      NULL::date AS "playedAt",
+      NULL::text AS "recordedByUserId",
+      NULL::text AS "recordedByUsername",
+      NULL::text AS "recordedByDisplayName",
+      NULL::boolean AS "canDelete",
+      NULL::text AS "participantId",
+      NULL::text AS "participantUserId",
+      NULL::text AS "participantUsername",
+      NULL::text AS "participantDisplayName"
+    FROM game_options
+    UNION ALL
+    SELECT
+      1::int AS "sortGroup",
+      member_options.position,
+      NULL::int AS "parentPosition",
+      'member'::text AS kind,
+      member_options."currentRole",
+      NULL::text AS "gameId",
+      NULL::text AS title,
+      NULL::text AS slug,
+      NULL::int AS "copyCount",
+      member_options."memberUserId",
+      member_options."memberUsername",
+      member_options."memberDisplayName",
+      NULL::text AS "playId",
+      NULL::date AS "playedAt",
+      NULL::text AS "recordedByUserId",
+      NULL::text AS "recordedByUsername",
+      NULL::text AS "recordedByDisplayName",
+      NULL::boolean AS "canDelete",
+      NULL::text AS "participantId",
+      NULL::text AS "participantUserId",
+      NULL::text AS "participantUsername",
+      NULL::text AS "participantDisplayName"
+    FROM member_options
+    UNION ALL
+    SELECT
+      2::int AS "sortGroup",
+      plays.position,
+      NULL::int AS "parentPosition",
+      'play'::text AS kind,
+      plays."currentRole",
+      NULL::text AS "gameId",
+      plays.title,
+      plays.slug,
+      NULL::int AS "copyCount",
+      NULL::text AS "memberUserId",
+      NULL::text AS "memberUsername",
+      NULL::text AS "memberDisplayName",
+      plays."playId",
+      plays."playedAt",
+      plays."recordedByUserId",
+      plays."recordedByUsername",
+      plays."recordedByDisplayName",
+      plays."canDelete",
+      NULL::text AS "participantId",
+      NULL::text AS "participantUserId",
+      NULL::text AS "participantUsername",
+      NULL::text AS "participantDisplayName"
+    FROM plays
+    UNION ALL
+    SELECT
+      3::int AS "sortGroup",
+      play_participants.position,
+      play_participants."parentPosition",
+      'participant'::text AS kind,
+      play_participants."currentRole",
+      NULL::text AS "gameId",
+      NULL::text AS title,
+      NULL::text AS slug,
+      NULL::int AS "copyCount",
+      NULL::text AS "memberUserId",
+      NULL::text AS "memberUsername",
+      NULL::text AS "memberDisplayName",
+      play_participants."playId",
+      NULL::date AS "playedAt",
+      NULL::text AS "recordedByUserId",
+      NULL::text AS "recordedByUsername",
+      NULL::text AS "recordedByDisplayName",
+      NULL::boolean AS "canDelete",
+      play_participants."participantId",
+      play_participants."participantUserId",
+      play_participants."participantUsername",
+      play_participants."participantDisplayName"
+    FROM play_participants
+    ORDER BY "sortGroup" ASC, "parentPosition" ASC NULLS FIRST, position ASC
+  `);
+
+  const currentRole = rows[0]?.currentRole;
+  if (!currentRole) {
+    throw new TavernGroupError("La taberna no existe.", 404, "TAVERN_NOT_FOUND");
+  }
+
+  const playRows = rows.filter((row) => row.kind === "play" && row.playId && row.title && row.playedAt);
+  const visiblePlayRows = playRows.slice(0, TAVERN_PLAYS_PAGE_SIZE);
+  const visiblePlayIds = new Set(visiblePlayRows.map((row) => row.playId!));
+  const participantsByPlay = new Map<string, Array<{ id: string; username: string; displayName: string }>>();
+
+  for (const row of rows) {
+    if (row.kind !== "participant" || !row.playId || !row.participantId || !visiblePlayIds.has(row.playId)) continue;
+    const participants = participantsByPlay.get(row.playId) || [];
+    participants.push(row.participantUserId
+      ? {
+          id: row.participantUserId,
+          username: row.participantUsername || "usuario",
+          displayName: row.participantDisplayName || row.participantUsername || "Usuario"
+        }
+      : { id: row.participantId, username: "", displayName: "Usuario eliminado" });
+    participantsByPlay.set(row.playId, participants);
+  }
+
+  return {
+    currentRole,
+    games: rows.flatMap((row) => row.kind === "game" && row.gameId && row.title && row.slug
+      ? [{ gameId: row.gameId, title: row.title, slug: row.slug, copyCount: row.copyCount || 0 }]
+      : []),
+    members: rows.flatMap((row) => row.kind === "member" && row.memberUserId && row.memberUsername && row.memberDisplayName
+      ? [{ user: { id: row.memberUserId, username: row.memberUsername, displayName: row.memberDisplayName } }]
+      : []),
+    items: visiblePlayRows.map((row) => ({
+      id: row.playId!,
+      title: row.title!,
+      slug: row.slug,
+      playedAt: row.playedAt!.toISOString().slice(0, 10),
+      recordedBy: row.recordedByUserId
+        ? {
+            id: row.recordedByUserId,
+            username: row.recordedByUsername || "usuario",
+            displayName: row.recordedByDisplayName || row.recordedByUsername || "Usuario"
+          }
+        : null,
+      canDelete: row.canDelete === true,
+      participants: participantsByPlay.get(row.playId!) || []
+    })),
+    page,
+    hasNext: playRows.length > TAVERN_PLAYS_PAGE_SIZE
   };
 }
 

@@ -1,10 +1,7 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { TavernPlaysClient } from "@/components/taverns/TavernPlaysClient";
-import {
-  getTavernGroupPlayFormOptionsForMember,
-  getTavernGroupPlayHistoryForMember
-} from "@/lib/tavernGroups";
-import { getTavernGroupSummaryForRsc, requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
+import { getTavernGroupPlaysPageData, TavernGroupError } from "@/lib/tavernGroups";
+import { requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
 
 type Props = { params: Promise<{ tavernId: string }>; searchParams?: Promise<{ gameId?: string; page?: string }> };
 
@@ -18,12 +15,14 @@ export default async function TavernPlaysPage({ params, searchParams }: Props) {
   }
   const filters = await searchParams;
   const initialGameId = filters?.gameId;
-  const tavern = await getTavernGroupSummaryForRsc(user.id, tavernId);
-  const [options, plays] = await Promise.all([
-    getTavernGroupPlayFormOptionsForMember(tavernId),
-    getTavernGroupPlayHistoryForMember(user.id, tavernId, tavern.role, filters?.page)
-  ]);
-  if (!plays.items.length && plays.page > 1) {
+  let data: Awaited<ReturnType<typeof getTavernGroupPlaysPageData>>;
+  try {
+    data = await getTavernGroupPlaysPageData(user.id, tavernId, filters?.page);
+  } catch (error) {
+    if (error instanceof TavernGroupError && error.status === 404) notFound();
+    throw error;
+  }
+  if (!data.items.length && data.page > 1) {
     const params = new URLSearchParams();
     if (initialGameId) params.set("gameId", initialGameId);
     const suffix = params.toString();
@@ -34,12 +33,12 @@ export default async function TavernPlaysPage({ params, searchParams }: Props) {
     <TavernPlaysClient
       tavernId={tavernId}
       currentUserId={user.id}
-      games={options.games}
-      members={options.members}
-      initialPlays={plays.items}
+      games={data.games}
+      members={data.members}
+      initialPlays={data.items}
       initialGameId={initialGameId}
-      historyPage={plays.page}
-      hasNextHistory={plays.hasNext}
+      historyPage={data.page}
+      hasNextHistory={data.hasNext}
     />
   );
 }

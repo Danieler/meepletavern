@@ -9,8 +9,10 @@ import {
   getTavernGroupLibrary,
   getTavernGroupLibraryPageForMember,
   getTavernGroupMembers,
+  getTavernGroupMembersPageData,
   getTavernGroupPlayFormOptionsForMember,
   getTavernGroupPlayHistoryForMember,
+  getTavernGroupPlaysPageData,
   getTavernGroupPlays,
   getTavernGroupSummary,
   inviteTavernGroupMember,
@@ -89,6 +91,23 @@ test(
         () => searchTavernInviteCandidates(member.id, tavern.id, "cor"),
         (error: unknown) => error instanceof TavernGroupError && error.status === 403
       );
+      const outsiderInvitation = await inviteTavernGroupMember(admin.id, tavern.id, {
+        username: outsider.profile!.username
+      });
+      const [adminMembersPage, memberMembersPage] = await Promise.all([
+        getTavernGroupMembersPageData(admin.id, tavern.id),
+        getTavernGroupMembersPageData(member.id, tavern.id)
+      ]);
+      assert.equal(adminMembersPage.currentRole, TavernMemberRole.ADMIN);
+      assert.equal(adminMembersPage.members.length, 2);
+      assert.equal(adminMembersPage.invitations[0]?.id, outsiderInvitation.id);
+      assert.equal(memberMembersPage.currentRole, TavernMemberRole.MEMBER);
+      assert.equal(memberMembersPage.members.length, 2);
+      assert.equal(memberMembersPage.invitations.length, 0);
+      await assert.rejects(
+        () => getTavernGroupMembersPageData(outsider.id, tavern.id),
+        (error: unknown) => error instanceof TavernGroupError && error.status === 404
+      );
 
       const libraryBeforePlay = await getTavernGroupLibrary(admin.id, tavern.id);
       assert.equal(libraryBeforePlay.length, 1);
@@ -124,6 +143,30 @@ test(
       assert.equal(playOptions.members.length, 2);
       assert.equal(personalCount, null);
       assert.equal(personalLibrary?.played, false);
+
+      await createTavernGroupPlay(admin.id, tavern.id, {
+        gameId: game.id,
+        playedAt: new Date().toISOString().slice(0, 10),
+        participantUserIds: [admin.id, member.id]
+      });
+      const [adminPlaysPage, memberPlaysPage] = await Promise.all([
+        getTavernGroupPlaysPageData(admin.id, tavern.id),
+        getTavernGroupPlaysPageData(member.id, tavern.id)
+      ]);
+      assert.equal(adminPlaysPage.currentRole, TavernMemberRole.ADMIN);
+      assert.equal(adminPlaysPage.games[0]?.gameId, game.id);
+      assert.equal(adminPlaysPage.members.length, 2);
+      assert.equal(adminPlaysPage.items.length, 2);
+      assert.ok(adminPlaysPage.items.every((play) => play.canDelete));
+      const memberViewOfAdminPlay = memberPlaysPage.items.find((play) => play.recordedBy?.id === admin.id);
+      const memberViewOfOwnPlay = memberPlaysPage.items.find((play) => play.recordedBy?.id === member.id);
+      assert.equal(memberViewOfAdminPlay?.canDelete, false);
+      assert.equal(memberViewOfOwnPlay?.canDelete, true);
+      assert.equal(memberViewOfOwnPlay?.participants.length, 2);
+      await assert.rejects(
+        () => getTavernGroupPlaysPageData(outsider.id, tavern.id),
+        (error: unknown) => error instanceof TavernGroupError && error.status === 404
+      );
 
       await assert.rejects(
         () => getTavernGroupSummary(outsider.id, tavern.id),

@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { TavernMembersClient } from "@/components/taverns/TavernMembersClient";
-import { getTavernGroupMembersForMember } from "@/lib/tavernGroups";
-import { getTavernGroupSummaryForRsc, requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
+import { getTavernGroupMembersPageData, TavernGroupError } from "@/lib/tavernGroups";
+import { requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
 
 export default async function TavernMembersPage({ params }: { params: Promise<{ tavernId: string }> }) {
   const { tavernId } = await params;
@@ -11,8 +11,13 @@ export default async function TavernMembersPage({ params }: { params: Promise<{ 
   } catch {
     redirect(`/auth?mode=login&next=${encodeURIComponent(`/comunidad/tabernas/${tavernId}/miembros`)}`);
   }
-  const tavern = await getTavernGroupSummaryForRsc(user.id, tavernId);
-  const data = await getTavernGroupMembersForMember(tavernId, tavern.role, { includeInvitations: true });
+  let data: Awaited<ReturnType<typeof getTavernGroupMembersPageData>>;
+  try {
+    data = await getTavernGroupMembersPageData(user.id, tavernId);
+  } catch (error) {
+    if (error instanceof TavernGroupError && error.status === 404) notFound();
+    throw error;
+  }
   return (
     <TavernMembersClient
       tavernId={tavernId}
