@@ -27,7 +27,7 @@ test("every authentication flow passes through mandatory username onboarding", (
   assert.match(coordinator, /pathname === "\/auth"/);
   assert.match(coordinator, /pathname === "\/bienvenida\/usuario"/);
   assert.match(middleware, /await supabaseClient\.supabase\.auth\.getUser\(\)/);
-  assert.match(middleware, /"\/comunidad\/tabernas\/:path\*"/);
+  assert.doesNotMatch(middleware, /"\/comunidad\/tabernas\/:path\*"/);
 });
 
 test("the required username form sends no email or display name", () => {

@@ -4,10 +4,14 @@ import test from "node:test";
 
 test("private tavern renders reuse request-scoped account and summary work", () => {
   const accountCache = readFileSync("lib/accountRequestCache.ts", "utf8");
+  const accountLibrary = readFileSync("lib/accountLibrary.ts", "utf8");
   const tavernCache = readFileSync("lib/tavernRequestCache.ts", "utf8");
   const tavernGroups = readFileSync("lib/tavernGroups.ts", "utf8");
 
-  assert.match(accountCache, /requireCurrentAppUserForRsc\s*=\s*cache\(requireCurrentAppUser\)/);
+  assert.match(accountCache, /requireCurrentAppUserForRsc\s*=\s*cache\(requireCurrentAppUserForTavernRsc\)/);
+  assert.match(accountLibrary, /requireCurrentAppUserForTavernRsc/);
+  assert.match(accountLibrary, /supabase\.auth\.getClaims\(\)/);
+  assert.match(accountLibrary, /where: \{ authUserId \}/);
   assert.match(tavernCache, /getTavernGroupSummaryForRsc\s*=\s*cache\(getTavernGroupSummary\)/);
   assert.match(tavernGroups, /WHERE membership\."tavernId" = \$\{tavernId\}/);
   assert.match(tavernGroups, /AND membership\."userId" = \$\{userId\}/);
@@ -40,6 +44,7 @@ test("tavern plays page uses presentation-specific loaders", () => {
   assert.match(loader, /WITH actor AS/);
   assert.match(loader, /FROM actor\s+JOIN "TavernGroupPlay" play/);
   assert.match(loader, /actor\.role = \$\{TavernMemberRole\.ADMIN\}/);
+  assert.match(loader, /WHERE plays\.position <= \$\{TAVERN_PLAYS_PAGE_SIZE\}/);
   assert.equal((loader.match(/prisma\.\$queryRaw/g) || []).length, 1);
 });
 
@@ -83,13 +88,20 @@ test("tavern play history is bounded and paginated without a count query", () =>
 test("tavern library sends one small page without a count query", () => {
   const page = readFileSync("app/comunidad/tabernas/[tavernId]/page.tsx", "utf8");
   const groups = readFileSync("lib/tavernGroups.ts", "utf8");
+  const loader = groups.slice(
+    groups.indexOf("export async function getTavernGroupLibraryPageData"),
+    groups.indexOf("export async function getTavernGroupLibraryPreviewForMember")
+  );
 
-  assert.match(page, /getTavernGroupLibraryPageForMember/);
-  assert.match(page, /await getTavernGroupSummaryForRsc\(user\.id, tavernId\);\s+const library = await getTavernGroupLibraryPageForMember/);
+  assert.match(page, /getTavernGroupLibraryPageData\(user\.id, tavernId, q, filters\?\.page\)/);
+  assert.doesNotMatch(page, /getTavernGroupSummaryForRsc/);
   assert.match(groups, /TAVERN_LIBRARY_PAGE_SIZE = 24/);
   assert.match(groups, /take: TAVERN_LIBRARY_PAGE_SIZE \+ 1/);
-  assert.match(groups, /hasNext: rows\.length > TAVERN_LIBRARY_PAGE_SIZE/);
+  assert.match(loader, /WITH actor AS/);
+  assert.match(loader, /actor_membership\."userId" = \$\{pagination\.userId\}/);
+  assert.match(loader, /hasNext: games\.length > TAVERN_LIBRARY_PAGE_SIZE/);
+  assert.equal((loader.match(/prisma\.\$queryRaw/g) || []).length, 1);
   assert.match(groups, /page_games AS/);
-  assert.match(groups, /FROM page_games\s+LEFT JOIN LATERAL/);
+  assert.match(groups, /FROM actor\s+LEFT JOIN page_games ON true/);
   assert.doesNotMatch(page, /getTavernGroupLibraryPreviewForMember/);
 });

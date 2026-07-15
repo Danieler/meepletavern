@@ -7,6 +7,7 @@ import {
   createTavernGroupPlay,
   getMyTavernDashboard,
   getTavernGroupLibrary,
+  getTavernGroupLibraryPageData,
   getTavernGroupLibraryPageForMember,
   getTavernGroupMembers,
   getTavernGroupMembersPageData,
@@ -106,6 +107,11 @@ test(
       assert.equal(memberMembersPage.invitations.length, 0);
       await assert.rejects(
         () => getTavernGroupMembersPageData(outsider.id, tavern.id),
+        (error: unknown) => error instanceof TavernGroupError && error.status === 404
+      );
+      assert.equal((await getTavernGroupLibraryPageData(admin.id, tavern.id)).items.length, 1);
+      await assert.rejects(
+        () => getTavernGroupLibraryPageData(outsider.id, tavern.id),
         (error: unknown) => error instanceof TavernGroupError && error.status === 404
       );
 

@@ -1,4 +1,4 @@
 import { cache } from "react";
-import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import { requireCurrentAppUserForTavernRsc } from "@/lib/accountLibrary";
 
-export const requireCurrentAppUserForRsc = cache(requireCurrentAppUser);
+export const requireCurrentAppUserForRsc = cache(requireCurrentAppUserForTavernRsc);

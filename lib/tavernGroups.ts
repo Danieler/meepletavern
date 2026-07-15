@@ -368,11 +368,12 @@ export async function requireTavernMembership(
 }
 
 type TavernLibrarySqlRow = {
-  gameId: string;
-  title: string;
-  slug: string;
+  authorized: boolean;
+  gameId: string | null;
+  title: string | null;
+  slug: string | null;
   coverImageUrl: string | null;
-  copyCount: number;
+  copyCount: number | null;
   playCount: number;
   lastPlayedAt: Date | null;
   ownerNames: string[] | null;
@@ -408,26 +409,63 @@ export async function getTavernGroupLibraryPageForMember(
   });
 
   return {
-    items: mapTavernLibraryRows(rows.slice(0, TAVERN_LIBRARY_PAGE_SIZE)),
+    items: mapTavernLibraryRows(rows).slice(0, TAVERN_LIBRARY_PAGE_SIZE),
     page,
-    hasNext: rows.length > TAVERN_LIBRARY_PAGE_SIZE
+    hasNext: rows.filter((row) => row.gameId).length > TAVERN_LIBRARY_PAGE_SIZE
+  };
+}
+
+/** Loads one bounded library page and proves membership in the same query. */
+export async function getTavernGroupLibraryPageData(
+  userId: string,
+  tavernId: string,
+  searchValue?: string | null,
+  pageValue?: unknown
+) {
+  const page = normalizeTavernPage(pageValue);
+  const rows = await queryTavernGroupLibraryRows(tavernId, searchValue, {
+    take: TAVERN_LIBRARY_PAGE_SIZE + 1,
+    skip: (page - 1) * TAVERN_LIBRARY_PAGE_SIZE,
+    userId
+  });
+
+  if (!rows[0]?.authorized) {
+    throw new TavernGroupError("La taberna no existe.", 404, "TAVERN_NOT_FOUND");
+  }
+
+  const games = mapTavernLibraryRows(rows);
+  return {
+    items: games.slice(0, TAVERN_LIBRARY_PAGE_SIZE),
+    page,
+    hasNext: games.length > TAVERN_LIBRARY_PAGE_SIZE
   };
 }
 
 async function queryTavernGroupLibraryRows(
   tavernId: string,
   searchValue: string | null | undefined,
-  pagination: { take: number; skip: number }
+  pagination: { take: number; skip: number; userId?: string }
 ) {
   const search = typeof searchValue === "string" ? searchValue.trim().replace(/\s+/g, " ").slice(0, 80) : "";
   const pattern = `%${search}%`;
+  const actorPredicate = pagination.userId
+    ? Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "TavernGroupMember" actor_membership
+        WHERE actor_membership."tavernId" = ${tavernId}
+          AND actor_membership."userId" = ${pagination.userId}
+      )`
+    : Prisma.sql`true`;
   return prisma.$queryRaw<TavernLibrarySqlRow[]>(Prisma.sql`
-    WITH copies AS (
+    WITH actor AS (
+      SELECT true AS authorized
+      WHERE ${actorPredicate}
+    ), copies AS (
       SELECT ulg."gameId", COUNT(*)::int AS "copyCount"
-      FROM "TavernGroupMember" member
+      FROM actor
+      JOIN "TavernGroupMember" member ON member."tavernId" = ${tavernId}
       JOIN "UserLibraryGame" ulg
         ON ulg."userId" = member."userId" AND ulg."owned" = true
-      WHERE member."tavernId" = ${tavernId}
       GROUP BY ulg."gameId"
     ), page_games AS (
       SELECT
@@ -446,6 +484,7 @@ async function queryTavernGroupLibraryRows(
       OFFSET ${pagination.skip}
     )
     SELECT
+      actor.authorized,
       page_games."gameId",
       page_games.title,
       page_games.slug,
@@ -454,7 +493,8 @@ async function queryTavernGroupLibraryRows(
       COALESCE(play_stats."playCount", 0)::int AS "playCount",
       play_stats."lastPlayedAt",
       COALESCE(owner_names."ownerNames", ARRAY[]::text[]) AS "ownerNames"
-    FROM page_games
+    FROM actor
+    LEFT JOIN page_games ON true
     LEFT JOIN LATERAL (
       SELECT COUNT(*)::int AS "playCount", MAX(play."playedAt") AS "lastPlayedAt"
       FROM "TavernGroupPlay" play
@@ -485,12 +525,12 @@ async function queryTavernGroupLibraryRows(
         LIMIT 2
       ) owner_rows
     ) owner_names ON true
-    ORDER BY page_games."sortTitle" ASC, page_games."gameId" ASC
+    ORDER BY page_games."sortTitle" ASC NULLS LAST, page_games."gameId" ASC NULLS LAST
   `);
 }
 
 function mapTavernLibraryRows(rows: TavernLibrarySqlRow[]) {
-  return rows.map((row) => ({
+  return rows.flatMap((row) => row.gameId && row.title && row.slug && row.copyCount !== null ? [{
     gameId: row.gameId,
     title: row.title,
     slug: row.slug,
@@ -499,7 +539,7 @@ function mapTavernLibraryRows(rows: TavernLibrarySqlRow[]) {
     playCount: row.playCount,
     lastPlayedAt: row.lastPlayedAt?.toISOString().slice(0, 10) || null,
     owners: (row.ownerNames || []).map((displayName) => ({ displayName }))
-  }));
+  }] : []);
 }
 
 export async function getTavernGroupLibraryPreviewForMember(tavernId: string, searchValue?: string | null) {
@@ -1408,6 +1448,7 @@ export async function getTavernGroupPlaysPageData(
       JOIN "TavernGroupPlayParticipant" participant ON participant."playId" = plays."playId"
       LEFT JOIN "User" participant_user ON participant_user.id = participant."userId"
       LEFT JOIN "UserProfile" participant_profile ON participant_profile."userId" = participant_user.id
+      WHERE plays.position <= ${TAVERN_PLAYS_PAGE_SIZE}
     )
     SELECT
       0::int AS "sortGroup",

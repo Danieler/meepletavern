@@ -497,7 +497,6 @@ export const config = {
     "/api/admin/:path*",
     "/auth/:path*",
     "/bienvenida/usuario",
-    "/comunidad/tabernas/:path*",
     "/comunidad/invitaciones/:path*",
     "/mi-perfil/:path*",
     "/api/account/:path*"

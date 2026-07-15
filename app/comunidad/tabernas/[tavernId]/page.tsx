@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Dices, LibraryBig, Search, UsersRound } from "lucide-react";
-import { getTavernGroupLibraryPageForMember } from "@/lib/tavernGroups";
-import { getTavernGroupSummaryForRsc, requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
+import { getTavernGroupLibraryPageData, TavernGroupError } from "@/lib/tavernGroups";
+import { requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
 
 type Props = {
   params: Promise<{ tavernId: string }>;
@@ -19,8 +19,13 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
   }
   const filters = await searchParams;
   const q = filters?.q || "";
-  await getTavernGroupSummaryForRsc(user.id, tavernId);
-  const library = await getTavernGroupLibraryPageForMember(tavernId, q, filters?.page);
+  let library: Awaited<ReturnType<typeof getTavernGroupLibraryPageData>>;
+  try {
+    library = await getTavernGroupLibraryPageData(user.id, tavernId, q, filters?.page);
+  } catch (error) {
+    if (error instanceof TavernGroupError && error.status === 404) notFound();
+    throw error;
+  }
   if (!library.items.length && library.page > 1) {
     redirect(buildLibraryHref(tavernId, q, 1));
   }

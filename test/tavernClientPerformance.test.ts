@@ -10,6 +10,10 @@ test("private tavern links opt out of automatic route prefetching", () => {
 
   assert.match(communityNav, /prefetch=\{href === "\/comunidad\/tabernas" \? false : undefined\}/);
   assert.match(groupNav, /prefetch=\{false\}/);
+  assert.match(groupNav, /scroll=\{false\}/);
+  assert.match(groupNav, /router\.prefetch\(href\)/);
+  assert.match(groupNav, /const \[pendingHref, setPendingHref\]/);
+  assert.match(groupNav, /aria-busy=\{pending \|\| undefined\}/);
   assert.match(discovery, /href="\/comunidad\/tabernas" prefetch=\{false\}/);
   assert.ok((accountControls.match(/prefetch=\{false\}/g) ?? []).length >= 2);
 });

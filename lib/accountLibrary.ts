@@ -29,6 +29,43 @@ export async function requireCurrentAppUser() {
   return upsertAppUserFromAuthUser(user);
 }
 
+/**
+ * Tavern Server Components only need a verified auth subject to load the local
+ * app user. getClaims verifies asymmetric JWTs locally (with cached JWKS) and
+ * avoids an Auth network round trip for established users. The rare provisioning
+ * path still fetches the full, current Auth user before creating local records.
+ */
+export async function requireCurrentAppUserForTavernRsc() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { data, error } = await supabase.auth.getClaims();
+  const authUserId = data?.claims.sub;
+
+  if (error || !authUserId) {
+    throw new AuthenticationRequiredError();
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { authUserId },
+    include: { profile: true }
+  });
+
+  if (existingUser && existingUser.profile) {
+    return existingUser;
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user || user.id !== authUserId) {
+    throw new AuthenticationRequiredError();
+  }
+
+  return upsertAppUserFromAuthUser(user);
+}
+
 export async function requireCurrentAppUserWithGameState(gameId: string) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
