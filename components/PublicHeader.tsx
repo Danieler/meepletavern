@@ -14,15 +14,15 @@ export function PublicHeader() {
 
   return (
     <header className="tavern-header sticky top-0 z-40 text-white">
-      <div className="container-page flex min-h-[72px] flex-col gap-2 py-2 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:py-2.5">
+      <div className="container-page flex min-h-16 flex-col gap-2 py-1.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:py-2">
         <div className="flex min-w-0 items-center justify-between gap-3">
           <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-            <span className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden sm:h-16 sm:w-16 lg:h-[72px] lg:w-[72px]">
+            <span className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden sm:h-14 sm:w-14 lg:h-16 lg:w-16">
               <Image
                 src={siteConfig.markImage}
                 alt=""
                 fill
-                sizes="(min-width: 1024px) 72px, (min-width: 640px) 64px, 56px"
+                sizes="(min-width: 1024px) 64px, (min-width: 640px) 56px, 48px"
                 className="object-contain"
                 priority
               />
@@ -35,7 +35,7 @@ export function PublicHeader() {
                 Tavern
               </span>
               <span className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.18em] text-parchment/80 sm:block">
-                reseñas · rankings · descubrimientos
+                juegos · ludotecas · tabernas
               </span>
             </span>
           </Link>

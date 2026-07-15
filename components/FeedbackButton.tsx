@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 const TALLY_SCRIPT_URL = "https://tally.so/widgets/embed.js";
 const TALLY_FEEDBACK_FORM_ID = process.env.NEXT_PUBLIC_TALLY_FEEDBACK_FORM_ID?.trim() || "WOQK0N";
 const TALLY_FEEDBACK_URL = process.env.NEXT_PUBLIC_TALLY_FEEDBACK_URL?.trim() || "https://tally.so/r/WOQK0N";
@@ -91,6 +93,36 @@ function openFallbackForm() {
 }
 
 export function FeedbackButton() {
+  const [hiddenByOverlay, setHiddenByOverlay] = useState(false);
+
+  useEffect(() => {
+    const overlayState = new Map<string, boolean>();
+    const updateOverlay = (key: string, open: boolean) => {
+      overlayState.set(key, open);
+      setHiddenByOverlay(Array.from(overlayState.values()).some(Boolean));
+    };
+    const makeHandler = (key: string) => (event: Event) => {
+      const detail = (event as CustomEvent<{ open?: boolean }>).detail;
+      updateOverlay(key, detail?.open === true);
+    };
+    const handlers = [
+      ["menu", makeHandler("menu"), "meepletavern:mobile-menu"],
+      ["auth", makeHandler("auth"), "meepletavern:auth-prompt"],
+      ["filters", makeHandler("filters"), "meepletavern:filters-panel"],
+      ["search", makeHandler("search"), "meepletavern:search-focus"],
+      ["cookies", makeHandler("cookies"), "meepletavern:cookie-consent"]
+    ] as const;
+
+    handlers.forEach(([, handler, eventName]) => window.addEventListener(eventName, handler));
+    return () => {
+      handlers.forEach(([, handler, eventName]) => window.removeEventListener(eventName, handler));
+    };
+  }, []);
+
+  if (hiddenByOverlay) {
+    return null;
+  }
+
   async function openFeedback() {
     if (popupIsOpening) {
       return;

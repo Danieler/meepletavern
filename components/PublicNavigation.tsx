@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import { PublicAuthControls } from "@/components/PublicAuthControls";
 
@@ -26,23 +26,16 @@ const navGroups: NavGroup[] = [
     tone: "primary",
     items: [
       { href: "/juegos", label: "Juegos", icon: "dice" },
-      { href: "/comunidad", label: "Comunidad", icon: "users" }
+      { href: "/comunidad", label: "Comunidad", icon: "users" },
+      { href: "/comunidad/tabernas", label: "Mis tabernas", icon: "building" }
     ]
   },
   {
-    label: "Lecturas y rankings",
+    label: "Decidir",
     tone: "secondary",
     items: [
-      { href: "/resenas", label: "Reseñas", icon: "document" },
-      { href: "/rankings", label: "Rankings", icon: "trophy" }
-    ]
-  },
-  {
-    label: "Explorar",
-    tone: "tertiary",
-    items: [
-      { href: "/categorias", label: "Categorías", icon: "tag" },
-      { href: "/mecanicas", label: "Mecánicas", icon: "sliders" }
+      { href: "/rankings", label: "Rankings", icon: "trophy" },
+      { href: "/resenas", label: "Reseñas", icon: "document" }
     ]
   }
 ];
@@ -56,7 +49,7 @@ export function PublicDesktopNavigation() {
 
   return (
     <nav className="header-nav-shell hidden lg:block" aria-label="Navegación principal">
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch">
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)] lg:items-stretch">
         {navGroups.map((group) => (
           <div
             key={group.tone}
@@ -89,6 +82,8 @@ export function PublicMobileMenu() {
   const panelId = "mobile-menu-panel";
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setOpen(false);
@@ -106,19 +101,59 @@ export function PublicMobileMenu() {
       return;
     }
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.setTimeout(() => {
+      const firstFocusable = panelRef.current?.querySelector<HTMLElement>(
+        "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])"
+      );
+      firstFocusable?.focus();
+    }, 0);
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !panelRef.current) {
+        return;
+      }
+
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])"
+        )
+      ).filter((element) => !element.hasAttribute("disabled"));
+
+      if (!focusable.length) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      buttonRef.current?.focus();
+    };
   }, [open]);
 
   return (
     <div className="lg:hidden">
       <button
+        ref={buttonRef}
         type="button"
         className="header-action relative z-[60] min-h-11 w-11 px-0 sm:w-auto sm:px-3"
         aria-label={open ? "Cerrar menú" : "Abrir menú"}
@@ -138,15 +173,19 @@ export function PublicMobileMenu() {
             aria-hidden="true"
             onClick={() => setOpen(false)}
           />
-          <nav
+          <div
+            ref={panelRef}
             id={panelId}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
             className="mobile-nav-panel"
-            aria-label="Navegación principal"
           >
+            <nav aria-label="Navegación principal">
             <section className="mobile-nav-account mb-3">
               <p className="mobile-nav-label">Tu cuenta</p>
               <div className="mt-2">
-                <PublicAuthControls profileLabel="Mi rincón" vertical={true} />
+                <PublicAuthControls profileLabel="Mi ludoteca" vertical={true} />
               </div>
             </section>
 
@@ -176,7 +215,8 @@ export function PublicMobileMenu() {
               ))}
             </div>
 
-          </nav>
+            </nav>
+          </div>
         </>
       ) : null}
     </div>

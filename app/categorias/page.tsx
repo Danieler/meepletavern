@@ -105,8 +105,8 @@ function TermPage({
       <section className="container-page pb-14">
         <SEOTextBlock title={`${title} para descubrir mejor`}>
           <p>
-            Estas páginas funcionan como puertas SEO hacia el catálogo. Cada término conecta con
-            juegos relacionados para navegar por estilos, sensaciones y tipos de mesa.
+            Cada término conecta con juegos relacionados para navegar por estilos, sensaciones y
+            tipos de mesa sin perder el hilo del catálogo.
           </p>
         </SEOTextBlock>
       </section>

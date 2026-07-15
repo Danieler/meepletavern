@@ -28,6 +28,13 @@ export function CookieConsentBanner() {
     return () => window.removeEventListener(COOKIE_PREFERENCES_OPEN_EVENT, openPreferences);
   }, []);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("meepletavern:cookie-consent", { detail: { open: isOpen } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("meepletavern:cookie-consent", { detail: { open: false } }));
+    };
+  }, [isOpen]);
+
   if (!isOpen) {
     return null;
   }

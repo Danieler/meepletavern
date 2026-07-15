@@ -9,12 +9,13 @@ test("feedback button renders an accessible lightweight trigger without an embed
   assert.match(source, /aria-label="Enviar feedback sobre MeepleTavern"/);
   assert.match(source, /aria-haspopup="dialog"/);
   assert.doesNotMatch(source, /<iframe|<script/);
+  assert.match(source, /meepletavern:cookie-consent/);
+  assert.match(source, /if \(hiddenByOverlay\)/);
 });
 
 test("Tally is only injected from the explicit click flow", () => {
   const source = readFileSync(new URL("../components/FeedbackButton.tsx", import.meta.url), "utf8");
 
-  assert.doesNotMatch(source, /useEffect/);
   assert.match(source, /document\.createElement\("script"\)/);
   assert.match(source, /if \(tallyLoadPromise\)/);
   assert.match(source, /await loadTallyOnDemand\(\)/);

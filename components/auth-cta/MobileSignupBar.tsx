@@ -21,6 +21,7 @@ export function MobileSignupBar() {
   const [authPromptOpen, setAuthPromptOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
 
   useEffect(() => {
     const onMenu = (event: Event) => {
@@ -39,16 +40,22 @@ export function MobileSignupBar() {
       const detail = (event as CustomEvent<{ open?: boolean }>).detail;
       setSearchFocused(detail?.open === true);
     };
+    const onCookie = (event: Event) => {
+      const detail = (event as CustomEvent<{ open?: boolean }>).detail;
+      setCookieBannerOpen(detail?.open === true);
+    };
 
     window.addEventListener("meepletavern:mobile-menu", onMenu);
     window.addEventListener("meepletavern:auth-prompt", onPrompt);
     window.addEventListener("meepletavern:filters-panel", onFilters);
     window.addEventListener("meepletavern:search-focus", onSearch);
+    window.addEventListener("meepletavern:cookie-consent", onCookie);
     return () => {
       window.removeEventListener("meepletavern:mobile-menu", onMenu);
       window.removeEventListener("meepletavern:auth-prompt", onPrompt);
       window.removeEventListener("meepletavern:filters-panel", onFilters);
       window.removeEventListener("meepletavern:search-focus", onSearch);
+      window.removeEventListener("meepletavern:cookie-consent", onCookie);
     };
   }, []);
 
@@ -61,6 +68,7 @@ export function MobileSignupBar() {
     authPromptOpen ||
     filtersOpen ||
     searchFocused ||
+    cookieBannerOpen ||
     hiddenPrefixes.some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)) ||
     !copy;
 
