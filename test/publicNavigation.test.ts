@@ -12,6 +12,8 @@ test("public navigation prioritizes core product areas", () => {
   assert.match(navigation, /label: "Rankings"/);
   assert.match(navigation, /label: "Reseñas"/);
   assert.match(navigation, /profileLabel="Mi ludoteca"/);
+  assert.match(navigation, /header-nav-list/);
+  assert.doesNotMatch(navigation, /lg:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(0,0\.9fr\)\]/);
   assert.doesNotMatch(navigation, /label: "Categorías"/);
   assert.doesNotMatch(navigation, /label: "Mecánicas"/);
   assert.match(header, /juegos · ludotecas · tabernas/);
@@ -24,6 +26,8 @@ test("mobile navigation behaves as a modal menu", () => {
   assert.match(navigation, /event\.key === "Escape"/);
   assert.match(navigation, /document\.body\.style\.overflow = "hidden"/);
   assert.match(navigation, /buttonRef\.current\?\.focus\(\)/);
+  assert.match(navigation, /className="mt-2 grid gap-2"/);
+  assert.doesNotMatch(navigation, /grid grid-cols-2 gap-2/);
 });
 
 test("taxonomy page avoids internal SEO wording", () => {

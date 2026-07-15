@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import { PublicAuthControls } from "@/components/PublicAuthControls";
 
@@ -46,33 +47,27 @@ function isActivePath(pathname: string, href: string) {
 
 export function PublicDesktopNavigation() {
   const pathname = usePathname();
+  const desktopItems = navGroups.flatMap((group) => group.items);
 
   return (
-    <nav className="header-nav-shell hidden lg:block" aria-label="Navegación principal">
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)] lg:items-stretch">
-        {navGroups.map((group) => (
-          <div
-            key={group.tone}
-            className={`header-nav-group header-nav-group-${group.tone}`}
-          >
-            {group.items.map((item) => {
-              const active = isActivePath(pathname, item.href);
+    <nav className="header-nav-shell hidden lg:flex" aria-label="Navegación principal">
+      <div className="header-nav-list">
+        {desktopItems.map((item) => {
+          const active = isActivePath(pathname, item.href);
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  prefetch={false}
-                  aria-current={active ? "page" : undefined}
-                  className={`header-nav-link header-nav-link-${group.tone} ${active ? "header-nav-link-active" : ""}`}
-                >
-                  <BrandIcon name={item.icon} size={16} className="hidden xl:inline-flex" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch={false}
+              aria-current={active ? "page" : undefined}
+              className={`header-nav-link ${active ? "header-nav-link-active" : ""}`}
+            >
+              <BrandIcon name={item.icon} size={16} className="hidden xl:inline-flex" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
@@ -181,19 +176,18 @@ export function PublicMobileMenu() {
             aria-label="Menú de navegación"
             className="mobile-nav-panel"
           >
-            <nav aria-label="Navegación principal">
-            <section className="mobile-nav-account mb-3">
-              <p className="mobile-nav-label">Tu cuenta</p>
-              <div className="mt-2">
-                <PublicAuthControls profileLabel="Mi ludoteca" vertical={true} />
-              </div>
-            </section>
+            <nav aria-label="Navegación principal" className="grid gap-3">
+              <section className="mobile-nav-account">
+                <p className="mobile-nav-label">Tu cuenta</p>
+                <div className="mt-2">
+                  <PublicAuthControls profileLabel="Mi ludoteca" vertical={true} />
+                </div>
+              </section>
 
-            <div className="space-y-3">
               {navGroups.map((group) => (
                 <section key={group.tone} className={`mobile-nav-group mobile-nav-group-${group.tone}`}>
                   <p className="mobile-nav-label">{group.label}</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="mt-2 grid gap-2">
                     {group.items.map((item) => {
                       const active = isActivePath(pathname, item.href);
 
@@ -207,14 +201,13 @@ export function PublicMobileMenu() {
                         >
                           <BrandIcon name={item.icon} size={18} />
                           <span>{item.label}</span>
+                          <ChevronRight size={16} className="ml-auto opacity-45" aria-hidden="true" />
                         </Link>
                       );
                     })}
                   </div>
                 </section>
               ))}
-            </div>
-
             </nav>
           </div>
         </>

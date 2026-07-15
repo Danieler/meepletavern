@@ -14,9 +14,9 @@ export function PublicHeader() {
 
   return (
     <header className="tavern-header sticky top-0 z-40 text-white">
-      <div className="container-page flex min-h-16 flex-col gap-2 py-1.5 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:py-2">
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+      <div className="container-page flex min-h-16 flex-col gap-2 py-1.5 lg:flex-row lg:items-center lg:gap-4 lg:py-2">
+        <div className="flex min-w-0 items-center justify-between gap-3 lg:flex-[0_1_310px]">
+          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5 sm:gap-3 lg:max-w-[310px]">
             <span className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden sm:h-14 sm:w-14 lg:h-16 lg:w-16">
               <Image
                 src={siteConfig.markImage}
@@ -50,7 +50,7 @@ export function PublicHeader() {
           </div>
         </div>
         <PublicDesktopNavigation />
-        <div className="hidden items-center justify-end lg:flex">
+        <div className="hidden min-w-[86px] shrink-0 items-center justify-end lg:flex">
           <PublicAuthControls />
         </div>
       </div>
