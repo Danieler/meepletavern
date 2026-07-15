@@ -4,6 +4,7 @@ import {
   ActivityEventVisibility,
   GameStatus,
   ProfileVisibility,
+  Prisma,
   type GameImageStatus
 } from "@prisma/client";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
@@ -11,6 +12,8 @@ import { auditDataSource } from "@/lib/egressAudit";
 import { prisma } from "@/lib/prisma";
 
 const RECENT_ACTIVITY_SCAN_LIMIT = 18;
+const TAVERN_RANKING_SCAN_LIMIT = 150;
+export const MIN_TRENDING_USER_COUNT = 3;
 export const TAVERN_RECENT_GAMES_LIMIT = 6;
 export const TAVERN_RANKING_LIMIT = 5;
 const TAVERN_OVERVIEW_REVALIDATE_SECONDS = 3600;
@@ -98,27 +101,9 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
   ]);
 
   const [wantedGroups, ownedGroups, playedGroups] = await Promise.all([
-    db.userLibraryGame.groupBy({
-      by: ["gameId"],
-      where: { wantToPlay: true, ...publicCollectionWhere },
-      _count: { gameId: true },
-      orderBy: { _count: { gameId: "desc" } },
-      take: TAVERN_RANKING_LIMIT
-    }),
-    db.userLibraryGame.groupBy({
-      by: ["gameId"],
-      where: { owned: true, ...publicCollectionWhere },
-      _count: { gameId: true },
-      orderBy: { _count: { gameId: "desc" } },
-      take: TAVERN_RANKING_LIMIT
-    }),
-    db.userLibraryGame.groupBy({
-      by: ["gameId"],
-      where: { played: true, ...publicCollectionWhere },
-      _count: { gameId: true },
-      orderBy: { _count: { gameId: "desc" } },
-      take: TAVERN_RANKING_LIMIT
-    })
+    queryRankedLibrarySignals(db, { wantToPlay: true, ...publicCollectionWhere }),
+    queryRankedLibrarySignals(db, { owned: true, ...publicCollectionWhere }),
+    queryRankedLibrarySignals(db, { played: true, ...publicCollectionWhere })
   ]);
 
   const gameIds = [...new Set([
@@ -185,7 +170,7 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
 
 const getCachedTavernOverview = unstable_cache(
   () => queryTavernOverview(),
-  ["tavern-overview-v5"],
+  ["tavern-overview-v6"],
   { revalidate: TAVERN_OVERVIEW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
 );
 
@@ -193,8 +178,33 @@ export function getTavernOverview() {
   return getCachedTavernOverview();
 }
 
+async function queryRankedLibrarySignals(db: TavernOverviewDb, where: Prisma.UserLibraryGameWhereInput) {
+  const rows = await db.userLibraryGame.findMany({
+    where,
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    take: TAVERN_RANKING_SCAN_LIMIT,
+    select: {
+      gameId: true,
+      userId: true
+    }
+  });
+  const usersByGame = new Map<string, Set<string>>();
+
+  for (const row of rows) {
+    const users = usersByGame.get(row.gameId) || new Set<string>();
+    users.add(row.userId);
+    usersByGame.set(row.gameId, users);
+  }
+
+  return Array.from(usersByGame.entries())
+    .map(([gameId, users], index) => ({ gameId, count: users.size, index }))
+    .filter((group) => group.count >= MIN_TRENDING_USER_COUNT)
+    .sort((left, right) => right.count - left.count || left.index - right.index)
+    .slice(0, TAVERN_RANKING_LIMIT);
+}
+
 function toRanking(
-  groups: Array<{ gameId: string; _count: { gameId: number } }>,
+  groups: Array<{ gameId: string; count: number }>,
   gamesById: Map<string, {
     id: string;
     title: string;
@@ -207,7 +217,7 @@ function toRanking(
 ) {
   return groups.flatMap((group): TavernRankedGame[] => {
     const game = gamesById.get(group.gameId);
-    return game ? [{ ...toOverviewGame(game), count: group._count.gameId }] : [];
+    return game ? [{ ...toOverviewGame(game), count: group.count }] : [];
   }).slice(0, TAVERN_RANKING_LIMIT);
 }
 

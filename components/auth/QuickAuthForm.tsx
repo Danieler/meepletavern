@@ -218,12 +218,12 @@ export function QuickAuthForm({
       setFieldErrors(errors);
       setFeedbackTone("error");
       setFeedback("Revisa los campos marcados antes de continuar.");
-      trackEvent("auth_email_submit_blocked", authEventProperties);
       return;
     }
     setFieldErrors({});
     setSubmitting(true);
-    trackEvent("auth_email_submit_attempted", authEventProperties);
+    trackEvent("auth_started", { ...authEventProperties, source: "form" });
+    trackEvent("auth_method_selected", { ...authEventProperties, method: "email" });
 
     if (isRegister) {
       rememberLegalAcceptance();
@@ -244,10 +244,6 @@ export function QuickAuthForm({
       }
       setFeedbackTone("error");
       setFeedback(result.message ?? "Algo no ha ido bien. Inténtalo otra vez.");
-      trackEvent("auth_email_submit_failed", {
-        ...authEventProperties,
-        code: result.code ?? "unknown"
-      });
       return;
     }
 
@@ -256,7 +252,6 @@ export function QuickAuthForm({
       setPassword("");
       setFeedbackTone("success");
       setFeedback(result.message ?? "Confirma tu email.");
-      trackEvent("auth_email_confirmation_required", authEventProperties);
       return; // Stop here, don't call onSuccess because they need to confirm
     }
 
@@ -273,8 +268,8 @@ export function QuickAuthForm({
   }
 
   async function handleGoogleSignIn() {
-    trackEvent("auth_modal_google_clicked");
-    trackEvent("auth_provider_clicked", { ...authEventProperties, provider: "google" });
+    trackEvent("auth_started", { ...authEventProperties, source: "form" });
+    trackEvent("auth_method_selected", { ...authEventProperties, method: "google" });
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
     if (isRegister) {
       rememberLegalAcceptance();
@@ -287,12 +282,12 @@ export function QuickAuthForm({
     if (!result.ok) {
       setFeedbackTone("error");
       setFeedback(result.message ?? "No hemos podido iniciar sesión con Google.");
-      trackEvent("auth_provider_failed", { ...authEventProperties, provider: "google", code: result.code ?? "unknown" });
     }
   }
 
   async function handleDiscordSignIn() {
-    trackEvent("auth_provider_clicked", { ...authEventProperties, provider: "discord" });
+    trackEvent("auth_started", { ...authEventProperties, source: "form" });
+    trackEvent("auth_method_selected", { ...authEventProperties, method: "discord" });
     if (submitting || cooldownSeconds > 0 || !isConfigured) return;
     if (isRegister) {
       rememberLegalAcceptance();
@@ -305,7 +300,6 @@ export function QuickAuthForm({
     if (!result.ok) {
       setFeedbackTone("error");
       setFeedback(result.message ?? "No hemos podido iniciar sesión con Discord.");
-      trackEvent("auth_provider_failed", { ...authEventProperties, provider: "discord", code: result.code ?? "unknown" });
     }
   }
 
@@ -328,7 +322,6 @@ export function QuickAuthForm({
     if (!result.ok) {
       setFeedbackTone("error");
       setFeedback(result.message ?? "No hemos podido iniciar sesión con Google.");
-      trackEvent("auth_provider_failed", { ...authEventProperties, provider: "google_id_token", code: result.code ?? "unknown" });
     } else if (onSuccess) {
       await syncPendingLegalAcceptance().catch(() => undefined);
       trackEvent("auth_completed", { ...authEventProperties, method: "google" });
@@ -338,7 +331,7 @@ export function QuickAuthForm({
 
   function revealEmailForm() {
     setShowEmailForm(true);
-    trackEvent("auth_email_form_revealed", authEventProperties);
+    trackEvent("auth_method_selected", { ...authEventProperties, method: "email" });
   }
 
   return (

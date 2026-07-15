@@ -110,7 +110,15 @@ export async function PATCH(request: Request) {
     }
   });
   const activityChanged = await trySyncActivityActorProfile(updatedAccount);
-  if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
+  const publicProfileChanged = [
+    displayName,
+    username,
+    bio,
+    avatarUrl,
+    profileVisibility,
+    collectionVisibility
+  ].some((value) => value !== undefined);
+  if (activityChanged || publicProfileChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
 
   return NextResponse.json({ account: updatedAccount });
 }

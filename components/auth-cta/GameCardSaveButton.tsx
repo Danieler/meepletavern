@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import { setPendingAction } from "@/lib/pendingActions";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 export function GameCardSaveButton({ gameId, gameTitle }: { gameId: string; gameTitle: string }) {
   const { user, loading } = useAuth();
@@ -28,6 +29,7 @@ export function GameCardSaveButton({ gameId, gameTitle }: { gameId: string; game
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
+          trackEvent("save_started", { surface: "catalog", target: "game", action: "wantToBuy" });
           setPendingAction({ type: "SAVE_GAME", gameId, payload: { key: "wantToBuy" } });
           setOpen(true);
         }}

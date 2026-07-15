@@ -3,6 +3,7 @@
 import { BrandIcon } from "@/components/BrandIcon";
 import { buildCatalogSearchParams } from "@/lib/catalogUrl";
 import type { GameFilterInput } from "@/lib/catalog";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type GameSearchProps = {
   query?: string;
@@ -36,9 +37,22 @@ export function GameSearch({
     : "button-primary";
 
   const hiddenParams = Array.from(buildCatalogSearchParams(active, ["q"]).entries());
+  const activeFilterCount = hiddenParams.filter(([name]) => name !== "sort").length;
 
   return (
-    <form action="/juegos" className={isHero ? "flex w-full flex-col gap-3 sm:flex-row" : "flex w-full flex-col gap-2 sm:flex-row"}>
+    <form
+      action="/juegos"
+      className={isHero ? "flex w-full flex-col gap-3 sm:flex-row" : "flex w-full flex-col gap-2 sm:flex-row"}
+      onSubmit={(event) => {
+        const data = new FormData(event.currentTarget);
+        const nextQuery = String(data.get("q") || "").trim();
+        trackEvent("search_submitted", {
+          surface: "catalog",
+          hasQuery: nextQuery.length > 0,
+          filterCount: activeFilterCount
+        });
+      }}
+    >
       {hiddenParams.map(([name, value], index) => (
         <input key={`${name}-${value}-${index}`} type="hidden" name={name} value={value} />
       ))}

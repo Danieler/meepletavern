@@ -51,6 +51,7 @@ test("queryPublicUsersPage uses a bounded cursor page and aggregates only visibl
   assert.deepEqual(findManyArgs?.orderBy, [{ updatedAt: "desc" }, { id: "desc" }]);
   assert.deepEqual(findManyArgs?.where, {
     profileVisibility: ProfileVisibility.PUBLIC,
+    usernameSetupRequired: false,
     OR: [
       { username: { contains: "Daniel", mode: "insensitive" } },
       { displayName: { contains: "Daniel", mode: "insensitive" } }
@@ -63,4 +64,33 @@ test("queryPublicUsersPage uses a bounded cursor page and aggregates only visibl
     Array.from({ length: PUBLIC_USER_PAGE_SIZE }, (_, index) => `user-${index}`)
   );
   assert.deepEqual(groupByArgs?.by, ["userId", "owned", "wantToPlay", "played"]);
+});
+
+test("queryPublicUsersPage only promotes completed useful profiles on the directory front page", async () => {
+  let findManyArgs: Record<string, unknown> | undefined;
+  const db = {
+    userProfile: {
+      async findMany(args: Record<string, unknown>) {
+        findManyArgs = args;
+        return [];
+      }
+    },
+    userLibraryGame: {
+      async groupBy() {
+        return [];
+      }
+    }
+  } as unknown as NonNullable<Parameters<typeof queryPublicUsersPage>[1]>;
+
+  await queryPublicUsersPage({ limit: 4 }, db);
+
+  const where = findManyArgs?.where as Record<string, unknown>;
+  assert.equal(where.profileVisibility, ProfileVisibility.PUBLIC);
+  assert.equal(where.usernameSetupRequired, false);
+  assert.match(JSON.stringify(where), /"bio"/);
+  assert.match(JSON.stringify(where), /"avatarUrl"/);
+  assert.match(JSON.stringify(where), /"library"/);
+  assert.match(JSON.stringify(where), /"gameLists"/);
+  assert.match(JSON.stringify(where), /"items":\{"some":\{\}\}/);
+  assert.match(JSON.stringify(where), /"activityEvents"/);
 });

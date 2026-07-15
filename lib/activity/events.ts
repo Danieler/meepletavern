@@ -174,6 +174,10 @@ export async function recordPublicListActivityEvent(
   },
   db: ActivityEventDb = prisma
 ) {
+  if (input.type === "LIST_CREATED") {
+    return false;
+  }
+
   const profile = input.actor.profile;
   if (
     !profile ||

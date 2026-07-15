@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import type { TavernOverview, TavernRankedGame } from "@/lib/tavernOverview";
 
 const TAVERN_NOW_REVALIDATE_SECONDS = 3600;
+export const TAVERN_NOW_WINDOW_DAYS = 30;
 
 export type TavernNowGameSignal = {
   gameTitle: string;
@@ -36,9 +37,11 @@ export type TavernNowSummary = {
 type TavernNowDb = Pick<typeof prisma, "userGameRating" | "gameList">;
 
 export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
+  const since = new Date(Date.now() - TAVERN_NOW_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const [rating, list] = await Promise.all([
     db.userGameRating.findFirst({
       where: {
+        updatedAt: { gte: since },
         user: { profile: { is: {
           profileVisibility: ProfileVisibility.PUBLIC
         } } },
@@ -57,7 +60,9 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
     }),
     db.gameList.findFirst({
       where: {
+        createdAt: { gte: since },
         visibility: GameListVisibility.PUBLIC,
+        items: { some: {} },
         user: { profile: { is: {
           profileVisibility: ProfileVisibility.PUBLIC
         } } }
@@ -102,7 +107,7 @@ export async function queryLatestTavernNowSignals(db: TavernNowDb = prisma) {
 
 const getCachedLatestTavernNowSignals = unstable_cache(
   () => queryLatestTavernNowSignals(),
-  ["tavern-now-latest-signals-v3"],
+  ["tavern-now-latest-signals-v4"],
   { revalidate: TAVERN_NOW_REVALIDATE_SECONDS, tags: [TAVERN_ACTIVITY_CACHE_TAG, "public-games"] }
 );
 

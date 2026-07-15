@@ -7,12 +7,12 @@ import {
   GameStatus,
   ProfileVisibility
 } from "@prisma/client";
-import { queryTavernOverview, TAVERN_RANKING_LIMIT } from "@/lib/tavernOverview";
+import { MIN_TRENDING_USER_COUNT, queryTavernOverview } from "@/lib/tavernOverview";
 
 test("queryTavernOverview uses bounded aggregates and one tiny game lookup", async () => {
   let activityArgs: Record<string, unknown> | undefined;
   const countArgs: Record<string, unknown>[] = [];
-  const groupArgs: Record<string, unknown>[] = [];
+  const libraryArgs: Record<string, unknown>[] = [];
   let gameArgs: Record<string, unknown> | undefined;
   const db = {
     activityEvent: {
@@ -30,12 +30,12 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
       }
     },
     userLibraryGame: {
-      async groupBy(args: Record<string, unknown>) {
-        groupArgs.push(args);
+      async findMany(args: Record<string, unknown>) {
+        libraryArgs.push(args);
         const where = args.where as { wantToPlay?: boolean; played?: boolean };
-        if (where.wantToPlay) return [{ gameId: "game-1", _count: { gameId: 3 } }];
-        if ((where as { owned?: boolean }).owned) return [{ gameId: "game-2", _count: { gameId: 4 } }];
-        return [{ gameId: "game-2", _count: { gameId: 2 } }];
+        if (where.wantToPlay) return usersForGame("game-1", 3);
+        if ((where as { owned?: boolean }).owned) return usersForGame("game-2", 4);
+        return usersForGame("game-2", 2);
       }
     },
     game: {
@@ -52,7 +52,7 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
   assert.equal(overview.recentGames[0]?.title, "Ark Nova");
   assert.equal(overview.mostWanted[0]?.count, 3);
   assert.equal(overview.mostOwned[0]?.count, 4);
-  assert.equal(overview.mostPlayed[0]?.count, 2);
+  assert.equal(overview.mostPlayed.length, 0);
   assert.equal(overview.highlights.weeklyLibraryAdds, 4);
   assert.equal(overview.highlights.weeklyActivityCount, 9);
   assert.deepEqual(overview.highlights.topWantedGame, {
@@ -64,17 +64,20 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
   });
   assert.equal(activityArgs?.take, 18);
   assert.deepEqual((activityArgs?.where as { visibility?: string }).visibility, ActivityEventVisibility.PUBLIC);
-  assert.equal(groupArgs.length, 3);
+  assert.equal(libraryArgs.length, 3);
   assert.equal(countArgs.length, 2);
-  assert.equal(groupArgs[0]?.take, TAVERN_RANKING_LIMIT);
+  assert.equal(libraryArgs[0]?.take, 150);
 
-  const wantedWhere = groupArgs[0]?.where as {
+  const wantedWhere = libraryArgs[0]?.where as {
     wantToPlay?: boolean;
     user?: { profile?: { is?: { profileVisibility?: string; collectionVisibility?: string } } };
   };
   assert.equal(wantedWhere.wantToPlay, true);
   assert.equal(wantedWhere.user?.profile?.is?.profileVisibility, ProfileVisibility.PUBLIC);
   assert.equal(wantedWhere.user?.profile?.is?.collectionVisibility, ProfileVisibility.PUBLIC);
+  assert.deepEqual(libraryArgs[0]?.orderBy, [{ updatedAt: "desc" }, { id: "desc" }]);
+  assert.deepEqual(Object.keys(libraryArgs[0]?.select as Record<string, boolean>).sort(), ["gameId", "userId"]);
+  assert.equal(MIN_TRENDING_USER_COUNT, 3);
   assert.deepEqual((gameArgs?.where as { status?: string }).status, GameStatus.published);
   assert.deepEqual(Object.keys(gameArgs?.select as Record<string, boolean>).sort(), [
     "coverImageAlt",
@@ -102,6 +105,14 @@ function event(id: string, gameId: string, type: ActivityEventType) {
     listTitleSnapshot: type === ActivityEventType.LIST_GAME_ADDED ? "Favoritos" : null,
     createdAt: new Date("2026-06-21T12:00:00.000Z")
   };
+}
+
+function usersForGame(gameId: string, users: number) {
+  return Array.from({ length: users }, (_, index) => ({
+    id: `${gameId}-${index}`,
+    gameId,
+    userId: `user-${index}`
+  }));
 }
 
 function game(id: string, title: string) {

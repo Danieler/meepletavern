@@ -361,7 +361,7 @@ export function CompatibilitySection({ popularGames = [], featuredGames = [] }: 
               </p>
               {isMock && (
                 <p className="truncate text-[11px] font-black text-[#b45309]">
-                  Perfil Recomendado
+                  Arquetipo de afinidad
                 </p>
               )}
             </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
 import { buildCatalogUrl, catalogFilterValues } from "@/lib/catalogUrl";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type FilterLink = {
   label: string;
@@ -200,7 +201,15 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
     <button
       type="button"
       aria-pressed={isActive}
-      onClick={() => router.push(targetHref, { scroll: false })}
+      onClick={() => {
+        trackEvent("filter_changed", {
+          surface: "catalog",
+          filter: item.param,
+          active: !isActive,
+          activeCount: Array.isArray(nextValue) ? nextValue.length : nextValue ? 1 : 0
+        });
+        router.push(targetHref, { scroll: false });
+      }}
       className={`inline-flex min-h-9 items-center rounded-md px-3 py-1.5 text-sm font-extrabold leading-none transition ${
         isActive ? "bg-ink text-white shadow-sm" : "border border-ink/5 bg-ink/5 text-ink/70 hover:border-moss/20 hover:bg-moss/10 hover:text-moss"
       }`}

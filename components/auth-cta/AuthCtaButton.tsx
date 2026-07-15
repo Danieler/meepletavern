@@ -61,12 +61,15 @@ export function AuthCtaButton({
             : "inline-flex min-h-10 items-center text-sm font-extrabold text-parchment/85 transition hover:text-white hover:underline";
 
   function handleClick() {
-    trackEvent("auth_cta_clicked", {
-      context,
+    trackEvent("save_started", {
+      surface: context,
+      target: context === "catalog" ? "catalog" : context === "tavern" ? "tavern" : context === "review" ? "review" : "library",
+      action: intent ? "pending_intent" : "open_auth"
+    });
+    trackEvent("auth_started", {
+      surface: context,
       mode,
-      variant,
-      hasIntent: Boolean(intent),
-      hasAuthContext: Boolean(authContext)
+      source: "cta"
     });
   }
 

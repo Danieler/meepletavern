@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LibraryOnboardingTooltip } from "@/components/account/LibraryOnboardingTooltip";
 import { useGameInteraction } from "@/components/GameInteractionProvider";
 import { setPendingAction } from "@/lib/pendingActions";
+import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type GameLibraryPanelProps = {
   gameId: string;
@@ -35,6 +36,7 @@ export function GameLibraryPanel({ gameId, gameTitle = "este juego" }: GameLibra
     localStorage.setItem("meepletavern_library_onboarding_seen", "true");
 
     if (!user) {
+      trackEvent("save_started", { surface: "game", target: "game", action: key });
       setPendingAction({ type: "LIBRARY_TOGGLE", gameId, payload: { key } });
       setAuthModalTitle(getModalTitleForStatus(key, gameTitle));
       return;

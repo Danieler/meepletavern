@@ -1,8 +1,6 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { ActivityEventType } from "@prisma/client";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
-import { TAVERN_ACTIVITY_CACHE_TAG, tryRecordPublicListActivityEvent } from "@/lib/activity/events";
 import { createGameList, GameListError } from "@/lib/gameLists";
 
 export async function POST(request: Request) {
@@ -18,12 +16,6 @@ export async function POST(request: Request) {
       description: body?.description,
       visibility: body?.visibility
     });
-    const activityChanged = await tryRecordPublicListActivityEvent({
-      type: ActivityEventType.LIST_CREATED,
-      actor: appUser,
-      list
-    });
-    if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
     revalidateListPaths(appUser.profile?.username, list.slug);
 
     return NextResponse.json({ list }, { status: 201, headers: { "Cache-Control": "no-store" } });

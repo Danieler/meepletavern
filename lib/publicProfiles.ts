@@ -1,4 +1,4 @@
-import { Prisma, ProfileVisibility, type UserProfile } from "@prisma/client";
+import { ActivityEventVisibility, GameListVisibility, Prisma, ProfileVisibility, type UserProfile } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { TAVERN_ACTIVITY_CACHE_TAG } from "@/lib/activity/events";
 import { getCatalogGamesByIds, type CatalogGame } from "@/lib/catalog";
@@ -48,7 +48,8 @@ const publicProfileSelect = {
   bio: true,
   avatarUrl: true,
   profileVisibility: true,
-  collectionVisibility: true
+  collectionVisibility: true,
+  usernameSetupRequired: true
 } satisfies Prisma.UserProfileSelect;
 
 export type PublicProfile = Prisma.UserProfileGetPayload<{ select: typeof publicProfileSelect }>;
@@ -100,6 +101,7 @@ export async function queryPublicUsersPage(
   const profiles = await db.userProfile.findMany({
     where: {
       profileVisibility: ProfileVisibility.PUBLIC,
+      usernameSetupRequired: false,
       ...(search
         ? {
             OR: [
@@ -107,7 +109,7 @@ export async function queryPublicUsersPage(
               { displayName: { contains: search, mode: "insensitive" } }
             ]
           }
-        : {})
+        : buildUsefulPublicProfileWhere())
     },
     select: {
       id: true,
@@ -162,6 +164,59 @@ export async function queryPublicUsersPage(
     hasCursor: Boolean(input.cursor),
     limit
   });
+}
+
+function buildUsefulPublicProfileWhere(): Prisma.UserProfileWhereInput {
+  return {
+    OR: [
+      { AND: [{ bio: { not: null } }, { bio: { not: "" } }] },
+      { AND: [{ avatarUrl: { not: null } }, { avatarUrl: { not: "" } }] },
+      {
+        AND: [
+          { collectionVisibility: ProfileVisibility.PUBLIC },
+          {
+            user: {
+              is: {
+                library: {
+                  some: {
+                    OR: [
+                      { owned: true },
+                      { wantToPlay: true },
+                      { wantToBuy: true },
+                      { played: true }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        user: {
+          is: {
+            gameLists: {
+              some: {
+                visibility: GameListVisibility.PUBLIC,
+                items: { some: {} }
+              }
+            }
+          }
+        }
+      },
+      {
+        user: {
+          is: {
+            activityEvents: {
+              some: {
+                visibility: ActivityEventVisibility.PUBLIC
+              }
+            }
+          }
+        }
+      }
+    ]
+  };
 }
 
 export function getPublicUsersPage(

@@ -149,6 +149,35 @@ test("recordPublicListActivityEvent stores only compact public list snapshots", 
   assert.equal("actor" in create, false);
 });
 
+test("recordPublicListActivityEvent ignores empty list creation activity", async () => {
+  let upsertCalls = 0;
+  const db = {
+    activityEvent: {
+      async upsert() {
+        upsertCalls += 1;
+        return {};
+      }
+    }
+  } as unknown as NonNullable<Parameters<typeof recordPublicListActivityEvent>[1]>;
+
+  const changed = await recordPublicListActivityEvent(
+    {
+      type: ActivityEventType.LIST_CREATED,
+      actor: actor(),
+      list: {
+        id: "list-1",
+        name: "Lista vacía",
+        slug: "lista-vacia",
+        visibility: GameListVisibility.PUBLIC
+      }
+    },
+    db
+  );
+
+  assert.equal(changed, false);
+  assert.equal(upsertCalls, 0);
+});
+
 function actor() {
   return {
     id: "user-1",
