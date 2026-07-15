@@ -21,6 +21,7 @@ export function CommunitySectionNav() {
             <Link
               key={href}
               href={href}
+              prefetch={href === "/comunidad/tabernas" ? false : undefined}
               aria-current={active ? "page" : undefined}
               className={`focus-ring grid min-h-14 grid-cols-[34px_minmax(0,1fr)] items-center gap-2.5 rounded-md px-3.5 py-2 text-left transition ${
                 active ? "bg-wood text-white shadow-sm" : "text-walnut hover:bg-vanilla hover:text-wood"

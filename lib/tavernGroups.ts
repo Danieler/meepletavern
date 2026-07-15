@@ -15,8 +15,10 @@ export const MAX_TAVERN_MEMBERS = 50;
 export const MAX_PENDING_TAVERN_INVITATIONS = 50;
 export const TAVERN_INVITATION_DAYS = 14;
 export const MAX_TAVERN_LIBRARY_ITEMS = 48;
+export const TAVERN_LIBRARY_PAGE_SIZE = 24;
 export const MAX_TAVERN_PLAY_OPTIONS = 80;
 export const MAX_TAVERN_PLAYS = 25;
+export const TAVERN_PLAYS_PAGE_SIZE = 20;
 
 export type TavernRole = "ADMIN" | "MEMBER";
 
@@ -70,21 +72,40 @@ function tavernDisplayName(user: {
   return user.profile?.displayName || user.displayName || user.profile?.username || "Usuario";
 }
 
-type TavernSummaryCountRow = { memberCount: number; playCount: number; uniqueGames: number };
-type TavernDashboardRow = {
+type TavernSummaryRow = {
   id: string;
   name: string;
   role: TavernMemberRole;
-  joinedAt: Date;
-  updatedAt: Date;
   memberCount: number;
   playCount: number;
   uniqueGames: number;
 };
+type TavernDashboardRow = {
+  sortGroup: number;
+  sortAt: Date;
+  kind: "tavern" | "invitation";
+  id: string;
+  tavernId: string;
+  name: string;
+  role: TavernMemberRole | null;
+  joinedAt: Date | null;
+  updatedAt: Date | null;
+  expiresAt: Date | null;
+  memberCount: number;
+  playCount: number;
+  uniqueGames: number;
+  invitedByUserId: string | null;
+  invitedByUsername: string | null;
+  invitedByProfileDisplayName: string | null;
+  invitedByDisplayName: string | null;
+};
 
-async function getTavernSummaryCounts(tavernId: string) {
-  const [row] = await prisma.$queryRaw<TavernSummaryCountRow[]>(Prisma.sql`
+export async function getTavernGroupSummary(userId: string, tavernId: string) {
+  const [row] = await prisma.$queryRaw<TavernSummaryRow[]>(Prisma.sql`
     SELECT
+      tavern.id,
+      tavern.name,
+      membership.role,
       (SELECT COUNT(*)::int FROM "TavernGroupMember" WHERE "tavernId" = ${tavernId}) AS "memberCount",
       (SELECT COUNT(*)::int FROM "TavernGroupPlay" WHERE "tavernId" = ${tavernId}) AS "playCount",
       (
@@ -96,18 +117,27 @@ async function getTavernSummaryCounts(tavernId: string) {
           ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
         WHERE member."tavernId" = ${tavernId}
       ) AS "uniqueGames"
+    FROM "TavernGroupMember" membership
+    JOIN "TavernGroup" tavern ON tavern.id = membership."tavernId"
+    WHERE membership."tavernId" = ${tavernId}
+      AND membership."userId" = ${userId}
+    LIMIT 1
   `);
-  return row || { memberCount: 0, playCount: 0, uniqueGames: 0 };
+  if (!row) {
+    throw new TavernGroupError("La taberna no existe.", 404, "TAVERN_NOT_FOUND");
+  }
+  return row;
 }
 
 export async function getMyTavernDashboard(userId: string) {
   const now = new Date();
-  const [tavernRows, invitations] = await Promise.all([
-    prisma.$queryRaw<TavernDashboardRow[]>(Prisma.sql`
+  const rows = await prisma.$queryRaw<TavernDashboardRow[]>(Prisma.sql`
+    WITH dashboard_taverns AS (
       SELECT
         tavern.id,
+        tavern.id AS "tavernId",
         tavern.name,
-        membership.role,
+        membership.role::text AS role,
         membership."joinedAt",
         tavern."updatedAt",
         (SELECT COUNT(*)::int FROM "TavernGroupMember" WHERE "tavernId" = tavern.id) AS "memberCount",
@@ -127,53 +157,126 @@ export async function getMyTavernDashboard(userId: string) {
       WHERE membership."userId" = ${userId}
       ORDER BY membership."joinedAt" DESC, membership.id DESC
       LIMIT 30
-    `),
-    prisma.tavernGroupInvitation.findMany({
-      where: {
-        targetUserId: userId,
-        status: TavernInvitationStatus.PENDING,
-        expiresAt: { gt: now }
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: 30,
-      select: {
-        id: true,
-        expiresAt: true,
-        tavern: { select: { id: true, name: true, _count: { select: { members: true } } } },
-        invitedByUser: {
-          select: {
-            id: true,
-            displayName: true,
-            profile: { select: { username: true, displayName: true } }
-          }
-        }
-      }
-    })
-  ]);
+    ), pending_invitations AS (
+      SELECT
+        invitation.id,
+        tavern.id AS "tavernId",
+        tavern.name,
+        invitation."expiresAt",
+        invitation."createdAt",
+        (SELECT COUNT(*)::int FROM "TavernGroupMember" WHERE "tavernId" = tavern.id) AS "memberCount",
+        invited_by.id AS "invitedByUserId",
+        invited_profile.username AS "invitedByUsername",
+        invited_profile."displayName" AS "invitedByProfileDisplayName",
+        invited_by."displayName" AS "invitedByDisplayName"
+      FROM "TavernGroupInvitation" invitation
+      JOIN "TavernGroup" tavern ON tavern.id = invitation."tavernId"
+      LEFT JOIN "User" invited_by ON invited_by.id = invitation."invitedByUserId"
+      LEFT JOIN "UserProfile" invited_profile ON invited_profile."userId" = invited_by.id
+      WHERE invitation."targetUserId" = ${userId}
+        AND invitation.status = ${TavernInvitationStatus.PENDING}::"TavernInvitationStatus"
+        AND invitation."expiresAt" > ${now}
+      ORDER BY invitation."createdAt" DESC, invitation.id DESC
+      LIMIT 30
+    )
+    SELECT
+      0::int AS "sortGroup",
+      dashboard_taverns."joinedAt" AS "sortAt",
+      'tavern'::text AS kind,
+      dashboard_taverns.id,
+      dashboard_taverns."tavernId",
+      dashboard_taverns.name,
+      dashboard_taverns.role,
+      dashboard_taverns."joinedAt",
+      dashboard_taverns."updatedAt",
+      NULL::timestamp AS "expiresAt",
+      dashboard_taverns."memberCount",
+      dashboard_taverns."playCount",
+      dashboard_taverns."uniqueGames",
+      NULL::text AS "invitedByUserId",
+      NULL::text AS "invitedByUsername",
+      NULL::text AS "invitedByProfileDisplayName",
+      NULL::text AS "invitedByDisplayName"
+    FROM dashboard_taverns
+    UNION ALL
+    SELECT
+      1::int AS "sortGroup",
+      pending_invitations."createdAt" AS "sortAt",
+      'invitation'::text AS kind,
+      pending_invitations.id,
+      pending_invitations."tavernId",
+      pending_invitations.name,
+      NULL::text AS role,
+      NULL::timestamp AS "joinedAt",
+      NULL::timestamp AS "updatedAt",
+      pending_invitations."expiresAt",
+      pending_invitations."memberCount",
+      0::int AS "playCount",
+      0::int AS "uniqueGames",
+      pending_invitations."invitedByUserId",
+      pending_invitations."invitedByUsername",
+      pending_invitations."invitedByProfileDisplayName",
+      pending_invitations."invitedByDisplayName"
+    FROM pending_invitations
+    ORDER BY "sortGroup" ASC, "sortAt" DESC, id DESC
+  `);
 
-  const taverns = tavernRows.map((tavern) => ({
-    id: tavern.id,
-    name: tavern.name,
-    role: tavern.role,
-    joinedAt: tavern.joinedAt.toISOString(),
-    updatedAt: tavern.updatedAt.toISOString(),
-    memberCount: tavern.memberCount,
-    playCount: tavern.playCount,
-    uniqueGames: tavern.uniqueGames
-  }));
+  const taverns: Array<{
+    id: string;
+    name: string;
+    role: TavernMemberRole;
+    joinedAt: string;
+    updatedAt: string;
+    memberCount: number;
+    playCount: number;
+    uniqueGames: number;
+  }> = [];
+  const invitations: Array<{
+    id: string;
+    expiresAt: string;
+    tavern: { id: string; name: string; memberCount: number };
+    invitedBy: { id: string; username: string; displayName: string } | null;
+  }> = [];
+
+  for (const row of rows) {
+    if (row.kind === "tavern" && row.role && row.joinedAt && row.updatedAt) {
+      taverns.push({
+        id: row.id,
+        name: row.name,
+        role: row.role,
+        joinedAt: row.joinedAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        memberCount: row.memberCount,
+        playCount: row.playCount,
+        uniqueGames: row.uniqueGames
+      });
+      continue;
+    }
+
+    if (row.kind === "invitation" && row.expiresAt) {
+      invitations.push({
+        id: row.id,
+        expiresAt: row.expiresAt.toISOString(),
+        tavern: {
+          id: row.tavernId,
+          name: row.name,
+          memberCount: row.memberCount
+        },
+        invitedBy: row.invitedByUserId ? {
+          id: row.invitedByUserId,
+          username: row.invitedByUsername || "usuario",
+          displayName: row.invitedByProfileDisplayName
+            || row.invitedByDisplayName
+            || row.invitedByUsername
+            || "Usuario"
+        } : null
+      });
+    }
+  }
 
   return {
     taverns,
-    invitations: invitations.map((invitation) => ({
-      id: invitation.id,
-      expiresAt: invitation.expiresAt.toISOString(),
-      tavern: {
-        id: invitation.tavern.id,
-        name: invitation.tavern.name,
-        memberCount: invitation.tavern._count.members
-      },
-      invitedBy: invitation.invitedByUser ? publicUser(invitation.invitedByUser) : null
-    }))
+    invitations
   };
 }
 
@@ -224,18 +327,6 @@ export async function requireTavernMembership(
   return membership;
 }
 
-export async function getTavernGroupSummary(userId: string, tavernId: string) {
-  const membership = await requireTavernMembership(userId, tavernId);
-  const counts = await getTavernSummaryCounts(tavernId);
-
-  return {
-    id: membership.tavern.id,
-    name: membership.tavern.name,
-    role: membership.role,
-    ...counts
-  };
-}
-
 type TavernLibrarySqlRow = {
   gameId: string;
   title: string;
@@ -253,9 +344,44 @@ export async function getTavernGroupLibrary(userId: string, tavernId: string, se
 }
 
 export async function getTavernGroupLibraryForMember(tavernId: string, searchValue?: string | null) {
+  const rows = await queryTavernGroupLibraryRows(tavernId, searchValue, {
+    take: MAX_TAVERN_LIBRARY_ITEMS,
+    skip: 0
+  });
+  return mapTavernLibraryRows(rows);
+}
+
+export function normalizeTavernPage(value: unknown) {
+  const parsed = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : 1;
+  return Number.isSafeInteger(parsed) ? Math.min(Math.max(parsed, 1), 100) : 1;
+}
+
+export async function getTavernGroupLibraryPageForMember(
+  tavernId: string,
+  searchValue?: string | null,
+  pageValue?: unknown
+) {
+  const page = normalizeTavernPage(pageValue);
+  const rows = await queryTavernGroupLibraryRows(tavernId, searchValue, {
+    take: TAVERN_LIBRARY_PAGE_SIZE + 1,
+    skip: (page - 1) * TAVERN_LIBRARY_PAGE_SIZE
+  });
+
+  return {
+    items: mapTavernLibraryRows(rows.slice(0, TAVERN_LIBRARY_PAGE_SIZE)),
+    page,
+    hasNext: rows.length > TAVERN_LIBRARY_PAGE_SIZE
+  };
+}
+
+async function queryTavernGroupLibraryRows(
+  tavernId: string,
+  searchValue: string | null | undefined,
+  pagination: { take: number; skip: number }
+) {
   const search = typeof searchValue === "string" ? searchValue.trim().replace(/\s+/g, " ").slice(0, 80) : "";
   const pattern = `%${search}%`;
-  const rows = await prisma.$queryRaw<TavernLibrarySqlRow[]>(Prisma.sql`
+  return prisma.$queryRaw<TavernLibrarySqlRow[]>(Prisma.sql`
     WITH copies AS (
       SELECT ulg."gameId", COUNT(*)::int AS "copyCount"
       FROM "TavernGroupMember" member
@@ -305,9 +431,12 @@ export async function getTavernGroupLibraryForMember(tavernId: string, searchVal
     WHERE game.status = ${GameStatus.published}::"GameStatus"
       AND (${search} = '' OR game.title ILIKE ${pattern} OR game.name ILIKE ${pattern})
     ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
-    LIMIT ${MAX_TAVERN_LIBRARY_ITEMS}
+    LIMIT ${pagination.take}
+    OFFSET ${pagination.skip}
   `);
+}
 
+function mapTavernLibraryRows(rows: TavernLibrarySqlRow[]) {
   return rows.map((row) => ({
     gameId: row.gameId,
     title: row.title,
@@ -324,30 +453,93 @@ export async function getTavernGroupLibraryPreviewForMember(tavernId: string, se
   return getTavernGroupLibraryForMember(tavernId, searchValue);
 }
 
-type TavernGameOptionRow = {
-  gameId: string;
-  title: string;
-  slug: string;
-  copyCount: number;
+type TavernPlayFormOptionRow = {
+  sortGroup: number;
+  sortKey: string;
+  stableId: string;
+  kind: "game" | "member";
+  gameId: string | null;
+  title: string | null;
+  slug: string | null;
+  copyCount: number | null;
+  userId: string | null;
+  username: string | null;
+  displayName: string | null;
 };
 
-export async function getTavernGroupGameOptionsForMember(tavernId: string) {
-  return prisma.$queryRaw<TavernGameOptionRow[]>(Prisma.sql`
+export async function getTavernGroupPlayFormOptionsForMember(tavernId: string) {
+  const rows = await prisma.$queryRaw<TavernPlayFormOptionRow[]>(Prisma.sql`
+    WITH game_options AS (
+      SELECT
+        game.id AS "gameId",
+        COALESCE(NULLIF(game.title, ''), game.name) AS title,
+        game.slug,
+        COUNT(*)::int AS "copyCount"
+      FROM "TavernGroupMember" member
+      JOIN "UserLibraryGame" ulg
+        ON ulg."userId" = member."userId" AND ulg."owned" = true
+      JOIN "Game" game
+        ON game.id = ulg."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
+      WHERE member."tavernId" = ${tavernId}
+      GROUP BY game.id, game.title, game.name, game.slug
+      ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
+      LIMIT ${MAX_TAVERN_PLAY_OPTIONS}
+    ), member_options AS (
+      SELECT
+        app_user.id AS "userId",
+        COALESCE(profile.username, 'usuario') AS username,
+        COALESCE(
+          NULLIF(profile."displayName", ''),
+          NULLIF(app_user."displayName", ''),
+          profile.username,
+          'Usuario'
+        ) AS "displayName"
+      FROM "TavernGroupMember" member
+      JOIN "User" app_user ON app_user.id = member."userId"
+      LEFT JOIN "UserProfile" profile ON profile."userId" = app_user.id
+      WHERE member."tavernId" = ${tavernId}
+      ORDER BY lower(COALESCE(NULLIF(profile."displayName", ''), NULLIF(app_user."displayName", ''), profile.username, 'Usuario')) ASC,
+        app_user.id ASC
+      LIMIT ${MAX_TAVERN_MEMBERS}
+    )
     SELECT
-      game.id AS "gameId",
-      COALESCE(NULLIF(game.title, ''), game.name) AS title,
-      game.slug,
-      COUNT(*)::int AS "copyCount"
-    FROM "TavernGroupMember" member
-    JOIN "UserLibraryGame" ulg
-      ON ulg."userId" = member."userId" AND ulg."owned" = true
-    JOIN "Game" game
-      ON game.id = ulg."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
-    WHERE member."tavernId" = ${tavernId}
-    GROUP BY game.id, game.title, game.name, game.slug
-    ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
-    LIMIT ${MAX_TAVERN_PLAY_OPTIONS}
+      0::int AS "sortGroup",
+      lower(game_options.title) AS "sortKey",
+      game_options."gameId" AS "stableId",
+      'game'::text AS kind,
+      game_options."gameId",
+      game_options.title,
+      game_options.slug,
+      game_options."copyCount",
+      NULL::text AS "userId",
+      NULL::text AS username,
+      NULL::text AS "displayName"
+    FROM game_options
+    UNION ALL
+    SELECT
+      1::int AS "sortGroup",
+      lower(member_options."displayName") AS "sortKey",
+      member_options."userId" AS "stableId",
+      'member'::text AS kind,
+      NULL::text AS "gameId",
+      NULL::text AS title,
+      NULL::text AS slug,
+      NULL::int AS "copyCount",
+      member_options."userId",
+      member_options.username,
+      member_options."displayName"
+    FROM member_options
+    ORDER BY "sortGroup" ASC, "sortKey" ASC, "stableId" ASC
   `);
+
+  return {
+    games: rows.flatMap((row) => row.kind === "game" && row.gameId && row.title && row.slug
+      ? [{ gameId: row.gameId, title: row.title, slug: row.slug, copyCount: row.copyCount || 0 }]
+      : []),
+    members: rows.flatMap((row) => row.kind === "member" && row.userId && row.username && row.displayName
+      ? [{ user: { id: row.userId, username: row.username, displayName: row.displayName } }]
+      : [])
+  };
 }
 
 export async function getTavernGroupMembers(userId: string, tavernId: string) {
@@ -827,6 +1019,69 @@ export async function getTavernGroupPlaysForMember(
         participant.user ? publicUser(participant.user) : { id: participant.id, username: "", displayName: "Usuario eliminado" }
       )
     }))
+  };
+}
+
+export async function getTavernGroupPlayHistoryForMember(
+  userId: string,
+  tavernId: string,
+  currentRole: TavernRole,
+  pageValue?: unknown
+) {
+  const page = normalizeTavernPage(pageValue);
+  const plays = await prisma.tavernGroupPlay.findMany({
+    where: { tavernId },
+    orderBy: [{ playedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+    take: TAVERN_PLAYS_PAGE_SIZE + 1,
+    skip: (page - 1) * TAVERN_PLAYS_PAGE_SIZE,
+    select: {
+      id: true,
+      gameTitleSnapshot: true,
+      gameSlugSnapshot: true,
+      playedAt: true,
+      recordedByUserId: true,
+      game: { select: { slug: true, title: true, name: true } },
+      recordedByUser: {
+        select: {
+          id: true,
+          displayName: true,
+          profile: { select: { username: true, displayName: true } }
+        }
+      },
+      participants: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              displayName: true,
+              profile: { select: { username: true, displayName: true } }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return {
+    items: plays.slice(0, TAVERN_PLAYS_PAGE_SIZE).map((play) => ({
+      id: play.id,
+      title: play.game ? play.game.title.trim() || play.game.name : play.gameTitleSnapshot,
+      slug: play.game?.slug || play.gameSlugSnapshot,
+      playedAt: play.playedAt.toISOString().slice(0, 10),
+      recordedBy: play.recordedByUser ? publicUser(play.recordedByUser) : null,
+      canDelete: canEditTavernPlay({
+        actorUserId: userId,
+        actorRole: currentRole,
+        recordedByUserId: play.recordedByUserId
+      }),
+      participants: play.participants.map((participant) =>
+        participant.user ? publicUser(participant.user) : { id: participant.id, username: "", displayName: "Usuario eliminado" }
+      )
+    })),
+    page,
+    hasNext: plays.length > TAVERN_PLAYS_PAGE_SIZE
   };
 }
 

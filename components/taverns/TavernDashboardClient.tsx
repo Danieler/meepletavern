@@ -27,6 +27,8 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
   const [name, setName] = useState("");
   const [pending, setPending] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [openingTavernId, setOpeningTavernId] = useState<string | null>(null);
+  const [invitations, setInvitations] = useState(initialDashboard.invitations);
   const [error, setError] = useState("");
 
   async function createTavern(event: FormEvent<HTMLFormElement>) {
@@ -63,7 +65,7 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
       if (action === "accept" && payload?.tavernId) {
         router.push(`/comunidad/tabernas/${payload.tavernId}`);
       } else {
-        router.refresh();
+        setInvitations((current) => current.filter((invitation) => invitation.id !== invitationId));
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "No se pudo responder.");
@@ -84,12 +86,12 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
 
       {error ? <p className="rounded-md border border-ruby/20 bg-ruby/8 px-4 py-3 text-sm font-bold text-ruby" role="alert">{error}</p> : null}
 
-      {initialDashboard.invitations.length ? (
+      {invitations.length ? (
         <section className="tavern-panel p-5 sm:p-6" aria-labelledby="pending-invitations-title">
           <p className="tavern-eyebrow">Te esperan</p>
           <h2 id="pending-invitations-title" className="font-display mt-2 text-3xl font-bold text-wood">Invitaciones pendientes</h2>
           <div className="mt-5 grid gap-3">
-            {initialDashboard.invitations.map((invitation) => (
+            {invitations.map((invitation) => (
               <article key={invitation.id} className="grid gap-4 rounded-md border border-walnut/12 bg-white/70 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div>
                   <h3 className="font-display text-xl font-bold text-wood">{invitation.tavern.name}</h3>
@@ -114,7 +116,7 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
         </section>
       ) : null}
 
-      {!initialDashboard.taverns.length && !initialDashboard.invitations.length ? renderCreateTavernPanel(true) : null}
+      {!initialDashboard.taverns.length && !invitations.length ? renderCreateTavernPanel(true) : null}
 
       {initialDashboard.taverns.length ? (
         <section>
@@ -125,25 +127,54 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
             </div>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {initialDashboard.taverns.map((tavern) => (
-              <Link key={tavern.id} href={`/comunidad/tabernas/${tavern.id}`} prefetch={false} className="tavern-card group p-5 transition hover:-translate-y-0.5 hover:border-ember/45">
-                <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-ember">
-                  {tavern.role === "ADMIN" ? <Crown size={15} /> : <UsersRound size={15} />}
-                  {tavern.role === "ADMIN" ? "Administrador" : "Miembro"}
-                </span>
-                <h3 className="font-display mt-3 break-words text-2xl font-bold text-wood group-hover:text-ember">{tavern.name}</h3>
-                <div className="mt-5 grid grid-cols-3 gap-2 border-t border-walnut/10 pt-4 text-center">
-                  <CardMetric icon={UsersRound} value={tavern.memberCount} label="Miembros" />
-                  <CardMetric icon={LibraryBig} value={tavern.uniqueGames} label="Juegos" />
-                  <CardMetric icon={Dices} value={tavern.playCount} label="Partidas" />
-                </div>
-              </Link>
-            ))}
+            {initialDashboard.taverns.map((tavern) => {
+              const isOpening = openingTavernId === tavern.id;
+
+              return (
+                <Link
+                  key={tavern.id}
+                  href={`/comunidad/tabernas/${tavern.id}`}
+                  prefetch={false}
+                  aria-busy={isOpening}
+                  onClick={(event) => {
+                    if (
+                      event.defaultPrevented
+                      || event.button !== 0
+                      || event.metaKey
+                      || event.ctrlKey
+                      || event.shiftKey
+                      || event.altKey
+                    ) return;
+                    setOpeningTavernId(tavern.id);
+                  }}
+                  className="tavern-card group p-5 transition hover:-translate-y-0.5 hover:border-ember/45"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-ember">
+                      {tavern.role === "ADMIN" ? <Crown size={15} /> : <UsersRound size={15} />}
+                      {tavern.role === "ADMIN" ? "Administrador" : "Miembro"}
+                    </span>
+                    {isOpening ? (
+                      <span className="inline-flex shrink-0 items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-walnut/55" role="status">
+                        <Loader2 className="animate-spin motion-reduce:animate-none" size={14} aria-hidden="true" />
+                        Abriendo
+                      </span>
+                    ) : null}
+                  </div>
+                  <h3 className="font-display mt-3 break-words text-2xl font-bold text-wood group-hover:text-ember">{tavern.name}</h3>
+                  <div className="mt-5 grid grid-cols-3 gap-2 border-t border-walnut/10 pt-4 text-center">
+                    <CardMetric icon={UsersRound} value={tavern.memberCount} label="Miembros" />
+                    <CardMetric icon={LibraryBig} value={tavern.uniqueGames} label="Juegos" />
+                    <CardMetric icon={Dices} value={tavern.playCount} label="Partidas" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       ) : null}
 
-      {initialDashboard.taverns.length || initialDashboard.invitations.length ? renderCreateTavernPanel(false) : null}
+      {initialDashboard.taverns.length || invitations.length ? renderCreateTavernPanel(false) : null}
     </div>
   );
 

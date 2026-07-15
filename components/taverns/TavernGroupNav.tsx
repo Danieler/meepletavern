@@ -23,6 +23,7 @@ export function TavernGroupNav({ tavernId, isAdmin }: { tavernId: string; isAdmi
             <Link
               key={href}
               href={href}
+              prefetch={false}
               aria-current={active ? "page" : undefined}
               className={`focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-extrabold transition ${
                 active ? "bg-ember/12 text-wood" : "text-walnut/70 hover:bg-vanilla hover:text-wood"

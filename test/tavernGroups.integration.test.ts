@@ -7,7 +7,10 @@ import {
   createTavernGroupPlay,
   getMyTavernDashboard,
   getTavernGroupLibrary,
+  getTavernGroupLibraryPageForMember,
   getTavernGroupMembers,
+  getTavernGroupPlayFormOptionsForMember,
+  getTavernGroupPlayHistoryForMember,
   getTavernGroupPlays,
   getTavernGroupSummary,
   inviteTavernGroupMember,
@@ -69,7 +72,7 @@ test(
 
       const tavern = await createTavernGroup(admin.id, { name: "Dados al Alba" });
       tavernId = tavern.id;
-      assert.equal((await searchTavernInviteCandidates(admin.id, tavern.id, "be"))[0]?.id, member.id);
+      assert.equal((await searchTavernInviteCandidates(admin.id, tavern.id, "be")).length, 0);
       assert.equal((await searchTavernInviteCandidates(admin.id, tavern.id, "ber"))[0]?.id, member.id);
       const invitation = await inviteTavernGroupMember(admin.id, tavern.id, {
         username: member.profile!.username
@@ -98,9 +101,12 @@ test(
         participantUserIds: [admin.id, member.id]
       });
 
-      const [libraryAfterPlay, plays, personalCount, personalLibrary] = await Promise.all([
+      const [libraryAfterPlay, libraryPage, plays, playHistory, playOptions, personalCount, personalLibrary] = await Promise.all([
         getTavernGroupLibrary(admin.id, tavern.id),
+        getTavernGroupLibraryPageForMember(tavern.id),
         getTavernGroupPlays(admin.id, tavern.id),
+        getTavernGroupPlayHistoryForMember(admin.id, tavern.id, TavernMemberRole.ADMIN),
+        getTavernGroupPlayFormOptionsForMember(tavern.id),
         prisma.userGamePlayCount.findUnique({
           where: { userId_gameId: { userId: member.id, gameId: game.id } }
         }),
@@ -109,7 +115,13 @@ test(
         })
       ]);
       assert.equal(libraryAfterPlay[0].playCount, 1);
+      assert.equal(libraryPage.items[0].playCount, 1);
+      assert.equal(libraryPage.hasNext, false);
       assert.equal(plays.items[0].participants.length, 2);
+      assert.equal(playHistory.items[0].participants.length, 2);
+      assert.equal(playHistory.hasNext, false);
+      assert.equal(playOptions.games[0].gameId, game.id);
+      assert.equal(playOptions.members.length, 2);
       assert.equal(personalCount, null);
       assert.equal(personalLibrary?.played, false);
 

@@ -4,6 +4,4 @@ import { getTavernGroupSummary } from "@/lib/tavernGroups";
 
 export { requireCurrentAppUserForRsc };
 
-export const getTavernGroupSummaryForRsc = cache((userId: string, tavernId: string) =>
-  getTavernGroupSummary(userId, tavernId)
-);
+export const getTavernGroupSummaryForRsc = cache(getTavernGroupSummary);

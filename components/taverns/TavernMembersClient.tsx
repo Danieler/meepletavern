@@ -8,6 +8,7 @@ import { TavernConfirmDialog } from "@/components/taverns/TavernConfirmDialog";
 import {
   normalizeTavernMemberQuery,
   MAX_TAVERN_MEMBER_QUERY_LENGTH,
+  MIN_TAVERN_MEMBER_QUERY_LENGTH,
   useTavernMemberSuggestions
 } from "@/hooks/useTavernMemberSuggestions";
 
@@ -38,6 +39,8 @@ export function TavernMembersClient({
   const [actionIntent, setActionIntent] = useState<MemberActionIntent | null>(null);
   const [actionError, setActionError] = useState("");
   const [feedback, setFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [members, setMembers] = useState(initialMembers);
+  const [invitations, setInvitations] = useState(initialInvitations);
   const isAdmin = currentRole === "ADMIN";
   const {
     query: memberSearchQuery,
@@ -57,13 +60,13 @@ export function TavernMembersClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username })
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (!response.ok) throw new Error(payload?.error || "No se pudo invitar al usuario.");
+      const payload = (await response.json().catch(() => null)) as { invitation?: Invitation; error?: string } | null;
+      if (!response.ok || !payload?.invitation) throw new Error(payload?.error || "No se pudo invitar al usuario.");
+      setInvitations((current) => [payload.invitation!, ...current]);
       setUsername("");
       setSelectedUsername(null);
       clearMemberSuggestions();
       setFeedback({ tone: "success", text: "Invitación enviada. La ludoteca no se compartirá hasta que la acepte." });
-      router.refresh();
     } catch (caught) {
       setFeedback({ tone: "error", text: caught instanceof Error ? caught.message : "No se pudo invitar al usuario." });
     } finally {
@@ -84,7 +87,12 @@ export function TavernMembersClient({
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(payload?.error || "No se pudo actualizar el miembro.");
-      if (action === "remove") clearMemberSuggestions();
+      if (action === "remove") {
+        clearMemberSuggestions();
+        setMembers((current) => current.filter((entry) => entry.id !== member.id));
+      } else {
+        setMembers((current) => current.map((entry) => entry.id === member.id ? { ...entry, role: nextRole } : entry));
+      }
       setFeedback({
         tone: "success",
         text: action === "remove"
@@ -92,7 +100,7 @@ export function TavernMembersClient({
           : `${member.user.displayName} ahora es ${nextRole === "ADMIN" ? "administrador" : "miembro"}.`
       });
       setActionIntent(null);
-      router.refresh();
+      if (action === "remove") router.refresh();
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : "No se pudo actualizar el miembro.");
     } finally {
@@ -112,7 +120,7 @@ export function TavernMembersClient({
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(payload?.error || "No se pudo cancelar la invitación.");
       clearMemberSuggestions();
-      router.refresh();
+      setInvitations((current) => current.filter((invitation) => invitation.id !== invitationId));
     } catch (caught) {
       setFeedback({ tone: "error", text: caught instanceof Error ? caught.message : "No se pudo cancelar la invitación." });
     } finally {
@@ -145,12 +153,12 @@ export function TavernMembersClient({
             <p><strong className="text-wood">Administradores:</strong> además invitan, gestionan roles, cambian el nombre y pueden eliminar la taberna.</p>
           </div>
           <div className="mt-5 grid gap-3">
-            {initialMembers.map((member) => (
+            {members.map((member) => (
               <article key={member.id} className="tavern-card grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-walnut/12 bg-vanilla text-wood"><UserRound size={20} /></span>
                   <div className="min-w-0">
-                    <Link href={`/u/${member.user.username}`} className="font-display block truncate text-xl font-bold text-wood hover:text-ember">{member.user.displayName}</Link>
+                    <Link href={`/u/${member.user.username}`} prefetch={false} className="font-display block truncate text-xl font-bold text-wood hover:text-ember">{member.user.displayName}</Link>
                     <p className="mt-1 flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.08em] text-walnut/48">
                       {member.role === "ADMIN" ? <Crown size={14} className="text-ember" /> : <UsersRound size={14} />}
                       {member.role === "ADMIN" ? "Administrador" : "Miembro"}{member.user.id === currentUserId ? " · Tú" : ""}
@@ -216,12 +224,12 @@ export function TavernMembersClient({
                       role="combobox"
                       aria-autocomplete="list"
                       aria-controls="tavern-member-suggestions"
-                      aria-expanded={searchFocused && memberSearchQuery.length >= 2 && memberSearchQuery !== selectedUsername}
+                      aria-expanded={searchFocused && memberSearchQuery.length >= MIN_TAVERN_MEMBER_QUERY_LENGTH && memberSearchQuery !== selectedUsername}
                     />
                     {searching ? <Loader2 className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-ember" size={16} aria-hidden="true" /> : null}
                   </span>
                 </label>
-                {searchFocused && memberSearchQuery.length >= 2 && memberSearchQuery !== selectedUsername ? (
+                {searchFocused && memberSearchQuery.length >= MIN_TAVERN_MEMBER_QUERY_LENGTH && memberSearchQuery !== selectedUsername ? (
                   <div id="tavern-member-suggestions" role="listbox" className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-walnut/15 bg-white p-1 shadow-xl">
                     {suggestions.map((candidate) => (
                       <button
@@ -251,18 +259,18 @@ export function TavernMembersClient({
                     ) : null}
                   </div>
                 ) : null}
-                <p className="mt-2 text-xs font-semibold text-walnut/50">Escribe al menos 2 caracteres para ver sugerencias.</p>
+                <p className="mt-2 text-xs font-semibold text-walnut/50">Escribe al menos {MIN_TAVERN_MEMBER_QUERY_LENGTH} caracteres para ver sugerencias.</p>
               </div>
               <button className="button-primary" disabled={pending} type="submit">{pending ? <Loader2 className="animate-spin" size={17} /> : <MailPlus size={17} />} {pending ? "Enviando..." : "Enviar invitación"}</button>
             </form>
           </section>
         ) : null}
 
-        {isAdmin && initialInvitations.length ? (
+        {isAdmin && invitations.length ? (
           <section className="tavern-card p-5">
             <h2 className="font-display text-xl font-bold text-wood">Pendientes</h2>
             <div className="mt-4 grid gap-3">
-              {initialInvitations.map((invitation) => (
+              {invitations.map((invitation) => (
                 <div key={invitation.id} className="flex items-center justify-between gap-3 border-b border-walnut/10 pb-3 last:border-0 last:pb-0">
                   <div className="min-w-0"><p className="truncate text-sm font-bold text-wood">{invitation.user.displayName}</p><p className="mt-1 truncate text-xs font-semibold text-walnut/50">@{invitation.user.username}</p></div>
                   <button className="focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-ruby/20 text-ruby" disabled={actingId === invitation.id} onClick={() => void revoke(invitation.id)} aria-label={`Cancelar invitación de ${invitation.user.displayName}`}>

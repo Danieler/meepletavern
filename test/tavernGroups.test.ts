@@ -8,16 +8,60 @@ import {
   normalizeTavernUsername,
   parseTavernRole
 } from "@/lib/tavernGroups";
-import { normalizeTavernMemberSearch } from "@/lib/tavernMemberSearchQuery";
+import {
+  canReuseTavernMemberSearchPrefix,
+  matchesTavernMemberSearch,
+  MIN_TAVERN_MEMBER_QUERY_LENGTH,
+  normalizeTavernMemberSearch
+} from "@/lib/tavernMemberSearchQuery";
 
 test("tavern input helpers normalize names, usernames and roles", () => {
   assert.equal(normalizeTavernName("  Los   del jueves  "), "Los del jueves");
   assert.equal(normalizeTavernName("x".repeat(100)).length, MAX_TAVERN_NAME_LENGTH);
   assert.equal(normalizeTavernUsername(" @Daniel "), "daniel");
+  assert.equal(MIN_TAVERN_MEMBER_QUERY_LENGTH, 3);
   assert.equal(normalizeTavernMemberSearch("  @Los   Dados  "), "los dados");
   assert.equal(normalizeTavernMemberSearch("x".repeat(100)).length, 40);
   assert.equal(parseTavernRole("ADMIN"), "ADMIN");
   assert.throws(() => parseTavernRole("OWNER"), /rol no es válido/i);
+});
+
+test("member search safely reuses only complete cached prefixes", () => {
+  const candidate = { username: "daniel", displayName: "Daniel Mesa" };
+
+  assert.equal(matchesTavernMemberSearch(candidate, "DANI"), true);
+  assert.equal(matchesTavernMemberSearch(candidate, "mesa"), true);
+  assert.equal(matchesTavernMemberSearch(candidate, "otro"), false);
+  assert.equal(canReuseTavernMemberSearchPrefix({
+    prefix: "dani",
+    query: "daniel",
+    resultCount: 4,
+    resultLimit: 8
+  }), true);
+  assert.equal(canReuseTavernMemberSearchPrefix({
+    prefix: "dan",
+    query: "dani",
+    resultCount: 4,
+    resultLimit: 8
+  }), false);
+  assert.equal(canReuseTavernMemberSearchPrefix({
+    prefix: "dani",
+    query: "daniel",
+    resultCount: 8,
+    resultLimit: 8
+  }), false);
+});
+
+test("member suggestions debounce, bound their cache and ignore aborted responses", () => {
+  const hook = readFileSync("hooks/useTavernMemberSuggestions.ts", "utf8");
+  const members = readFileSync("components/taverns/TavernMembersClient.tsx", "utf8");
+
+  assert.match(hook, /SEARCH_DELAY_MS = 375/);
+  assert.match(hook, /MAX_CACHED_QUERIES = 12/);
+  assert.match(hook, /controller\.signal\.aborted \|\| requestVersion\.current !== version/);
+  assert.match(hook, /findReusableCachedPrefix/);
+  assert.match(members, /memberSearchQuery\.length >= MIN_TAVERN_MEMBER_QUERY_LENGTH/);
+  assert.doesNotMatch(members, /memberSearchQuery\.length >= 2/);
 });
 
 test("members edit their own plays while admins can edit any play", () => {

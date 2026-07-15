@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 import { TavernPlaysClient } from "@/components/taverns/TavernPlaysClient";
-import { getTavernGroupGameOptionsForMember, getTavernGroupMembersForMember, getTavernGroupPlaysForMember } from "@/lib/tavernGroups";
+import {
+  getTavernGroupPlayFormOptionsForMember,
+  getTavernGroupPlayHistoryForMember
+} from "@/lib/tavernGroups";
 import { getTavernGroupSummaryForRsc, requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
 
-type Props = { params: Promise<{ tavernId: string }>; searchParams?: Promise<{ gameId?: string }> };
+type Props = { params: Promise<{ tavernId: string }>; searchParams?: Promise<{ gameId?: string; page?: string }> };
 
 export default async function TavernPlaysPage({ params, searchParams }: Props) {
   const { tavernId } = await params;
@@ -13,22 +16,30 @@ export default async function TavernPlaysPage({ params, searchParams }: Props) {
   } catch {
     redirect(`/auth?mode=login&next=${encodeURIComponent(`/comunidad/tabernas/${tavernId}/partidas`)}`);
   }
-  const initialGameId = (await searchParams)?.gameId;
+  const filters = await searchParams;
+  const initialGameId = filters?.gameId;
   const tavern = await getTavernGroupSummaryForRsc(user.id, tavernId);
-  const [games, memberData, plays] = await Promise.all([
-    getTavernGroupGameOptionsForMember(tavernId),
-    getTavernGroupMembersForMember(tavernId, tavern.role, { includeInvitations: false }),
-    getTavernGroupPlaysForMember(user.id, tavernId, tavern.role)
+  const [options, plays] = await Promise.all([
+    getTavernGroupPlayFormOptionsForMember(tavernId),
+    getTavernGroupPlayHistoryForMember(user.id, tavernId, tavern.role, filters?.page)
   ]);
+  if (!plays.items.length && plays.page > 1) {
+    const params = new URLSearchParams();
+    if (initialGameId) params.set("gameId", initialGameId);
+    const suffix = params.toString();
+    redirect(`/comunidad/tabernas/${tavernId}/partidas${suffix ? `?${suffix}` : ""}`);
+  }
 
   return (
     <TavernPlaysClient
       tavernId={tavernId}
       currentUserId={user.id}
-      games={games.map((game) => ({ gameId: game.gameId, title: game.title, slug: game.slug, copyCount: game.copyCount }))}
-      members={memberData.members.map((member) => ({ user: member.user }))}
+      games={options.games}
+      members={options.members}
       initialPlays={plays.items}
       initialGameId={initialGameId}
+      historyPage={plays.page}
+      hasNextHistory={plays.hasNext}
     />
   );
 }

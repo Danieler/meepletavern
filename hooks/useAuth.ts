@@ -1,7 +1,14 @@
 "use client";
 
 import type { Session, User } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  createElement,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useState
+} from "react";
 import { LEGAL_VERSION } from "@/lib/legalConstants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { getSafeInternalPath } from "@/lib/safeNextPath";
@@ -187,14 +194,29 @@ function getUnknownAuthError(error: unknown): AuthActionResult {
   };
 }
 
+type AuthContextValue = ReturnType<typeof useAuthState>;
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const auth = useAuthState(true);
+  return createElement(AuthContext.Provider, { value: auth }, children);
+}
+
 export function useAuth() {
+  const sharedAuth = useContext(AuthContext);
+  const localAuth = useAuthState(sharedAuth === null);
+  return sharedAuth || localAuth;
+}
+
+function useAuthState(enabled: boolean) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(enabled && isSupabaseConfigured);
   const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!enabled || !isSupabaseConfigured) {
       return;
     }
 
@@ -270,7 +292,7 @@ export function useAuth() {
       window.clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [enabled]);
 
   async function signUp(email: string, password: string, name?: string): Promise<AuthActionResult> {
     if (!isSupabaseConfigured) {

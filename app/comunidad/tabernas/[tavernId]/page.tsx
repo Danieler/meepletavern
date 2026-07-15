@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Dices, LibraryBig, Search, UsersRound } from "lucide-react";
-import { getTavernGroupLibraryPreviewForMember } from "@/lib/tavernGroups";
+import { getTavernGroupLibraryPageForMember } from "@/lib/tavernGroups";
 import { getTavernGroupSummaryForRsc, requireCurrentAppUserForRsc } from "@/lib/tavernRequestCache";
 
 type Props = {
   params: Promise<{ tavernId: string }>;
-  searchParams?: Promise<{ q?: string }>;
+  searchParams?: Promise<{ q?: string; page?: string }>;
 };
 
 export default async function TavernLibraryPage({ params, searchParams }: Props) {
@@ -17,9 +17,14 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
   } catch {
     redirect(`/auth?mode=login&next=${encodeURIComponent(`/comunidad/tabernas/${tavernId}`)}`);
   }
-  const q = (await searchParams)?.q || "";
+  const filters = await searchParams;
+  const q = filters?.q || "";
   await getTavernGroupSummaryForRsc(user.id, tavernId);
-  const games = await getTavernGroupLibraryPreviewForMember(tavernId, q);
+  const library = await getTavernGroupLibraryPageForMember(tavernId, q, filters?.page);
+  if (!library.items.length && library.page > 1) {
+    redirect(buildLibraryHref(tavernId, q, 1));
+  }
+  const games = library.items;
 
   return (
     <section className="space-y-6">
@@ -42,38 +47,64 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
       </div>
 
       {games.length ? (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {games.map((game) => (
-            <article key={game.gameId} className="tavern-card overflow-hidden">
-              <Link href={`/juegos/${game.slug}`} className="block">
-                <div className="aspect-[4/3] overflow-hidden bg-walnut/8">
-                  {game.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={game.coverImageUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-walnut/20"><LibraryBig size={44} /></div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-display line-clamp-2 text-xl font-bold text-wood">{game.title}</h3>
-                </div>
-              </Link>
-              <div className="border-t border-walnut/10 p-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <Metric icon={LibraryBig} value={game.copyCount} label={game.copyCount === 1 ? "copia" : "copias"} />
-                  <Metric icon={Dices} value={game.playCount} label={game.playCount === 1 ? "partida" : "partidas"} />
-                </div>
-                <div className="mt-4 flex items-start gap-2 text-xs font-semibold leading-5 text-walnut/60">
-                  <UsersRound size={15} className="mt-0.5 shrink-0" />
-                  <span>{formatOwners(game.owners.map((owner) => owner.displayName), game.copyCount)}</span>
-                </div>
-                <Link className="button-primary mt-4 w-full" prefetch={false} href={`/comunidad/tabernas/${tavernId}/partidas?gameId=${encodeURIComponent(game.gameId)}`}>
-                  <Dices size={17} /> Registrar partida
+        <>
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {games.map((game, index) => (
+              <article key={game.gameId} className="tavern-card overflow-hidden">
+                <Link href={`/juegos/${game.slug}`} prefetch={false} className="block">
+                  <div className="aspect-[4/3] overflow-hidden bg-walnut/8">
+                    {game.coverImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={game.coverImageUrl}
+                        alt=""
+                        width={640}
+                        height={480}
+                        loading={index === 0 ? "eager" : "lazy"}
+                        fetchPriority={index === 0 ? "high" : "low"}
+                        decoding="async"
+                        className="h-full w-full object-cover transition duration-500 hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-walnut/20"><LibraryBig size={44} /></div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-display line-clamp-2 text-xl font-bold text-wood">{game.title}</h3>
+                  </div>
                 </Link>
-              </div>
-            </article>
-          ))}
-        </div>
+                <div className="border-t border-walnut/10 p-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Metric icon={LibraryBig} value={game.copyCount} label={game.copyCount === 1 ? "copia" : "copias"} />
+                    <Metric icon={Dices} value={game.playCount} label={game.playCount === 1 ? "partida" : "partidas"} />
+                  </div>
+                  <div className="mt-4 flex items-start gap-2 text-xs font-semibold leading-5 text-walnut/60">
+                    <UsersRound size={15} className="mt-0.5 shrink-0" />
+                    <span>{formatOwners(game.owners.map((owner) => owner.displayName), game.copyCount)}</span>
+                  </div>
+                  <Link className="button-primary mt-4 w-full" prefetch={false} href={`/comunidad/tabernas/${tavernId}/partidas?gameId=${encodeURIComponent(game.gameId)}`}>
+                    <Dices size={17} /> Registrar partida
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+          {library.page > 1 || library.hasNext ? (
+            <nav className="flex items-center justify-center gap-3" aria-label="Páginas de la ludoteca">
+              {library.page > 1 ? (
+                <Link className="button-secondary" href={buildLibraryHref(tavernId, q, library.page - 1)} prefetch={false}>
+                  Anterior
+                </Link>
+              ) : null}
+              <span className="text-sm font-bold text-walnut/55">Página {library.page}</span>
+              {library.hasNext ? (
+                <Link className="button-secondary" href={buildLibraryHref(tavernId, q, library.page + 1)} prefetch={false}>
+                  Siguiente
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
+        </>
       ) : (
         <div className="tavern-card p-8 text-center">
           <LibraryBig className="mx-auto text-ember" size={36} />
@@ -81,7 +112,7 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
           <p className="mx-auto mt-3 max-w-xl text-sm font-semibold leading-6 text-walnut/65">
             {q ? "Prueba con otro título." : "Cuando algún miembro marque un juego como “En casa”, aparecerá aquí automáticamente."}
           </p>
-          {!q ? <Link href="/juegos" className="button-primary mt-5">Explorar juegos</Link> : null}
+          {!q ? <Link href="/juegos" prefetch={false} className="button-primary mt-5">Explorar juegos</Link> : null}
         </div>
       )}
     </section>
@@ -102,4 +133,12 @@ function formatOwners(names: string[], copyCount: number) {
   if (!names.length) return "Sin propietario actual";
   if (copyCount <= names.length) return names.join(", ");
   return `${names.join(", ")} y ${copyCount - names.length} más`;
+}
+
+function buildLibraryHref(tavernId: string, query: string, page: number) {
+  const params = new URLSearchParams();
+  if (query.trim()) params.set("q", query.trim());
+  if (page > 1) params.set("page", String(page));
+  const suffix = params.toString();
+  return `/comunidad/tabernas/${tavernId}${suffix ? `?${suffix}` : ""}`;
 }

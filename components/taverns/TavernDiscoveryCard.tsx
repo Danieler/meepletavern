@@ -41,7 +41,7 @@ export function TavernDiscoveryCard() {
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               {user ? (
-                <Link className="button-primary" href="/comunidad/tabernas">
+                <Link className="button-primary" href="/comunidad/tabernas" prefetch={false}>
                   Abrir mis tabernas <ArrowRight size={17} />
                 </Link>
               ) : (

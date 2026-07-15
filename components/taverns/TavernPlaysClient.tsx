@@ -23,7 +23,9 @@ export function TavernPlaysClient({
   games,
   members,
   initialPlays,
-  initialGameId
+  initialGameId,
+  historyPage,
+  hasNextHistory
 }: {
   tavernId: string;
   currentUserId: string;
@@ -31,6 +33,8 @@ export function TavernPlaysClient({
   members: Member[];
   initialPlays: Play[];
   initialGameId?: string;
+  historyPage: number;
+  hasNextHistory: boolean;
 }) {
   const validInitialGame = games.some((game) => game.gameId === initialGameId) ? initialGameId || "" : games[0]?.gameId || "";
   const [gameId, setGameId] = useState(validInitialGame);
@@ -161,7 +165,7 @@ export function TavernPlaysClient({
               <article key={play.id} className="tavern-card p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    {play.slug ? <Link href={`/juegos/${play.slug}`} className="font-display text-2xl font-bold text-wood hover:text-ember">{play.title}</Link> : <h3 className="font-display text-2xl font-bold text-wood">{play.title}</h3>}
+                    {play.slug ? <Link href={`/juegos/${play.slug}`} prefetch={false} className="font-display text-2xl font-bold text-wood hover:text-ember">{play.title}</Link> : <h3 className="font-display text-2xl font-bold text-wood">{play.title}</h3>}
                     <p className="mt-2 inline-flex items-center gap-2 text-sm font-bold text-walnut/62"><CalendarDays size={16} /> <time dateTime={play.playedAt}>{formatDate(play.playedAt)}</time></p>
                   </div>
                   {play.canDelete ? (
@@ -177,6 +181,21 @@ export function TavernPlaysClient({
                 </div>
               </article>
             ))}
+            {historyPage > 1 || hasNextHistory ? (
+              <nav className="flex items-center justify-center gap-3 pt-2" aria-label="Páginas del historial de partidas">
+                {historyPage > 1 ? (
+                  <Link href={buildHistoryHref(tavernId, initialGameId, historyPage - 1)} prefetch={false} className="button-secondary">
+                    Anterior
+                  </Link>
+                ) : null}
+                <span className="text-sm font-bold text-walnut/55">Página {historyPage}</span>
+                {hasNextHistory ? (
+                  <Link href={buildHistoryHref(tavernId, initialGameId, historyPage + 1)} prefetch={false} className="button-secondary">
+                    Siguiente
+                  </Link>
+                ) : null}
+              </nav>
+            ) : null}
           </div>
         ) : (
           <div className="tavern-card mt-5 p-8 text-center">
@@ -192,4 +211,12 @@ export function TavernPlaysClient({
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${value}T12:00:00.000Z`));
+}
+
+function buildHistoryHref(tavernId: string, gameId: string | undefined, page: number) {
+  const params = new URLSearchParams();
+  if (gameId) params.set("gameId", gameId);
+  if (page > 1) params.set("page", String(page));
+  const suffix = params.toString();
+  return `/comunidad/tabernas/${tavernId}/partidas${suffix ? `?${suffix}` : ""}`;
 }

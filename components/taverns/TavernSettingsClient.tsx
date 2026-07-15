@@ -37,7 +37,6 @@ export function TavernSettingsClient({ tavernId, name: initialName, role }: { ta
     try {
       await mutate(`/api/account/taverns/${tavernId}/leave`, "POST", {});
       router.push("/comunidad/tabernas");
-      router.refresh();
     } catch (caught) {
       setConfirmError(errorText(caught));
       setPending(null);
@@ -57,7 +56,6 @@ export function TavernSettingsClient({ tavernId, name: initialName, role }: { ta
     try {
       await mutate(`/api/account/taverns/${tavernId}`, "DELETE", { confirmation });
       router.push("/comunidad/tabernas");
-      router.refresh();
     } catch (caught) {
       setConfirmError(errorText(caught));
       setPending(null);

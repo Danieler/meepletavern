@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function MyTavernsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <PublicShell>
+    <PublicShell mode="account">
       <CommunitySectionNav />
       <main className="container-page py-8 lg:py-12">{children}</main>
     </PublicShell>

@@ -126,7 +126,7 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
     return (
       <div className="grid gap-1">
         {accountLinks.map((item) => (
-          <Link key={item.href} className="mobile-account-link" href={item.href}>
+          <Link key={item.href} className="mobile-account-link" href={item.href} prefetch={false}>
             <BrandIcon name={item.icon} size={17} />
             <span>{item.href === "/mi-perfil" ? (profileLabel || item.label) : item.label}</span>
           </Link>
@@ -163,6 +163,7 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className="header-account-item"
                 onClick={() => setAccountOpen(false)}
               >
