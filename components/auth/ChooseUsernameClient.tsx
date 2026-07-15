@@ -8,7 +8,7 @@ import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@/lib/usernames";
 
 export function ChooseUsernameClient({ nextPath }: { nextPath: string }) {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [username, setUsername] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +26,9 @@ export function ChooseUsernameClient({ nextPath }: { nextPath: string }) {
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(payload?.error || "No se pudo guardar el nombre de usuario.");
+      if (typeof window !== "undefined" && user?.id) {
+        window.sessionStorage.setItem(`meepletavern_username_ready:${user.id}`, "1");
+      }
       router.replace(nextPath);
       router.refresh();
     } catch (caught) {

@@ -53,11 +53,26 @@ export function AuthPageClient({ nextPath, initialMode, authContext }: AuthPageC
       }
     };
 
+    const resolveDestination = async () => {
+      try {
+        const response = await fetch("/api/account/username", { cache: "no-store" });
+        if (!response.ok) {
+          return nextPath;
+        }
+
+        const payload = (await response.json().catch(() => null)) as { required?: boolean } | null;
+        return payload?.required ? buildUsernameOnboardingPath(nextPath) : nextPath;
+      } catch {
+        return nextPath;
+      }
+    };
+
     syncPendingLegalAcceptance()
       .catch((err) => console.error("Error syncing legal acceptance:", err))
       .then(syncOnboardingGames)
-      .then(() => {
-        router.replace(buildUsernameOnboardingPath(nextPath));
+      .then(resolveDestination)
+      .then((destination) => {
+        router.replace(destination);
       });
   }, [loading, nextPath, router, user]);
 

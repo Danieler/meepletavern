@@ -42,7 +42,7 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
       });
       const payload = (await response.json().catch(() => null)) as { tavern?: { id: string }; error?: string } | null;
       if (!response.ok || !payload?.tavern) throw new Error(payload?.error || "No se pudo crear la taberna.");
-      router.push(`/comunidad/tabernas/${payload.tavern.id}`);
+      router.push(`/comunidad/tabernas/${payload.tavern.id}/miembros`);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "No se pudo crear la taberna.");
@@ -74,19 +74,12 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
 
   return (
     <div className="space-y-8">
-      <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
-        <div>
-          <p className="tavern-eyebrow">Ludotecas de grupo</p>
-          <h1 className="font-display mt-2 text-4xl font-bold text-wood sm:text-5xl">Mis tabernas</h1>
-          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-walnut/68">
-            Una taberna es un grupo privado que reúne automáticamente los juegos que cada miembro tiene “En casa”. Así podéis ver qué tenéis entre todos y guardar vuestras partidas de grupo por separado.
-          </p>
-        </div>
-        <ol className="grid gap-2 rounded-md border border-walnut/12 bg-white/65 p-4 shadow-sm" aria-label="Cómo empezar una taberna">
-          <DashboardStep number="1" text="Ponle un nombre a vuestro grupo." />
-          <DashboardStep number="2" text="Invita a tus compañeros por usuario." />
-          <DashboardStep number="3" text="Elegid entre todos los juegos disponibles." />
-        </ol>
+      <header>
+        <p className="tavern-eyebrow">Ludotecas de grupo</p>
+        <h1 className="font-display mt-2 text-4xl font-bold text-wood sm:text-5xl">Mis tabernas</h1>
+        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-walnut/68">
+          Crea un espacio privado para reunir los juegos que vuestro grupo tiene “En casa” y registrar las partidas que jugáis juntos.
+        </p>
       </header>
 
       {error ? <p className="rounded-md border border-ruby/20 bg-ruby/8 px-4 py-3 text-sm font-bold text-ruby" role="alert">{error}</p> : null}
@@ -121,6 +114,8 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
         </section>
       ) : null}
 
+      {!initialDashboard.taverns.length && !initialDashboard.invitations.length ? renderCreateTavernPanel(true) : null}
+
       {initialDashboard.taverns.length ? (
         <section>
           <div className="mb-5 flex items-end justify-between gap-4">
@@ -148,18 +143,24 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
         </section>
       ) : null}
 
+      {initialDashboard.taverns.length || initialDashboard.invitations.length ? renderCreateTavernPanel(false) : null}
+    </div>
+  );
+
+  function renderCreateTavernPanel(firstTavern: boolean) {
+    return (
       <section className="tavern-panel p-5 sm:p-6" aria-labelledby="create-tavern-title">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-ember/10 text-ember"><Plus size={20} /></span>
           <div>
             <p className="tavern-eyebrow">Crear grupo</p>
             <h2 id="create-tavern-title" className="font-display mt-1 text-2xl font-bold text-wood">
-              {initialDashboard.taverns.length ? "Nueva taberna" : "Crea tu primera taberna"}
+              {firstTavern ? "Crea tu primera taberna" : "Nueva taberna"}
             </h2>
           </div>
         </div>
         <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-walnut/62">
-          Empieza con un nombre reconocible para el grupo. Cuando esté creada podrás invitar miembros; sus juegos no aparecerán hasta que acepten.
+          Ponle un nombre reconocible. Después podrás invitar a tus compañeros; sus juegos no aparecerán hasta que acepten.
         </p>
         <form className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={createTavern}>
           <label>
@@ -172,17 +173,8 @@ export function TavernDashboardClient({ initialDashboard }: { initialDashboard: 
           </button>
         </form>
       </section>
-    </div>
-  );
-}
-
-function DashboardStep({ number, text }: { number: string; text: string }) {
-  return (
-    <li className="grid grid-cols-[28px_minmax(0,1fr)] items-center gap-2.5 text-sm font-bold text-walnut/68">
-      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ember/12 text-xs font-black text-ember">{number}</span>
-      {text}
-    </li>
-  );
+    );
+  }
 }
 
 function CardMetric({ icon: Icon, value, label }: { icon: typeof UsersRound; value: number; label: string }) {

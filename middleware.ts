@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestAuditSummary, logEgressAudit } from "@/lib/egressAudit";
+import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const canonicalHostResponse = getCanonicalHostResponse(request);
   if (canonicalHostResponse) {
     return canonicalHostResponse;
@@ -21,7 +22,12 @@ export function middleware(request: NextRequest) {
       return canonicalCatalogQueryResponse;
     }
 
-    const response = NextResponse.next();
+    let response = NextResponse.next();
+    if (isSupabaseSessionPath(request.nextUrl.pathname)) {
+      const supabaseClient = createSupabaseMiddlewareClient(request);
+      await supabaseClient.supabase.auth.getUser();
+      response = supabaseClient.response;
+    }
     if (isFilteredCatalogPath(request)) {
       response.headers.set("X-Robots-Tag", "noindex, nofollow");
     }
@@ -62,6 +68,22 @@ function getCanonicalHostResponse(request: NextRequest) {
 
 function isFilteredCatalogPath(request: NextRequest) {
   return request.nextUrl.pathname === "/juegos" && request.nextUrl.searchParams.size > 0;
+}
+
+function isSupabaseSessionPath(pathname: string) {
+  return (
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/bienvenida/usuario" ||
+    pathname === "/comunidad/tabernas" ||
+    pathname.startsWith("/comunidad/tabernas/") ||
+    pathname === "/comunidad/invitaciones" ||
+    pathname.startsWith("/comunidad/invitaciones/") ||
+    pathname === "/mi-perfil" ||
+    pathname.startsWith("/mi-perfil/") ||
+    pathname === "/api/account" ||
+    pathname.startsWith("/api/account/")
+  );
 }
 
 function getCatalogFilterGuardResponse(request: NextRequest, auditSummary: Record<string, unknown>) {
@@ -449,6 +471,12 @@ export const config = {
       ]
     },
     "/admin/:path*",
-    "/api/admin/:path*"
+    "/api/admin/:path*",
+    "/auth/:path*",
+    "/bienvenida/usuario",
+    "/comunidad/tabernas/:path*",
+    "/comunidad/invitaciones/:path*",
+    "/mi-perfil/:path*",
+    "/api/account/:path*"
   ]
 };

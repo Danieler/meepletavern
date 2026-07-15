@@ -1,7 +1,10 @@
+import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthPageClient } from "@/components/auth/AuthPageClient";
 import type { AuthContext } from "@/components/auth-cta/authCtaUrl";
+import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { getSafeInternalPath } from "@/lib/safeNextPath";
+import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 const VALID_AUTH_CONTEXTS: AuthContext[] = ["owned", "wishlist", "rating", "list", "comment", "table"];
 
@@ -30,6 +33,21 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
   const authContext = VALID_AUTH_CONTEXTS.includes(authContextValue as AuthContext)
     ? (authContextValue as AuthContext)
     : undefined;
+
+  let account: Awaited<ReturnType<typeof requireCurrentAppUser>> | null = null;
+  try {
+    account = await requireCurrentAppUser();
+  } catch {
+    // Guests should stay on the auth page.
+  }
+
+  if (account) {
+    redirect(
+      account.profile?.usernameSetupRequired === true
+        ? buildUsernameOnboardingPath(redirectPath)
+        : redirectPath
+    );
+  }
 
   return (
     <AuthShell>

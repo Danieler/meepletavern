@@ -92,7 +92,7 @@ export function TavernPlaysClient({
   return (
     <div className="grid gap-7 xl:grid-cols-[380px_minmax(0,1fr)] xl:items-start">
       <section className="tavern-panel p-5 sm:p-6 xl:sticky xl:top-28">
-        <p className="tavern-eyebrow">Nueva partida</p>
+        <p className="tavern-eyebrow">Registro de partida</p>
         <h2 className="font-display mt-2 text-3xl font-bold text-wood">Registrar partida</h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-walnut/65">
           Cuenta únicamente para esta taberna. No modifica las partidas personales de ningún participante.

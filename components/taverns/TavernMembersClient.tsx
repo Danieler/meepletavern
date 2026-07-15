@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { Crown, Loader2, MailPlus, Shield, Trash2, UserMinus, UserRound, UsersRound } from "lucide-react";
+import { TavernConfirmDialog } from "@/components/taverns/TavernConfirmDialog";
 import {
   normalizeTavernMemberQuery,
   MAX_TAVERN_MEMBER_QUERY_LENGTH,
@@ -13,6 +14,7 @@ import {
 type Person = { id: string; username: string; displayName: string };
 type Member = { id: string; role: "ADMIN" | "MEMBER"; joinedAt: string; user: Person };
 type Invitation = { id: string; expiresAt: string; user: Person };
+type MemberActionIntent = { member: Member; action: "role" | "remove" };
 
 export function TavernMembersClient({
   tavernId,
@@ -33,6 +35,8 @@ export function TavernMembersClient({
   const [searchFocused, setSearchFocused] = useState(false);
   const [pending, setPending] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [actionIntent, setActionIntent] = useState<MemberActionIntent | null>(null);
+  const [actionError, setActionError] = useState("");
   const [feedback, setFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const isAdmin = currentRole === "ADMIN";
   const {
@@ -69,8 +73,8 @@ export function TavernMembersClient({
 
   async function memberAction(member: Member, action: "role" | "remove") {
     const nextRole = member.role === "ADMIN" ? "MEMBER" : "ADMIN";
-    if (action === "remove" && !window.confirm(`¿Expulsar a ${member.user.displayName} de la taberna?`)) return;
     setActingId(member.id);
+    setActionError("");
     setFeedback(null);
     try {
       const response = await fetch(`/api/account/taverns/${tavernId}/members/${member.id}`, {
@@ -81,9 +85,16 @@ export function TavernMembersClient({
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) throw new Error(payload?.error || "No se pudo actualizar el miembro.");
       if (action === "remove") clearMemberSuggestions();
+      setFeedback({
+        tone: "success",
+        text: action === "remove"
+          ? `${member.user.displayName} ya no forma parte de la taberna.`
+          : `${member.user.displayName} ahora es ${nextRole === "ADMIN" ? "administrador" : "miembro"}.`
+      });
+      setActionIntent(null);
       router.refresh();
     } catch (caught) {
-      setFeedback({ tone: "error", text: caught instanceof Error ? caught.message : "No se pudo actualizar el miembro." });
+      setActionError(caught instanceof Error ? caught.message : "No se pudo actualizar el miembro.");
     } finally {
       setActingId(null);
     }
@@ -109,40 +120,74 @@ export function TavernMembersClient({
     }
   }
 
-  return (
-    <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-      <section>
-        <p className="tavern-eyebrow">La mesa</p>
-        <h2 className="font-display mt-2 text-3xl font-bold text-wood">Miembros</h2>
-        <div className="mt-5 grid gap-3">
-          {initialMembers.map((member) => (
-            <article key={member.id} className="tavern-card grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-walnut/12 bg-vanilla text-wood"><UserRound size={20} /></span>
-                <div className="min-w-0">
-                  <Link href={`/u/${member.user.username}`} className="font-display block truncate text-xl font-bold text-wood hover:text-ember">{member.user.displayName}</Link>
-                  <p className="mt-1 flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.08em] text-walnut/48">
-                    {member.role === "ADMIN" ? <Crown size={14} className="text-ember" /> : <UsersRound size={14} />}
-                    {member.role === "ADMIN" ? "Administrador" : "Miembro"}{member.user.id === currentUserId ? " · Tú" : ""}
-                  </p>
-                </div>
-              </div>
-              {isAdmin && member.user.id !== currentUserId ? (
-                <div className="flex flex-wrap gap-2">
-                  <button className="button-secondary" disabled={actingId === member.id} onClick={() => void memberAction(member, "role")}>
-                    <Shield size={16} /> {member.role === "ADMIN" ? "Hacer miembro" : "Hacer admin"}
-                  </button>
-                  <button className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md border border-ruby/20 text-ruby hover:bg-ruby/8" disabled={actingId === member.id} onClick={() => void memberAction(member, "remove")} aria-label={`Expulsar a ${member.user.displayName}`}>
-                    {actingId === member.id ? <Loader2 className="animate-spin" size={16} /> : <UserMinus size={16} />}
-                  </button>
-                </div>
-              ) : null}
-            </article>
-          ))}
-        </div>
-      </section>
+  const actionMember = actionIntent?.member;
+  const nextActionRole = actionMember?.role === "ADMIN" ? "MEMBER" : "ADMIN";
+  const actionTitle = actionIntent?.action === "remove"
+    ? `¿Expulsar a ${actionMember?.user.displayName || "este miembro"}?`
+    : nextActionRole === "ADMIN"
+      ? `¿Hacer administrador a ${actionMember?.user.displayName || "este miembro"}?`
+      : `¿Retirar los permisos de ${actionMember?.user.displayName || "este administrador"}?`;
+  const actionDescription = actionIntent?.action === "remove"
+    ? "Sus juegos dejarán de aparecer en la ludoteca conjunta. Las partidas que ya figuran en el historial se conservarán."
+    : nextActionRole === "ADMIN"
+      ? "Podrá invitar y expulsar miembros, cambiar roles, renombrar la taberna y eliminarla definitivamente."
+      : "Seguirá formando parte de la taberna y podrá consultar la ludoteca y registrar partidas, pero ya no podrá administrarla.";
+  const actionPending = Boolean(actionMember && actingId === actionMember.id);
 
-      <aside className="space-y-5 xl:sticky xl:top-28">
+  return (
+    <>
+      <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <section>
+          <p className="tavern-eyebrow">La mesa</p>
+          <h2 className="font-display mt-2 text-3xl font-bold text-wood">Miembros</h2>
+          <div className="mt-4 grid gap-2 rounded-md border border-walnut/12 bg-white/55 p-4 text-sm font-semibold leading-6 text-walnut/68 sm:grid-cols-2">
+            <p><strong className="text-wood">Miembros:</strong> consultan la ludoteca conjunta y registran partidas.</p>
+            <p><strong className="text-wood">Administradores:</strong> además invitan, gestionan roles, cambian el nombre y pueden eliminar la taberna.</p>
+          </div>
+          <div className="mt-5 grid gap-3">
+            {initialMembers.map((member) => (
+              <article key={member.id} className="tavern-card grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-walnut/12 bg-vanilla text-wood"><UserRound size={20} /></span>
+                  <div className="min-w-0">
+                    <Link href={`/u/${member.user.username}`} className="font-display block truncate text-xl font-bold text-wood hover:text-ember">{member.user.displayName}</Link>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.08em] text-walnut/48">
+                      {member.role === "ADMIN" ? <Crown size={14} className="text-ember" /> : <UsersRound size={14} />}
+                      {member.role === "ADMIN" ? "Administrador" : "Miembro"}{member.user.id === currentUserId ? " · Tú" : ""}
+                    </p>
+                  </div>
+                </div>
+                {isAdmin && member.user.id !== currentUserId ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className="button-secondary"
+                      disabled={actingId === member.id}
+                      onClick={() => {
+                        setActionError("");
+                        setActionIntent({ member, action: "role" });
+                      }}
+                    >
+                      <Shield size={16} /> {member.role === "ADMIN" ? "Hacer miembro" : "Hacer administrador"}
+                    </button>
+                    <button
+                      className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md border border-ruby/20 text-ruby hover:bg-ruby/8"
+                      disabled={actingId === member.id}
+                      onClick={() => {
+                        setActionError("");
+                        setActionIntent({ member, action: "remove" });
+                      }}
+                      aria-label={`Expulsar a ${member.user.displayName}`}
+                    >
+                      {actingId === member.id ? <Loader2 className="animate-spin" size={16} /> : <UserMinus size={16} />}
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <aside className="space-y-5 xl:sticky xl:top-28">
         {isAdmin ? (
           <section className="tavern-panel p-5">
             <MailPlus className="text-ember" size={22} />
@@ -230,7 +275,27 @@ export function TavernMembersClient({
         ) : null}
 
         {feedback ? <p className={`rounded-md border px-4 py-3 text-sm font-bold ${feedback.tone === "success" ? "border-moss/20 bg-moss/8 text-moss" : "border-ruby/20 bg-ruby/8 text-ruby"}`} role={feedback.tone === "error" ? "alert" : "status"}>{feedback.text}</p> : null}
-      </aside>
-    </div>
+        </aside>
+      </div>
+
+      <TavernConfirmDialog
+        open={Boolean(actionIntent)}
+        title={actionTitle}
+        description={actionDescription}
+        confirmLabel={actionIntent?.action === "remove" ? "Expulsar miembro" : nextActionRole === "ADMIN" ? "Hacer administrador" : "Hacer miembro"}
+        pendingLabel={actionIntent?.action === "remove" ? "Expulsando..." : "Actualizando..."}
+        pending={actionPending}
+        error={actionError}
+        tone={actionIntent?.action === "remove" ? "danger" : "default"}
+        onCancel={() => {
+          if (actionPending) return;
+          setActionIntent(null);
+          setActionError("");
+        }}
+        onConfirm={() => {
+          if (actionIntent) void memberAction(actionIntent.member, actionIntent.action);
+        }}
+      />
+    </>
   );
 }
