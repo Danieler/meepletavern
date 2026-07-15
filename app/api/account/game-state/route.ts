@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { accountApiErrorResponse, accountApiJson } from "@/lib/accountErrors";
 import { requireCurrentAppUserWithGameState } from "@/lib/accountLibrary";
 
 export async function GET(request: Request) {
@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const gameId = url.searchParams.get("gameId")?.trim();
 
     if (!gameId) {
-      return NextResponse.json({ error: "Indica el juego." }, { status: 400 });
+      return accountApiJson({ error: "Indica el juego." }, { status: 400 });
     }
 
     const appUserWithState = await requireCurrentAppUserWithGameState(gameId);
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const playCount = appUserWithState.gamePlayCounts[0] || null;
     const comment = appUserWithState.comments[0] || null;
 
-    return NextResponse.json({
+    return accountApiJson({
       ok: true,
       rating: rating?.score ?? null,
       library,
@@ -30,9 +30,6 @@ export async function GET(request: Request) {
       comment: comment || null
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No autenticado." },
-      { status: 401 }
-    );
+    return accountApiErrorResponse(error);
   }
 }

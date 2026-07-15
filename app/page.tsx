@@ -60,11 +60,11 @@ export const revalidate = 3600;
 
 export default async function Home() {
   const [compatibilityPopularGames, beginnerGames, newGames, categoryTerms, siteStats] = await Promise.all([
-    getPopularGames(48),
-    getBeginnerGames(4),
-    getNewGames(4),
-    getCategoryTerms(),
-    getPublicSiteStats()
+    safePublicData("home.popularGames", () => getPopularGames(48), [] as CatalogGame[]),
+    safePublicData("home.beginnerGames", () => getBeginnerGames(4), [] as CatalogGame[]),
+    safePublicData("home.newGames", () => getNewGames(4), [] as CatalogGame[]),
+    safePublicData("home.categoryTerms", () => getCategoryTerms(), [] as string[]),
+    safePublicData("home.siteStats", () => getPublicSiteStats(), null as PublicSiteStats | null)
   ]);
   const popularGames = compatibilityPopularGames.slice(0, 6);
 
@@ -342,24 +342,28 @@ export default async function Home() {
                 </p>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <HomePulseStat
-                    icon={LibraryBig}
-                    value={siteStats.publishedGames}
-                    label="Fichas"
-                    description="juegos publicados para explorar"
-                  />
-                  <HomePulseStat
-                    icon={BookOpenText}
-                    value={siteStats.approvedReviews}
-                    label="Reseñas"
-                    description="lecturas con criterio de mesa"
-                  />
-                  <HomePulseStat
-                    icon={Users}
-                    value={siteStats.publicProfiles}
-                    label="Taberneros"
-                    description="perfiles públicos en la comunidad"
-                  />
+                  {siteStats ? (
+                    <>
+                      <HomePulseStat
+                        icon={LibraryBig}
+                        value={siteStats.publishedGames}
+                        label="Fichas"
+                        description="juegos publicados para explorar"
+                      />
+                      <HomePulseStat
+                        icon={BookOpenText}
+                        value={siteStats.approvedReviews}
+                        label="Reseñas"
+                        description="lecturas con criterio de mesa"
+                      />
+                      <HomePulseStat
+                        icon={Users}
+                        value={siteStats.publicProfiles}
+                        label="Taberneros"
+                        description="perfiles públicos en la comunidad"
+                      />
+                    </>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -490,7 +494,17 @@ const TAVERN_FEATURES = [
   }
 ] as const;
 
-function HomeStatsStrip({ stats }: { stats: PublicSiteStats }) {
+async function safePublicData<T>(label: string, loader: () => Promise<T>, fallback: T) {
+  try {
+    return await loader();
+  } catch (error) {
+    console.error(`[public-data] ${label} unavailable`, error);
+    return fallback;
+  }
+}
+
+function HomeStatsStrip({ stats }: { stats: PublicSiteStats | null }) {
+  if (!stats) return null;
   const items = buildStatsStripItems(stats);
 
   return (

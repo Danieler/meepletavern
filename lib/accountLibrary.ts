@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { AuthenticationRequiredError } from "@/lib/accountErrors";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { upsertAppUserFromAuthUser } from "@/lib/userAccounts";
@@ -12,7 +13,7 @@ export async function requireCurrentAppUser() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new Error("No autenticado.");
+    throw new AuthenticationRequiredError();
   }
 
   // Try to find the user first to avoid writing on every API call
@@ -37,7 +38,7 @@ export async function requireCurrentAppUserWithGameState(gameId: string) {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new Error("No autenticado.");
+    throw new AuthenticationRequiredError();
   }
 
   // Find user and retrieve game-specific state in a single query

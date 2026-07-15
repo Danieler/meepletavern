@@ -1,28 +1,19 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
-import { setPendingAction, executePendingAction } from "@/lib/pendingActions";
-import { trackEvent } from "@/lib/privacySafeAnalytics";
+import { setPendingAction } from "@/lib/pendingActions";
 
 export function GameCardSaveButton({ gameId, gameTitle }: { gameId: string; gameTitle: string }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const next = pathname || "/";
 
-  const handleAuthSuccess = async () => {
+  const handleAuthSuccess = () => {
     setOpen(false);
-    const result = await executePendingAction();
-    if (result && result.ok && result.type === "SAVE_GAME") {
-      trackEvent("pending_action_completed");
-      router.refresh();
-    } else {
-      router.refresh();
-    }
   };
 
   if (loading || user) {

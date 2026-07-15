@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { accountApiErrorResponse, accountApiJson } from "@/lib/accountErrors";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import { prisma } from "@/lib/prisma";
 import {
@@ -17,7 +17,7 @@ async function mutatePlayCount(request: Request) {
     const direction = body?.direction === "decrement" ? "decrement" : "increment";
 
     if (!gameId) {
-      return NextResponse.json({ error: "Falta el juego." }, { status: 400 });
+      return accountApiJson({ error: "Falta el juego." }, { status: 400 });
     }
 
     const game = await prisma.game.findUnique({
@@ -26,7 +26,7 @@ async function mutatePlayCount(request: Request) {
     });
 
     if (!game) {
-      return NextResponse.json({ error: "El juego no existe." }, { status: 404 });
+      return accountApiJson({ error: "El juego no existe." }, { status: 404 });
     }
 
     const result =
@@ -34,12 +34,9 @@ async function mutatePlayCount(request: Request) {
         ? await decrementCurrentUserGamePlayCount(appUser.id, game.id)
         : await incrementCurrentUserGamePlayCount(appUser.id, game.id);
 
-    return NextResponse.json({ ok: true, count: result.count });
+    return accountApiJson({ ok: true, count: result.count });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No autenticado." },
-      { status: 401 }
-    );
+    return accountApiErrorResponse(error);
   }
 }
 
@@ -50,7 +47,7 @@ export async function GET(request: Request) {
     const gameId = searchParams.get("gameId")?.trim();
 
     if (!gameId) {
-      return NextResponse.json({ error: "Falta el juego." }, { status: 400 });
+      return accountApiJson({ error: "Falta el juego." }, { status: 400 });
     }
 
     const playCount = await prisma.userGamePlayCount.findUnique({
@@ -63,9 +60,9 @@ export async function GET(request: Request) {
       select: { count: true }
     });
 
-    return NextResponse.json({ count: playCount?.count || 0 });
+    return accountApiJson({ count: playCount?.count || 0 });
   } catch {
-    return NextResponse.json({ count: 0 }); // Fallback for unauthenticated users or errors
+    return accountApiJson({ count: 0 }); // Fallback for unauthenticated users or errors
   }
 }
 
@@ -76,4 +73,3 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   return mutatePlayCount(request);
 }
-

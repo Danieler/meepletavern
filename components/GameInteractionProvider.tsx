@@ -2,8 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { getPendingAction, executePendingAction } from "@/lib/pendingActions";
-import { trackEvent } from "@/lib/privacySafeAnalytics";
 
 type LibraryState = {
   owned: boolean;
@@ -182,22 +180,6 @@ export function GameInteractionProvider({
           if (active) setLoading(false);
         });
     };
-
-    if (user) {
-      const action = getPendingAction();
-      if (action && action.gameId === gameId) {
-        executePendingAction().then((res) => {
-          if (active) {
-            trackEvent("pending_action_completed");
-            if (res && res.ok && res.type === "RATE_GAME" && res.data?.ratings) {
-              window.dispatchEvent(new CustomEvent("meepletavern:ratings-updated", { detail: res.data.ratings }));
-            }
-            fetchState();
-          }
-        });
-        return;
-      }
-    }
 
     fetchState();
 

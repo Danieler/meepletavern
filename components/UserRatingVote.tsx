@@ -6,8 +6,7 @@ import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { useGameInteraction } from "@/components/GameInteractionProvider";
-import { setPendingAction, executePendingAction } from "@/lib/pendingActions";
-import { trackEvent } from "@/lib/privacySafeAnalytics";
+import { setPendingAction } from "@/lib/pendingActions";
 
 export function UserRatingVote({
   gameId,
@@ -26,18 +25,8 @@ export function UserRatingVote({
   const pathname = usePathname();
   const next = pathname || "/";
 
-  const handleAuthSuccess = async () => {
+  const handleAuthSuccess = () => {
     setAuthOpen(false);
-    const result = await executePendingAction();
-    if (result && result.ok && result.type === "RATE_GAME") {
-      trackEvent("pending_action_completed");
-      setHasExistingScore(true);
-      setMessage("Tu nota ha sido guardada automáticamente.");
-      if (result.data?.ratings) {
-        onRated?.(result.data.ratings);
-        window.dispatchEvent(new CustomEvent("meepletavern:ratings-updated", { detail: result.data.ratings }));
-      }
-    }
   };
 
   async function submit() {

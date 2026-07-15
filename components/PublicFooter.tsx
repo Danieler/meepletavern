@@ -1,10 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCategoryTerms, getPopularGames, termHref } from "@/lib/catalog";
 import { siteConfig } from "@/lib/site";
+import { CANONICAL_CATEGORIES } from "@/lib/taxonomy";
+import { slugify } from "@/lib/slug";
 
 export async function PublicFooter() {
-  const [categoryTerms, popularGames] = await Promise.all([getCategoryTerms(), getPopularGames(5)]);
+  const categoryTerms = CANONICAL_CATEGORIES.slice(0, 5);
 
   return (
     <footer className="tavern-footer text-white">
@@ -38,16 +39,19 @@ export async function PublicFooter() {
         <FooterColumn
           title="Categorías populares"
           links={categoryTerms.slice(0, 5).map((term) => ({
-            href: termHref("category", term),
+            href: `/categorias/${slugify(term)}`,
             label: term
           }))}
         />
         <FooterColumn
-          title="Juegos populares"
-          links={popularGames.map((game) => ({
-            href: `/juegos/${game.slug}`,
-            label: game.title
-          }))}
+          title="Explorar"
+          links={[
+            { href: "/juegos", label: "Catálogo de juegos" },
+            { href: "/rankings", label: "Rankings" },
+            { href: "/resenas", label: "Reseñas" },
+            { href: "/comunidad", label: "Comunidad" },
+            { href: "/mecanicas", label: "Mecánicas" }
+          ]}
         />
       </div>
     </footer>

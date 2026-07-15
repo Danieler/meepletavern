@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { ActivityEventType } from "@prisma/client";
+import { accountApiErrorResponse, accountApiJson } from "@/lib/accountErrors";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentAppUser } from "@/lib/accountLibrary";
 import {
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
         }
       });
 
-      return NextResponse.json({ entry });
+      return accountApiJson({ entry });
     }
 
     const entries = await prisma.userLibraryGame.findMany({
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
       : [];
     const playCountsByGameId = new Map(playCounts.map((entry) => [entry.gameId, entry.count]));
 
-    return NextResponse.json({
+    return accountApiJson({
       entries: entries.map((entry) => ({
         id: entry.id,
         gameId: entry.gameId,
@@ -87,10 +87,7 @@ export async function GET(request: Request) {
       }))
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No autenticado." },
-      { status: 401 }
-    );
+    return accountApiErrorResponse(error);
   }
 }
 
@@ -108,7 +105,7 @@ export async function POST(request: Request) {
     const gameId = typeof body?.gameId === "string" ? body.gameId.trim() : "";
 
     if (!gameId) {
-      return NextResponse.json({ error: "Falta el juego." }, { status: 400 });
+      return accountApiJson({ error: "Falta el juego." }, { status: 400 });
     }
 
     const game = await prisma.game.findUnique({
@@ -117,7 +114,7 @@ export async function POST(request: Request) {
     });
 
     if (!game) {
-      return NextResponse.json({ error: "El juego no existe." }, { status: 404 });
+      return accountApiJson({ error: "El juego no existe." }, { status: 404 });
     }
 
     const current = await prisma.userLibraryGame.findUnique({
@@ -147,7 +144,7 @@ export async function POST(request: Request) {
       });
       if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
       revalidatePath(`/juegos/${game.slug}`);
-      return NextResponse.json({ ok: true, entry: null });
+      return accountApiJson({ ok: true, entry: null });
     }
 
     const entry = await prisma.userLibraryGame.upsert({
@@ -182,12 +179,9 @@ export async function POST(request: Request) {
     });
     if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
     revalidatePath(`/juegos/${game.slug}`);
-    return NextResponse.json({ ok: true, entry });
+    return accountApiJson({ ok: true, entry });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No autenticado." },
-      { status: 401 }
-    );
+    return accountApiErrorResponse(error);
   }
 }
 
@@ -198,7 +192,7 @@ export async function DELETE(request: Request) {
     const gameId = typeof body?.gameId === "string" ? body.gameId.trim() : "";
 
     if (!gameId) {
-      return NextResponse.json({ error: "Falta el juego." }, { status: 400 });
+      return accountApiJson({ error: "Falta el juego." }, { status: 400 });
     }
 
     const game = await prisma.game.findUnique({
@@ -207,7 +201,7 @@ export async function DELETE(request: Request) {
     });
 
     if (!game) {
-      return NextResponse.json({ error: "El juego no existe." }, { status: 404 });
+      return accountApiJson({ error: "El juego no existe." }, { status: 404 });
     }
 
     const current = await prisma.userLibraryGame.findUnique({
@@ -229,12 +223,9 @@ export async function DELETE(request: Request) {
     });
     if (activityChanged) revalidateTag(TAVERN_ACTIVITY_CACHE_TAG);
     revalidatePath(`/juegos/${game.slug}`);
-    return NextResponse.json({ ok: true });
+    return accountApiJson({ ok: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No autenticado." },
-      { status: 401 }
-    );
+    return accountApiErrorResponse(error);
   }
 }
 

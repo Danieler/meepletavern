@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { QuickAuthForm } from "@/components/auth/QuickAuthForm";
 import { useAuth } from "@/hooks/useAuth";
 import { trackEvent } from "@/lib/privacySafeAnalytics";
-import { buildUsernameOnboardingPath } from "@/lib/usernames";
 
 type AuthPromptModalProps = {
   isOpen: boolean;
@@ -74,7 +73,11 @@ export function AuthPromptModal({
 
   const finishAuthentication = () => {
     onClose();
-    window.location.assign(buildUsernameOnboardingPath(next));
+    if (_onSuccess) {
+      _onSuccess();
+      return;
+    }
+    window.location.assign(next);
   };
 
   return (

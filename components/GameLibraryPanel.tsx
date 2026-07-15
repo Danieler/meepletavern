@@ -8,8 +8,7 @@ import { AuthPromptModal } from "@/components/auth-cta/AuthPromptModal";
 import { useAuth } from "@/hooks/useAuth";
 import { LibraryOnboardingTooltip } from "@/components/account/LibraryOnboardingTooltip";
 import { useGameInteraction } from "@/components/GameInteractionProvider";
-import { setPendingAction, executePendingAction } from "@/lib/pendingActions";
-import { trackEvent } from "@/lib/privacySafeAnalytics";
+import { setPendingAction } from "@/lib/pendingActions";
 
 type GameLibraryPanelProps = {
   gameId: string;
@@ -60,19 +59,8 @@ export function GameLibraryPanel({ gameId, gameTitle = "este juego" }: GameLibra
     setBusy(null);
   };
 
-  const handleAuthSuccess = async () => {
+  const handleAuthSuccess = () => {
     setAuthModalTitle(null);
-    const result = await executePendingAction();
-    if (result && result.ok && result.type === "LIBRARY_TOGGLE") {
-      trackEvent("pending_action_completed");
-      const key = result.action.payload?.key;
-      if (key === "owned" || key === "wantToPlay" || key === "wantToBuy" || key === "played") {
-        setLibrary((current) => ({ ...current, [key]: true }));
-      }
-      router.refresh();
-    } else {
-      router.refresh();
-    }
   };
 
   const hasAny = state.owned || state.wantToPlay || state.wantToBuy || state.played;
