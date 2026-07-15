@@ -19,8 +19,10 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
   }
   const filters = await searchParams;
   const q = filters?.q || "";
-  await getTavernGroupSummaryForRsc(user.id, tavernId);
-  const library = await getTavernGroupLibraryPageForMember(tavernId, q, filters?.page);
+  const [, library] = await Promise.all([
+    getTavernGroupSummaryForRsc(user.id, tavernId),
+    getTavernGroupLibraryPageForMember(tavernId, q, filters?.page)
+  ]);
   if (!library.items.length && library.page > 1) {
     redirect(buildLibraryHref(tavernId, q, 1));
   }

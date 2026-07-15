@@ -102,23 +102,31 @@ type TavernDashboardRow = {
 
 export async function getTavernGroupSummary(userId: string, tavernId: string) {
   const [row] = await prisma.$queryRaw<TavernSummaryRow[]>(Prisma.sql`
+    WITH member_count AS (
+      SELECT COUNT(*)::int AS cnt FROM "TavernGroupMember" WHERE "tavernId" = ${tavernId}
+    ), play_count AS (
+      SELECT COUNT(*)::int AS cnt FROM "TavernGroupPlay" WHERE "tavernId" = ${tavernId}
+    ), unique_games AS (
+      SELECT COUNT(DISTINCT library."gameId")::int AS cnt
+      FROM "TavernGroupMember" member
+      JOIN "UserLibraryGame" library
+        ON library."userId" = member."userId" AND library."owned" = true
+      JOIN "Game" game
+        ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
+      WHERE member."tavernId" = ${tavernId}
+    )
     SELECT
       tavern.id,
       tavern.name,
       membership.role,
-      (SELECT COUNT(*)::int FROM "TavernGroupMember" WHERE "tavernId" = ${tavernId}) AS "memberCount",
-      (SELECT COUNT(*)::int FROM "TavernGroupPlay" WHERE "tavernId" = ${tavernId}) AS "playCount",
-      (
-        SELECT COUNT(DISTINCT library."gameId")::int
-        FROM "TavernGroupMember" member
-        JOIN "UserLibraryGame" library
-          ON library."userId" = member."userId" AND library."owned" = true
-        JOIN "Game" game
-          ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
-        WHERE member."tavernId" = ${tavernId}
-      ) AS "uniqueGames"
+      mc.cnt AS "memberCount",
+      pc.cnt AS "playCount",
+      ug.cnt AS "uniqueGames"
     FROM "TavernGroupMember" membership
     JOIN "TavernGroup" tavern ON tavern.id = membership."tavernId"
+    CROSS JOIN member_count mc
+    CROSS JOIN play_count pc
+    CROSS JOIN unique_games ug
     WHERE membership."tavernId" = ${tavernId}
       AND membership."userId" = ${userId}
     LIMIT 1
@@ -132,31 +140,60 @@ export async function getTavernGroupSummary(userId: string, tavernId: string) {
 export async function getMyTavernDashboard(userId: string) {
   const now = new Date();
   const rows = await prisma.$queryRaw<TavernDashboardRow[]>(Prisma.sql`
-    WITH dashboard_taverns AS (
+    WITH user_taverns AS (
+      SELECT membership."tavernId", membership.role::text AS role, membership."joinedAt", membership.id AS mid
+      FROM "TavernGroupMember" membership
+      WHERE membership."userId" = ${userId}
+      ORDER BY membership."joinedAt" DESC, membership.id DESC
+      LIMIT 30
+    ), tavern_ids AS (
+      SELECT "tavernId" FROM user_taverns
+    ), member_counts AS (
+      SELECT "tavernId", COUNT(*)::int AS cnt
+      FROM "TavernGroupMember"
+      WHERE "tavernId" IN (SELECT "tavernId" FROM tavern_ids)
+      GROUP BY "tavernId"
+    ), play_counts AS (
+      SELECT "tavernId", COUNT(*)::int AS cnt
+      FROM "TavernGroupPlay"
+      WHERE "tavernId" IN (SELECT "tavernId" FROM tavern_ids)
+      GROUP BY "tavernId"
+    ), unique_game_counts AS (
+      SELECT member."tavernId", COUNT(DISTINCT library."gameId")::int AS cnt
+      FROM "TavernGroupMember" member
+      JOIN "UserLibraryGame" library
+        ON library."userId" = member."userId" AND library."owned" = true
+      JOIN "Game" game
+        ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
+      WHERE member."tavernId" IN (SELECT "tavernId" FROM tavern_ids)
+      GROUP BY member."tavernId"
+    ), dashboard_taverns AS (
       SELECT
         tavern.id,
         tavern.id AS "tavernId",
         tavern.name,
-        membership.role::text AS role,
-        membership."joinedAt",
+        ut.role,
+        ut."joinedAt",
         tavern."updatedAt",
-        (SELECT COUNT(*)::int FROM "TavernGroupMember" WHERE "tavernId" = tavern.id) AS "memberCount",
-        (SELECT COUNT(*)::int FROM "TavernGroupPlay" WHERE "tavernId" = tavern.id) AS "playCount",
-        (
-          SELECT COUNT(DISTINCT game.id)::int
-          FROM "TavernGroupMember" member
-          JOIN "UserLibraryGame" library
-            ON library."userId" = member."userId" AND library."owned" = true
-          JOIN "Game" game
-            ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
-          WHERE member."tavernId" = tavern.id
-        ) AS "uniqueGames"
-      FROM "TavernGroupMember" membership
-      JOIN "TavernGroup" tavern
-        ON tavern.id = membership."tavernId"
-      WHERE membership."userId" = ${userId}
-      ORDER BY membership."joinedAt" DESC, membership.id DESC
-      LIMIT 30
+        COALESCE(mc.cnt, 0)::int AS "memberCount",
+        COALESCE(pc.cnt, 0)::int AS "playCount",
+        COALESCE(ugc.cnt, 0)::int AS "uniqueGames"
+      FROM user_taverns ut
+      JOIN "TavernGroup" tavern ON tavern.id = ut."tavernId"
+      LEFT JOIN member_counts mc ON mc."tavernId" = tavern.id
+      LEFT JOIN play_counts pc ON pc."tavernId" = tavern.id
+      LEFT JOIN unique_game_counts ugc ON ugc."tavernId" = tavern.id
+    ), invitation_tavern_ids AS (
+      SELECT DISTINCT invitation."tavernId"
+      FROM "TavernGroupInvitation" invitation
+      WHERE invitation."targetUserId" = ${userId}
+        AND invitation.status = ${TavernInvitationStatus.PENDING}::"TavernInvitationStatus"
+        AND invitation."expiresAt" > ${now}
+    ), invitation_member_counts AS (
+      SELECT "tavernId", COUNT(*)::int AS cnt
+      FROM "TavernGroupMember"
+      WHERE "tavernId" IN (SELECT "tavernId" FROM invitation_tavern_ids)
+      GROUP BY "tavernId"
     ), pending_invitations AS (
       SELECT
         invitation.id,
@@ -164,7 +201,7 @@ export async function getMyTavernDashboard(userId: string) {
         tavern.name,
         invitation."expiresAt",
         invitation."createdAt",
-        (SELECT COUNT(*)::int FROM "TavernGroupMember" WHERE "tavernId" = tavern.id) AS "memberCount",
+        COALESCE(imc.cnt, 0)::int AS "memberCount",
         invited_by.id AS "invitedByUserId",
         invited_profile.username AS "invitedByUsername",
         invited_profile."displayName" AS "invitedByProfileDisplayName",
@@ -173,6 +210,7 @@ export async function getMyTavernDashboard(userId: string) {
       JOIN "TavernGroup" tavern ON tavern.id = invitation."tavernId"
       LEFT JOIN "User" invited_by ON invited_by.id = invitation."invitedByUserId"
       LEFT JOIN "UserProfile" invited_profile ON invited_profile."userId" = invited_by.id
+      LEFT JOIN invitation_member_counts imc ON imc."tavernId" = tavern.id
       WHERE invitation."targetUserId" = ${userId}
         AND invitation.status = ${TavernInvitationStatus.PENDING}::"TavernInvitationStatus"
         AND invitation."expiresAt" > ${now}
@@ -394,6 +432,31 @@ async function queryTavernGroupLibraryRows(
       FROM "TavernGroupPlay"
       WHERE "tavernId" = ${tavernId} AND "gameId" IS NOT NULL
       GROUP BY "gameId"
+    ), owner_ranked AS (
+      SELECT
+        owner_library."gameId",
+        COALESCE(
+          NULLIF(profile."displayName", ''),
+          NULLIF(owner_user."displayName", ''),
+          profile.username,
+          'Usuario'
+        ) AS "ownerName",
+        ROW_NUMBER() OVER (
+          PARTITION BY owner_library."gameId"
+          ORDER BY owner_library."updatedAt" DESC, owner_library.id DESC
+        ) AS rn
+      FROM "TavernGroupMember" owner_member
+      JOIN "UserLibraryGame" owner_library
+        ON owner_library."userId" = owner_member."userId"
+        AND owner_library."owned" = true
+      JOIN "User" owner_user ON owner_user.id = owner_member."userId"
+      LEFT JOIN "UserProfile" profile ON profile."userId" = owner_user.id
+      WHERE owner_member."tavernId" = ${tavernId}
+    ), owner_names AS (
+      SELECT "gameId", ARRAY_AGG("ownerName" ORDER BY rn) AS "ownerNames"
+      FROM owner_ranked
+      WHERE rn <= 2
+      GROUP BY "gameId"
     )
     SELECT
       game.id AS "gameId",
@@ -403,31 +466,11 @@ async function queryTavernGroupLibraryRows(
       copies."copyCount",
       COALESCE(plays."playCount", 0)::int AS "playCount",
       plays."lastPlayedAt",
-      COALESCE(owners."ownerNames", ARRAY[]::text[]) AS "ownerNames"
+      COALESCE(on2."ownerNames", ARRAY[]::text[]) AS "ownerNames"
     FROM copies
     JOIN "Game" game ON game.id = copies."gameId"
     LEFT JOIN plays ON plays."gameId" = copies."gameId"
-    LEFT JOIN LATERAL (
-      SELECT ARRAY_AGG(owner_rows."ownerName") AS "ownerNames"
-      FROM (
-        SELECT COALESCE(
-          NULLIF(profile."displayName", ''),
-          NULLIF(owner_user."displayName", ''),
-          profile.username,
-          'Usuario'
-        ) AS "ownerName"
-        FROM "TavernGroupMember" owner_member
-        JOIN "UserLibraryGame" owner_library
-          ON owner_library."userId" = owner_member."userId"
-          AND owner_library."owned" = true
-          AND owner_library."gameId" = game.id
-        JOIN "User" owner_user ON owner_user.id = owner_member."userId"
-        LEFT JOIN "UserProfile" profile ON profile."userId" = owner_user.id
-        WHERE owner_member."tavernId" = ${tavernId}
-        ORDER BY owner_library."updatedAt" DESC, owner_library.id DESC
-        LIMIT 2
-      ) owner_rows
-    ) owners ON true
+    LEFT JOIN owner_names on2 ON on2."gameId" = copies."gameId"
     WHERE game.status = ${GameStatus.published}::"GameStatus"
       AND (${search} = '' OR game.title ILIKE ${pattern} OR game.name ILIKE ${pattern})
     ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
