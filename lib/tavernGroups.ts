@@ -70,23 +70,17 @@ function tavernDisplayName(user: {
   return user.profile?.displayName || user.displayName || user.profile?.username || "Usuario";
 }
 
-type TavernLibraryCountRow = { tavernId: string; uniqueGames: number };
 type TavernSummaryCountRow = { memberCount: number; playCount: number; uniqueGames: number };
-
-async function ownedGameCountsByTavern(tavernIds: string[]) {
-  if (!tavernIds.length) return new Map<string, number>();
-  const rows = await prisma.$queryRaw<TavernLibraryCountRow[]>(Prisma.sql`
-    SELECT member."tavernId", COUNT(DISTINCT library."gameId")::int AS "uniqueGames"
-    FROM "TavernGroupMember" member
-    JOIN "UserLibraryGame" library
-      ON library."userId" = member."userId" AND library."owned" = true
-    JOIN "Game" game
-      ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
-    WHERE member."tavernId" IN (${Prisma.join(tavernIds)})
-    GROUP BY member."tavernId"
-  `);
-  return new Map(rows.map((row) => [row.tavernId, row.uniqueGames]));
-}
+type TavernDashboardRow = {
+  id: string;
+  name: string;
+  role: TavernMemberRole;
+  joinedAt: Date;
+  updatedAt: Date;
+  memberCount: number;
+  playCount: number;
+  uniqueGames: number;
+};
 
 async function getTavernSummaryCounts(tavernId: string) {
   const [row] = await prisma.$queryRaw<TavernSummaryCountRow[]>(Prisma.sql`
@@ -108,24 +102,32 @@ async function getTavernSummaryCounts(tavernId: string) {
 
 export async function getMyTavernDashboard(userId: string) {
   const now = new Date();
-  const [memberships, invitations] = await Promise.all([
-    prisma.tavernGroupMember.findMany({
-      where: { userId },
-      orderBy: [{ joinedAt: "desc" }, { id: "desc" }],
-      take: 30,
-      select: {
-        role: true,
-        joinedAt: true,
-        tavern: {
-          select: {
-            id: true,
-            name: true,
-            updatedAt: true,
-            _count: { select: { members: true, plays: true } }
-          }
-        }
-      }
-    }),
+  const [tavernRows, invitations] = await Promise.all([
+    prisma.$queryRaw<TavernDashboardRow[]>(Prisma.sql`
+      SELECT
+        tavern.id,
+        tavern.name,
+        membership.role,
+        membership."joinedAt",
+        tavern."updatedAt",
+        (SELECT COUNT(*)::int FROM "TavernGroupMember" WHERE "tavernId" = tavern.id) AS "memberCount",
+        (SELECT COUNT(*)::int FROM "TavernGroupPlay" WHERE "tavernId" = tavern.id) AS "playCount",
+        (
+          SELECT COUNT(DISTINCT game.id)::int
+          FROM "TavernGroupMember" member
+          JOIN "UserLibraryGame" library
+            ON library."userId" = member."userId" AND library."owned" = true
+          JOIN "Game" game
+            ON game.id = library."gameId" AND game.status = ${GameStatus.published}::"GameStatus"
+          WHERE member."tavernId" = tavern.id
+        ) AS "uniqueGames"
+      FROM "TavernGroupMember" membership
+      JOIN "TavernGroup" tavern
+        ON tavern.id = membership."tavernId"
+      WHERE membership."userId" = ${userId}
+      ORDER BY membership."joinedAt" DESC, membership.id DESC
+      LIMIT 30
+    `),
     prisma.tavernGroupInvitation.findMany({
       where: {
         targetUserId: userId,
@@ -149,16 +151,15 @@ export async function getMyTavernDashboard(userId: string) {
     })
   ]);
 
-  const ownedGameCounts = await ownedGameCountsByTavern(memberships.map(({ tavern }) => tavern.id));
-  const taverns = memberships.map(({ tavern, role, joinedAt }) => ({
+  const taverns = tavernRows.map((tavern) => ({
     id: tavern.id,
     name: tavern.name,
-    role,
-    joinedAt: joinedAt.toISOString(),
+    role: tavern.role,
+    joinedAt: tavern.joinedAt.toISOString(),
     updatedAt: tavern.updatedAt.toISOString(),
-    memberCount: tavern._count.members,
-    playCount: tavern._count.plays,
-    uniqueGames: ownedGameCounts.get(tavern.id) || 0
+    memberCount: tavern.memberCount,
+    playCount: tavern.playCount,
+    uniqueGames: tavern.uniqueGames
   }));
 
   return {

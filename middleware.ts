@@ -75,8 +75,6 @@ function isSupabaseSessionPath(pathname: string) {
     pathname === "/auth" ||
     pathname.startsWith("/auth/") ||
     pathname === "/bienvenida/usuario" ||
-    pathname === "/comunidad/tabernas" ||
-    pathname.startsWith("/comunidad/tabernas/") ||
     pathname === "/comunidad/invitaciones" ||
     pathname.startsWith("/comunidad/invitaciones/") ||
     pathname === "/mi-perfil" ||
