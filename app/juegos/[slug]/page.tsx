@@ -25,6 +25,7 @@ import { GameInteractionProvider } from "@/components/GameInteractionProvider";
 import { getGameBySlug, getRelatedGames, type CatalogGame } from "@/lib/catalog";
 import { getGameComments } from "@/lib/gameComments";
 import { hasVerifiedCoverImage } from "@/lib/gameImages";
+import { getPublicRatingPresentation } from "@/lib/ratings/publicRating";
 import { siteConfig } from "@/lib/site";
 import { toYouTubeEmbedUrl } from "@/lib/videos/youtube";
 
@@ -540,8 +541,9 @@ function hasGenericPublicCopy(value: string) {
 
 function buildJsonLd(game: CatalogGame) {
   const url = `${siteConfig.url}/juegos/${game.slug}`;
-  const hasExternalRating = game.ratings.external && game.ratings.external.score;
-  const hasUserRating = game.ratings.users && game.ratings.users.votesCount > 0;
+  const publicRating = getPublicRatingPresentation(game.ratings);
+  const hasExternalRating = typeof publicRating.cardScore === "number";
+  const hasUserRating = publicRating.users.visibleOnDetail;
   const hasOffers = game.buyLinks.length > 0;
   const isProduct = hasOffers || hasExternalRating || hasUserRating;
 
@@ -569,14 +571,14 @@ function buildJsonLd(game: CatalogGame) {
           }
         : {}),
       ...(game.ageValue ? { typicalAgeRange: `${game.ageValue}+` } : {}),
-      ...(hasExternalRating || hasUserRating
+      ...(hasUserRating
         ? {
             aggregateRating: {
               "@type": "AggregateRating",
-              ratingValue: game.ratings.combined?.score || game.ratings.external?.score || game.ratings.users?.averageScore,
+              ratingValue: publicRating.users.averageScore,
               bestRating: "10",
               worstRating: "1",
-              ratingCount: (game.ratings.users?.votesCount || 0) + (hasExternalRating ? 1 : 0)
+              ratingCount: publicRating.users.votesCount
             }
           }
         : {}),

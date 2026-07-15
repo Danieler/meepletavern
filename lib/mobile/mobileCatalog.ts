@@ -10,7 +10,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { auditDataSource } from "@/lib/egressAudit";
 import { getPublicGameDescription, getPublicReviewSummary } from "@/lib/publicEditorialCopy";
-import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
+import { getPublicRatingScore } from "@/lib/ratings/publicRating";
 import { slugify } from "@/lib/slug";
 import type {
   MobileAppliedFilters,
@@ -702,8 +702,7 @@ function sortMobileGamesByEffectiveRating(games: MobileMappedGame[]) {
 }
 
 function getEffectiveRatingScore(ratings: Prisma.JsonValue) {
-  const normalizedRatings = normalizeGameRatings(ratings);
-  return normalizedRatings.combined?.score ?? normalizedRatings.external?.score ?? null;
+  return getPublicRatingScore(ratings);
 }
 
 function buildAppliedFilters(filters: MobileGameFilterInput): MobileAppliedFilters {

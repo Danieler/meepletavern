@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getPublicRatingPresentation } from "@/lib/ratings/publicRating";
 import type { GameRatingsData } from "@/lib/ratings/types";
 
 export function CommunityScorePanel({ initialRatings }: { initialRatings: GameRatingsData }) {
   const [ratings, setRatings] = useState(initialRatings);
-  const userAverage = ratings.users.averageScore;
-  const votesCount = ratings.users.votesCount;
-  const combinedScore = ratings.combined?.score;
-  const score = typeof userAverage === "number" ? userAverage : combinedScore;
+  const publicRating = getPublicRatingPresentation(ratings);
+  const userAverage = publicRating.users.averageScore;
+  const votesCount = publicRating.users.votesCount;
 
   useEffect(() => {
     function handleRatingsUpdated(event: Event) {
@@ -25,7 +25,7 @@ export function CommunityScorePanel({ initialRatings }: { initialRatings: GameRa
   return (
     <div className="flex items-center gap-5">
       <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-full border-4 border-ember bg-walnut font-display font-bold text-white">
-        <span className="text-4xl">{typeof score === "number" ? score.toFixed(1) : "MT"}</span>
+        <span className="text-4xl">{publicRating.users.visibleOnDetail && typeof userAverage === "number" ? userAverage.toFixed(1) : "MT"}</span>
         <span className="text-xs text-ember">{votesCount ? "Jugadores" : "Sin votos"}</span>
       </div>
       <div className="flex-1">
@@ -34,12 +34,12 @@ export function CommunityScorePanel({ initialRatings }: { initialRatings: GameRa
         </p>
         <p className="mt-2 text-sm leading-6 text-walnut/70">
           {votesCount
-            ? `La media de jugadores es ${userAverage?.toFixed(1)}/10 y ya se suma a la nota de la comunidad.`
+            ? `La media de jugadores es ${userAverage?.toFixed(1)}/10. La mostramos separada de la recepción externa.`
             : "Sé el primero en dejar tu nota y estrenar la media de jugadores."}
         </p>
-        {typeof combinedScore === "number" ? (
+        {typeof publicRating.cardScore === "number" ? (
           <div className="mt-3 rounded-xl border border-ember/20 bg-ember/10 px-3 py-2 text-sm font-black text-wood">
-            Nota de la comunidad: {combinedScore.toFixed(1)}/10
+            Recepción externa: {publicRating.cardScore.toFixed(1)}/10
           </div>
         ) : null}
       </div>

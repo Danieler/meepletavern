@@ -4,36 +4,34 @@ import { useState } from "react";
 import { RatingBadge } from "@/components/RatingBadge";
 import { UserRatingVote } from "@/components/UserRatingVote";
 import type { CatalogGame } from "@/lib/catalog";
+import { getPublicRatingPresentation } from "@/lib/ratings/publicRating";
 import type { GameRatingsData } from "@/lib/ratings/types";
 
 export function GameRatings({ game, compact = false }: { game: CatalogGame; compact?: boolean }) {
   const [ratings, setRatings] = useState<GameRatingsData>(game.ratings);
-  const externalRating = ratings.external;
-  const combinedRating = ratings.combined;
-  const visibleRating = combinedRating || externalRating;
-  const userAverage = ratings.users.averageScore;
-  const userVotes = ratings.users.votesCount;
+  const publicRating = getPublicRatingPresentation(ratings);
+  const externalRating = publicRating.external;
+  const userAverage = publicRating.users.averageScore;
+  const userVotes = publicRating.users.votesCount;
 
-  if (!visibleRating) {
+  if (!externalRating && !publicRating.users.visibleOnDetail) {
     return null;
   }
 
-  const showScore = typeof visibleRating.score === "number";
+  const showScore = typeof publicRating.cardScore === "number";
 
   return (
     <section className={compact ? "" : "container-page pb-10"}>
       <article className="relative overflow-hidden rounded-md border border-ember/20 bg-gradient-to-br from-[#fff8e8] via-[#f8edda] to-[#ead2a9] p-4 shadow-soft">
         <div className="relative flex items-start gap-3">
-          {showScore ? <RatingBadge rating={visibleRating.score as number} size="md" label="MT" /> : null}
+          {showScore ? <RatingBadge rating={publicRating.cardScore as number} size="md" label="EXT" /> : null}
           <div className="min-w-0">
-            <p className="tavern-eyebrow">Nota de la comunidad</p>
+            <p className="tavern-eyebrow">Recepción y jugadores</p>
             <h2 className="font-display mt-1 text-2xl font-bold leading-tight text-wood">
-              {showScore ? visibleRating.label : "Por descubrir"}
+              {showScore ? externalRating?.label : "Por descubrir"}
             </h2>
             <p className="mt-2 text-sm leading-5 text-walnut/75">
-              {combinedRating
-                ? "Nuestra foto más completa: recepción pública más notas de jugadores."
-                : "Una primera lectura de cómo está funcionando este juego fuera de la taberna."}
+              La recepción externa y las notas de jugadores se muestran por separado para no mezclar muestras distintas.
             </p>
           </div>
         </div>
@@ -42,18 +40,18 @@ export function GameRatings({ game, compact = false }: { game: CatalogGame; comp
           <RatingLine
             label="Recepción"
             value={externalRating?.score !== undefined ? `${externalRating.score.toFixed(1)}/10` : "Pendiente"}
-            helper={externalRating?.sourcesCount ? `${externalRating.sourcesCount} señales encontradas` : "Sin señales suficientes"}
+            helper={externalRating?.sourcesCount ? `${externalRating.sourcesCount} señales fiables` : "Sin señales suficientes"}
           />
           <RatingLine
-            label="La comunidad"
-            value={typeof userAverage === "number" ? `${userAverage.toFixed(1)}/10` : "Sin votos aún"}
+            label="Jugadores de MeepleTavern"
+            value={publicRating.users.visibleOnDetail && typeof userAverage === "number" ? `${userAverage.toFixed(1)}/10` : "Sin votos aún"}
             helper={userVotes ? `${userVotes} ${userVotes === 1 ? "jugador ha votado" : "jugadores han votado"}` : "Sé quien estrene la mesa"}
           />
         </div>
 
-        {visibleRating.signals?.length ? (
+        {externalRating?.signals?.length ? (
           <div className="relative mt-4 flex flex-wrap gap-2">
-            {visibleRating.signals.slice(0, 5).map((signal) => (
+            {externalRating.signals.slice(0, 5).map((signal) => (
               <span key={`${signal.sourceName}-${signal.sourceType}`} className="tavern-pill">
                 {signal.sourceName}
                 {signal.score !== undefined ? ` · ${signal.score.toFixed(1)}/10` : ""}

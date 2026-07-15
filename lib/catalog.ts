@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { getEffectiveReviewRating } from "@/lib/reviewRating";
 import { getPublishedReviewBySlug, getPublishedReviews } from "@/lib/reviews";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
+import { getPublicRatingScore } from "@/lib/ratings/publicRating";
 import type { GameRatingsData } from "@/lib/ratings/types";
 import { slugify } from "@/lib/slug";
 import { getTaxonomyTermNames, normalizeMechanics, normalizeCategories } from "@/lib/taxonomy";
@@ -342,10 +343,7 @@ const getCachedPopularDbGamesList = (limit: number) => unstable_cache(
       select id
       from "Game"
       where status = 'published'
-      order by coalesce(
-        nullif(ratings #>> '{combined,score}', '')::numeric,
-        nullif(ratings #>> '{external,score}', '')::numeric
-      ) desc nulls last,
+      order by ${publicRatingScoreSql(Prisma.sql`"ratings"`)} desc nulls last,
       title asc,
       name asc
       limit ${limit}
@@ -612,7 +610,7 @@ export function sortGames(games: CatalogGame[], sort = "nombre") {
 }
 
 export function getEffectiveRatingScore(game: CatalogGame) {
-  return game.ratings.combined?.score ?? game.ratings.external?.score ?? null;
+  return getPublicRatingScore(game.ratings);
 }
 
 export function sortGamesByEffectiveRating(games: CatalogGame[]) {
@@ -901,7 +899,6 @@ function toCatalogGameShape(
 function compactGameRatings(ratings: GameRatingsData): GameRatingsData {
   return {
     ...(ratings.external ? { external: compactExternalRating(ratings.external) } : {}),
-    ...(ratings.combined ? { combined: compactExternalRating(ratings.combined) } : {}),
     users: ratings.users
   };
 }
@@ -1317,10 +1314,7 @@ function buildWeightRawClause(weight: string) {
 
 function buildCatalogRawOrderBy(sort = "nombre") {
   if (sort === "valoracion") {
-    return Prisma.sql`coalesce(
-      nullif("ratings" #>> '{combined,score}', '')::numeric,
-      nullif("ratings" #>> '{external,score}', '')::numeric
-    ) desc nulls last, "title" asc, "name" asc`;
+    return Prisma.sql`${publicRatingScoreSql()} desc nulls last, "title" asc, "name" asc`;
   }
 
   if (sort === "fecha") {
@@ -1332,6 +1326,25 @@ function buildCatalogRawOrderBy(sort = "nombre") {
   }
 
   return Prisma.sql`"title" asc, "name" asc`;
+}
+
+function publicRatingScoreSql(field: Prisma.Sql = Prisma.sql`"ratings"`) {
+  return Prisma.sql`case
+    when ${field} #>> '{external,score}' is not null
+      and ${field} #>> '{external,confidence}' in ('medium', 'high')
+      and (
+        coalesce(nullif(${field} #>> '{external,sourcesCount}', '')::int, 0) >= 2
+        or exists (
+          select 1
+          from jsonb_array_elements(coalesce(${field} #> '{external,signals}', '[]'::jsonb)) as signal(value)
+          where signal.value #>> '{sourceType}' = 'product_rating'
+            and coalesce(nullif(signal.value #>> '{reviewCount}', '')::int, 0) >= 100
+            and coalesce(signal.value #>> '{confidence}', 'low') <> 'low'
+        )
+      )
+    then nullif(${field} #>> '{external,score}', '')::numeric
+    else null
+  end`;
 }
 
 function gameDurationMaxSql() {

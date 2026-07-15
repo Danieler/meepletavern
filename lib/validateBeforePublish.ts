@@ -17,6 +17,7 @@ type PublishableGame = Pick<
   | "minPlayers"
   | "maxPlayers"
   | "playtime"
+  | "year"
   | "minAge"
   | "age"
   | "difficulty"
@@ -49,6 +50,7 @@ export function validateBeforePublish(game: PublishableGame): PublishValidationR
   const minPlayers = players.min ?? game.minPlayers;
   const maxPlayers = players.max ?? game.maxPlayers;
   const minAge = game.minAge || parseFirstNumber(game.age);
+  const durationMinutes = parseFirstNumber(game.playtime);
 
   if (!text(game.title || game.name)) {
     errors.push("Nombre / title: falta el título.");
@@ -60,14 +62,26 @@ export function validateBeforePublish(game: PublishableGame): PublishValidationR
 
   if (!minPlayers || !maxPlayers) {
     errors.push("Jugadores: falta el número de jugadores.");
+  } else if (minPlayers > maxPlayers) {
+    errors.push("Jugadores: el mínimo no puede ser mayor que el máximo.");
+  } else if (minPlayers < 1 || maxPlayers > 99) {
+    errors.push("Jugadores: revisa el rango, parece fuera de escala.");
   }
 
   if (!text(game.playtime)) {
     errors.push("Duración: falta la duración.");
+  } else if (!durationMinutes || durationMinutes < 1 || durationMinutes > 600) {
+    errors.push("Duración: revisa la duración, parece fuera de escala.");
   }
 
   if (!minAge) {
     errors.push("Edad mínima: falta la edad mínima.");
+  } else if (minAge < 2 || minAge > 21) {
+    errors.push("Edad mínima: revisa la edad, parece fuera de escala.");
+  }
+
+  if (game.year !== null && game.year !== undefined && (game.year < 1900 || game.year > new Date().getFullYear() + 1)) {
+    errors.push("Año: revisa el año de publicación, parece inválido.");
   }
 
   if (!text(game.shortDescription || game.shortSummary)) {
@@ -100,18 +114,26 @@ export function validateBeforePublish(game: PublishableGame): PublishValidationR
 
   if (!text(game.bestFor)) {
     warnings.push("Para quién es: falta este texto.");
+  } else {
+    collectEditorialTextIssues("Para quién es", game.bestFor, game, errors);
   }
 
   if (!text(game.notFor)) {
     warnings.push("Para quién no es: falta este texto.");
+  } else {
+    collectEditorialTextIssues("Para quién no es", game.notFor, game, errors);
   }
 
   if (!game.pros.length) {
     warnings.push("Pros: añade al menos un pro.");
+  } else {
+    game.pros.forEach((item, index) => collectEditorialTextIssues(`Pros ${index + 1}`, item, game, errors));
   }
 
   if (!game.cons.length) {
     warnings.push("Contras: añade al menos un contra.");
+  } else {
+    game.cons.forEach((item, index) => collectEditorialTextIssues(`Contras ${index + 1}`, item, game, errors));
   }
 
   if (!faq.length) {
@@ -149,4 +171,41 @@ function parseFirstNumber(value: string | null) {
 
   const match = value.match(/\d+/);
   return match ? Number(match[0]) : null;
+}
+
+function collectEditorialTextIssues(
+  field: string,
+  value: string | null | undefined,
+  game: PublishableGame,
+  errors: string[]
+) {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return;
+
+  if (normalized.length < 12) {
+    errors.push(`${field}: el texto es demasiado genérico.`);
+  }
+
+  if (/pendiente|por completar|lorem|todo|n\/a|sin datos/i.test(normalized)) {
+    errors.push(`${field}: contiene texto pendiente o placeholder.`);
+  }
+
+  if (
+    /\bmoderador(?:a|es)?\b|\broles ocultos\b|\beliminaci[oó]n\b|\bfaroleo\b/.test(normalized) &&
+    !isSocialDeductionGame(game)
+  ) {
+    errors.push(`${field}: revisa posible contaminación editorial de otro juego.`);
+  }
+}
+
+function isSocialDeductionGame(game: PublishableGame) {
+  const haystack = [
+    game.title,
+    game.name,
+    ...(game.categories || []),
+    ...(game.mechanics || []),
+    ...(game.themes || [])
+  ].join(" ").toLowerCase();
+
+  return /deducci[oó]n|roles ocultos|party|hombres lobo|werewolf|secret hitler|resistencia|avalon|spyfall/.test(haystack);
 }

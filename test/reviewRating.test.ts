@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getEffectiveReviewRating, getFichaRatingScore } from "@/lib/reviewRating";
 
-test("review rating uses the current ficha rating before the stored review fallback", () => {
+test("review rating ignores combined ficha ratings and uses the stored review fallback", () => {
   const rating = getEffectiveReviewRating({
     combined: {
       score: 8.7,
@@ -20,7 +20,7 @@ test("review rating uses the current ficha rating before the stored review fallb
     }
   }, 6.2);
 
-  assert.equal(rating, 8.7);
+  assert.equal(rating, 6.2);
 });
 
 test("review rating falls back to external ficha score when combined is missing", () => {

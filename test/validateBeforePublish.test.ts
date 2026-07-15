@@ -8,6 +8,7 @@ test("validateBeforePublish treats editorial fields as warnings, not blockers", 
     name: "Los Hombres Lobo de Castronegro",
     title: "Los Hombres Lobo de Castronegro",
     slug: "los-hombres-lobo-de-castronegro",
+    year: null,
     players: { min: 8, max: 18 },
     minPlayers: 8,
     maxPlayers: 18,
@@ -43,6 +44,49 @@ test("validateBeforePublish treats editorial fields as warnings, not blockers", 
   assert.ok(validation.warnings.some((warning) => warning.startsWith("FAQ:")));
 });
 
+test("validateBeforePublish blocks invalid factual ranges and contaminated editorial copy", () => {
+  const game: Parameters<typeof validateBeforePublish>[0] = {
+    name: "Jamaica",
+    title: "Jamaica",
+    slug: "jamaica",
+    year: 1,
+    players: { min: 6, max: 2 },
+    minPlayers: 6,
+    maxPlayers: 2,
+    playtime: "999 min",
+    minAge: 99,
+    age: "99+",
+    difficulty: "Medio",
+    complexity: null,
+    categories: ["Familiar"],
+    mechanics: ["Carreras"],
+    themes: ["Piratas"],
+    shortDescription: "Carrera pirata familiar con gestión de cartas.",
+    shortSummary: null,
+    description: "Carrera pirata familiar.",
+    quickVerdict: "Una carrera accesible.",
+    review: null,
+    bestFor: "Grupos con moderador y roles ocultos.",
+    notFor: "Pendiente",
+    pros: ["Faroleo y eliminación"],
+    cons: ["n/a"],
+    faq: [],
+    faqs: [],
+    seoTitle: "Jamaica",
+    seoDescription: "Ficha de Jamaica.",
+    primaryImageId: "image-1",
+    imageFallbackAccepted: false
+  };
+
+  const validation = validateBeforePublish(game);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.errors.some((error) => error.startsWith("Año:")));
+  assert.ok(validation.errors.some((error) => error.startsWith("Jugadores:")));
+  assert.ok(validation.errors.some((error) => error.includes("contaminación editorial")));
+  assert.ok(validation.errors.length >= 4);
+});
+
 test("buildEditorialAutofill infers social deduction fields for Hombres Lobo", () => {
   const autofill = buildEditorialAutofill({
     title: "Los Hombres Lobo de Castronegro",
@@ -56,5 +100,5 @@ test("buildEditorialAutofill infers social deduction fields for Hombres Lobo", (
   assert.deepEqual(autofill.categories, ["Party", "Deducción"]);
   assert.ok(autofill.mechanics.includes("Roles ocultos"));
   assert.ok(autofill.bestFor.includes("Grupos grandes"));
-  assert.ok(autofill.faq[0].answer.includes("8-18 jugadores"));
+  assert.ok(autofill.faq[0].answer.includes("8 a 18 jugadores"));
 });
