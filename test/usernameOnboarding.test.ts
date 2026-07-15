@@ -8,7 +8,7 @@ test("every authentication flow passes through mandatory username onboarding", (
   const callback = readFileSync("app/auth/callback/route.ts", "utf8");
   const modal = readFileSync("components/auth-cta/AuthPromptModal.tsx", "utf8");
   const shell = readFileSync("components/PublicShell.tsx", "utf8");
-  const guard = readFileSync("components/auth/UsernameChoiceGuard.tsx", "utf8");
+  const coordinator = readFileSync("components/auth/PostAuthCoordinator.tsx", "utf8");
   const middleware = readFileSync("middleware.ts", "utf8");
 
   assert.match(authEntry, /requireCurrentAppUser/);
@@ -17,10 +17,15 @@ test("every authentication flow passes through mandatory username onboarding", (
   assert.match(authPage, /payload\?\.required \? buildUsernameOnboardingPath\(nextPath\) : nextPath/);
   assert.match(callback, /usernameSetupRequired/);
   assert.match(callback, /buildUsernameOnboardingPath\(next\)/);
-  assert.match(modal, /buildUsernameOnboardingPath\(next\)/);
-  assert.match(shell, /<UsernameChoiceGuard \/>/);
-  assert.match(guard, /pathname === "\/auth"/);
-  assert.match(guard, /pathname === "\/bienvenida\/usuario"/);
+  assert.match(modal, /window\.location\.assign\(next\)/);
+  assert.doesNotMatch(modal, /buildUsernameOnboardingPath/);
+  assert.match(shell, /<PostAuthCoordinator \/>/);
+  assert.doesNotMatch(shell, /<UsernameChoiceGuard \/>/);
+  assert.doesNotMatch(shell, /<PendingActionSync \/>/);
+  assert.match(coordinator, /buildUsernameOnboardingPath\(currentBrowserPath\(\)\)/);
+  assert.match(coordinator, /executePendingAction\(\)/);
+  assert.match(coordinator, /pathname === "\/auth"/);
+  assert.match(coordinator, /pathname === "\/bienvenida\/usuario"/);
   assert.match(middleware, /await supabaseClient\.supabase\.auth\.getUser\(\)/);
   assert.match(middleware, /"\/comunidad\/tabernas\/:path\*"/);
 });

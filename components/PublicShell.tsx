@@ -2,11 +2,10 @@ import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { ConsentAwareVercelAnalytics } from "@/components/ConsentAwareVercelAnalytics";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { LegalAcceptanceSync } from "@/components/LegalAcceptanceSync";
-import { PendingActionSync } from "@/components/PendingActionSync";
 import { MobileSignupBar } from "@/components/auth-cta/MobileSignupBar";
 import { PublicFooter } from "@/components/PublicFooter";
 import { PublicHeader } from "@/components/PublicHeader";
-import { UsernameChoiceGuard } from "@/components/auth/UsernameChoiceGuard";
+import { PostAuthCoordinator } from "@/components/auth/PostAuthCoordinator";
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
   const analyticsEnabled = process.env.NEXT_PUBLIC_ANALYTICS_ENABLED !== "false";
@@ -19,8 +18,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <FeedbackButton />
       <MobileSignupBar />
       <LegalAcceptanceSync />
-      <UsernameChoiceGuard />
-      <PendingActionSync />
+      <PostAuthCoordinator />
       {analyticsEnabled ? (
         <>
           <CookieConsentBanner />
