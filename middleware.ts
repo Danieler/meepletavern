@@ -72,13 +72,6 @@ function isFilteredCatalogPath(request: NextRequest) {
 
 function isSupabaseSessionPath(pathname: string) {
   return (
-    pathname === "/auth" ||
-    pathname.startsWith("/auth/") ||
-    pathname === "/bienvenida/usuario" ||
-    pathname === "/comunidad/invitaciones" ||
-    pathname.startsWith("/comunidad/invitaciones/") ||
-    pathname === "/mi-perfil" ||
-    pathname.startsWith("/mi-perfil/") ||
     pathname === "/api/account" ||
     pathname.startsWith("/api/account/")
   );

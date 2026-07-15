@@ -131,3 +131,61 @@ export async function getCurrentUserLibraryGameIds() {
 
   return new Set(entries.map((entry) => entry.gameId));
 }
+
+export async function listCurrentUserLibraryEntries(userId: string) {
+  const entries = await prisma.userLibraryGame.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      gameId: true,
+      owned: true,
+      wantToPlay: true,
+      wantToBuy: true,
+      played: true,
+      createdAt: true,
+      updatedAt: true,
+      game: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          name: true,
+          coverImageUrl: true
+        }
+      }
+    },
+    orderBy: { updatedAt: "desc" }
+  });
+  const gameIds = entries.map((entry) => entry.gameId);
+  const playCounts = gameIds.length
+    ? await prisma.userGamePlayCount.findMany({
+        where: {
+          userId,
+          gameId: { in: gameIds }
+        },
+        select: {
+          gameId: true,
+          count: true
+        }
+      })
+    : [];
+  const playCountsByGameId = new Map(playCounts.map((entry) => [entry.gameId, entry.count]));
+
+  return entries.map((entry) => ({
+    id: entry.id,
+    gameId: entry.gameId,
+    owned: entry.owned,
+    wantToPlay: entry.wantToPlay,
+    wantToBuy: entry.wantToBuy,
+    played: entry.played,
+    playCount: playCountsByGameId.get(entry.gameId) || 0,
+    createdAt: entry.createdAt.toISOString(),
+    updatedAt: entry.updatedAt.toISOString(),
+    game: {
+      id: entry.game.id,
+      slug: entry.game.slug,
+      title: entry.game.title || entry.game.name,
+      coverImageUrl: entry.game.coverImageUrl
+    }
+  }));
+}

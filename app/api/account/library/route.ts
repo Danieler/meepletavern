@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { ActivityEventType } from "@prisma/client";
 import { accountApiErrorResponse, accountApiJson } from "@/lib/accountErrors";
 import { prisma } from "@/lib/prisma";
-import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import { listCurrentUserLibraryEntries, requireCurrentAppUser } from "@/lib/accountLibrary";
 import {
   tryRecordPublicActivityEvent,
   tryRemoveActivityEvent
@@ -29,63 +29,7 @@ export async function GET(request: Request) {
       return accountApiJson({ entry });
     }
 
-    const entries = await prisma.userLibraryGame.findMany({
-      where: { userId: appUser.id },
-      select: {
-        id: true,
-        gameId: true,
-        owned: true,
-        wantToPlay: true,
-        wantToBuy: true,
-        played: true,
-        createdAt: true,
-        updatedAt: true,
-        game: {
-          select: {
-            id: true,
-            slug: true,
-            title: true,
-            name: true,
-            coverImageUrl: true
-          }
-        }
-      },
-      orderBy: { updatedAt: "desc" }
-    });
-    const gameIds = entries.map((entry) => entry.gameId);
-    const playCounts = gameIds.length
-      ? await prisma.userGamePlayCount.findMany({
-          where: {
-            userId: appUser.id,
-            gameId: { in: gameIds }
-          },
-          select: {
-            gameId: true,
-            count: true
-          }
-        })
-      : [];
-    const playCountsByGameId = new Map(playCounts.map((entry) => [entry.gameId, entry.count]));
-
-    return accountApiJson({
-      entries: entries.map((entry) => ({
-        id: entry.id,
-        gameId: entry.gameId,
-        owned: entry.owned,
-        wantToPlay: entry.wantToPlay,
-        wantToBuy: entry.wantToBuy,
-        played: entry.played,
-        playCount: playCountsByGameId.get(entry.gameId) || 0,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-        game: {
-          id: entry.game.id,
-          slug: entry.game.slug,
-          title: entry.game.title || entry.game.name,
-          coverImageUrl: entry.game.coverImageUrl
-        }
-      }))
-    });
+    return accountApiJson({ entries: await listCurrentUserLibraryEntries(appUser.id) });
   } catch (error) {
     return accountApiErrorResponse(error);
   }

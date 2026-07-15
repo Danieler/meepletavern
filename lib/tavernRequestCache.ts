@@ -1,8 +1,8 @@
 import { cache } from "react";
-import { requireCurrentAppUser } from "@/lib/accountLibrary";
+import { requireCurrentAppUserForRsc } from "@/lib/accountRequestCache";
 import { getTavernGroupSummary } from "@/lib/tavernGroups";
 
-export const requireCurrentAppUserForRsc = cache(requireCurrentAppUser);
+export { requireCurrentAppUserForRsc };
 
 export const getTavernGroupSummaryForRsc = cache((userId: string, tavernId: string) =>
   getTavernGroupSummary(userId, tavernId)

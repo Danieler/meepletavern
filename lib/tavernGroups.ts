@@ -244,6 +244,7 @@ type TavernLibrarySqlRow = {
   copyCount: number;
   playCount: number;
   lastPlayedAt: Date | null;
+  ownerNames: string[] | null;
 };
 
 export async function getTavernGroupLibrary(userId: string, tavernId: string, searchValue?: string | null) {
@@ -275,10 +276,32 @@ export async function getTavernGroupLibraryForMember(tavernId: string, searchVal
       game."coverImageUrl",
       copies."copyCount",
       COALESCE(plays."playCount", 0)::int AS "playCount",
-      plays."lastPlayedAt"
+      plays."lastPlayedAt",
+      COALESCE(owners."ownerNames", ARRAY[]::text[]) AS "ownerNames"
     FROM copies
     JOIN "Game" game ON game.id = copies."gameId"
     LEFT JOIN plays ON plays."gameId" = copies."gameId"
+    LEFT JOIN LATERAL (
+      SELECT ARRAY_AGG(owner_rows."ownerName") AS "ownerNames"
+      FROM (
+        SELECT COALESCE(
+          NULLIF(profile."displayName", ''),
+          NULLIF(owner_user."displayName", ''),
+          profile.username,
+          'Usuario'
+        ) AS "ownerName"
+        FROM "TavernGroupMember" owner_member
+        JOIN "UserLibraryGame" owner_library
+          ON owner_library."userId" = owner_member."userId"
+          AND owner_library."owned" = true
+          AND owner_library."gameId" = game.id
+        JOIN "User" owner_user ON owner_user.id = owner_member."userId"
+        LEFT JOIN "UserProfile" profile ON profile."userId" = owner_user.id
+        WHERE owner_member."tavernId" = ${tavernId}
+        ORDER BY owner_library."updatedAt" DESC, owner_library.id DESC
+        LIMIT 2
+      ) owner_rows
+    ) owners ON true
     WHERE game.status = ${GameStatus.published}::"GameStatus"
       AND (${search} = '' OR game.title ILIKE ${pattern} OR game.name ILIKE ${pattern})
     ORDER BY lower(COALESCE(NULLIF(game.title, ''), game.name)) ASC, game.id ASC
@@ -293,44 +316,12 @@ export async function getTavernGroupLibraryForMember(tavernId: string, searchVal
     copyCount: row.copyCount,
     playCount: row.playCount,
     lastPlayedAt: row.lastPlayedAt?.toISOString().slice(0, 10) || null,
-    owners: []
+    owners: (row.ownerNames || []).map((displayName) => ({ displayName }))
   }));
 }
 
 export async function getTavernGroupLibraryPreviewForMember(tavernId: string, searchValue?: string | null) {
-  const games = await getTavernGroupLibraryForMember(tavernId, searchValue);
-  const gameIds = games.map((game) => game.gameId);
-  const ownerships = gameIds.length
-    ? await prisma.userLibraryGame.findMany({
-        where: {
-          gameId: { in: gameIds },
-          owned: true,
-          user: { tavernGroupMemberships: { some: { tavernId } } }
-        },
-        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-        select: {
-          gameId: true,
-          user: {
-            select: {
-              displayName: true,
-              profile: { select: { username: true, displayName: true } }
-            }
-          }
-        }
-      })
-    : [];
-  const ownersByGame = new Map<string, Array<{ displayName: string }>>();
-
-  for (const ownership of ownerships) {
-    const owners = ownersByGame.get(ownership.gameId) || [];
-    if (owners.length < 2) owners.push({ displayName: tavernDisplayName(ownership.user) });
-    ownersByGame.set(ownership.gameId, owners);
-  }
-
-  return games.map((game) => ({
-    ...game,
-    owners: ownersByGame.get(game.gameId) || []
-  }));
+  return getTavernGroupLibraryForMember(tavernId, searchValue);
 }
 
 type TavernGameOptionRow = {

@@ -65,7 +65,7 @@ export default async function TavernLibraryPage({ params, searchParams }: Props)
                 </div>
                 <div className="mt-4 flex items-start gap-2 text-xs font-semibold leading-5 text-walnut/60">
                   <UsersRound size={15} className="mt-0.5 shrink-0" />
-                  <span>{formatOwners(game.owners.map((owner) => owner.displayName))}</span>
+                  <span>{formatOwners(game.owners.map((owner) => owner.displayName), game.copyCount)}</span>
                 </div>
                 <Link className="button-primary mt-4 w-full" prefetch={false} href={`/comunidad/tabernas/${tavernId}/partidas?gameId=${encodeURIComponent(game.gameId)}`}>
                   <Dices size={17} /> Registrar partida
@@ -98,8 +98,8 @@ function Metric({ icon: Icon, value, label }: { icon: typeof LibraryBig; value: 
   );
 }
 
-function formatOwners(names: string[]) {
+function formatOwners(names: string[], copyCount: number) {
   if (!names.length) return "Sin propietario actual";
-  if (names.length <= 3) return names.join(", ");
-  return `${names.slice(0, 2).join(", ")} y ${names.length - 2} más`;
+  if (copyCount <= names.length) return names.join(", ");
+  return `${names.join(", ")} y ${copyCount - names.length} más`;
 }
