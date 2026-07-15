@@ -110,6 +110,10 @@ export type GameFilterInput = {
 
 const CATALOG_PAGE_SIZE = 12;
 const MAX_PUBLIC_GAME_LIMIT = 60;
+const MAX_CATALOG_FILTER_VALUE_LENGTH = 80;
+const MAX_CATALOG_VALUES_PER_FILTER = 3;
+const MAX_CATALOG_PAGE = 100;
+const CATALOG_SORT_VALUES = new Set(["nombre", "valoracion", "fecha", "dificultad"]);
 
 const publicMediaAssetSelect = {
   id: true,
@@ -469,10 +473,54 @@ const getCachedFilterGamesFromDb = unstable_cache(
 );
 
 export async function filterGames(input: GameFilterInput) {
-  const cacheKey = getDeterministicFilterKey(input);
-  const dbResult = await getCachedFilterGamesFromDb(cacheKey, input);
+  const normalizedInput = normalizeCatalogFilterInput(input);
+  const cacheKey = getDeterministicFilterKey(normalizedInput);
+  const dbResult = await getCachedFilterGamesFromDb(cacheKey, normalizedInput);
   
   return dbResult;
+}
+
+function normalizeCatalogFilterInput(input: GameFilterInput): GameFilterInput {
+  const query = normalizeCatalogScalar(input.q)?.replace(/\s+/g, " ").toLowerCase();
+  const sort = normalizeCatalogScalar(input.sort);
+  const rawPage = normalizeCatalogScalar(input.page);
+  const parsedPage = Number(rawPage);
+  const page = Number.isInteger(parsedPage)
+    ? Math.min(MAX_CATALOG_PAGE, Math.max(1, parsedPage))
+    : 1;
+
+  return {
+    ...(query ? { q: query } : {}),
+    ...normalizedCatalogArrayFilter("players", input.players),
+    ...normalizedCatalogArrayFilter("duration", input.duration),
+    ...normalizedCatalogArrayFilter("weight", input.weight),
+    ...normalizedCatalogArrayFilter("age", input.age),
+    ...normalizedCatalogArrayFilter("category", input.category),
+    ...normalizedCatalogArrayFilter("mechanic", input.mechanic),
+    ...(sort && sort !== "nombre" && CATALOG_SORT_VALUES.has(sort) ? { sort } : {}),
+    ...(page > 1 ? { page } : {})
+  };
+}
+
+function normalizedCatalogArrayFilter(
+  key: "players" | "duration" | "weight" | "age" | "category" | "mechanic",
+  value: string | string[] | undefined
+) {
+  const values = [...new Set(getFilterValues(value).map((item) => item.slice(0, MAX_CATALOG_FILTER_VALUE_LENGTH)))]
+    .filter(Boolean)
+    .sort((left, right) => left.localeCompare(right, "es"))
+    .slice(0, MAX_CATALOG_VALUES_PER_FILTER);
+
+  return values.length ? { [key]: values } : {};
+}
+
+function normalizeCatalogScalar(value: unknown) {
+  const scalar = Array.isArray(value) ? value.at(-1) : value;
+  if (typeof scalar !== "string" && typeof scalar !== "number") {
+    return undefined;
+  }
+
+  return String(scalar).trim().slice(0, MAX_CATALOG_FILTER_VALUE_LENGTH) || undefined;
 }
 
 async function filterGamesFromDb(input: GameFilterInput) {

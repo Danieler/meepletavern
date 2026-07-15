@@ -38,6 +38,21 @@ export type MobileGameFilterInput = {
 };
 
 const maxMobilePageSize = 50;
+const maxMobilePage = 100;
+const maxMobileFilterValueLength = 80;
+const maxMobileValuesPerFilter = 3;
+const maxMobileFilterValues = 10;
+const mobileGameFilterKeys = new Set([
+  "q", "category", "mechanic", "theme", "players", "duration", "weight", "age", "sort", "page", "limit"
+]);
+const mobileScalarFilterKeys = new Set(["q", "sort", "page", "limit"]);
+const mobileFilterValueAllowlist: Partial<Record<string, Set<string>>> = {
+  players: new Set(["1", "2", "4", "6"]),
+  duration: new Set(["30", "45", "60", "120", "long"]),
+  weight: new Set(["ligero", "medio", "duro"]),
+  age: new Set(["7", "8", "10", "14"]),
+  sort: new Set(["nombre", "valoracion", "fecha", "dificultad"])
+};
 const mobileApiCacheHeaders = {
   "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400"
 } as const;
@@ -204,9 +219,50 @@ export function parseMobileGameFilters(searchParams: URLSearchParams): MobileGam
     weight: getFilterValues(searchParams, "weight"),
     age: getFilterValues(searchParams, "age"),
     ...(sort ? { sort } : {}),
-    page: parsePositiveInteger(searchParams.get("page"), 1),
+    page: Math.min(parsePositiveInteger(searchParams.get("page"), 1), maxMobilePage),
     limit: Math.min(parsePositiveInteger(searchParams.get("limit"), 20), maxMobilePageSize)
   };
+}
+
+export function getMobileGameFilterError(searchParams: URLSearchParams) {
+  for (const key of searchParams.keys()) {
+    if (!mobileGameFilterKeys.has(key)) {
+      return "Parámetro de catálogo no admitido.";
+    }
+  }
+
+  const filterKeys = ["category", "mechanic", "theme", "players", "duration", "weight", "age"];
+  const filterValueCount = filterKeys.reduce((total, key) => total + searchParams.getAll(key).filter(Boolean).length, 0);
+  if (filterValueCount > maxMobileFilterValues) {
+    return "Demasiados filtros combinados.";
+  }
+
+  for (const key of mobileGameFilterKeys) {
+    const values = searchParams.getAll(key).map((value) => value.trim()).filter(Boolean);
+    if (values.some((value) => value.length > maxMobileFilterValueLength)) {
+      return "Un filtro es demasiado largo.";
+    }
+    if (mobileScalarFilterKeys.has(key) && values.length > 1) {
+      return "Un parámetro simple está repetido.";
+    }
+    if (key !== "q" && key !== "page" && key !== "limit" && values.length > maxMobileValuesPerFilter) {
+      return "Demasiados valores para un filtro.";
+    }
+
+    const allowedValues = mobileFilterValueAllowlist[key];
+    if (allowedValues && values.some((value) => !allowedValues.has(value))) {
+      return "Valor de filtro no admitido.";
+    }
+  }
+
+  if (!isValidBoundedInteger(searchParams.get("page"), maxMobilePage)) {
+    return "Página no válida.";
+  }
+  if (!isValidBoundedInteger(searchParams.get("limit"), maxMobilePageSize)) {
+    return "Tamaño de página no válido.";
+  }
+
+  return null;
 }
 
 export async function getMobileGames(filters: MobileGameFilterInput): Promise<MobileGamesResponse> {
@@ -776,12 +832,21 @@ function createTermLookup(): TermLookup {
 }
 
 function getFilterValues(searchParams: URLSearchParams, key: string) {
-  return searchParams.getAll(key).map((value) => value.trim()).filter(Boolean);
+  return [...new Set(searchParams.getAll(key).map((value) => value.trim()).filter(Boolean))]
+    .slice(0, maxMobileValuesPerFilter);
 }
 
 function normalizeSingleFilter(value: string | null) {
-  const trimmed = value?.trim();
+  const trimmed = value?.trim().slice(0, maxMobileFilterValueLength);
   return trimmed || undefined;
+}
+
+function isValidBoundedInteger(value: string | null, maximum: number) {
+  if (value === null || value === "") {
+    return true;
+  }
+
+  return /^[1-9]\d*$/.test(value) && Number(value) <= maximum;
 }
 
 function parsePositiveInteger(value: string | null, fallback: number) {

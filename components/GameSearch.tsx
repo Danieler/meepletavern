@@ -65,6 +65,7 @@ export function GameSearch({
           id={isHero ? "hero-search" : "global-search"}
           name="q"
           defaultValue={query}
+          maxLength={80}
           placeholder={resolvedPlaceholder}
           className={inputClass}
           onFocus={() => window.dispatchEvent(new CustomEvent("meepletavern:search-focus", { detail: { open: true } }))}

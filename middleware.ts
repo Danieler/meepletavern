@@ -42,6 +42,9 @@ const CATALOG_QUERY_KEYS = [...CATALOG_FILTER_FAMILIES, "sort", "page", "welcome
 const MAX_CATALOG_FILTER_FAMILIES = 3;
 const MAX_CATALOG_FILTER_VALUES = 6;
 const MAX_CATALOG_VALUES_PER_FAMILY = 3;
+const MAX_CATALOG_VALUE_LENGTH = 80;
+const MAX_CATALOG_PAGE = 100;
+const CATALOG_SORT_VALUES = new Set(["nombre", "valoracion", "fecha", "dificultad"]);
 const CANONICAL_HOST = "www.meepletavern.com";
 
 function getCanonicalHostResponse(request: NextRequest) {
@@ -86,11 +89,20 @@ function getCatalogFilterGuardResponse(request: NextRequest, auditSummary: Recor
   const activeFamilies = CATALOG_FILTER_FAMILIES.filter((family) => searchParams.has(family));
   const filterValueCount = activeFamilies.reduce((count, family) => count + searchParams.getAll(family).filter(Boolean).length, 0);
   const overloadedFamilies = activeFamilies.filter((family) => searchParams.getAll(family).filter(Boolean).length > MAX_CATALOG_VALUES_PER_FAMILY);
+  const oversizedKeys = CATALOG_QUERY_KEYS.filter((key) =>
+    searchParams.getAll(key).some((value) => value.trim().length > MAX_CATALOG_VALUE_LENGTH)
+  );
+  const pageValue = searchParams.getAll("page").at(-1)?.trim();
+  const invalidPage = Boolean(
+    pageValue && (!/^[1-9]\d*$/.test(pageValue) || Number(pageValue) > MAX_CATALOG_PAGE)
+  );
 
   if (
     activeFamilies.length <= MAX_CATALOG_FILTER_FAMILIES &&
     filterValueCount <= MAX_CATALOG_FILTER_VALUES &&
-    overloadedFamilies.length === 0
+    overloadedFamilies.length === 0 &&
+    oversizedKeys.length === 0 &&
+    !invalidPage
   ) {
     return null;
   }
@@ -100,10 +112,14 @@ function getCatalogFilterGuardResponse(request: NextRequest, auditSummary: Recor
     activeFilterFamilies: activeFamilies,
     activeFilterFamilyCount: activeFamilies.length,
     overloadedFilterFamilies: overloadedFamilies,
+    oversizedKeys,
+    invalidPage,
     filterValueCount,
     maxFilterFamilies: MAX_CATALOG_FILTER_FAMILIES,
     maxFilterValues: MAX_CATALOG_FILTER_VALUES,
-    maxValuesPerFamily: MAX_CATALOG_VALUES_PER_FAMILY
+    maxValuesPerFamily: MAX_CATALOG_VALUES_PER_FAMILY,
+    maxValueLength: MAX_CATALOG_VALUE_LENGTH,
+    maxPage: MAX_CATALOG_PAGE
   });
 
   return new NextResponse(buildCatalogFilterGuardHtml(), {
@@ -134,16 +150,32 @@ function getCanonicalCatalogQueryResponse(request: NextRequest, auditSummary: Re
       continue;
     }
 
-    if (key === "sort" && values.at(-1) === "nombre") {
+    const scalarValue = values.at(-1) || "";
+
+    if (key === "sort") {
+      if (scalarValue !== "nombre" && CATALOG_SORT_VALUES.has(scalarValue)) {
+        canonicalParams.set(key, scalarValue);
+      }
       continue;
     }
 
-    if (key === "page" && values.at(-1) === "1") {
+    if (key === "page") {
+      const page = Number(scalarValue);
+      if (Number.isInteger(page) && page > 1 && page <= MAX_CATALOG_PAGE) {
+        canonicalParams.set(key, String(page));
+      }
       continue;
     }
 
-    if (key === "q" || key === "sort" || key === "page" || key === "welcome") {
-      canonicalParams.set(key, values.at(-1) || "");
+    if (key === "welcome") {
+      if (scalarValue === "true") {
+        canonicalParams.set(key, scalarValue);
+      }
+      continue;
+    }
+
+    if (key === "q") {
+      canonicalParams.set(key, scalarValue.replace(/\s+/g, " "));
       continue;
     }
 
