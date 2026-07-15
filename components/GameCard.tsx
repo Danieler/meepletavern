@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { BrandIcon } from "@/components/BrandIcon";
+import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import { GameCoverImage } from "@/components/GameCoverImage";
 import { GameCardSaveButton } from "@/components/auth-cta/GameCardSaveButton";
 import { getPrimaryGameTags } from "@/lib/gameDisplayTags";
@@ -16,6 +16,8 @@ type GameCardProps = {
 export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameCardProps) {
   const primaryTags = getPrimaryGameTags(game, 2);
   const ratingScore = getEffectiveRatingScore(game);
+  const compactFacts = getGameFacts(game);
+  const fullFacts = getGameFacts(game, true);
 
   if (poster) {
     return (
@@ -30,10 +32,12 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
               className="rounded-none"
               imageSizes="(max-width: 640px) 150px, 220px"
             />
-            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-wood/90 px-2 py-1 text-sm font-black leading-none text-white shadow-sm">
-              <BrandIcon name="star" size={15} />
-              {typeof ratingScore === "number" ? ratingScore.toFixed(1) : "MT"}
-            </span>
+            {typeof ratingScore === "number" ? (
+              <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-wood/90 px-2 py-1 text-sm font-black leading-none text-white shadow-sm">
+                <BrandIcon name="star" size={15} />
+                {ratingScore.toFixed(1)}
+              </span>
+            ) : null}
           </div>
           <h3 className="mt-2 break-words text-sm font-extrabold leading-5 text-wood sm:truncate">{game.title}</h3>
           <p className="mt-1 break-words text-xs font-semibold leading-4 text-walnut/65 sm:truncate">
@@ -75,16 +79,16 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
                 {formatAddedDate(game.publishedAt, dateMode)}
               </p>
             ) : null}
-            <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold leading-5 text-walnut/70">
-              <span className="inline-flex items-center gap-1.5">
-                <BrandIcon name="users" size={16} />
-                {game.playersLabel || "Jugadores pendiente"}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <BrandIcon name="clock" size={16} />
-                {game.playtime || "Duración pendiente"}
-              </span>
-            </div>
+            {compactFacts.length ? (
+              <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold leading-5 text-walnut/70">
+                {compactFacts.map((fact) => (
+                  <span key={fact.icon} className="inline-flex items-center gap-1.5">
+                    <BrandIcon name={fact.icon} size={16} />
+                    {fact.value}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
         </Link>
       </article>
@@ -121,20 +125,16 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
           </div>
           <h3 className="font-display text-xl font-bold leading-tight text-wood">{game.title}</h3>
           <p className="mt-3 line-clamp-3 text-sm leading-6 text-walnut/80">{game.reviewSummary}</p>
-          <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs font-semibold leading-5 text-walnut/70">
-            <span className="inline-flex items-center gap-1.5">
-              <BrandIcon name="users" size={16} />
-              {game.playersLabel || "Jugadores pendiente"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <BrandIcon name="clock" size={16} />
-              {game.playtime || "Duración pendiente"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <BrandIcon name="gauge" size={16} />
-              {game.complexity || "Dificultad pendiente"}
-            </span>
-          </div>
+          {fullFacts.length ? (
+            <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs font-semibold leading-5 text-walnut/70">
+              {fullFacts.map((fact) => (
+                <span key={fact.icon} className="inline-flex items-center gap-1.5">
+                  <BrandIcon name={fact.icon} size={16} />
+                  {fact.value}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-walnut/10 pt-4">
             <span className="text-xs font-bold uppercase tracking-[0.12em] text-walnut/55">
               {game.categories[0] || "Juego de mesa"}
@@ -151,6 +151,16 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
       </div>
     </article>
   );
+}
+
+function getGameFacts(game: CatalogGame, includeComplexity = false) {
+  const facts: Array<{ icon: BrandIconName; value: string }> = [];
+
+  if (game.playersLabel) facts.push({ icon: "users", value: game.playersLabel });
+  if (game.playtime) facts.push({ icon: "clock", value: game.playtime });
+  if (includeComplexity && game.complexity) facts.push({ icon: "gauge", value: game.complexity });
+
+  return facts;
 }
 
 function formatDate(value: string) {

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { BrandIcon } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
+import { buildCatalogUrl } from "@/lib/catalogUrl";
 
 type PaginationProps = {
   active: GameFilterInput;
@@ -27,26 +28,12 @@ export function Pagination({
 
   const omitted = new Set<string>(omitQueryKeys);
 
-  const buildUrl = (page: number) => {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(active)) {
-      if (!value || key === "page" || omitted.has(key)) continue;
-      
-      if (Array.isArray(value)) {
-        for (const entry of value) {
-          if (entry) params.append(key, entry);
-        }
-      } else if (typeof value === "string") {
-        params.set(key, value);
-      }
-    }
-    if (page > 1) {
-      params.set("page", String(page));
-    }
-
-    const query = params.toString();
-    return query ? `${basePath}?${query}` : basePath;
-  };
+  const buildUrl = (page: number) =>
+    buildCatalogUrl(
+      Object.fromEntries(Object.entries(active).filter(([key]) => !omitted.has(key))) as GameFilterInput,
+      { page: page > 1 ? String(page) : null },
+      basePath
+    );
 
   return (
     <nav className="mt-10 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center justify-center gap-2 border-t border-ink/5 pt-8 sm:flex" aria-label="Paginación">

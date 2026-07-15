@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import type { GameFilterInput } from "@/lib/catalog";
+import { buildCatalogUrl, catalogFilterValues } from "@/lib/catalogUrl";
 
 type FilterLink = {
   label: string;
@@ -83,7 +84,7 @@ export function GameFilters({
   }, [isExpanded]);
 
   const activeCount = Object.entries(active).reduce((acc, [key, value]) => {
-    if (key === "page" || key === "sort" || !value) return acc;
+    if (key === "page" || key === "sort" || key === "welcome" || !value) return acc;
     if (Array.isArray(value)) return acc + value.filter(Boolean).length;
     return acc + 1;
   }, 0);
@@ -185,33 +186,15 @@ function FilterGroup({ title, icon, children }: { title: string; icon: BrandIcon
 
 function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInput }) {
   const router = useRouter();
-  const currentValues = getFilterValues(active[item.param]);
+  const currentValues = catalogFilterValues(active[item.param]);
   const isMultiSelect = item.param !== "sort";
   const isActive = currentValues.includes(item.value);
-  const params = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(active)) {
-    if (!value || key === item.param) {
-      continue;
-    }
-
-    appendFilterValues(params, key, value);
-  }
-
-  if (isMultiSelect) {
-    const nextValues = isActive
+  const nextValue = isMultiSelect
+    ? isActive
       ? currentValues.filter((value) => value !== item.value)
-      : [...currentValues, item.value];
-
-    for (const value of nextValues) {
-      params.append(item.param, value);
-    }
-  } else {
-    params.set(item.param, item.value);
-  }
-
-  const query = params.toString();
-  const targetHref = query ? `/juegos?${query}` : "/juegos";
+      : [...currentValues, item.value]
+    : item.value;
+  const targetHref = buildCatalogUrl(active, { [item.param]: nextValue });
 
   return (
     <button
@@ -225,27 +208,4 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
       {item.label}
     </button>
   );
-}
-
-function getFilterValues(value: GameFilterInput[keyof GameFilterInput]) {
-  if (Array.isArray(value)) {
-    return value.filter(Boolean);
-  }
-
-  return typeof value === "string" && value ? [value] : [];
-}
-
-function appendFilterValues(params: URLSearchParams, key: string, value: GameFilterInput[keyof GameFilterInput]) {
-  if (Array.isArray(value)) {
-    for (const entry of value) {
-      if (entry) {
-        params.append(key, entry);
-      }
-    }
-    return;
-  }
-
-  if (typeof value === "string" && value) {
-    params.set(key, value);
-  }
 }

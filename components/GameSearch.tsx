@@ -1,9 +1,12 @@
 "use client";
 
 import { BrandIcon } from "@/components/BrandIcon";
+import { buildCatalogSearchParams } from "@/lib/catalogUrl";
+import type { GameFilterInput } from "@/lib/catalog";
 
 type GameSearchProps = {
   query?: string;
+  active?: GameFilterInput;
   variant?: "hero" | "compact";
   submitLabel?: string;
   placeholder?: string;
@@ -11,6 +14,7 @@ type GameSearchProps = {
 
 export function GameSearch({
   query,
+  active = {},
   variant = "compact",
   submitLabel,
   placeholder
@@ -31,8 +35,13 @@ export function GameSearch({
     ? "min-h-14 px-7 text-base rounded-lg bg-gradient-to-br from-[#d97706] to-[#b45309] border border-[#78350f]/30 text-[#fffdfa] font-black tracking-wide shadow-[0_2px_5px_rgba(217,119,6,0.15)] hover:from-[#b45309] hover:to-[#92400e] hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#d97706] focus:ring-offset-2 transition-all duration-300 flex items-center justify-center gap-2"
     : "button-primary";
 
+  const hiddenParams = Array.from(buildCatalogSearchParams(active, ["q"]).entries());
+
   return (
     <form action="/juegos" className={isHero ? "flex w-full flex-col gap-3 sm:flex-row" : "flex w-full flex-col gap-2 sm:flex-row"}>
+      {hiddenParams.map(([name, value], index) => (
+        <input key={`${name}-${value}-${index}`} type="hidden" name={name} value={value} />
+      ))}
       <label className="sr-only" htmlFor={isHero ? "hero-search" : "global-search"}>
         Buscar juegos
       </label>
@@ -46,6 +55,7 @@ export function GameSearch({
           className={inputClass}
           onFocus={() => window.dispatchEvent(new CustomEvent("meepletavern:search-focus", { detail: { open: true } }))}
           onBlur={() => window.dispatchEvent(new CustomEvent("meepletavern:search-focus", { detail: { open: false } }))}
+          enterKeyHint="search"
         />
       </div>
       <button className={buttonClass} type="submit">

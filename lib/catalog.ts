@@ -551,7 +551,7 @@ async function filterGamesFromAdvancedDb(filters: {
   pageSize: number;
 }) {
   const where = buildCatalogRawWhere(filters);
-  const orderBy = buildCatalogRawOrderBy(filters.sort);
+  const orderBy = buildCatalogRawOrderBy(filters.sort, filters.query);
   const skip = (filters.page - 1) * filters.pageSize;
   const [countRows, idRows] = await Promise.all([
     prisma.$queryRaw<Array<{ total: number | bigint }>>(Prisma.sql`
@@ -1312,7 +1312,7 @@ function buildWeightRawClause(weight: string) {
   return Prisma.sql`(${rank} = 0 or ${rank} >= 3)`;
 }
 
-function buildCatalogRawOrderBy(sort = "nombre") {
+function buildCatalogRawOrderBy(sort = "nombre", query?: string) {
   if (sort === "valoracion") {
     return Prisma.sql`${publicRatingScoreSql()} desc nulls last, "title" asc, "name" asc`;
   }
@@ -1325,7 +1325,39 @@ function buildCatalogRawOrderBy(sort = "nombre") {
     return Prisma.sql`${gameComplexityRankSql()} desc, "title" asc, "name" asc`;
   }
 
+  if (query) {
+    return Prisma.sql`${catalogSearchRelevanceSql(query)} asc, "title" asc, "name" asc`;
+  }
+
   return Prisma.sql`"title" asc, "name" asc`;
+}
+
+function catalogSearchRelevanceSql(query: string) {
+  const exactQuery = query.trim().toLowerCase();
+  const startsQuery = `${exactQuery}%`;
+  const likeQuery = `%${exactQuery}%`;
+  const cleanLikeQuery = `%${exactQuery.replace(/[\s-]/g, "")}%`;
+  const displayName = Prisma.sql`lower(coalesce(nullif("title", ''), "name"))`;
+
+  return Prisma.sql`case
+    when ${displayName} = ${exactQuery} or lower("name") = ${exactQuery} then 0
+    when ${displayName} like ${startsQuery} or lower("name") like ${startsQuery} then 1
+    when ${displayName} like ${likeQuery} or lower("name") like ${likeQuery} then 2
+    when replace(replace(${displayName}, ' ', ''), '-', '') ilike ${cleanLikeQuery}
+      or replace(replace(lower("name"), ' ', ''), '-', '') ilike ${cleanLikeQuery}
+    then 2
+    when exists (select 1 from unnest("categories") as category(value) where category.value ilike ${likeQuery})
+      or exists (select 1 from unnest("mechanics") as mechanic(value) where mechanic.value ilike ${likeQuery})
+    then 3
+    when coalesce("shortSummary", '') ilike ${likeQuery}
+      or coalesce("shortDescription", '') ilike ${likeQuery}
+      or coalesce("quickVerdict", '') ilike ${likeQuery}
+      or coalesce("description", '') ilike ${likeQuery}
+      or coalesce("complexity", '') ilike ${likeQuery}
+      or coalesce("difficulty", '') ilike ${likeQuery}
+    then 4
+    else 5
+  end`;
 }
 
 function publicRatingScoreSql(field: Prisma.Sql = Prisma.sql`"ratings"`) {
