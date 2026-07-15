@@ -70,21 +70,39 @@ export function PublicAuthControls({ profileLabel, vertical = false }: PublicAut
     user.user_metadata?.name
   );
 
+  const handleSignOut = async () => {
+    const result = await signOut();
+    if (result.ok) {
+      router.replace("/");
+      router.refresh();
+    }
+  };
+
+  if (vertical) {
+    return (
+      <div className="grid gap-1">
+        <Link className="mobile-account-link" href="/mi-perfil">
+          {profileLabel || "Mi perfil"}
+        </Link>
+        <Link className="mobile-account-link" href="/comunidad/tabernas">
+          Mis tabernas
+        </Link>
+        <button type="button" className="mobile-account-signout" onClick={handleSignOut}>
+          Cerrar sesión
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="header-account-controls">
       <Link className="header-profile-link" href="/mi-perfil">
         {profileLabel || label}
       </Link>
       <button
         type="button"
-        className="header-action"
-        onClick={async () => {
-          const result = await signOut();
-          if (result.ok) {
-            router.replace("/");
-            router.refresh();
-          }
-        }}
+        className="header-signout-button"
+        onClick={handleSignOut}
       >
         Salir
       </button>

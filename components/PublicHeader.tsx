@@ -14,27 +14,27 @@ export function PublicHeader() {
 
   return (
     <header className="tavern-header sticky top-0 z-40 text-white">
-      <div className="container-page flex min-h-16 flex-col gap-2 py-1.5 lg:flex-row lg:items-center lg:gap-4 lg:py-2">
-        <div className="flex min-w-0 items-center justify-between gap-3 lg:flex-[0_1_310px]">
-          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5 sm:gap-3 lg:max-w-[310px]">
-            <span className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden sm:h-14 sm:w-14 lg:h-16 lg:w-16">
+      <div className="container-page flex min-h-16 items-center justify-between gap-3 py-1.5 lg:min-h-[76px] lg:gap-5 lg:py-2">
+        <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 lg:w-[224px] xl:w-[250px]">
+          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            <span className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden sm:h-12 sm:w-12 lg:h-14 lg:w-14">
               <Image
                 src={siteConfig.markImage}
                 alt=""
                 fill
-                sizes="(min-width: 1024px) 64px, (min-width: 640px) 56px, 48px"
+                sizes="(min-width: 1024px) 56px, (min-width: 640px) 48px, 44px"
                 className="object-contain"
                 priority
               />
             </span>
             <span className="min-w-0">
-              <span className="font-display block text-2xl font-bold leading-5 text-white sm:text-3xl sm:leading-6">
+              <span className="font-display block text-[22px] font-bold leading-[18px] text-white sm:text-2xl sm:leading-5">
                 Meeple
               </span>
-              <span className="font-display block text-2xl font-bold leading-5 text-ember sm:text-3xl sm:leading-6">
+              <span className="font-display block text-[22px] font-bold leading-[18px] text-ember sm:text-2xl sm:leading-5">
                 Tavern
               </span>
-              <span className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.18em] text-parchment/80 sm:block">
+              <span className="mt-1 hidden whitespace-nowrap text-[9px] font-black uppercase tracking-[0.14em] text-parchment/70 xl:block">
                 juegos · ludotecas · tabernas
               </span>
             </span>
@@ -50,7 +50,7 @@ export function PublicHeader() {
           </div>
         </div>
         <PublicDesktopNavigation />
-        <div className="hidden min-w-[86px] shrink-0 items-center justify-end lg:flex">
+        <div className="hidden shrink-0 items-center justify-end lg:flex">
           <PublicAuthControls />
         </div>
       </div>

@@ -7,38 +7,17 @@ import { ChevronRight } from "lucide-react";
 import { BrandIcon, type BrandIconName } from "@/components/BrandIcon";
 import { PublicAuthControls } from "@/components/PublicAuthControls";
 
-type NavTone = "primary" | "secondary" | "tertiary";
-
 type NavItem = {
   href: string;
   label: string;
   icon: BrandIconName;
 };
 
-type NavGroup = {
-  label: string;
-  tone: NavTone;
-  items: NavItem[];
-};
-
-const navGroups: NavGroup[] = [
-  {
-    label: "Principal",
-    tone: "primary",
-    items: [
-      { href: "/juegos", label: "Juegos", icon: "dice" },
-      { href: "/comunidad", label: "Comunidad", icon: "users" },
-      { href: "/comunidad/tabernas", label: "Mis tabernas", icon: "building" }
-    ]
-  },
-  {
-    label: "Decidir",
-    tone: "secondary",
-    items: [
-      { href: "/rankings", label: "Rankings", icon: "trophy" },
-      { href: "/resenas", label: "Reseñas", icon: "document" }
-    ]
-  }
+const navItems: NavItem[] = [
+  { href: "/juegos", label: "Juegos", icon: "dice" },
+  { href: "/comunidad", label: "Comunidad", icon: "users" },
+  { href: "/rankings", label: "Rankings", icon: "trophy" },
+  { href: "/resenas", label: "Reseñas", icon: "document" }
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -47,12 +26,11 @@ function isActivePath(pathname: string, href: string) {
 
 export function PublicDesktopNavigation() {
   const pathname = usePathname();
-  const desktopItems = navGroups.flatMap((group) => group.items);
 
   return (
     <nav className="header-nav-shell hidden lg:flex" aria-label="Navegación principal">
       <div className="header-nav-list">
-        {desktopItems.map((item) => {
+        {navItems.map((item) => {
           const active = isActivePath(pathname, item.href);
 
           return (
@@ -96,6 +74,7 @@ export function PublicMobileMenu() {
       return;
     }
 
+    const menuButton = buttonRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.setTimeout(() => {
@@ -141,7 +120,7 @@ export function PublicMobileMenu() {
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
-      buttonRef.current?.focus();
+      menuButton?.focus();
     };
   }, [open]);
 
@@ -176,38 +155,36 @@ export function PublicMobileMenu() {
             aria-label="Menú de navegación"
             className="mobile-nav-panel"
           >
-            <nav aria-label="Navegación principal" className="grid gap-3">
-              <section className="mobile-nav-account">
-                <p className="mobile-nav-label">Tu cuenta</p>
-                <div className="mt-2">
-                  <PublicAuthControls profileLabel="Mi ludoteca" vertical={true} />
+            <nav aria-label="Navegación principal" className="grid gap-6">
+              <section className="mobile-nav-group">
+                <p className="mobile-nav-label">Explorar</p>
+                <div className="mt-2 grid gap-1">
+                  {navItems.map((item) => {
+                    const active = isActivePath(pathname, item.href);
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        prefetch={false}
+                        aria-current={active ? "page" : undefined}
+                        className={`mobile-nav-link ${active ? "mobile-nav-link-active" : ""}`}
+                      >
+                        <BrandIcon name={item.icon} size={18} />
+                        <span>{item.label}</span>
+                        <ChevronRight size={16} className="ml-auto opacity-40" aria-hidden="true" />
+                      </Link>
+                    );
+                  })}
                 </div>
               </section>
 
-              {navGroups.map((group) => (
-                <section key={group.tone} className={`mobile-nav-group mobile-nav-group-${group.tone}`}>
-                  <p className="mobile-nav-label">{group.label}</p>
-                  <div className="mt-2 grid gap-2">
-                    {group.items.map((item) => {
-                      const active = isActivePath(pathname, item.href);
-
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          prefetch={false}
-                          aria-current={active ? "page" : undefined}
-                          className={`mobile-nav-link mobile-nav-link-${group.tone} ${active ? "mobile-nav-link-active" : ""}`}
-                        >
-                          <BrandIcon name={item.icon} size={18} />
-                          <span>{item.label}</span>
-                          <ChevronRight size={16} className="ml-auto opacity-45" aria-hidden="true" />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
+              <section className="mobile-nav-account">
+                <p className="mobile-nav-label">Tu espacio</p>
+                <div className="mt-2">
+                  <PublicAuthControls profileLabel="Mi perfil" vertical={true} />
+                </div>
+              </section>
             </nav>
           </div>
         </>
