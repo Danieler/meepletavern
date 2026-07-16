@@ -14,19 +14,36 @@ test("queryTavernOverview uses bounded aggregates and one tiny game lookup", asy
   const countArgs: Record<string, unknown>[] = [];
   const libraryArgs: Record<string, unknown>[] = [];
   let gameArgs: Record<string, unknown> | undefined;
+  let activityQueriesInFlight = 0;
+
+  async function runActivityQuery<T>(query: () => T): Promise<T> {
+    activityQueriesInFlight += 1;
+    assert.equal(activityQueriesInFlight, 1, "ActivityEvent reads must not compete for a small pool");
+    await Promise.resolve();
+    try {
+      return query();
+    } finally {
+      activityQueriesInFlight -= 1;
+    }
+  }
+
   const db = {
     activityEvent: {
       async findMany(args: Record<string, unknown>) {
-        activityArgs = args;
-        return [
-          event("event-1", "game-1", ActivityEventType.COLLECTION_ADDED),
-          event("event-2", "game-1", ActivityEventType.LIST_GAME_ADDED),
-          event("event-3", "game-2", ActivityEventType.LIST_GAME_ADDED)
-        ];
+        return runActivityQuery(() => {
+          activityArgs = args;
+          return [
+            event("event-1", "game-1", ActivityEventType.COLLECTION_ADDED),
+            event("event-2", "game-1", ActivityEventType.LIST_GAME_ADDED),
+            event("event-3", "game-2", ActivityEventType.LIST_GAME_ADDED)
+          ];
+        });
       },
       async count(args: Record<string, unknown>) {
-        countArgs.push(args);
-        return countArgs.length === 1 ? 4 : 9;
+        return runActivityQuery(() => {
+          countArgs.push(args);
+          return countArgs.length === 1 ? 4 : 9;
+        });
       }
     },
     userLibraryGame: {

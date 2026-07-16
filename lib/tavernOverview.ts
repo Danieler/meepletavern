@@ -75,30 +75,30 @@ export async function queryTavernOverview(db: TavernOverviewDb = prisma): Promis
     }
   } as const;
 
-  const [recentEvents, weeklyLibraryAdds, weeklyActivityCount] = await Promise.all([
-    db.activityEvent.findMany({
-      where: {
-        visibility: ActivityEventVisibility.PUBLIC,
-        type: { in: [ActivityEventType.COLLECTION_ADDED, ActivityEventType.LIST_GAME_ADDED] },
-        gameId: { not: null }
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: RECENT_ACTIVITY_SCAN_LIMIT,
-      select: {
-        type: true,
-        actorNameSnapshot: true,
-        gameId: true,
-        listTitleSnapshot: true
-      }
-    }),
-    db.activityEvent.count({
-      where: {
-        ...publicRecentWhere,
-        type: { in: [ActivityEventType.COLLECTION_ADDED, ActivityEventType.LIST_GAME_ADDED] }
-      }
-    }),
-    db.activityEvent.count({ where: publicRecentWhere })
-  ]);
+  // Keep these reads sequential. Production uses a deliberately small Prisma pool and
+  // starting three ActivityEvent queries at once can exhaust it during a cold render.
+  const recentEvents = await db.activityEvent.findMany({
+    where: {
+      visibility: ActivityEventVisibility.PUBLIC,
+      type: { in: [ActivityEventType.COLLECTION_ADDED, ActivityEventType.LIST_GAME_ADDED] },
+      gameId: { not: null }
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: RECENT_ACTIVITY_SCAN_LIMIT,
+    select: {
+      type: true,
+      actorNameSnapshot: true,
+      gameId: true,
+      listTitleSnapshot: true
+    }
+  });
+  const weeklyLibraryAdds = await db.activityEvent.count({
+    where: {
+      ...publicRecentWhere,
+      type: { in: [ActivityEventType.COLLECTION_ADDED, ActivityEventType.LIST_GAME_ADDED] }
+    }
+  });
+  const weeklyActivityCount = await db.activityEvent.count({ where: publicRecentWhere });
 
   const [wantedGroups, ownedGroups, playedGroups] = await Promise.all([
     queryRankedLibrarySignals(db, { wantToPlay: true, ...publicCollectionWhere }),
@@ -174,8 +174,29 @@ const getCachedTavernOverview = unstable_cache(
   { revalidate: TAVERN_OVERVIEW_REVALIDATE_SECONDS, tags: [COMMUNITY_OVERVIEW_CACHE_TAG, "public-games"] }
 );
 
-export function getTavernOverview() {
-  return getCachedTavernOverview();
+export async function getTavernOverview() {
+  try {
+    return await getCachedTavernOverview();
+  } catch (error) {
+    // Community discovery should still render if a transient database read fails.
+    // The failed cache fill is not persisted, so the next request can recover normally.
+    console.error("[community] Tavern overview unavailable", error);
+    return emptyTavernOverview();
+  }
+}
+
+function emptyTavernOverview(): TavernOverview {
+  return {
+    recentGames: [],
+    mostWanted: [],
+    mostOwned: [],
+    mostPlayed: [],
+    highlights: {
+      weeklyLibraryAdds: 0,
+      weeklyActivityCount: 0,
+      topWantedGame: null
+    }
+  };
 }
 
 async function queryRankedLibrarySignals(db: TavernOverviewDb, where: Prisma.UserLibraryGameWhereInput) {
