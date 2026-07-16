@@ -49,7 +49,7 @@ export function HomeSidebarAuthControls() {
 
   if (loading) {
     return (
-      <div className="min-h-[180px] flex flex-col justify-center text-sm font-semibold text-text-on-dark-muted/70">
+      <div className="min-h-[180px] flex flex-col justify-center text-sm font-semibold text-text-on-dark/65">
         Cargando tu rincón...
       </div>
     );
@@ -66,7 +66,7 @@ export function HomeSidebarAuthControls() {
       <h3 className="font-display mt-3 text-3xl font-bold leading-tight">
         {user ? "Tu rincón te está esperando" : "No pierdas lo que quieres jugar"}
       </h3>
-      <p className="mt-3 text-sm font-medium leading-6 text-text-on-dark-muted">
+      <p className="mt-3 text-sm font-medium leading-6 text-text-on-dark/85">
         {user
           ? "Vuelve a tu colección, tus listas y tus valoraciones para preparar la próxima partida."
           : "Guarda descubrimientos para después, crea listas para tu grupo y deja que tu ludoteca recuerde por ti."}
@@ -99,7 +99,7 @@ export function HomeFooterSignupCta() {
             <h2 className="font-display mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
               Guarda lo que quieres jugar antes de perderlo
             </h2>
-            <p className="mt-3 max-w-3xl text-base font-medium leading-7 text-text-on-dark-muted">
+            <p className="mt-3 max-w-3xl text-base font-medium leading-7 text-text-on-dark/85">
               Cada descubrimiento puede quedarse esperando en tu ludoteca: juegos para después,
               listas para tu grupo y notas para recordar por qué te llamó la atención.
             </p>
@@ -113,7 +113,7 @@ export function HomeFooterSignupCta() {
             <AuthCtaButton context="home" className="w-full justify-center px-6 py-3 text-base">
               Guardar mi primer juego
             </AuthCtaButton>
-            <p className="mt-3 text-xs font-semibold text-text-on-dark-muted/70">
+            <p className="mt-3 text-xs font-semibold text-text-on-dark/65">
               Gratis. Sin spam. Lo que guardes queda contigo.
             </p>
           </aside>

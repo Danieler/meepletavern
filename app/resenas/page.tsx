@@ -129,7 +129,7 @@ function ReviewsHero({ featured, reviewCount }: { featured?: Review; reviewCount
           <h1 className="font-display mt-5 text-5xl font-bold leading-[0.96] text-white sm:text-6xl lg:text-7xl">
             Menos hype. <span className="text-accent-light">Mejores partidas.</span>
           </h1>
-          <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-text-on-dark-muted">
+          <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-text-on-dark/85">
             Análisis para saber qué aporta un juego, con quién funciona y si realmente merece un sitio en tu mesa.
           </p>
 
@@ -184,11 +184,11 @@ function FeaturedReviewPanel({ review }: { review: Review }) {
             <h2 className="font-display mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
               {review.title}
             </h2>
-            <p className="mt-3 line-clamp-2 text-sm font-medium leading-6 text-text-on-dark-muted">
+            <p className="mt-3 line-clamp-2 text-sm font-medium leading-6 text-text-on-dark/85">
               {review.summary}
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/15 pt-4">
-              <p className="text-xs font-medium uppercase tracking-eyebrow text-text-on-dark-muted/70">
+              <p className="text-xs font-medium uppercase tracking-eyebrow text-text-on-dark/65">
                 Por {review.authorName} · {formatDate(review.publishedAt)}
               </p>
               <span className="inline-flex items-center gap-2 text-sm font-bold text-accent-light">

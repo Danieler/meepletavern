@@ -380,7 +380,7 @@ export default async function Home() {
                 <HomeSidebarAuthControls />
                 <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.05] p-3">
                   <p className="tavern-eyebrow">Para empezar</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-text-on-dark-muted">
+                  <p className="mt-2 text-sm font-semibold leading-6 text-text-on-dark/85">
                     Menos rankings sueltos, más mesas reales y ludotecas con contexto.
                   </p>
                 </div>
