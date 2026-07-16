@@ -95,7 +95,7 @@ export function GameFilters({
       <div className="flex items-center justify-between gap-3 lg:items-start">
         <div className="min-w-0 lg:block">
           <p className="tavern-eyebrow hidden lg:block">Explorar</p>
-          <h2 className="font-display text-xl font-bold text-ink lg:mt-1">Filtros</h2>
+          <h2 className="font-display text-xl font-bold text-text-primary lg:mt-1">Filtros</h2>
         </div>
         
         <div className="flex shrink-0 items-center gap-2">
@@ -103,7 +103,7 @@ export function GameFilters({
             <button
               type="button"
               onClick={() => router.push("/juegos", { scroll: false })}
-              className="inline-flex h-9 items-center px-2 text-sm font-bold text-moss transition hover:text-wood hover:underline"
+              className="inline-flex h-9 items-center px-2 text-sm font-bold text-action transition hover:text-text-primary hover:underline"
             >
               Limpiar {activeCount > 0 && `(${activeCount})`}
             </button>
@@ -111,10 +111,10 @@ export function GameFilters({
           
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-bold transition lg:hidden ${
+            className={`flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition lg:hidden ${
               isExpanded
-                ? "border-walnut/20 bg-paper text-ink"
-                : "border-moss/20 bg-moss/5 text-moss shadow-sm"
+                ? "border-border-default bg-paper text-text-primary"
+                : "border-action/20 bg-action/5 text-action shadow-sm"
             }`}
             aria-expanded={isExpanded}
           >
@@ -140,7 +140,7 @@ export function GameFilters({
           {categoryTerms.length > 8 && (
             <button
               onClick={() => setShowAllCategories(!showAllCategories)}
-              className="mt-1 block w-full text-left text-xs font-bold text-moss/60 hover:text-moss underline decoration-moss/20 underline-offset-4"
+              className="mt-1 block w-full text-left text-xs font-bold text-action/70 hover:text-action underline decoration-action/20 underline-offset-4"
             >
               {showAllCategories ? "Ver menos" : `Ver todas (${categoryTerms.length})`}
             </button>
@@ -154,14 +154,14 @@ export function GameFilters({
           {mechanicTerms.length > 7 && (
             <button
               onClick={() => setShowAllMechanics(!showAllMechanics)}
-              className="mt-1 block w-full text-left text-xs font-bold text-moss/60 hover:text-moss underline decoration-moss/20 underline-offset-4"
+              className="mt-1 block w-full text-left text-xs font-bold text-action/70 hover:text-action underline decoration-action/20 underline-offset-4"
             >
               {showAllMechanics ? "Ver menos" : `Ver todas (${mechanicTerms.length})`}
             </button>
           )}
         </FilterGroup>
 
-        <div className="pt-2 border-t border-walnut/10">
+        <div className="pt-2 border-t border-border-subtle">
           <FilterGroup title="Ordenar por" icon="sliders">
             {sortItems.map((item) => (
               <FilterPill key={item.value} item={{ label: item.label, param: "sort", value: item.value }} active={active} />
@@ -177,7 +177,7 @@ function FilterGroup({ title, icon, children }: { title: string; icon: BrandIcon
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
-        <BrandIcon name={icon} size={14} className="text-walnut/40" />
+        <BrandIcon name={icon} size={14} className="text-text-tertiary" />
         <h3 className="tavern-meta !mb-0">{title}</h3>
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>
@@ -210,8 +210,8 @@ function FilterPill({ item, active }: { item: FilterLink; active: GameFilterInpu
         });
         router.push(targetHref, { scroll: false });
       }}
-      className={`inline-flex min-h-9 items-center rounded-md px-3 py-1.5 text-sm font-extrabold leading-none transition ${
-        isActive ? "bg-ink text-white shadow-sm" : "border border-ink/5 bg-ink/5 text-ink/70 hover:border-moss/20 hover:bg-moss/10 hover:text-moss"
+      className={`inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-sm font-semibold leading-none transition ${
+        isActive ? "bg-action text-white shadow-sm hover:bg-action-hover" : "border border-border-subtle bg-surface-muted text-text-secondary hover:border-action/25 hover:bg-action/10 hover:text-action"
       }`}
     >
       {item.label}

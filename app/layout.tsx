@@ -1,22 +1,23 @@
 import type { Metadata } from "next";
-import { Lora, Source_Sans_3 } from "next/font/google";
+import { Lora, Inter } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/lib/site";
 
 export const preferredRegion = "fra1";
 
-const bodyFont = Source_Sans_3({
+const bodyFont = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-body",
-  weight: ["400", "500", "600", "700", "800", "900"]
+  weight: ["400", "500", "600", "700"]
 });
 
 const displayFont = Lora({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
-  weight: ["600", "700"]
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"]
 });
 
 export const metadata: Metadata = {

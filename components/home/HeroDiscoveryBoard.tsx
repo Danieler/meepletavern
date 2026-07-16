@@ -40,7 +40,7 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
   }
 
   return (
-    <section className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-[#92400e]/30 bg-gradient-to-b from-[#fbbf24] via-[#d97706] to-[#78350f] text-wood shadow-[0_16px_38px_rgba(120,53,15,0.25),inset_0_2px_8px_rgba(255,255,255,0.4)]">
+    <section className="relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-accent/25 bg-gradient-to-b from-accent-light via-accent to-accent-hover text-text-primary shadow-[0_16px_38px_rgba(44,24,16,0.15),inset_0_2px_8px_rgba(255,255,255,0.3)]">
       {/* Carbonation Bubbles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
         <div className="bubble x1"></div>
@@ -54,16 +54,16 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
       </div>
 
       {/* Foam Head (Espuma de Cerveza) */}
-      <div className="relative z-10 flex items-start justify-between gap-3 border-b border-[#ebd5bf]/40 bg-gradient-to-b from-[#ffffff] to-[#fffbf2] p-3 shadow-md">
+      <div className="relative z-10 flex items-start justify-between gap-3 border-b border-border-subtle bg-gradient-to-b from-white to-paper p-3 shadow-md">
         <div>
-          <p className="tavern-eyebrow flex items-center gap-1.5">
-            <Beer size={13} className="text-ember animate-pulse" strokeWidth={2.5} />
+          <p className="tavern-eyebrow flex items-center gap-1.5 text-accent">
+            <Beer size={13} className="text-accent animate-pulse" strokeWidth={2.5} />
             Directo del barril
           </p>
-          <h2 className="tavern-title mt-1.5 text-xl">
+          <h2 className="tavern-title mt-1.5 text-xl text-text-primary">
             Recomendaciones listas para servir
           </h2>
-          <p className="mt-0.5 text-xs font-semibold leading-5 text-walnut/80">
+          <p className="mt-0.5 text-xs font-semibold leading-5 text-text-secondary">
             Una selección fresca para decidir sin perderte en filtros.
           </p>
         </div>
@@ -71,7 +71,7 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
           type="button"
           onClick={shuffleGames}
           aria-label="Barajar recomendaciones"
-          className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d97706]/30 bg-white text-[#78350f] shadow-md transition hover:-translate-y-0.5 hover:border-[#d97706]/70 hover:bg-[#fffcf5]"
+          className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-white text-text-primary shadow-md transition hover:-translate-y-0.5 hover:border-accent/70 hover:bg-surface-muted/30"
         >
           <span
             className="inline-flex"
@@ -81,7 +81,7 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
                 : "heroDiceFloat 4s ease-in-out infinite"
             }}
           >
-            <BrandIcon name="dice" size={20} className="text-[#d97706]" />
+            <BrandIcon name="dice" size={20} className="text-accent" />
           </span>
         </button>
       </div>
@@ -102,7 +102,7 @@ export function HeroDiscoveryBoard({ games }: { games: HeroGame[] }) {
       </div>
 
       {/* Stat Bar (Brass/Wooden Tray style) */}
-      <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-[#ebd5bf]/30 bg-[#fffdfa] p-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)]">
+      <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-border-subtle bg-paper p-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)]">
         <HeroMiniStat label="Jugadores" value={firstGame.playersLabel || "1-6"} icon="users" />
         <HeroMiniStat label="Tiempo" value={firstGame.playtime || "30-90 min"} icon="clock" />
         <HeroMiniStat label="Dificultad" value={firstGame.complexity || "A elegir"} icon="gauge" />
@@ -178,7 +178,7 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
     <Link
       href={`/juegos/${game.slug}`}
       prefetch={false}
-      className="group flex min-h-0 flex-col overflow-hidden rounded-md border border-[#ebd5bf] bg-[#fffdfa] shadow-[0_4px_10px_rgba(120,53,15,0.08),inset_0_0_0_2px_rgba(218,170,120,0.1)] transition hover:-translate-y-0.5 hover:border-[#d97706] hover:shadow-[0_8px_20px_rgba(217,119,6,0.15)]"
+      className="group flex min-h-0 flex-col overflow-hidden rounded-lg border border-border-subtle bg-paper shadow-[0_4px_10px_rgba(44,24,16,0.05),inset_0_0_0_2px_rgba(218,170,120,0.1)] transition hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_8px_20px_rgba(193,123,26,0.1)]"
     >
       <div className="relative h-36 sm:h-40 lg:h-auto lg:min-h-32 lg:flex-1">
         <Image
@@ -189,28 +189,28 @@ function HeroFeaturedGame({ game }: { game: HeroGame }) {
           className="object-cover transition duration-300 group-hover:scale-103"
           unoptimized
         />
-        <div className="absolute left-3 top-3 rounded-full bg-[#fef3c7] border border-[#f59e0b]/40 px-3 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#92400e] shadow-sm">
+        <div className="absolute left-3 top-3 rounded-full bg-accent-subtle border border-accent/20 px-3 py-0.5 text-micro font-bold uppercase tracking-eyebrow text-text-primary shadow-sm">
           {HERO_GAME_LABELS[0]}
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-display break-words text-2xl font-bold leading-tight text-wood">{game.title}</h3>
-        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-walnut/80">
+        <h3 className="font-display break-words text-2xl font-bold leading-tight text-text-primary">{game.title}</h3>
+        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-text-secondary">
           {game.reviewSummary}
         </p>
-        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-walnut/70">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-text-tertiary">
           {typeof game.ratingScore === "number" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3c7]/60 border border-[#f59e0b]/20 px-2 py-0.5">
-              <BrandIcon name="star" size={11} className="text-[#d97706]" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent-subtle/60 border border-accent/20 px-2 py-0.5 text-accent">
+              <BrandIcon name="star" size={11} className="text-accent" />
               {game.ratingScore.toFixed(1)}
             </span>
           ) : null}
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#f5ebd9] px-2 py-0.5">
-            <BrandIcon name="users" size={11} className="text-[#92400e]/80" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5">
+            <BrandIcon name="users" size={11} className="text-text-secondary" />
             {game.playersLabel || "Mesa flexible"}
           </span>
         </div>
-        <p className="mt-2.5 text-xs font-black uppercase tracking-wider text-ember group-hover:text-hearth transition-colors">
+        <p className="mt-2.5 text-xs font-bold uppercase tracking-eyebrow text-accent group-hover:text-accent-hover transition-colors">
           Ver grifo de ficha →
         </p>
       </div>
@@ -225,7 +225,7 @@ function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
     <Link
       href={`/juegos/${game.slug}`}
       prefetch={false}
-      className="group grid min-h-[84px] grid-cols-[68px_minmax(0,1fr)] overflow-hidden rounded-md border border-[#ebd5bf] bg-[#fffdfa] shadow-[0_2px_6px_rgba(120,53,15,0.06),inset_0_0_0_2px_rgba(218,170,120,0.1)] transition hover:-translate-y-0.5 hover:border-[#d97706] hover:shadow-[0_6px_15px_rgba(217,119,6,0.12)]"
+      className="group grid min-h-[84px] grid-cols-[68px_minmax(0,1fr)] overflow-hidden rounded-lg border border-border-subtle bg-paper shadow-[0_2px_6px_rgba(44,24,16,0.04),inset_0_0_0_2px_rgba(218,170,120,0.1)] transition hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_6px_15px_rgba(193,123,26,0.08)]"
     >
       <div className="relative h-full min-h-[84px]">
         <Image
@@ -238,9 +238,9 @@ function HeroGameRoute({ game, label }: { game: HeroGame; label: string }) {
         />
       </div>
       <div className="min-w-0 p-2.5">
-        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-ember">{label}</p>
-        <h3 className="font-display mt-0.5 break-words text-base font-bold leading-tight text-wood">{game.title}</h3>
-        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-4 text-walnut/80">
+        <p className="text-[9px] font-bold uppercase tracking-eyebrow text-accent">{label}</p>
+        <h3 className="font-display mt-0.5 break-words text-base font-bold leading-tight text-text-primary">{game.title}</h3>
+        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-4 text-text-secondary">
           {game.reviewSummary}
         </p>
       </div>
@@ -258,12 +258,12 @@ function HeroMiniStat({
   icon: "users" | "clock" | "gauge";
 }) {
   return (
-    <div className="min-w-0 rounded-md border border-[#ebd5bf]/60 bg-[#fffdfa] p-2 text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-      <p className="flex min-w-0 flex-col items-center gap-0.5 text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-walnut/70 min-[380px]:text-[10px]">
-        <BrandIcon name={icon} size={11} className="text-ember" />
+    <div className="min-w-0 rounded-lg border border-border-subtle bg-paper p-2 text-center shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+      <p className="flex min-w-0 flex-col items-center gap-0.5 text-micro font-bold uppercase leading-tight tracking-eyebrow text-text-tertiary">
+        <BrandIcon name={icon} size={11} className="text-accent" />
         {label}
       </p>
-      <p className="mt-0.5 break-words font-display text-xs font-bold leading-tight text-wood min-[380px]:text-sm">{value}</p>
+      <p className="mt-0.5 break-words font-display text-xs font-bold leading-tight text-text-primary min-[380px]:text-sm">{value}</p>
     </div>
   );
 }

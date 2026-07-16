@@ -14,7 +14,7 @@ export function HomeHeroAuthControls() {
   if (loading) {
     return (
       <div className="mt-5 flex flex-wrap gap-4 min-h-[48px] items-center">
-        <span className="text-sm font-semibold text-walnut/60">Cargando tu rincón...</span>
+        <span className="text-sm font-semibold text-text-tertiary">Cargando tu rincón...</span>
       </div>
     );
   }
@@ -36,7 +36,7 @@ export function HomeHeroAuthControls() {
         </Link>
       </div>
       {!user ? (
-        <p className="mt-3 text-sm font-bold text-walnut/65">
+        <p className="mt-3 text-sm font-semibold text-text-tertiary">
           Gratis · Entras en segundos · Tu ludoteca lo recuerda por ti
         </p>
       ) : null}
@@ -49,7 +49,7 @@ export function HomeSidebarAuthControls() {
 
   if (loading) {
     return (
-      <div className="min-h-[180px] flex flex-col justify-center text-sm font-semibold text-parchment/60">
+      <div className="min-h-[180px] flex flex-col justify-center text-sm font-semibold text-text-on-dark-muted/70">
         Cargando tu rincón...
       </div>
     );
@@ -66,7 +66,7 @@ export function HomeSidebarAuthControls() {
       <h3 className="font-display mt-3 text-3xl font-bold leading-tight">
         {user ? "Tu rincón te está esperando" : "No pierdas lo que quieres jugar"}
       </h3>
-      <p className="mt-3 text-sm font-semibold leading-6 text-parchment/78">
+      <p className="mt-3 text-sm font-medium leading-6 text-text-on-dark-muted">
         {user
           ? "Vuelve a tu colección, tus listas y tus valoraciones para preparar la próxima partida."
           : "Guarda descubrimientos para después, crea listas para tu grupo y deja que tu ludoteca recuerde por ti."}
@@ -75,7 +75,7 @@ export function HomeSidebarAuthControls() {
         <Link href={profileHref} className="button-primary justify-center">
           {profileLabel}
         </Link>
-        <Link href="/comunidad" prefetch={false} className="button-secondary justify-center border-white/20 bg-[#fff8e8] text-wood hover:bg-white hover:text-wood">
+        <Link href="/comunidad" prefetch={false} className="button-secondary justify-center border-white/20 bg-white/[0.04] text-text-on-dark hover:bg-white/[0.08] hover:text-white">
           Ver la comunidad
         </Link>
       </div>
@@ -92,28 +92,28 @@ export function HomeFooterSignupCta() {
 
   return (
     <section className="container-page py-8 lg:py-10">
-      <div className="overflow-hidden rounded-lg border border-walnut/15 bg-[#3a2118] text-white shadow-soft">
+      <div className="overflow-hidden rounded-lg border border-border-subtle bg-surface-dark text-white shadow-soft">
         <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
           <div>
             <p className="tavern-eyebrow">Tu mesa, siempre a mano</p>
             <h2 className="font-display mt-3 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">
               Guarda lo que quieres jugar antes de perderlo
             </h2>
-            <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-parchment/78">
+            <p className="mt-3 max-w-3xl text-base font-medium leading-7 text-text-on-dark-muted">
               Cada descubrimiento puede quedarse esperando en tu ludoteca: juegos para después,
               listas para tu grupo y notas para recordar por qué te llamó la atención.
             </p>
-            <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold text-parchment/88">
+            <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-text-on-dark">
               <li>✓ Tu ludoteca en un sitio</li>
               <li>✓ Listas para cada grupo</li>
               <li>✓ Valoraciones con contexto</li>
             </ul>
           </div>
-          <aside className="rounded-md border border-white/10 bg-white/8 p-5 text-center">
+          <aside className="rounded-lg border border-white/10 bg-white/[0.05] p-5 text-center">
             <AuthCtaButton context="home" className="w-full justify-center px-6 py-3 text-base">
               Guardar mi primer juego
             </AuthCtaButton>
-            <p className="mt-3 text-xs font-bold text-parchment/65">
+            <p className="mt-3 text-xs font-semibold text-text-on-dark-muted/70">
               Gratis. Sin spam. Lo que guardes queda contigo.
             </p>
           </aside>

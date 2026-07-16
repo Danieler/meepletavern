@@ -120,17 +120,17 @@ export default async function Home() {
               sizes="100vw"
               className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,241,230,0.985),rgba(247,241,230,0.93)_52%,rgba(59,33,22,0.22)_100%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(242,234,224,0.985),rgba(242,234,224,0.93)_52%,rgba(44,24,16,0.22)_100%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,251,243,0.65),transparent_34%)]" />
 
             <div className="relative z-10 grid gap-10 py-4 lg:grid-cols-[1fr_420px] lg:items-stretch">
               <div className="contents lg:order-1 lg:flex lg:h-full lg:flex-col">
                 <div className="order-1 lg:order-none">
                   <p className="tavern-eyebrow">La carta de juegos de mesa</p>
-                  <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-wood sm:text-6xl lg:text-7xl">
-                    Encuentra tu próximo <span className="text-ember">juego de mesa</span>
+                  <h1 className="font-display mt-4 max-w-3xl text-5xl font-bold leading-[0.95] text-text-primary sm:text-6xl lg:text-7xl">
+                    Encuentra tu próximo <span className="text-accent">juego de mesa</span>
                   </h1>
-                  <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-walnut/85 sm:text-xl">
+                  <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-text-secondary sm:text-xl">
                     Busca, compara y descubre qué sacar a mesa según tu grupo, tu tiempo y las
                     ludotecas de otros jugadores.
                   </p>
@@ -143,13 +143,13 @@ export default async function Home() {
                 <div className="order-3 mt-10 lg:hidden lg:order-none xl:block">
                   <div className="mb-5">
                     <div className="flex items-center gap-4">
-                      <p className="tavern-eyebrow flex items-center gap-1.5">
-                        <Beer size={13} className="text-ember" strokeWidth={2.5} />
+                      <p className="tavern-eyebrow flex items-center gap-1.5 text-accent">
+                        <Beer size={13} className="text-accent" strokeWidth={2.5} />
                         Tablón de misiones del tabernero
                       </p>
-                      <div className="h-px flex-1 bg-walnut/10" />
+                      <div className="h-px flex-1 bg-border-subtle" />
                     </div>
-                    <h2 className="tavern-title mt-2.5 text-2xl">
+                    <h2 className="tavern-title mt-2.5 text-2xl text-text-primary">
                       Elige un contrato directo del tablón para empezar tu próxima partida
                     </h2>
                   </div>
@@ -273,13 +273,13 @@ export default async function Home() {
             <div className="relative z-10 mt-10 hidden lg:block xl:hidden">
               <div className="mb-5">
                 <div className="flex items-center gap-4">
-                  <p className="tavern-eyebrow flex items-center gap-1.5">
-                    <Beer size={13} className="text-ember" strokeWidth={2.5} />
+                  <p className="tavern-eyebrow flex items-center gap-1.5 text-accent">
+                    <Beer size={13} className="text-accent" strokeWidth={2.5} />
                     Tablón de misiones del tabernero
                   </p>
-                  <div className="h-px flex-1 bg-walnut/10" />
+                  <div className="h-px flex-1 bg-border-subtle" />
                 </div>
-                <h2 className="tavern-title mt-2.5 text-2xl">
+                <h2 className="tavern-title mt-2.5 text-2xl text-text-primary">
                   Elige un contrato directo del tablón para empezar tu próxima partida
                 </h2>
               </div>
@@ -329,11 +329,11 @@ export default async function Home() {
         </section>
 
         <section className="container-page py-7 lg:py-8" aria-labelledby="home-tavern-pulse-title">
-          <div className="overflow-hidden rounded-lg border border-walnut/12 bg-[linear-gradient(135deg,#fffaf0,#f5e9d6)] shadow-soft">
+          <div className="overflow-hidden rounded-lg border border-border-subtle bg-gradient-to-br from-paper to-surface-muted shadow-soft">
             <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="p-5 sm:p-6">
                 <p className="tavern-eyebrow">La comunidad está abierta</p>
-                <h2 id="home-tavern-pulse-title" className="tavern-title mt-2 text-3xl sm:text-4xl">
+                <h2 id="home-tavern-pulse-title" className="tavern-title mt-2 text-3xl sm:text-4xl text-text-primary">
                   Tu próxima partida empieza en la comunidad
                 </h2>
                 <p className="tavern-copy mt-3">
@@ -376,11 +376,11 @@ export default async function Home() {
                   ))}
                 </div>
               </div>
-              <aside className="border-t border-walnut/10 bg-[#3a2118] p-5 text-white lg:border-l lg:border-t-0 sm:p-6">
+              <aside className="border-t border-border-subtle bg-surface-dark p-5 text-white lg:border-l lg:border-t-0 sm:p-6">
                 <HomeSidebarAuthControls />
-                <div className="mt-5 rounded-md border border-white/10 bg-white/8 p-3">
+                <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.05] p-3">
                   <p className="tavern-eyebrow">Para empezar</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-parchment/80">
+                  <p className="mt-2 text-sm font-semibold leading-6 text-text-on-dark-muted">
                     Menos rankings sueltos, más mesas reales y ludotecas con contexto.
                   </p>
                 </div>
@@ -389,7 +389,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="recomendaciones" className="border-y border-walnut/15 bg-[#fffaf0]/70 py-9 lg:py-12">
+        <section id="recomendaciones" className="border-y border-border-subtle bg-paper/70 py-9 lg:py-12">
           <div className="container-page">
             <SectionHeader
               eyebrow="Juegos recomendados"
@@ -413,7 +413,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-t border-walnut/15 bg-parchment py-8 lg:py-10">
+        <section className="border-t border-border-subtle bg-surface-base py-8 lg:py-10">
           <div className="container-page">
             <div className={`grid gap-6 ${showRatingsSection ? "xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]" : ""}`}>
               {showRatingsSection ? (
@@ -541,19 +541,19 @@ function HomePulseStat({
   description: string;
 }) {
   return (
-    <div className="rounded-md border border-walnut/12 bg-white/70 p-3 shadow-sm">
+    <div className="rounded-lg border border-border-subtle bg-paper/70 p-3 shadow-sm">
       <div className="flex items-center gap-2">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-ember/10 text-ember">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-subtle text-accent">
           <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="font-display text-2xl font-bold leading-none text-wood">{value}</p>
-          <p className="mt-1 text-[10px] font-black uppercase leading-tight tracking-[0.12em] text-walnut/58">
+          <p className="font-display text-2xl font-bold leading-none text-text-primary">{value}</p>
+          <p className="mt-1 text-micro font-bold uppercase leading-tight tracking-eyebrow text-text-tertiary">
             {label}
           </p>
         </div>
       </div>
-      <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-walnut/70">{description}</p>
+      <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-text-secondary">{description}</p>
     </div>
   );
 }
@@ -564,19 +564,19 @@ function buildStatsStripItems(stats: PublicSiteStats) {
       label: `${formatCount(stats.publishedGames)} fichas añadidas`,
       shortLabel: `${formatCount(stats.publishedGames)} fichas`,
       href: "/juegos",
-      dotClass: "bg-ember"
+      dotClass: "bg-accent"
     },
     {
       label: `${formatCount(stats.approvedReviews)} reseñas publicadas`,
       shortLabel: `${formatCount(stats.approvedReviews)} reseñas`,
       href: "/resenas",
-      dotClass: "bg-moss"
+      dotClass: "bg-action"
     },
     {
       label: `${formatCount(stats.publicProfiles)} taberneros`,
       shortLabel: `${formatCount(stats.publicProfiles)} taberneros`,
       href: "/comunidad",
-      dotClass: "bg-parchment"
+      dotClass: "bg-border-default"
     }
   ];
 }
@@ -599,27 +599,27 @@ function IntentCard({
   // Generar una inclinación orgánica determinista basada en el título del contrato (-0.6deg a 0.6deg)
   const rotation = ((title.charCodeAt(0) + title.charCodeAt(title.length - 1)) % 5) * 0.3 - 0.6;
   const cardClassName =
-    "quest-card relative group flex w-full items-center gap-2 sm:gap-3 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-2 sm:p-3.5 border border-[#cfb088]/40 shadow-[0_4px_10px_rgba(0,0,0,0.15)] rounded-md select-none text-left transition-all duration-300 hover:scale-[1.02] hover:bg-[#fffbf2]";
+    "quest-card relative group flex w-full items-center gap-2 sm:gap-3 bg-gradient-to-br from-paper to-surface-muted/30 p-2 sm:p-3.5 border border-border-subtle shadow-[0_4px_10px_rgba(44,24,16,0.08)] rounded-lg select-none text-left transition-all duration-300 hover:scale-[1.02] hover:bg-white";
   const cardStyle = {
     "--card-rotation": `${rotation}deg`
   } as React.CSSProperties;
   const content = (
     <>
       {/* Chincheta de Latón Grande en el centro superior */}
-      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-[#ffd26a] via-[#c29c47] to-[#7c5e21] border border-[#5c4015]/40 shadow-[0_2px_4px_rgba(0,0,0,0.35)] z-20 flex items-center justify-center">
-        <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-tl from-[#ffffff]/70 to-[#ffffff]/0 absolute top-0.5 left-0.5" />
+      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-accent-light via-accent to-accent-hover border border-accent-hover/40 shadow-[0_2px_4px_rgba(0,0,0,0.35)] z-20 flex items-center justify-center">
+        <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-tl from-white/70 to-white/0 absolute top-0.5 left-0.5" />
       </span>
 
       {/* Sello Cuadrado Suave del Gremio */}
-      <span className="inline-flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg bg-[#f5ebd9] text-[#b45309] transition-all duration-300 group-hover:scale-105 group-hover:bg-[#fff7eb] group-hover:text-[#e25c1d]">
+      <span className="inline-flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg bg-accent-subtle text-accent transition-all duration-300 group-hover:scale-105 group-hover:bg-accent-subtle/50 group-hover:text-action">
         <Icon strokeWidth={2.2} className="w-[16px] h-[16px] sm:w-[20px] sm:h-[20px] opacity-95" />
       </span>
 
       <div className="min-w-0 pr-0 sm:pr-1 text-left">
-        <h3 className="font-display text-[12px] sm:text-[15px] font-bold text-[#3e1a00] leading-tight group-hover:text-[#e25c1d] transition-colors break-normal">
+        <h3 className="font-display text-[12px] sm:text-[15px] font-bold text-text-primary leading-tight group-hover:text-action transition-colors break-normal">
           {title}
         </h3>
-        <p className="mt-0.5 sm:mt-1.5 text-[10px] sm:text-[11px] font-semibold leading-normal sm:leading-4 text-[#7c583f]/90">
+        <p className="mt-0.5 sm:mt-1.5 text-[10px] sm:text-[11px] font-semibold leading-normal sm:leading-4 text-text-secondary">
           {description}
         </p>
       </div>
@@ -670,14 +670,14 @@ function TavernFeatureCard({
     <Link
       href={href}
       prefetch={false}
-      className="group rounded-md border border-[#cfb088]/40 bg-gradient-to-br from-[#fffdf5] to-[#fef8eb] p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-ember/45 hover:from-[#fffbf2] hover:to-[#fffdf5]"
+      className="group rounded-lg border border-border-subtle bg-gradient-to-br from-paper to-surface-muted/30 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/40 hover:from-white hover:to-paper"
     >
-      <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-ember/10 text-ember">
+      <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-accent-subtle text-accent">
         <Icon size={20} strokeWidth={2.1} absoluteStrokeWidth />
       </span>
-      <h3 className="font-display mt-3 text-xl font-bold text-wood transition group-hover:text-ember">{title}</h3>
-      <p className="mt-2 text-sm font-semibold leading-6 text-walnut/78">{description}</p>
-      <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-ember">{action}</p>
+      <h3 className="font-display mt-3 text-xl font-bold text-text-primary transition group-hover:text-action">{title}</h3>
+      <p className="mt-2 text-sm font-semibold leading-6 text-text-secondary">{description}</p>
+      <p className="mt-4 text-xs font-bold uppercase tracking-eyebrow text-accent">{action}</p>
     </Link>
   );
 }
@@ -695,9 +695,9 @@ function EmptyStatePanel({
 }) {
   return (
     <div className="tavern-card p-6">
-      <h3 className="tavern-title text-2xl">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-walnut/80">{description}</p>
-      <Link href={href} prefetch={false} className="mt-5 inline-flex text-sm font-extrabold text-ember transition hover:text-wood">
+      <h3 className="tavern-title text-2xl text-text-primary">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-text-secondary">{description}</p>
+      <Link href={href} prefetch={false} className="mt-5 inline-flex text-sm font-bold text-action transition hover:text-action-hover">
         {linkLabel}
       </Link>
     </div>

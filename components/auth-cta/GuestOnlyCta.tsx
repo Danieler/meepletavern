@@ -29,12 +29,12 @@ export function GuestOnlyCta({
   }
 
   return (
-    <section className={["rounded-lg border border-ember/20 bg-[#3a2118] p-5 text-white shadow-soft sm:p-6", className].filter(Boolean).join(" ")}>
+    <section className={["rounded-lg border border-accent/20 bg-surface-dark p-5 text-white shadow-soft sm:p-6", className].filter(Boolean).join(" ")}>
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px] md:items-center">
         <div>
-          <p className="tavern-eyebrow text-ember">Tu rincón</p>
+          <p className="tavern-eyebrow text-accent">Tu rincón</p>
           <h2 className="font-display mt-2 text-2xl font-bold leading-tight">{title}</h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-parchment/78">{description}</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-text-on-dark-muted">{description}</p>
         </div>
         <AuthCtaButton context={context} className="justify-center" next={intent ? next : undefined} intent={intent}>
           {buttonLabel}

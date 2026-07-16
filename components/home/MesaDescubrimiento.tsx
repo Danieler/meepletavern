@@ -143,22 +143,22 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
   const coverUrl = activeGame.coverImageUrl || siteConfig.markImage;
 
   return (
-    <div id="descubrimiento" className="tavern-card flex flex-col gap-5 bg-white p-5 shadow-lg border border-walnut/12 rounded-xl relative">
+    <div id="descubrimiento" className="tavern-card flex flex-col gap-5 bg-paper p-5 shadow-lg border border-border-subtle rounded-xl relative">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-ember">
+        <p className="text-micro font-bold uppercase tracking-eyebrow text-accent">
           Mesa de descubrimiento
         </p>
-        <h2 className="font-display mt-1.5 text-2xl font-bold leading-tight text-wood">
+        <h2 className="font-display mt-1.5 text-2xl font-bold leading-tight text-text-primary">
           Prepara tu mesa
         </h2>
-        <p className="mt-1 text-sm font-semibold leading-6 text-walnut/72">
+        <p className="mt-1 text-sm font-semibold leading-6 text-text-secondary">
           Elige rápido cómo es tu partida y te servimos una selección.
         </p>
       </div>
 
       {/* Group 1: Players */}
       <div>
-        <h3 className="text-xs font-black uppercase tracking-wider text-walnut/50 mb-2">Jugadores</h3>
+        <h3 className="text-xs font-bold uppercase tracking-eyebrow text-text-tertiary mb-2">Jugadores</h3>
         <div className="flex flex-wrap gap-1.5">
           {playersOptions.map((opt) => {
             const isSelected = selectedPlayers === opt;
@@ -167,10 +167,10 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
                 key={opt}
                 type="button"
                 onClick={() => setSelectedPlayers(isSelected ? null : opt)}
-                className={`px-3 py-1.5 text-xs font-extrabold rounded-md transition border ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition border ${
                   isSelected
-                    ? "bg-wood text-white border-wood"
-                    : "bg-walnut/5 text-walnut hover:bg-walnut/10 border-transparent"
+                    ? "bg-action text-white border-action"
+                    : "bg-surface-muted text-text-secondary hover:bg-border-default border-transparent"
                 }`}
               >
                 {opt}
@@ -182,7 +182,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
 
       {/* Group 2: Duration */}
       <div>
-        <h3 className="text-xs font-black uppercase tracking-wider text-walnut/50 mb-2">Duración</h3>
+        <h3 className="text-xs font-bold uppercase tracking-eyebrow text-text-tertiary mb-2">Duración</h3>
         <div className="flex flex-wrap gap-1.5">
           {durationOptions.map((opt) => {
             const isSelected = selectedDuration === opt;
@@ -191,10 +191,10 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
                 key={opt}
                 type="button"
                 onClick={() => setSelectedDuration(isSelected ? null : opt)}
-                className={`px-3 py-1.5 text-xs font-extrabold rounded-md transition border ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition border ${
                   isSelected
-                    ? "bg-wood text-white border-wood"
-                    : "bg-walnut/5 text-walnut hover:bg-walnut/10 border-transparent"
+                    ? "bg-action text-white border-action"
+                    : "bg-surface-muted text-text-secondary hover:bg-border-default border-transparent"
                 }`}
               >
                 {opt}
@@ -206,7 +206,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
 
       {/* Group 3: Type */}
       <div>
-        <h3 className="text-xs font-black uppercase tracking-wider text-walnut/50 mb-2">Tipo de partida</h3>
+        <h3 className="text-xs font-bold uppercase tracking-eyebrow text-text-tertiary mb-2">Tipo de partida</h3>
         <div className="flex flex-wrap gap-1.5">
           {typeOptions.map((opt) => {
             const isSelected = selectedType === opt;
@@ -215,10 +215,10 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
                 key={opt}
                 type="button"
                 onClick={() => setSelectedType(isSelected ? null : opt)}
-                className={`px-3 py-1.5 text-xs font-extrabold rounded-md transition border ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition border ${
                   isSelected
-                    ? "bg-wood text-white border-wood"
-                    : "bg-walnut/5 text-walnut hover:bg-walnut/10 border-transparent"
+                    ? "bg-action text-white border-action"
+                    : "bg-surface-muted text-text-secondary hover:bg-border-default border-transparent"
                 }`}
               >
                 {opt}
@@ -232,17 +232,17 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
       <button
         type="button"
         onClick={handleSearch}
-        className="button-primary w-full py-3 justify-center text-center font-bold tracking-wide"
+        className="button-primary w-full py-3 justify-center text-center font-semibold tracking-ui"
       >
         Ver recomendaciones
       </button>
 
       {/* Selection of the house carousel block */}
-      <div className="border-t border-walnut/10 pt-4 mt-1">
+      <div className="border-t border-border-subtle pt-4 mt-1">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-2 w-2 rounded-full bg-ember animate-pulse"></span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-ember">
+            <span className="inline-flex h-2 w-2 rounded-full bg-accent animate-pulse"></span>
+            <span className="text-micro font-bold uppercase tracking-eyebrow text-accent">
               Selección de la casa
             </span>
           </div>
@@ -251,7 +251,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
             type="button"
             onClick={shuffleGames}
             aria-label="Barajar recomendaciones"
-            className="group flex h-8 w-8 items-center justify-center rounded-full border border-ember/20 bg-[#fffcf6] text-wood hover:border-ember/60 transition shadow-sm hover:bg-[#fff9ee]"
+            className="group flex h-8 w-8 items-center justify-center rounded-full border border-accent/20 bg-paper text-text-primary hover:border-accent transition shadow-sm hover:bg-surface-muted/30"
           >
             <span
               className="inline-flex"
@@ -261,19 +261,19 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
                   : "heroDiceFloat 4s ease-in-out infinite"
               }}
             >
-              <BrandIcon name="dice" size={16} className="text-ember" />
+              <BrandIcon name="dice" size={16} className="text-accent" />
             </span>
           </button>
         </div>
 
-        <div className="rounded-lg border border-walnut/8 bg-[#fffcf6] p-3 shadow-sm relative overflow-hidden transition-all duration-300">
+        <div className="rounded-lg border border-border-subtle bg-paper p-3 shadow-sm relative overflow-hidden transition-all duration-300">
           {/* Card body */}
           <Link
             href={`/juegos/${activeGame.slug}`}
             prefetch={false}
             className="group grid grid-cols-[68px_minmax(0,1fr)] gap-3 items-start"
           >
-            <div className="relative h-[68px] w-[68px] rounded overflow-hidden border border-walnut/10 bg-walnut/5 shrink-0">
+            <div className="relative h-[68px] w-[68px] rounded overflow-hidden border border-border-subtle bg-surface-muted/20 shrink-0">
               <Image
                 src={coverUrl}
                 alt={activeGame.coverImageAlt || activeGame.title}
@@ -284,14 +284,14 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
               />
             </div>
             <div className="min-w-0">
-              <h4 className="font-display font-bold text-wood group-hover:text-ember transition truncate text-base leading-snug">
+              <h4 className="font-display font-bold text-text-primary group-hover:text-action transition truncate text-base leading-snug">
                 {activeGame.title}
               </h4>
-              <p className="text-[11px] font-semibold text-walnut/70 truncate mt-0.5">
+              <p className="text-[11px] font-semibold text-text-tertiary truncate mt-0.5">
                 {activeGame.playersLabel || "Mesa flexible"} · {activeGame.playtime || "Tiempo variable"}
               </p>
               {activeGame.reviewSummary && (
-                <p className="text-[10px] leading-normal text-walnut/78 line-clamp-2 mt-1">
+                <p className="text-[10px] leading-normal text-text-secondary line-clamp-2 mt-1">
                   {activeGame.reviewSummary}
                 </p>
               )}
@@ -299,12 +299,12 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
           </Link>
 
           {/* Carousel indicators and navigation */}
-          <div className="flex items-center justify-between mt-3 pt-2 border-t border-walnut/5">
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-border-subtle">
             <button
               type="button"
               onClick={prevSlide}
               aria-label="Juego anterior"
-              className="p-1 text-walnut/60 hover:text-ember transition rounded hover:bg-walnut/5"
+              className="p-1 text-text-secondary hover:text-action transition rounded hover:bg-surface-muted"
             >
               <BrandIcon name="chevron-left" size={14} />
             </button>
@@ -317,7 +317,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
                   type="button"
                   onClick={() => setActiveIndex(idx)}
                   className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    idx === activeIndex ? "bg-ember scale-125 w-3" : "bg-walnut/20 hover:bg-walnut/40"
+                    idx === activeIndex ? "bg-accent scale-125 w-3" : "bg-border-strong/50 hover:bg-border-strong"
                   }`}
                   aria-label={`Ir al juego ${idx + 1}`}
                 />
@@ -328,7 +328,7 @@ export function MesaDescubrimiento({ gamesPool }: MesaDescubrimientoProps) {
               type="button"
               onClick={nextSlide}
               aria-label="Siguiente juego"
-              className="p-1 text-walnut/60 hover:text-ember transition rounded hover:bg-walnut/5"
+              className="p-1 text-text-secondary hover:text-action transition rounded hover:bg-surface-muted"
             >
               <BrandIcon name="chevron-right" size={14} />
             </button>

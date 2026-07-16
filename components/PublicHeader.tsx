@@ -31,7 +31,7 @@ export function PublicHeader() {
               <span className="font-display block text-[21px] font-bold leading-[17px] text-white sm:text-[23px] sm:leading-[19px]">
                 Meeple
               </span>
-              <span className="font-display block text-[21px] font-bold leading-[17px] text-ember sm:text-[23px] sm:leading-[19px]">
+              <span className="font-display block text-[21px] font-bold leading-[17px] text-accent sm:text-[23px] sm:leading-[19px]">
                 Tavern
               </span>
             </span>

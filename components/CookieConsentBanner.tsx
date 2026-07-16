@@ -49,28 +49,28 @@ export function CookieConsentBanner() {
     <section
       aria-label="Preferencias de cookies"
       aria-live="polite"
-      className="fixed inset-x-3 bottom-3 z-[80] mx-auto max-w-3xl rounded-md border border-parchment/20 bg-ink p-5 text-white shadow-2xl sm:bottom-5 sm:p-6"
+      className="fixed inset-x-3 bottom-3 z-[80] mx-auto max-w-3xl rounded-lg border border-border-subtle bg-surface-dark p-5 text-white shadow-2xl sm:bottom-5 sm:p-6"
       role="dialog"
     >
       <h2 className="font-display text-xl font-bold">Tú decides sobre las cookies</h2>
       {showSettings ? (
         <>
-          <p className="mt-2 text-sm font-medium leading-6 text-white/72">
+          <p className="mt-2 text-sm font-medium leading-6 text-text-on-dark-muted">
             Las cookies técnicas son necesarias para iniciar sesión y mantener la seguridad. La
             analítica es opcional y no se carga si no la activas.
           </p>
-          <div className="mt-4 rounded-md border border-white/15 bg-white/8 p-4">
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.05] p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-sm font-black uppercase tracking-[0.12em] text-white">Analítica</h3>
-                <p className="mt-1 text-sm font-medium leading-6 text-white/70">
+                <h3 className="text-sm font-bold uppercase tracking-eyebrow text-white">Analítica</h3>
+                <p className="mt-1 text-sm font-medium leading-6 text-text-on-dark-muted">
                   Ayuda a medir páginas vistas y uso agregado con Vercel Web Analytics.
                 </p>
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold">
                 <input
                   checked={analyticsDraft}
-                  className="h-4 w-4 accent-ember"
+                  className="h-4 w-4 accent-action"
                   onChange={(event) => setAnalyticsDraft(event.target.checked)}
                   type="checkbox"
                 />
@@ -92,7 +92,7 @@ export function CookieConsentBanner() {
         </>
       ) : (
         <>
-          <p className="mt-2 text-sm font-medium leading-6 text-white/72">
+          <p className="mt-2 text-sm font-medium leading-6 text-text-on-dark-muted">
             Usamos lo imprescindible para que la web funcione. Si nos das permiso, recogeremos
             estadísticas agregadas para entender qué funciona y mejorar MeepleTavern. Puedes cambiar
             tu elección cuando quieras en la <Link className="font-bold text-white underline underline-offset-4" href="/cookies">política de cookies</Link>.

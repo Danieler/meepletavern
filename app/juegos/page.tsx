@@ -240,11 +240,11 @@ function buildActiveFilterChips(filters: GameFilterInput) {
 
 function CatalogSignupCta() {
   return (
-    <article className="rounded-lg border border-ember/20 bg-[#3a2118] p-5 text-white shadow-soft md:col-span-2 xl:col-span-3">
+    <article className="rounded-lg border border-accent/20 bg-surface-dark p-5 text-white shadow-soft md:col-span-2 xl:col-span-3">
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         <div className="flex-1">
           <h3 className="font-display text-xl font-bold">No pierdas lo que quieres probar</h3>
-          <p className="mt-1 text-sm text-parchment/80">
+          <p className="mt-1 text-sm text-text-on-dark-muted">
             Guarda juegos mientras exploras y recupéralos después en tu ludoteca, sin volver a buscarlos.
           </p>
         </div>

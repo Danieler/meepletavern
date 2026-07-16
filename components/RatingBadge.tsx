@@ -10,11 +10,11 @@ export function RatingBadge({ rating, size = "md", label = "MT" }: RatingBadgePr
 
   return (
     <div
-      className={`${sizeClass} inline-flex shrink-0 flex-col items-center justify-center rounded-full border-2 border-ember bg-walnut font-display font-bold text-white shadow-soft`}
+      className={`${sizeClass} inline-flex shrink-0 flex-col items-center justify-center rounded-full border-2 border-accent bg-walnut font-display font-bold text-white shadow-soft`}
       aria-label={`Puntuación ${rating.toFixed(1)} sobre 10`}
     >
       <span>{rating.toFixed(1)}</span>
-      <span className="text-[10px] font-bold uppercase text-ember">{label}</span>
+      <span className="text-[10px] font-bold uppercase text-accent-light">{label}</span>
     </div>
   );
 }

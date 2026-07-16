@@ -78,14 +78,14 @@ export function MobileSignupBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
-      <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-ember/25 bg-[#251610]/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ember/20 text-ember">
+      <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-accent/25 bg-surface-dark/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-subtle/20 text-accent-light">
           <BookmarkCheck className="h-4 w-4" aria-hidden="true" />
         </div>
-        <p className="min-w-0 flex-1 text-sm font-extrabold leading-snug">{copy.text}</p>
+        <p className="min-w-0 flex-1 text-sm font-bold leading-snug">{copy.text}</p>
         <AuthCtaButton
           context="catalog"
-          className="min-h-10 shrink-0 px-4 py-2 text-xs font-black bg-ember border-none hover:bg-ember-strong text-white rounded-md shadow-md transition-all active:scale-[0.98]"
+          className="min-h-10 shrink-0 px-4 py-2 text-xs font-bold bg-action border-none hover:bg-action-hover text-white rounded-lg shadow-md transition-all active:scale-[0.98]"
           next={copy.intent ? next : undefined}
           intent={copy.intent}
         >

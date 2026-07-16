@@ -23,7 +23,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
     return (
       <article className="group min-w-0">
         <Link href={`/juegos/${game.slug}`} prefetch={false} className="block" aria-label={`Abrir ficha de ${game.title}`}>
-          <div className="relative overflow-hidden rounded-md border border-walnut/15 bg-walnut/10 shadow-sm transition group-hover:-translate-y-0.5 group-hover:border-ember/45 group-hover:shadow-soft">
+          <div className="relative overflow-hidden rounded-lg border border-border-subtle bg-surface-muted/30 shadow-sm transition group-hover:-translate-y-0.5 group-hover:border-accent/40 group-hover:shadow-soft">
             <GameCoverImage
               {...game}
               gameTitle={game.title}
@@ -33,14 +33,14 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
               imageSizes="(max-width: 640px) 150px, 220px"
             />
             {typeof ratingScore === "number" ? (
-              <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-wood/90 px-2 py-1 text-sm font-black leading-none text-white shadow-sm">
+              <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-surface-dark/90 px-2 py-1 text-sm font-bold leading-none text-white shadow-sm">
                 <BrandIcon name="star" size={15} />
                 {ratingScore.toFixed(1)}
               </span>
             ) : null}
           </div>
-          <h3 className="mt-2 break-words text-sm font-extrabold leading-5 text-wood sm:truncate">{game.title}</h3>
-          <p className="mt-1 break-words text-xs font-semibold leading-4 text-walnut/65 sm:truncate">
+          <h3 className="mt-2 break-words text-sm font-bold leading-5 text-text-primary sm:truncate">{game.title}</h3>
+          <p className="mt-1 break-words text-xs font-semibold leading-4 text-text-tertiary sm:truncate">
             {[game.playersLabel, game.playtime, game.complexity].filter(Boolean).join(" · ")}
           </p>
         </Link>
@@ -50,7 +50,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
 
   if (compact) {
     return (
-      <article className="tavern-card h-full min-h-[144px] overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45 xl:min-h-[150px]">
+      <article className="tavern-card h-full min-h-[144px] overflow-hidden transition hover:-translate-y-0.5 hover:border-accent/40 xl:min-h-[150px]">
         <Link
           href={`/juegos/${game.slug}`}
           prefetch={false}
@@ -73,14 +73,14 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
                 </span>
               ))}
             </div>
-            <h3 className="font-display mt-3 line-clamp-2 text-lg font-bold leading-tight text-wood">{game.title}</h3>
+            <h3 className="font-display mt-3 line-clamp-2 text-lg font-bold leading-tight text-text-primary">{game.title}</h3>
             {game.publishedAt ? (
-              <p className="mt-1.5 inline-flex w-fit rounded-[4px] border border-ember/18 bg-ember/8 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.11em] text-ember">
+              <p className="mt-1.5 inline-flex w-fit rounded border border-accent/20 bg-accent/8 px-2 py-0.5 text-micro font-bold uppercase tracking-eyebrow text-accent">
                 {formatAddedDate(game.publishedAt, dateMode)}
               </p>
             ) : null}
             {compactFacts.length ? (
-              <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold leading-5 text-walnut/70">
+              <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold leading-5 text-text-secondary">
                 {compactFacts.map((fact) => (
                   <span key={fact.icon} className="inline-flex items-center gap-1.5">
                     <BrandIcon name={fact.icon} size={16} />
@@ -96,7 +96,7 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
   }
 
   return (
-    <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-ember/45">
+    <article className="tavern-card overflow-hidden transition hover:-translate-y-0.5 hover:border-accent/40">
       <Link
         href={`/juegos/${game.slug}`}
         prefetch={false}
@@ -123,10 +123,10 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
               </span>
             ) : null}
           </div>
-          <h3 className="font-display text-xl font-bold leading-tight text-wood">{game.title}</h3>
-          <p className="mt-3 line-clamp-3 text-sm leading-6 text-walnut/80">{game.reviewSummary}</p>
+          <h3 className="font-display text-xl font-bold leading-tight text-text-primary">{game.title}</h3>
+          <p className="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">{game.reviewSummary}</p>
           {fullFacts.length ? (
-            <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs font-semibold leading-5 text-walnut/70">
+            <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs font-semibold leading-5 text-text-tertiary">
               {fullFacts.map((fact) => (
                 <span key={fact.icon} className="inline-flex items-center gap-1.5">
                   <BrandIcon name={fact.icon} size={16} />
@@ -135,11 +135,11 @@ export function GameCard({ game, compact, poster, dateMode = "absolute" }: GameC
               ))}
             </div>
           ) : null}
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-walnut/10 pt-4">
-            <span className="text-xs font-bold uppercase tracking-[0.12em] text-walnut/55">
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+            <span className="text-xs font-bold uppercase tracking-eyebrow text-text-tertiary">
               {game.categories[0] || "Juego de mesa"}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ember">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
               Ver ficha
               <ChevronRight size={16} strokeWidth={2.2} />
             </span>

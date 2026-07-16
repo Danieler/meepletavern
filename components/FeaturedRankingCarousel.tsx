@@ -6,12 +6,12 @@ import { getEffectiveRatingScore, type CatalogGame } from "@/lib/catalog";
 import { getPrimaryGameTags } from "@/lib/gameDisplayTags";
 
 const rankStyles = [
-  ["border-ember/45 bg-[linear-gradient(135deg,#fff4df,#f8ead4)]", "bg-[#c9821f] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_10px_22px_rgba(201,130,31,0.24)]"],
-  ["border-walnut/18 bg-[linear-gradient(135deg,#fffaf0,#f5ecdd)]", "bg-[#a96813] text-white"],
-  ["border-walnut/16 bg-[linear-gradient(135deg,#fffaf0,#f8f0e3)]", "bg-[#8b5727] text-white"],
-  ["border-walnut/16 bg-[linear-gradient(135deg,#fffaf0,#f7eddc)]", "bg-[#7a461e] text-white"],
-  ["border-walnut/16 bg-[linear-gradient(135deg,#fffaf0,#f7f1e6)]", "bg-[#6b4224] text-white"],
-  ["border-walnut/16 bg-[linear-gradient(135deg,#fffaf0,#f3eadb)]", "bg-[#4f301d] text-white"]
+  ["border-accent/30 bg-gradient-to-br from-accent-subtle/30 to-accent-subtle/10", "bg-accent text-white shadow-[0_10px_22px_rgba(193,123,26,0.18)]"],
+  ["border-border-subtle bg-gradient-to-br from-paper to-surface-muted/30", "bg-accent-hover text-white"],
+  ["border-border-subtle bg-gradient-to-br from-paper to-surface-muted/30", "bg-walnut/90 text-white"],
+  ["border-border-subtle bg-gradient-to-br from-paper to-surface-muted/30", "bg-walnut/80 text-white"],
+  ["border-border-subtle bg-gradient-to-br from-paper to-surface-muted/30", "bg-walnut/70 text-white"],
+  ["border-border-subtle bg-gradient-to-br from-paper to-surface-muted/30", "bg-walnut/60 text-white"]
 ] as const;
 
 export function FeaturedRankingCarousel({ games }: { games: CatalogGame[] }) {
@@ -26,10 +26,10 @@ export function FeaturedRankingCarousel({ games }: { games: CatalogGame[] }) {
             <Link
               href={`/juegos/${game.slug}`}
               prefetch={false}
-              className={`tavern-card relative grid h-full min-h-[164px] grid-cols-[76px_minmax(0,1fr)] items-center gap-3 p-3.5 pl-14 transition hover:-translate-y-0.5 hover:border-ember/55 sm:grid-cols-[88px_minmax(0,1fr)] md:min-h-[144px] xl:min-h-[150px] touch-manipulation cursor-pointer ${cardStyle}`}
+              className={`tavern-card relative grid h-full min-h-[164px] grid-cols-[76px_minmax(0,1fr)] items-center gap-3 p-3.5 pl-14 transition hover:-translate-y-0.5 hover:border-accent/40 sm:grid-cols-[88px_minmax(0,1fr)] md:min-h-[144px] xl:min-h-[150px] touch-manipulation cursor-pointer ${cardStyle}`}
               aria-label={`Abrir ficha de ${game.title}`}
             >
-              <span className={`font-display absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-md text-lg font-bold leading-none shadow-sm ${badgeStyle}`}>
+              <span className={`font-display absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-lg text-lg font-bold leading-none shadow-sm ${badgeStyle}`}>
                 {index + 1}
               </span>
               {typeof ratingScore === "number" ? (
@@ -44,16 +44,16 @@ export function FeaturedRankingCarousel({ games }: { games: CatalogGame[] }) {
                 variant="ranking"
                 showPlaceholderLabel={false}
                 imageSizes="(max-width: 767px) 76px, 88px"
-                className="self-center ring-1 ring-walnut/8"
+                className="self-center ring-1 ring-walnut/10"
               />
               <span className="flex min-w-0 flex-col justify-center">
-                <span className="font-display block min-w-0 break-words pt-7 text-[1.2rem] font-bold leading-tight text-wood md:pr-14 md:pt-0">
+                <span className="font-display block min-w-0 break-words pt-7 text-lg font-bold leading-tight text-text-primary md:pr-14 md:pt-0">
                   {game.title}
                 </span>
-                <span className="mt-1.5 block line-clamp-2 text-sm font-semibold leading-5 text-walnut/70">
+                <span className="mt-1.5 block line-clamp-2 text-sm font-semibold leading-5 text-text-secondary">
                   {[getPrimaryGameTags(game, 2).join(" · "), game.playtime, game.complexity].filter(Boolean).join(" · ")}
                 </span>
-                <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.12em] text-ember">
+                <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-eyebrow text-accent">
                   Ver ficha
                 </span>
               </span>
