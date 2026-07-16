@@ -574,7 +574,7 @@ dd {
     left: 0;
     height: 3px;
     z-index: 60;
-    background: linear-gradient(90deg, #c9821f, #d4a24a, #2f6f62);
+    background: linear-gradient(90deg, #9b5418, #c9821f, #f0b95f);
     transition: opacity 0.3s ease;
     pointer-events: none;
   }
