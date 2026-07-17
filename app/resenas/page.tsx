@@ -118,8 +118,8 @@ export default async function ReviewsPage() {
 
 function ReviewsHero({ featured, reviewCount }: { featured?: Review; reviewCount: number }) {
   return (
-    <section className="relative isolate overflow-hidden bg-surface-dark text-white">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_10%,rgba(193,123,26,0.2),transparent_30rem),linear-gradient(120deg,#1C1210_0%,#2A1B14_54%,#130C08_100%)]" />
+    <section className="reviews-index-hero relative isolate overflow-hidden bg-surface-dark text-white">
+      <div className="reviews-index-hero-grain absolute inset-0 -z-10" />
       <div className="container-page grid gap-10 py-12 sm:py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)] lg:items-center lg:py-20">
         <div className="max-w-3xl">
           <p className="inline-flex min-h-8 items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 text-xs font-bold uppercase tracking-eyebrow text-accent-light">

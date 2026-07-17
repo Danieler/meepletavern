@@ -210,13 +210,16 @@ dd {
     position: sticky;
     overflow: visible;
     background:
-      radial-gradient(780px 150px at 14% -55%, rgba(193, 123, 26, 0.18), transparent 62%),
-      radial-gradient(680px 180px at 86% -70%, rgba(96, 64, 38, 0.24), transparent 62%),
-      linear-gradient(180deg, #211510 0%, #1C1210 48%, #130C08 100%);
+      radial-gradient(ellipse at 8% 18%, rgba(148, 84, 25, 0.2), transparent 27%),
+      radial-gradient(ellipse at 76% 76%, rgba(122, 67, 20, 0.14), transparent 31%),
+      repeating-linear-gradient(2deg, transparent 0 9px, rgba(12, 6, 2, 0.13) 10px, transparent 11px 18px),
+      repeating-linear-gradient(94deg, rgba(237, 166, 73, 0.025) 0 1px, transparent 1px 37px),
+      linear-gradient(180deg, #40230f 0%, #301708 54%, #211006 100%);
     box-shadow:
-      inset 0 1px 0 rgba(255, 250, 240, 0.06),
-      inset 0 -1px 0 rgba(193, 123, 26, 0.3),
-      0 3px 14px rgba(28, 18, 16, 0.22);
+      inset 0 1px 0 rgba(222, 151, 62, 0.18),
+      inset 0 -2px 0 rgba(6, 3, 1, 0.72),
+      inset 0 0 28px rgba(0, 0, 0, 0.22),
+      0 4px 12px rgba(0, 0, 0, 0.26);
   }
 
   .tavern-header::before {
@@ -224,19 +227,21 @@ dd {
     position: absolute;
     inset: 0;
     content: "";
-    opacity: 0.14;
+    opacity: 0.22;
     background:
-      linear-gradient(90deg, transparent 8%, rgba(255, 250, 240, 0.06) 38%, transparent 72%),
-      repeating-linear-gradient(90deg, rgba(255, 250, 240, 0.01) 0 1px, transparent 1px 28px);
+      linear-gradient(90deg, transparent 4%, rgba(220, 145, 53, 0.08) 21%, transparent 43%, rgba(220, 145, 53, 0.04) 76%, transparent 96%),
+      repeating-linear-gradient(0deg, transparent 0 12px, rgba(0, 0, 0, 0.12) 13px, transparent 14px 21px),
+      repeating-linear-gradient(90deg, rgba(255, 235, 192, 0.012) 0 1px, transparent 1px 32px);
   }
 
   .tavern-header::after {
     pointer-events: none;
     position: absolute;
     inset: auto 0 0;
-    height: 1px;
+    height: 2px;
     content: "";
-    background: linear-gradient(90deg, transparent, rgba(193, 123, 26, 0.5) 20%, rgba(193, 123, 26, 0.3) 78%, transparent);
+    background: linear-gradient(90deg, #150903, #a86418 8%, #301406 24%, #8b5014 74%, #150903);
+    box-shadow: 0 1px rgba(224, 151, 52, 0.15);
   }
 
   .tavern-header > * {
@@ -250,13 +255,16 @@ dd {
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(820px 210px at 14% 0%, rgba(193, 123, 26, 0.14), transparent 62%),
-      radial-gradient(720px 190px at 86% 8%, rgba(93, 61, 38, 0.2), transparent 66%),
-      linear-gradient(180deg, #1C1210 0%, #211510 48%, #130C08 100%);
+      radial-gradient(760px 230px at 12% 4%, rgba(160, 89, 25, 0.2), transparent 61%),
+      radial-gradient(680px 220px at 88% 18%, rgba(111, 62, 20, 0.18), transparent 64%),
+      repeating-linear-gradient(1deg, transparent 0 12px, rgba(8, 4, 1, 0.14) 13px, transparent 14px 22px),
+      repeating-linear-gradient(91deg, rgba(238, 178, 91, 0.018) 0 1px, transparent 1px 42px),
+      linear-gradient(180deg, #3b200d 0%, #2b1608 48%, #1b0c04 100%);
     box-shadow:
-      inset 0 1px 0 rgba(193, 123, 26, 0.24),
-      inset 0 -1px 0 rgba(255, 250, 240, 0.03),
-      0 -8px 24px rgba(28, 18, 16, 0.12);
+      inset 0 2px 0 rgba(205, 132, 38, 0.26),
+      inset 0 -2px 0 rgba(8, 3, 1, 0.48),
+      inset 0 0 34px rgba(0, 0, 0, 0.2),
+      0 -8px 24px rgba(28, 18, 16, 0.16);
   }
 
   .tavern-footer::before {
@@ -264,20 +272,20 @@ dd {
     position: absolute;
     inset: 0;
     content: "";
-    opacity: 0.16;
+    opacity: 0.26;
     background:
-      linear-gradient(90deg, transparent 6%, rgba(255, 250, 240, 0.05) 34%, transparent 70%),
-      repeating-linear-gradient(0deg, rgba(255, 250, 240, 0.02) 0 1px, transparent 1px 16px),
-      repeating-linear-gradient(90deg, rgba(255, 250, 240, 0.01) 0 1px, transparent 1px 30px);
+      linear-gradient(90deg, transparent 5%, rgba(222, 152, 62, 0.07) 29%, transparent 54%, rgba(222, 152, 62, 0.035) 82%, transparent 97%),
+      repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), rgba(7, 3, 1, 0.42) calc(25% - 1px) 25%, rgba(185, 112, 30, 0.08) 25% calc(25% + 1px));
   }
 
   .tavern-footer::after {
     pointer-events: none;
     position: absolute;
     inset: 0 0 auto;
-    height: 1px;
+    height: 3px;
     content: "";
-    background: linear-gradient(90deg, transparent, rgba(193, 123, 26, 0.55) 18%, rgba(193, 123, 26, 0.25) 82%, transparent);
+    background: linear-gradient(90deg, #140803, #a96718 8%, #2d1205 24%, #8d5114 74%, #140803);
+    box-shadow: 0 1px rgba(227, 154, 51, 0.18), 0 3px 7px rgba(0, 0, 0, 0.28);
   }
 
   .tavern-footer > * {
@@ -287,23 +295,98 @@ dd {
 
   .footer-brand-panel {
     @apply rounded-lg border border-white/10 bg-white/[0.03] p-4 shadow-sm;
+    border-color: rgba(151, 93, 29, 0.34);
+    background:
+      repeating-linear-gradient(0deg, transparent 0 9px, rgba(255, 229, 178, 0.022) 10px),
+      linear-gradient(145deg, rgba(55, 28, 9, 0.9), rgba(31, 14, 5, 0.82));
     box-shadow:
-      inset 0 1px 0 rgba(255, 250, 240, 0.06),
-      0 12px 28px rgba(0, 0, 0, 0.12);
+      inset 0 1px 0 rgba(255, 226, 170, 0.08),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+      0 9px 22px rgba(0, 0, 0, 0.19);
   }
 
   .footer-logo-plaque {
     @apply inline-flex rounded-lg border border-accent/20 px-3 py-2;
+    border-color: rgba(132, 78, 24, 0.54);
     background:
-      linear-gradient(180deg, rgba(255, 248, 232, 0.9), rgba(239, 221, 187, 0.72)),
-      radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.7), transparent 44%);
+      radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.72), transparent 42%),
+      linear-gradient(180deg, #fff1cb, #dfbf82);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
-      0 8px 20px rgba(0, 0, 0, 0.16);
+      inset 0 1px 0 rgba(255, 255, 255, 0.76),
+      inset 0 -1px rgba(103, 59, 18, 0.18),
+      0 4px 10px rgba(0, 0, 0, 0.24);
+  }
+
+  .footer-brand-copy {
+    color: rgba(240, 216, 174, 0.82);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.66);
+  }
+
+  .footer-column-title {
+    color: #cb8a28;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
+  }
+
+  @media (min-width: 768px) {
+    .footer-column {
+      border-left-color: rgba(146, 88, 26, 0.2);
+      border-radius: 0;
+      box-shadow: -1px 0 rgba(0, 0, 0, 0.2);
+    }
   }
 
   .footer-link {
     @apply focus-ring inline-flex rounded px-1 py-1 font-medium text-text-on-dark-muted transition hover:bg-white/[0.04] hover:text-accent-light;
+    color: rgba(238, 214, 175, 0.86);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.66);
+  }
+
+  .footer-link:hover {
+    color: #efbd61;
+    background: rgba(193, 123, 26, 0.06);
+  }
+
+  .footer-ornament {
+    pointer-events: none;
+    position: absolute;
+    z-index: 0;
+    bottom: 13px;
+    display: none;
+    align-items: flex-end;
+    color: rgba(185, 116, 30, 0.58);
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.62));
+  }
+
+  .footer-ornament svg {
+    fill: rgba(74, 38, 11, 0.36);
+  }
+
+  .footer-ornament-left {
+    left: max(12px, calc((100vw - 1480px) / 2 - 72px));
+    gap: 2px;
+  }
+
+  .footer-ornament-right {
+    right: max(12px, calc((100vw - 1480px) / 2 - 76px));
+    gap: 1px;
+  }
+
+  .footer-ornament-flame {
+    align-self: flex-start;
+    margin-right: -12px;
+    color: rgba(233, 143, 35, 0.78);
+    fill: rgba(216, 104, 16, 0.36) !important;
+  }
+
+  .footer-ornament-dice {
+    margin-right: -7px;
+    transform: rotate(-12deg);
+  }
+
+  @media (min-width: 1536px) {
+    .footer-ornament {
+      display: flex;
+    }
   }
 
   /* ─── Breadcrumb ─── */
@@ -432,6 +515,145 @@ dd {
     @apply flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-medium text-text-on-dark-muted/60 transition hover:bg-white/[0.03] hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-action/60;
   }
 
+  /* Reference finish, preserving the existing header geometry. */
+  .public-header-logo {
+    color: #f7ead0;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.82);
+  }
+
+  .public-header-logo-mark {
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.52));
+  }
+
+  .public-header-wordmark-top {
+    color: #f7ead0;
+  }
+
+  .public-header-wordmark-bottom {
+    color: #d49a32;
+  }
+
+  .header-nav-link {
+    color: #f2dfba;
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.9);
+  }
+
+  .header-nav-link:hover {
+    color: #fff4d5;
+    background: rgba(193, 123, 26, 0.06);
+  }
+
+  .header-nav-link-active {
+    color: #e3ab48;
+  }
+
+  .header-nav-link-active::after {
+    background: #c17b1a;
+    box-shadow: 0 1px rgba(0, 0, 0, 0.48);
+  }
+
+  .public-header-utilities {
+    position: relative;
+    border-left-color: rgba(181, 116, 36, 0.32);
+    box-shadow: -1px 0 rgba(0, 0, 0, 0.32);
+  }
+
+  @media (min-width: 1120px) {
+    .public-header-utilities::after {
+      position: absolute;
+      top: 50%;
+      right: -30px;
+      display: inline-flex;
+      width: 24px;
+      height: 36px;
+      align-items: center;
+      justify-content: center;
+      content: "✦";
+      transform: translateY(-50%);
+      color: rgba(190, 122, 35, 0.58);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      line-height: 1;
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.82);
+      background:
+        linear-gradient(90deg, transparent, rgba(192, 121, 29, 0.18), transparent) center / 100% 1px no-repeat,
+        linear-gradient(transparent, rgba(192, 121, 29, 0.14), transparent) center / 1px 100% no-repeat;
+    }
+  }
+
+  .header-search-button {
+    color: #e4b75e;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.75));
+  }
+
+  .header-search-button:hover {
+    color: #ffe2a0;
+    background: rgba(193, 123, 26, 0.08);
+  }
+
+  .header-account-trigger {
+    border-color: rgba(151, 91, 22, 0.82);
+    background:
+      linear-gradient(180deg, rgba(91, 47, 14, 0.84), rgba(44, 21, 7, 0.92)),
+      repeating-linear-gradient(0deg, transparent 0 8px, rgba(255, 226, 166, 0.03) 9px);
+    color: #f1d7a6;
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    box-shadow:
+      inset 0 1px rgba(255, 217, 137, 0.14),
+      0 2px 4px rgba(0, 0, 0, 0.38);
+  }
+
+  .header-account-trigger:hover {
+    border-color: #bd7920;
+    background: linear-gradient(180deg, rgba(105, 55, 17, 0.9), rgba(53, 25, 8, 0.96));
+    color: #fff2d4;
+  }
+
+  .header-account-avatar {
+    border-color: rgba(200, 129, 31, 0.74);
+    background: rgba(63, 30, 8, 0.9);
+    color: #dda43d;
+    box-shadow: inset 0 0 0 1px rgba(255, 225, 160, 0.08);
+  }
+
+  .public-header-utilities .button-primary {
+    border-color: rgba(151, 91, 22, 0.82);
+    background: linear-gradient(180deg, rgba(91, 47, 14, 0.9), rgba(44, 21, 7, 0.96));
+    color: #f2d9a9;
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    box-shadow:
+      inset 0 1px rgba(255, 217, 137, 0.14),
+      0 2px 4px rgba(0, 0, 0, 0.38);
+  }
+
+  .public-header-utilities .button-primary:hover {
+    border-color: #bd7920;
+    background: linear-gradient(180deg, rgba(105, 55, 17, 0.94), rgba(53, 25, 8, 0.98));
+    color: #fff2d4;
+  }
+
+  .header-stats-strip {
+    border-top-color: rgba(157, 95, 23, 0.78);
+    border-bottom-color: rgba(75, 38, 10, 0.92);
+    background:
+      radial-gradient(ellipse at 19% 35%, rgba(165, 91, 22, 0.16), transparent 24%),
+      repeating-linear-gradient(1deg, transparent 0 8px, rgba(10, 5, 1, 0.13) 9px, transparent 10px 16px),
+      linear-gradient(180deg, #4b270d 0%, #331706 54%, #241005 100%);
+    box-shadow:
+      inset 0 1px rgba(221, 150, 49, 0.16),
+      inset 0 -2px rgba(10, 4, 1, 0.52),
+      0 5px 12px rgba(0, 0, 0, 0.24);
+  }
+
+  .header-stats-strip > .container-page > div {
+    color: #e8c98e;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.82);
+  }
+
   /* ─── Mobile navigation ─── */
 
   .mobile-nav-panel {
@@ -528,17 +750,64 @@ dd {
   .page-hero {
     @apply border-b border-accent/15 bg-surface-dark py-10 text-white sm:py-12;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 35%),
-      radial-gradient(circle at 12% 0%, rgba(193, 123, 26, 0.2), transparent 26rem),
-      linear-gradient(135deg, #1C1210, #211510 62%, #130C08);
+      radial-gradient(ellipse at 10% 15%, rgba(165, 92, 24, 0.24), transparent 30%),
+      radial-gradient(ellipse at 79% 82%, rgba(119, 62, 17, 0.15), transparent 35%),
+      repeating-linear-gradient(2deg, transparent 0 12px, rgba(8, 4, 1, 0.15) 13px, transparent 14px 23px),
+      repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), rgba(8, 3, 1, 0.22) calc(25% - 1px) 25%, rgba(202, 127, 35, 0.045) 25% calc(25% + 1px)),
+      linear-gradient(135deg, #3c210e 0%, #2a1508 54%, #190b04 100%);
+    box-shadow:
+      inset 0 2px 0 rgba(208, 133, 36, 0.28),
+      inset 0 -2px 0 rgba(9, 4, 1, 0.56),
+      inset 0 0 34px rgba(0, 0, 0, 0.18),
+      0 5px 13px rgba(28, 18, 16, 0.12);
   }
 
   .page-hero-title {
     @apply font-display mt-3 max-w-4xl text-4xl font-bold leading-tight text-white sm:text-5xl;
+    color: #fff4dc;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.72);
   }
 
   .page-hero-copy {
     @apply mt-4 max-w-3xl text-base font-medium leading-7 text-text-on-dark-muted;
+    color: rgba(240, 216, 177, 0.78);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.62);
+  }
+
+  .page-hero .tavern-eyebrow {
+    color: #d89832;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+  }
+
+  .reviews-index-hero {
+    background: linear-gradient(120deg, #3b200d 0%, #2b1608 54%, #190b04 100%);
+    box-shadow:
+      inset 0 2px 0 rgba(208, 133, 36, 0.28),
+      inset 0 -2px 0 rgba(9, 4, 1, 0.58),
+      inset 0 0 42px rgba(0, 0, 0, 0.18),
+      0 5px 13px rgba(28, 18, 16, 0.12);
+  }
+
+  .reviews-index-hero-grain {
+    background:
+      radial-gradient(ellipse at 10% 18%, rgba(165, 92, 24, 0.23), transparent 31%),
+      radial-gradient(ellipse at 80% 74%, rgba(114, 59, 17, 0.15), transparent 35%),
+      repeating-linear-gradient(2deg, transparent 0 12px, rgba(8, 4, 1, 0.15) 13px, transparent 14px 23px),
+      repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), rgba(8, 3, 1, 0.22) calc(25% - 1px) 25%, rgba(202, 127, 35, 0.045) 25% calc(25% + 1px));
+  }
+
+  .reviews-index-hero h1 {
+    color: #fff4dc;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.74);
+  }
+
+  .reviews-index-hero h1 span {
+    color: #e7aa42;
+  }
+
+  .reviews-index-hero > .container-page > div:first-child > p:not(:first-child) {
+    color: rgba(240, 216, 177, 0.82);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.62);
   }
 
   /* ─── Taxonomy cards ─── */

@@ -508,7 +508,7 @@ function HomeStatsStrip({ stats }: { stats: PublicSiteStats | null }) {
   const items = buildStatsStripItems(stats);
 
   return (
-    <section className="border-y border-ember/20 bg-[#20120c] text-parchment" aria-label="MeepleTavern en cifras">
+    <section className="header-stats-strip border-y border-ember/20 bg-[#20120c] text-parchment" aria-label="MeepleTavern en cifras">
       <div className="container-page">
         <div className="scrollbar-hide flex min-h-10 items-center gap-5 overflow-x-auto py-2 text-[10px] font-black uppercase tracking-[0.14em] sm:text-[11px]">
           {items.map((item) => (

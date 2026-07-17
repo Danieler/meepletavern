@@ -16,8 +16,8 @@ export function PublicHeader() {
     <header className="tavern-header sticky top-0 z-40 text-white">
       <div className="container-page public-header-layout">
         <div className="public-header-brand">
-          <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5">
-            <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden sm:h-11 sm:w-11 min-[1120px]:h-12 min-[1120px]:w-12">
+          <Link href="/" prefetch={false} className="public-header-logo flex min-w-0 items-center gap-2.5">
+            <span className="public-header-logo-mark relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden sm:h-11 sm:w-11 min-[1120px]:h-12 min-[1120px]:w-12">
               <Image
                 src={siteConfig.markImage}
                 alt=""
@@ -27,11 +27,11 @@ export function PublicHeader() {
                 priority
               />
             </span>
-            <span className="min-w-0">
-              <span className="font-display block text-[21px] font-bold leading-[17px] text-white sm:text-[23px] sm:leading-[19px]">
+            <span className="public-header-wordmark min-w-0">
+              <span className="public-header-wordmark-top font-display block text-[21px] font-bold leading-[17px] text-white sm:text-[23px] sm:leading-[19px]">
                 Meeple
               </span>
-              <span className="font-display block text-[21px] font-bold leading-[17px] text-accent sm:text-[23px] sm:leading-[19px]">
+              <span className="public-header-wordmark-bottom font-display block text-[21px] font-bold leading-[17px] text-accent sm:text-[23px] sm:leading-[19px]">
                 Tavern
               </span>
             </span>
