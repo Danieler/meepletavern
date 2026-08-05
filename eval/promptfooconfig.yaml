@@ -17,6 +17,8 @@ defaultTest:
       value: file://assertions/isValidEditorialZod.js
     - type: javascript
       value: file://assertions/isCanonicalTaxonomy.js
+    - type: javascript
+      value: file://assertions/noHallucinatoryGarbage.js
     - type: latency
       threshold: 15000
 
