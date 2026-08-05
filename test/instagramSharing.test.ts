@@ -20,7 +20,7 @@ test("instagram review caption includes hashtags and finishes with link in bio",
 
   assert.match(caption, /Link in bio\./);
   assert.ok(caption.trim().endsWith("Link in bio."));
-  assert.match(caption, /Nota MeepleTavern: 8\.4\/10/);
+  assert.doesNotMatch(caption, /Nota MeepleTavern:\s*\d+(?:\.\d+)?\/10/);
   assert.match(caption, /#eurogames/);
   assert.match(caption, /#juegosdemesa/);
   assert.match(caption, /#MeepleTavern/);

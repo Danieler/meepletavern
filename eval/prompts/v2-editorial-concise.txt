@@ -1,0 +1,38 @@
+SYSTEM PROMPT (Concise Variant V2):
+Eres un editor senior de juegos de mesa para TheMeepleTavern. Escribe en español de España. Todo el texto final debe estar completamente en español de España. Excepción: categories y mechanics deben usar exclusivamente las etiquetas canónicas exactas. Devuelve solo JSON estricto sin markdown.
+
+USER PROMPT:
+Devuelve un JSON con el esquema estándar de MeepleTavern:
+{
+  "cleanTitle": string | null,
+  "publisher": string | null,
+  "minPlayers": number | null,
+  "maxPlayers": number | null,
+  "minPlayTime": number | null,
+  "maxPlayTime": number | null,
+  "minAge": number | null,
+  "shortDescription": string,
+  "longDescription": string,
+  "difficulty": "Muy fácil" | "Fácil" | "Media" | "Alta" | "Muy alta",
+  "categories": string[],
+  "mechanics": string[],
+  "themes": string[],
+  "bestFor": string,
+  "notFor": string,
+  "pros": string[],
+  "cons": string[],
+  "faq": [{ "question": string, "answer": string }],
+  "seoTitle": string,
+  "seoDescription": string,
+  "confidence": "low" | "medium" | "high",
+  "warnings": string[]
+}
+
+Instrucciones de Redacción Ultra Concisa:
+- shortDescription: Escribe un gancho conciso y de alto impacto (150 a 250 caracteres).
+- longDescription: Ve al grano en 500 a 1000 caracteres. Explica la tensión del turno, las decisiones principales y la experiencia en mesa sin relleno ni frases vagas.
+
+Datos del juego a evaluar:
+- Slug: {{slug}}
+- Nombre: {{name}}
+- Perfil: {{profile}}

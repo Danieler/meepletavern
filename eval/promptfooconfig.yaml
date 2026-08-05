@@ -1,0 +1,66 @@
+# Promptfoo Configuration for MeepleTavern LLM Pipeline Evals
+description: "MeepleTavern - LLM Editorial Completion Pipeline Evals"
+
+providers:
+  - id: file://editorialProvider.ts
+    label: "Nova Lite (Editorial Pipeline)"
+
+# Versionado y Comparación A/B de Prompts
+prompts:
+  - file://prompts/v1-editorial-standard.txt
+  - file://prompts/v2-editorial-concise.txt
+
+defaultTest:
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://assertions/isValidEditorialZod.js
+    - type: javascript
+      value: file://assertions/isCanonicalTaxonomy.js
+    - type: latency
+      threshold: 15000
+
+tests:
+  - vars:
+      slug: "carcassonne"
+      name: "Carcassonne"
+      profile: "Familiar / Gateway / Tile Placement"
+    assert:
+      - type: javascript
+        value: "JSON.parse(output).shortDescription.length >= 100"
+      - type: javascript
+        value: "JSON.parse(output).categories.some(c => ['Familiar', 'Gateway', 'Clásicos modernos'].includes(c))"
+
+  - vars:
+      slug: "pandemic"
+      name: "Pandemic"
+      profile: "Cooperativo / Gateway / Hand Management"
+    assert:
+      - type: javascript
+        value: "JSON.parse(output).categories.includes('Cooperativo')"
+
+  - vars:
+      slug: "terraforming-mars"
+      name: "Terraforming Mars"
+      profile: "Eurogame / Engine Building / Sci-Fi"
+    assert:
+      - type: javascript
+        value: "['Media', 'Alta', 'Muy alta'].includes(JSON.parse(output).difficulty)"
+      - type: javascript
+        value: "JSON.parse(output).categories.includes('Eurogame') || JSON.parse(output).categories.includes('Estrategia')"
+
+  - vars:
+      slug: "wingspan"
+      name: "Wingspan"
+      profile: "Familiar / Engine Building / Nature"
+    assert:
+      - type: javascript
+        value: "JSON.parse(output).longDescription.length >= 300"
+
+  - vars:
+      slug: "codigo-secreto"
+      name: "Código Secreto"
+      profile: "Party / Deduction / Words"
+    assert:
+      - type: javascript
+        value: "JSON.parse(output).categories.includes('Party') || JSON.parse(output).categories.includes('Deducción')"

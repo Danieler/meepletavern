@@ -60,8 +60,6 @@ export function buildReviewInstagramCaption(input: ReviewInstagramCaptionInput) 
     "Veredicto rápido:",
     summary,
     "",
-    `Nota MeepleTavern: ${formatRating(input.rating)}/10`,
-    "",
     "Lee la reseña completa, la ficha del juego y más recomendaciones en MeepleTavern.",
     "",
     hashtagBlock,
@@ -83,8 +81,6 @@ export function buildReviewInstagramCaption(input: ReviewInstagramCaptionInput) 
     "",
     "Veredicto rápido:",
     clampText(input.summary, Math.max(180, availableSummaryLength)),
-    "",
-    `Nota MeepleTavern: ${formatRating(input.rating)}/10`,
     "",
     "Lee la reseña completa, la ficha del juego y más recomendaciones en MeepleTavern.",
     "",
@@ -165,8 +161,4 @@ function clampText(value: string, maxLength: number) {
   }
 
   return `${compact.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
-}
-
-function formatRating(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }

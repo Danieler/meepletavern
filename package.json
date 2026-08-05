@@ -24,7 +24,9 @@
     "db:seed": "prisma db seed",
     "backfill:difficulty": "tsx scripts/backfill-difficulty.ts",
     "db:clean-proposals": "tsx scripts/clean-proposal-raw-results.ts",
-    "db:seed-mechanics": "tsx scripts/seed-new-mechanics.ts"
+    "db:seed-mechanics": "tsx scripts/seed-new-mechanics.ts",
+    "ai:eval": "tsx eval/run-eval.ts",
+    "ai:eval:view": "npx promptfoo view"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1065.0",
