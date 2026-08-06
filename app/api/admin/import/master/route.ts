@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { formatImportError, safeAdminErrorLog } from "@/lib/adminErrorPresentation";
 import { assertTrustedAdminApiRequest, jsonNoStore, AdminApiSecurityError } from "@/lib/adminApiSecurity";
 import { runMasterImportBatch } from "@/lib/import/masterImportBatch";
 
@@ -39,17 +40,22 @@ export async function POST(request: NextRequest) {
       })
         .then((state) => {
           if (state.totals?.imported) {
-            revalidatePath("/admin/import");
-            revalidatePath("/admin/candidates");
+            try {
+              revalidatePath("/admin/import");
+              revalidatePath("/admin/candidates");
+            } catch (error) {
+              console.error("[master-import] revalidation failed after import", safeAdminErrorLog(error));
+            }
           }
 
           controller.close();
         })
         .catch((error) => {
+          console.error("[master-import] stream failed", safeAdminErrorLog(error));
           try {
             writeEvent({
               type: "error",
-              message: error instanceof Error ? error.message : "No se pudo importar el lote."
+              message: formatImportError(error)
             });
           } catch {
             // If the client disconnected, the stream may already be closed.

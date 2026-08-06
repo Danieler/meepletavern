@@ -113,15 +113,25 @@ export function SourceImportForm({ sources, initialSourceId = "", initialError =
       </form>
 
       {initialError ? (
-        <p className="mt-4 rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">
-          {initialError}
-        </p>
+        <div className="mt-4 rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3" role="alert" aria-live="assertive">
+          <p className="text-sm font-bold text-ruby">No se completó la importación</p>
+          <p className="mt-1 text-sm font-medium leading-6 text-ruby/90">{initialError}</p>
+          <p className="mt-2 text-xs font-medium text-ink/60">No pulses de nuevo hasta comprobar la URL y la fuente seleccionada.</p>
+        </div>
       ) : null}
     </section>
   );
 }
 
-function ImportSubmitButton({ pending, lang, t }: { pending: boolean; lang: string; t: (key: any) => string }) {
+function ImportSubmitButton({
+  pending,
+  lang,
+  t
+}: {
+  pending: boolean;
+  lang: string;
+  t: ReturnType<typeof useAdminI18n>["t"];
+}) {
   return (
     <div className="space-y-4">
       <button className="button-primary" type="submit" disabled={pending}>

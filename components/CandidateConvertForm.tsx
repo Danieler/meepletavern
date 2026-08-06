@@ -24,13 +24,21 @@ export function CandidateConvertForm({ candidateId }: { candidateId: string }) {
         </button>
       </form>
       {state.error ? (
-        <p
+        <div
           className="max-w-md rounded-md border border-ruby/20 bg-ruby/10 px-3 py-2 text-sm font-semibold text-ruby"
           role="alert"
           aria-live="assertive"
         >
-          {state.error}
-        </p>
+          <p>{state.error}</p>
+          {state.details?.length ? (
+            <ul className="mt-2 list-disc space-y-1 pl-5 font-medium">
+              {state.details.map((detail) => <li key={detail}>{detail}</li>)}
+            </ul>
+          ) : null}
+          {state.reference ? (
+            <p className="mt-2 text-xs font-medium text-ruby/80">Referencia del error: {state.reference}</p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

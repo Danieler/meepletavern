@@ -6,6 +6,7 @@ import {
   type MasterImportSource
 } from "@/lib/import/masterImportBatchShared";
 import { parseMasterImportTitles } from "@/lib/import/parseMasterImportTitles";
+import { formatImportError } from "@/lib/adminErrorPresentation";
 
 type RunMasterImportBatchInput = {
   rawInput: string;
@@ -90,7 +91,7 @@ export async function runMasterImportBatch(input: RunMasterImportBatchInput): Pr
   }
 
   const state: MasterImportBatchState = {
-    error: imported ? null : "No se pudo importar ningún juego del lote.",
+    error: imported ? null : "No se pudo importar ningún juego. Consulta el motivo concreto de cada entrada debajo.",
     message: imported
       ? `Importación maestra completada: ${imported} juego(s) procesado(s) y ${failed} fallo(s).`
       : null,
@@ -158,6 +159,6 @@ function buildFailedBatchItem(inputTitle: string, error: unknown): MasterImportB
     costDiagnostics: undefined,
     bestOffer: null,
     warnings: [],
-    error: error instanceof Error ? error.message : "No se pudo importar este juego."
+    error: formatImportError(error)
   };
 }

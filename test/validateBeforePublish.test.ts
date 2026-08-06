@@ -117,3 +117,45 @@ test("buildEditorialAutofill infers social deduction fields for Hombres Lobo", (
   assert.ok(autofill.bestFor.includes("Grupos grandes"));
   assert.ok(autofill.faq[0].answer.includes("8 a 18 jugadores"));
 });
+
+test("validateBeforePublish devuelve instrucciones accionables para los campos obligatorios", () => {
+  const game: Parameters<typeof validateBeforePublish>[0] = {
+    name: "",
+    title: "",
+    slug: "",
+    year: null,
+    players: {},
+    minPlayers: null,
+    maxPlayers: null,
+    playtime: null,
+    minAge: null,
+    age: null,
+    difficulty: null,
+    complexity: null,
+    categories: [],
+    mechanics: [],
+    themes: [],
+    shortDescription: null,
+    shortSummary: null,
+    description: null,
+    quickVerdict: null,
+    review: null,
+    bestFor: null,
+    notFor: null,
+    pros: [],
+    cons: [],
+    faq: [],
+    faqs: [],
+    seoTitle: null,
+    seoDescription: null,
+    primaryImageId: null,
+    imageFallbackAccepted: false
+  };
+
+  const validation = validateBeforePublish(game);
+
+  assert.ok(validation.errors.some((error) => error.startsWith("Título:") && error.includes("Datos principales")));
+  assert.ok(validation.errors.some((error) => error.startsWith("Jugadores:") && error.includes("Mesa")));
+  assert.ok(validation.errors.some((error) => error.startsWith("Imagen principal:") && error.includes("Aceptar fallback")));
+  assert.ok(validation.warnings.some((warning) => warning.startsWith("Categorías:") && warning.includes("Party")));
+});

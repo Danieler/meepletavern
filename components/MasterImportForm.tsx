@@ -3,6 +3,7 @@
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { DatabaseZap, Loader2 } from "lucide-react";
+import { formatImportError } from "@/lib/adminErrorPresentation";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
 import { useAdminI18n } from "@/lib/adminI18n";
 import {
@@ -147,7 +148,9 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
     } catch (error) {
       if (!controller.signal.aborted) {
         setState({
-          error: error instanceof Error ? error.message : (lang === "en" ? "Could not import batch." : "No se pudo importar el lote."),
+          error: lang === "en"
+            ? "The import connection was interrupted. Check the input and try again with a single game."
+            : formatImportError(error),
           message: null,
           results: [],
           totals: null
@@ -204,7 +207,10 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
       </form>
 
       {state.error ? (
-        <p className="mt-4 rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">{state.error}</p>
+        <div className="mt-4 rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3" role="alert" aria-live="assertive">
+          <p className="text-sm font-bold text-ruby">La importación no se completó</p>
+          <p className="mt-1 text-sm font-medium leading-6 text-ruby/90">{state.error}</p>
+        </div>
       ) : null}
 
       {state.message ? (
@@ -287,7 +293,12 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
                 <p className="mt-2 text-sm text-amber-700">Avisos: {result.warnings.join(" ")}</p>
               ) : null}
 
-              {result.error ? <p className="mt-2 text-sm font-semibold text-ruby">{result.error}</p> : null}
+              {result.error ? (
+                <div className="mt-3 rounded-md border border-ruby/20 bg-ruby/10 px-3 py-2" role="alert">
+                  <p className="text-sm font-bold text-ruby">No se importó esta entrada</p>
+                  <p className="mt-1 text-sm font-medium leading-6 text-ruby/90">{result.error}</p>
+                </div>
+              ) : null}
 
               {result.candidateId ? (
                 <div className="mt-3">
@@ -477,7 +488,25 @@ function buildStatusClassName(status: MasterImportBatchState["results"][number][
   return "inline-flex w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-800";
 }
 
-function formatStatus(status: MasterImportBatchState["results"][number]["status"]) {
+function formatStatus(status: MasterImportBatchState["results"][number]["status"], lang?: string) {
+  if (lang === "es") {
+    switch (status) {
+      case "ready_to_publish":
+        return "Listo para publicar";
+      case "needs_review":
+        return "Pendiente de revisión";
+      case "draft":
+        return "Borrador";
+      case "update_existing":
+        return "Actualizar existente";
+      case "duplicate":
+        return "Duplicado";
+      case "failed":
+        return "Fallido";
+      default:
+        return status;
+    }
+  }
   switch (status) {
     case "ready_to_publish":
       return "Ready";

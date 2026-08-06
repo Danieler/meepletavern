@@ -26,6 +26,21 @@ test("runMasterImportBatch emits progress and returns accumulated results", asyn
   );
 });
 
+test("runMasterImportBatch muestra un motivo accionable cuando una tienda bloquea la ficha", async () => {
+  const state = await runMasterImportBatch({
+    rawInput: "Pengoloo",
+    sources: [],
+    importGame: async () => {
+      throw new Error("La ficha original devolvió 403: forbidden");
+    }
+  });
+
+  assert.equal(state.totals?.failed, 1);
+  assert.match(state.error || "", /motivo concreto/i);
+  assert.match(state.results[0]?.error || "", /rechazó el acceso/i);
+  assert.doesNotMatch(state.results[0]?.error || "", /forbidden/i);
+});
+
 function buildSummary(title: string): MasterImportSummary {
   return {
     candidateId: `${title}-candidate`,

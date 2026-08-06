@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { formatImportError, safeAdminErrorLog } from "@/lib/adminErrorPresentation";
 import { autoApplyGameWebAutofill } from "@/lib/ai/gameWebAutofill";
 import { autoCompleteImportedGameWithAi, cleanupImportedCandidate } from "@/lib/import/importedGame";
 import { importSourceProductReview } from "@/lib/import/importSourceProduct";
@@ -22,7 +23,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.redirect(new URL(`/admin/games/${result.gameId}?imported=1`, request.url), 303);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo importar el juego.";
+    console.error("[source-import] failed", safeAdminErrorLog(error));
+    const message = formatImportError(error);
     const sourceId = formData.get("sourceId");
     const redirectUrl = new URL("/admin/import", request.url);
     redirectUrl.searchParams.set("error", message);

@@ -3,6 +3,7 @@
 import { GameStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { presentAdminOperationError, safeAdminErrorLog, type AdminOperation } from "@/lib/adminErrorPresentation";
 import { gameRepository } from "@/lib/editorialRepositories";
 import { buildEditorialAutofill } from "@/lib/editorialAutofill";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
@@ -19,6 +20,8 @@ import { validateBeforePublish } from "@/lib/validateBeforePublish";
 
 export type GameEditorActionState = {
   errors?: string[];
+  errorDetails?: string[];
+  errorReference?: string;
   warnings?: string[];
   message?: string;
 };
@@ -27,10 +30,9 @@ export async function saveGameEditorAction(
   _state: GameEditorActionState,
   formData: FormData
 ): Promise<GameEditorActionState> {
-  const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
-  const requestedStatus = normalizeGameStatus(formData.get("status"));
-
   try {
+    const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
+    const requestedStatus = normalizeGameStatus(formData.get("status"));
     const editorGame = await gameRepository.getEditorById(id);
     if (!editorGame) {
       throw new Error("No existe ese juego.");
@@ -68,7 +70,7 @@ export async function saveGameEditorAction(
       ? { message: statusMessage, warnings: validation.warnings }
       : { message: statusMessage };
   } catch (error) {
-    return { errors: [errorMessage(error)] };
+    return gameEditorFailureState(error, "game_save", formData);
   }
 }
 
@@ -76,9 +78,8 @@ export async function publishGameEditorAction(
   _state: GameEditorActionState,
   formData: FormData
 ): Promise<GameEditorActionState> {
-  const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
-
   try {
+    const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
     const editorGame = await gameRepository.getEditorById(id);
     if (!editorGame) {
       throw new Error("No existe ese juego.");
@@ -126,7 +127,7 @@ export async function publishGameEditorAction(
       ? { message: "Juego publicado. Se puede mejorar la ficha cuando quieras.", warnings: validation.warnings }
       : { message: "Juego publicado. Ficha completa." };
   } catch (error) {
-    return { errors: [errorMessage(error)] };
+    return gameEditorFailureState(error, "game_publish", formData);
   }
 }
 
@@ -134,9 +135,8 @@ export async function autocompleteGameEditorAction(
   _state: GameEditorActionState,
   formData: FormData
 ): Promise<GameEditorActionState> {
-  const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
-
   try {
+    const id = requiredString(formData.get("id"), "Falta el identificador del juego.");
     const editorGame = await gameRepository.getEditorById(id);
     if (!editorGame) {
       throw new Error("No existe ese juego.");
@@ -174,7 +174,7 @@ export async function autocompleteGameEditorAction(
         }
       : { message: "Campos editoriales autocompletados. Ficha completa." };
   } catch (error) {
-    return { errors: [errorMessage(error)] };
+    return gameEditorFailureState(error, "game_save", formData);
   }
 }
 
@@ -461,12 +461,25 @@ function looksLikeUrl(value: string) {
   return /^https?:\/\//i.test(value.trim());
 }
 
-function errorMessage(error: unknown) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return "Ya existe otro juego con ese slug.";
-  }
+function gameEditorFailureState(
+  error: unknown,
+  operation: AdminOperation,
+  formData: FormData
+): GameEditorActionState {
+  const reference = crypto.randomUUID();
+  const presentation = presentAdminOperationError(error, operation, reference);
+  console.error("[game-editor] action failed", {
+    reference,
+    operation,
+    gameId: typeof formData.get("id") === "string" ? formData.get("id") : undefined,
+    ...safeAdminErrorLog(error)
+  });
 
-  return error instanceof Error ? error.message : "No se pudo guardar el juego.";
+  return {
+    errors: [presentation.message],
+    errorDetails: presentation.details,
+    errorReference: presentation.reference
+  };
 }
 
 function revalidateGameAdmin(id: string) {

@@ -1,12 +1,14 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { presentAdminOperationError, safeAdminErrorLog } from "@/lib/adminErrorPresentation";
 import { convertCandidateToGame, gameCandidateRepository, mediaAssetRepository } from "@/lib/editorialRepositories";
 
 export type CandidateConversionActionState = {
   error?: string;
+  details?: string[];
+  reference?: string;
 };
 
 export async function rejectCandidateAction(formData: FormData) {
@@ -52,29 +54,33 @@ export async function convertCandidateAction(
     const game = await convertCandidateToGame(id, "review");
     gameId = game.id;
   } catch (error) {
+    const reference = crypto.randomUUID();
+    const presentation = presentAdminOperationError(error, "candidate_conversion", reference);
+    console.error("[candidate-conversion] failed", {
+      reference,
+      candidateId: typeof formData.get("id") === "string" ? formData.get("id") : undefined,
+      ...safeAdminErrorLog(error)
+    });
+
     return {
-      error: candidateConversionErrorMessage(error)
+      error: presentation.message,
+      details: presentation.details,
+      reference: presentation.reference
     };
   }
 
-  revalidatePath("/admin/candidates");
-  revalidatePath("/admin/games");
+  try {
+    revalidatePath("/admin/candidates");
+    revalidatePath("/admin/games");
+  } catch (error) {
+    console.error("[candidate-conversion] revalidation failed after creating game", {
+      candidateId: id,
+      gameId,
+      ...safeAdminErrorLog(error)
+    });
+  }
+
   redirect(`/admin/games/${gameId}`);
-}
-
-function candidateConversionErrorMessage(error: unknown) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return "Ya existe una ficha con el mismo título o identificador URL.";
-  }
-
-  if (error instanceof Error && [
-    "No existe ese candidato.",
-    "El candidato ya está convertido."
-  ].includes(error.message)) {
-    return error.message;
-  }
-
-  return "No se pudo crear la ficha desde el candidato. Inténtalo de nuevo o revisa los datos importados.";
 }
 
 export async function createMediaFromCandidateImageAction(formData: FormData) {

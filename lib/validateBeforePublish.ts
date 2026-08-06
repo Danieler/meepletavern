@@ -53,59 +53,59 @@ export function validateBeforePublish(game: PublishableGame): PublishValidationR
   const durationMinutes = parseFirstNumber(game.playtime);
 
   if (!text(game.title || game.name)) {
-    errors.push("Nombre / title: falta el título.");
+    errors.push("Título: escribe el nombre del juego en Datos principales.");
   }
 
   if (!text(game.slug)) {
-    errors.push("Slug: falta el slug para la ruta pública.");
+    errors.push("Identificador URL: escribe el texto que se usará en la dirección pública, por ejemplo `pengoloo`.");
   }
 
   if (!minPlayers || !maxPlayers) {
-    errors.push("Jugadores: falta el número de jugadores.");
+    errors.push("Jugadores: indica jugadores mínimos y máximos en la sección Mesa.");
   } else if (minPlayers > maxPlayers) {
-    errors.push("Jugadores: el mínimo no puede ser mayor que el máximo.");
+    errors.push("Jugadores: el mínimo no puede ser mayor que el máximo; corrige ambos valores en Mesa.");
   } else if (minPlayers < 1 || maxPlayers > 99) {
-    errors.push("Jugadores: revisa el rango, parece fuera de escala.");
+    errors.push("Jugadores: el rango debe estar entre 1 y 99; corrígelo en Mesa.");
   }
 
   if (!text(game.playtime)) {
-    errors.push("Duración: falta la duración.");
+    errors.push("Duración: indica la duración mínima o máxima en la sección Mesa.");
   } else if (!durationMinutes || durationMinutes < 1 || durationMinutes > 600) {
-    errors.push("Duración: revisa la duración, parece fuera de escala.");
+    errors.push("Duración: usa un valor entre 1 y 600 minutos en la sección Mesa.");
   }
 
   if (!minAge) {
-    errors.push("Edad mínima: falta la edad mínima.");
+    errors.push("Edad mínima: indica la edad recomendada en la sección Mesa.");
   } else if (minAge < 2 || minAge > 21) {
-    errors.push("Edad mínima: revisa la edad, parece fuera de escala.");
+    errors.push("Edad mínima: usa una edad entre 2 y 21 años en la sección Mesa.");
   }
 
   if (game.year !== null && game.year !== undefined && (game.year < 1900 || game.year > new Date().getFullYear() + 1)) {
-    errors.push("Año: revisa el año de publicación, parece inválido.");
+    errors.push(`Año: usa un año entre 1900 y ${new Date().getFullYear() + 1}, o deja el campo vacío si no se conoce.`);
   }
 
   if (!text(game.shortDescription || game.shortSummary)) {
-    errors.push("Descripción corta: añade una descripción breve.");
+    errors.push("Descripción breve: añade al menos una frase que explique qué tipo de juego es.");
   }
 
   if (!text(game.description)) {
-    warnings.push("Descripción: completa la descripción editorial.");
+    warnings.push("Descripción: completa la explicación editorial para que la ficha resulte útil.");
   }
 
   if (!text(game.quickVerdict || game.review)) {
-    warnings.push("Veredicto rápido: falta el veredicto rápido.");
+    warnings.push("Veredicto rápido: añade una conclusión breve sobre para quién funciona el juego.");
   }
 
   if (!text(game.difficulty || game.complexity)) {
-    warnings.push("Dificultad: falta la dificultad.");
+    warnings.push("Dificultad: indica si es fácil, media o alta en Datos principales.");
   }
 
   if (!game.categories.length) {
-    warnings.push("Categorías: añade al menos una categoría.");
+    warnings.push("Categorías: añade al menos una, por ejemplo Familiar, Party o Estrategia.");
   }
 
   if (!game.mechanics.length) {
-    warnings.push("Mecánicas: añade al menos una mecánica.");
+    warnings.push("Mecánicas: añade al menos una para que el juego se pueda filtrar correctamente.");
   }
 
   if (!game.themes.length) {
@@ -113,43 +113,43 @@ export function validateBeforePublish(game: PublishableGame): PublishValidationR
   }
 
   if (!text(game.bestFor)) {
-    warnings.push("Para quién es: falta este texto.");
+    warnings.push("Ideal para: explica en una frase qué grupo disfrutará más el juego.");
   } else {
     collectEditorialTextIssues("Para quién es", game.bestFor, game, errors);
   }
 
   if (!text(game.notFor)) {
-    warnings.push("Para quién no es: falta este texto.");
+    warnings.push("No recomendado para: explica qué tipo de grupo debería evitarlo.");
   } else {
     collectEditorialTextIssues("Para quién no es", game.notFor, game, errors);
   }
 
   if (!game.pros.length) {
-    warnings.push("Pros: añade al menos un pro.");
+    warnings.push("Pros: añade al menos un punto a favor, uno por línea.");
   } else {
     game.pros.forEach((item, index) => collectEditorialTextIssues(`Pros ${index + 1}`, item, game, errors));
   }
 
   if (!game.cons.length) {
-    warnings.push("Contras: añade al menos un contra.");
+    warnings.push("Contras: añade al menos un punto en contra, uno por línea.");
   } else {
     game.cons.forEach((item, index) => collectEditorialTextIssues(`Contras ${index + 1}`, item, game, errors));
   }
 
   if (!faq.length) {
-    warnings.push("FAQ: añade al menos una pregunta frecuente.");
+    warnings.push("FAQ: añade al menos una línea con el formato `Pregunta | Respuesta`.");
   }
 
   if (!text(game.seoTitle)) {
-    warnings.push("SEO title: falta el SEO title.");
+    warnings.push("Título SEO: añade el título que aparecerá en buscadores.");
   }
 
   if (!text(game.seoDescription)) {
-    warnings.push("SEO description: falta el SEO description.");
+    warnings.push("Descripción SEO: añade un resumen para buscadores.");
   }
 
   if (!text(game.primaryImageId) && !game.imageFallbackAccepted) {
-    errors.push("Imagen principal: falta una imagen válida o aceptar placeholder.");
+    errors.push("Imagen principal: selecciona una portada o marca «Aceptar fallback de imagen».");
   }
 
   return {

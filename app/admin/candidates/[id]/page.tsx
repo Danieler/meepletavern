@@ -1,4 +1,4 @@
-import { GameCandidateStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage } from "@prisma/client";
+import { EditorialFlag, GameCandidateStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink, ImagePlus, Save, Trash2, XCircle } from "lucide-react";
@@ -220,14 +220,22 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
               </dl>
             </Panel>
 
-            <Panel title="Indicadores">
-              <div className="flex flex-wrap gap-2">
-                {candidate.flags.map((flag) => (
-                  <span key={flag} className="rounded-md bg-ember/10 px-2.5 py-1 text-xs font-semibold text-ink">
-                    {flag}
-                  </span>
-                ))}
-                {!candidate.flags.length ? <p className="text-sm text-ink/60">Sin flags.</p> : null}
+            <Panel title="Qué revisar antes de crear la ficha">
+              <div className="space-y-3">
+                {candidate.flags.map((flag) => {
+                  const issue = candidateFlagPresentation(flag);
+                  return (
+                    <div key={flag} className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm">
+                      <p className="font-bold text-ink">{issue.label}</p>
+                      <p className="mt-1 leading-5 text-ink/65">{issue.guidance}</p>
+                    </div>
+                  );
+                })}
+                {!candidate.flags.length ? (
+                  <p className="text-sm leading-6 text-ink/60">
+                    No se han detectado incidencias en la importación. La ficha se creará en revisión para que puedas comprobarla antes de publicarla.
+                  </p>
+                ) : null}
               </div>
             </Panel>
           </aside>
@@ -324,6 +332,41 @@ function getFlowMessage(status: GameCandidateStatus, game?: { status: string | n
   }
 
   return "Aún no se ha decidido si este candidato pasa a ficha o se descarta.";
+}
+
+function candidateFlagPresentation(flag: EditorialFlag) {
+  const presentations: Record<EditorialFlag, { label: string; guidance: string }> = {
+    [EditorialFlag.possible_duplicate]: {
+      label: "Posible duplicado",
+      guidance: "Busca el título en Fichas. Si es otra edición, diferénciala en el título antes de publicar."
+    },
+    [EditorialFlag.missing_players]: {
+      label: "Falta el número de jugadores",
+      guidance: "Puedes crear la ficha, pero tendrás que indicar jugadores mínimos y máximos en la sección Mesa."
+    },
+    [EditorialFlag.missing_playtime]: {
+      label: "Falta la duración",
+      guidance: "Puedes crear la ficha, pero tendrás que indicar la duración antes de publicarla."
+    },
+    [EditorialFlag.missing_age]: {
+      label: "Falta la edad mínima",
+      guidance: "Puedes crear la ficha, pero tendrás que indicar la edad recomendada antes de publicarla."
+    },
+    [EditorialFlag.image_not_allowed]: {
+      label: "La imagen importada no puede publicarse",
+      guidance: "Selecciona otra portada con origen válido o acepta expresamente el fallback de imagen en la ficha."
+    },
+    [EditorialFlag.low_confidence]: {
+      label: "Datos con confianza baja",
+      guidance: "Contrasta título, edición, jugadores, duración y edad con la URL de origen antes de publicar."
+    },
+    [EditorialFlag.needs_permission]: {
+      label: "La imagen necesita permiso",
+      guidance: "No publiques esa imagen hasta confirmar que se puede reutilizar; puedes elegir otra portada."
+    }
+  };
+
+  return presentations[flag];
 }
 
 function mediaAssetTypeLabel(value: MediaAssetType) {

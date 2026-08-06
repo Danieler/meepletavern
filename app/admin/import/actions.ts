@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { formatImportError, safeAdminErrorLog } from "@/lib/adminErrorPresentation";
 import { gameCandidateRepository } from "@/lib/editorialRepositories";
 import { autoApplyGameWebAutofill } from "@/lib/ai/gameWebAutofill";
 import { autoCompleteImportedGameWithAi, cleanupImportedCandidate, type ImportedGameResult } from "@/lib/import/importedGame";
 import { importSourceProductReview } from "@/lib/import/importSourceProduct";
-import { initialMasterImportBatchState, type MasterImportBatchState } from "@/lib/import/masterImportBatchShared";
+import type { MasterImportBatchState } from "@/lib/import/masterImportBatchShared";
 import {
   runMasterImportBatch
 } from "@/lib/import/masterImportBatch";
@@ -35,8 +36,9 @@ export async function importSourceAction(_state: ImportSourceState, formData: Fo
       result
     };
   } catch (error) {
+    console.error("[source-import] failed", safeAdminErrorLog(error));
     return {
-      error: error instanceof Error ? error.message : "No se pudo importar el juego.",
+      error: formatImportError(error),
       result: null
     };
   }
@@ -54,7 +56,8 @@ export async function importSourceAndOpenGameAction(formData: FormData) {
     await autoApplyGameWebAutofill(result.gameId);
     await cleanupImportedCandidate(imported.candidateId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo importar el juego.";
+    console.error("[source-import] failed", safeAdminErrorLog(error));
+    const message = formatImportError(error);
     const sourceId = typeof formData.get("sourceId") === "string" ? String(formData.get("sourceId")) : "";
     const params = new URLSearchParams({
       error: message
@@ -74,7 +77,7 @@ export async function importSourceAndOpenGameAction(formData: FormData) {
 }
 
 export async function importMasterGamesAction(
-  _state: MasterImportBatchState = initialMasterImportBatchState,
+  _state: MasterImportBatchState,
   formData: FormData
 ): Promise<MasterImportBatchState> {
   const titlesEntry = formData.get("titles");

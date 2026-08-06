@@ -17,6 +17,7 @@ import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
 import { getInitialPrimaryImageInput } from "@/lib/games/editorImage";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
+import { validateBeforePublish } from "@/lib/validateBeforePublish";
 import { normalizeHowToPlayVideos, type HowToPlayVideo, type HowToPlayVideoType } from "@/lib/videos/howToPlayVideos";
 import { isYouTubeUrl } from "@/lib/videos/youtube";
 
@@ -95,9 +96,6 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
   const [selectedAiWebFields, setSelectedAiWebFields] = useState<string[]>([]);
   const ratings = useMemo(() => normalizeGameRatings(game.ratings), [game.ratings]);
   const externalRating = ratings.external;
-  const players = normalizeGamePlayers(game.players);
-  const playtime = parsePlaytime(game.playtime);
-  const faq = normalizeGameFaq(game.faq || game.faqs);
   const initialDraftValues = useMemo(
     () =>
       buildDraftValues(
@@ -129,6 +127,10 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
     isSavingVideos ||
     isImportingManualOffer ||
     isImportingManualImage;
+  const publicationValidation = useMemo(
+    () => validateBeforePublish(buildDraftPublicationGame(game, draftValues)),
+    [draftValues, game]
+  );
 
   useEffect(() => {
     setDraftValues(initialDraftValues);
@@ -531,6 +533,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
 
       <Feedback state={saveState} errorTitle="No se pudo guardar:" />
       <Feedback state={publishState} errorTitle="No se pudo publicar:" />
+      <PublicationReadiness validation={publicationValidation} />
 
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -891,7 +894,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
         <input type="hidden" name="id" value={game.id} />
         <input type="hidden" name="status" value={game.status} />
 
-        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <section id="datos-principales" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Datos principales</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <Field label="Título">
@@ -941,7 +944,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           </div>
         </section>
 
-        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <section id="mesa" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Mesa</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             <Field label="Jugadores mínimos">
@@ -989,7 +992,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           </div>
         </section>
 
-        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <section id="taxonomia" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Taxonomía y editoriales</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <Field label="Categorías">
@@ -1035,7 +1038,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           </div>
         </section>
 
-        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <section id="contenido-editorial" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Contenido editorial</h2>
           <div className="mt-5 space-y-4">
             <Field label="Descripción breve">
@@ -1083,7 +1086,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           </div>
         </section>
 
-        <section className="grid gap-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft lg:grid-cols-2">
+        <section id="detalles-editoriales" className="scroll-mt-24 grid gap-5 rounded-md border border-ink/10 bg-white p-5 shadow-soft lg:grid-cols-2">
           <Field label="Puntos a favor">
             <textarea
               className="field-textarea min-h-32"
@@ -1305,11 +1308,15 @@ function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTi
     return (
       <div className="rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby" role="alert" aria-live="assertive">
         <p>{errorTitle}</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
-          {state.errors.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
-        </ul>
+        <ValidationIssueList issues={state.errors} className="mt-2" />
+        {state.errorDetails?.length ? (
+          <ul className="mt-3 list-disc space-y-1 pl-5 font-medium text-ruby/90">
+            {state.errorDetails.map((detail) => <li key={detail}>{detail}</li>)}
+          </ul>
+        ) : null}
+        {state.errorReference ? (
+          <p className="mt-3 text-xs font-medium text-ruby/80">Referencia del error: {state.errorReference}</p>
+        ) : null}
         {state.warnings?.length ? <WarningList warnings={state.warnings} className="mt-4" /> : null}
       </div>
     );
@@ -1332,6 +1339,71 @@ function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTi
     );
   }
 
+  return null;
+}
+
+function PublicationReadiness({ validation }: { validation: ReturnType<typeof validateBeforePublish> }) {
+  if (validation.complete) {
+    return (
+      <section className="rounded-md border border-moss/20 bg-moss/10 px-4 py-3" aria-live="polite">
+        <p className="font-bold text-moss">Preparación para publicar: ficha completa</p>
+        <p className="mt-1 text-sm leading-6 text-ink/65">No faltan campos obligatorios ni recomendaciones editoriales.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={`rounded-md border px-4 py-3 ${validation.valid ? "border-amber-300 bg-amber-50" : "border-ruby/20 bg-ruby/10"}`}>
+      <p className="font-bold text-ink">
+        {validation.valid
+          ? `Preparación para publicar: se puede publicar, con ${validation.warnings.length} recomendación${validation.warnings.length === 1 ? "" : "es"}`
+          : `Preparación para publicar: faltan ${validation.errors.length} dato${validation.errors.length === 1 ? "" : "s"} obligatorio${validation.errors.length === 1 ? "" : "s"}`}
+      </p>
+      <p className="mt-1 text-sm leading-6 text-ink/65">
+        {validation.valid
+          ? "Las recomendaciones no bloquean la publicación, pero mejoran la calidad de la ficha."
+          : "Estos puntos sí bloquean la publicación. Pulsa «Ir a la sección» para corregirlos."}
+      </p>
+      {validation.errors.length ? <ValidationIssueList issues={validation.errors} className="mt-3" /> : null}
+      {validation.warnings.length ? (
+        <details className="mt-3" open={validation.valid}>
+          <summary className="cursor-pointer text-sm font-bold text-ink">
+            Ver {validation.warnings.length} recomendación{validation.warnings.length === 1 ? "" : "es"}
+          </summary>
+          <ValidationIssueList issues={validation.warnings} className="mt-2" />
+        </details>
+      ) : null}
+    </section>
+  );
+}
+
+function ValidationIssueList({ issues, className }: { issues: string[]; className?: string }) {
+  return (
+    <ul className={`${className || ""} list-disc space-y-2 pl-5 text-sm font-semibold text-ink/80`}>
+      {issues.map((issue) => {
+        const target = validationIssueTarget(issue);
+        return (
+          <li key={issue}>
+            <span>{issue}</span>{" "}
+            {target ? (
+              <a className="whitespace-nowrap font-bold text-moss underline underline-offset-2" href={target}>
+                Ir a la sección
+              </a>
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function validationIssueTarget(issue: string) {
+  if (/^(Título|Identificador URL|Año|Dificultad):/i.test(issue)) return "#datos-principales";
+  if (/^(Jugadores|Duración|Edad mínima):/i.test(issue)) return "#mesa";
+  if (/^(Categorías|Mecánicas|Temáticas):/i.test(issue)) return "#taxonomia";
+  if (/^(Descripción breve|Descripción|Veredicto rápido|Ideal para|No recomendado para|Para quién)/i.test(issue)) return "#contenido-editorial";
+  if (/^(Pros|Contras|FAQ|Título SEO|Descripción SEO|SEO)/i.test(issue)) return "#detalles-editoriales";
+  if (/^Imagen principal:/i.test(issue)) return "#portada";
   return null;
 }
 
@@ -1389,13 +1461,91 @@ function WarningList({ warnings, className }: { warnings: string[]; className?: 
   return (
     <div className={className}>
       <p className="text-sm font-black text-ink">Recomendaciones para mejorar la ficha:</p>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm font-semibold text-ink/75">
-        {warnings.map((warning) => (
-          <li key={warning}>{warning}</li>
-        ))}
-      </ul>
+      <ValidationIssueList issues={warnings} className="mt-2" />
     </div>
   );
+}
+
+function buildDraftPublicationGame(
+  game: Game,
+  draft: EditorDraftValues
+): Parameters<typeof validateBeforePublish>[0] {
+  const minPlayers = parseDraftPositiveInt(draft.minPlayers);
+  const maxPlayers = parseDraftPositiveInt(draft.maxPlayers);
+  const idealPlayers = parseDraftPositiveInt(draft.idealPlayers);
+  const minAge = parseDraftPositiveInt(draft.minAge);
+  const faq = normalizeGameFaq(
+    draft.faq
+      .split(/\r?\n/)
+      .map((line) => {
+        const [question, ...answerParts] = line.split("|");
+        return { question, answer: answerParts.join("|") };
+      })
+  );
+
+  return {
+    ...game,
+    title: draft.title,
+    name: draft.title,
+    slug: draft.slug,
+    year: parseDraftPositiveInt(draft.year),
+    players: {
+      min: minPlayers,
+      max: maxPlayers,
+      ideal: idealPlayers,
+      label: minPlayers && maxPlayers ? `${minPlayers}-${maxPlayers}` : null
+    },
+    minPlayers,
+    maxPlayers,
+    playtime: formatDraftPlaytime(draft.minPlayTime, draft.maxPlayTime),
+    minAge,
+    age: minAge ? `${minAge}+` : null,
+    difficulty: nullableDraftText(draft.difficulty),
+    complexity: nullableDraftText(draft.difficulty),
+    categories: splitDraftList(draft.categories),
+    mechanics: splitDraftList(draft.mechanics),
+    themes: splitDraftList(draft.themes),
+    shortDescription: nullableDraftText(draft.shortDescription),
+    shortSummary: nullableDraftText(draft.shortDescription),
+    description: nullableDraftText(draft.description),
+    quickVerdict: nullableDraftText(draft.quickVerdict),
+    review: nullableDraftText(draft.quickVerdict),
+    bestFor: nullableDraftText(draft.bestFor),
+    notFor: nullableDraftText(draft.notFor),
+    pros: splitDraftList(draft.pros),
+    cons: splitDraftList(draft.cons),
+    faq,
+    faqs: faq,
+    seoTitle: nullableDraftText(draft.seoTitle),
+    seoDescription: nullableDraftText(draft.seoDescription),
+    primaryImageId: nullableDraftText(draft.primaryImageId),
+    imageFallbackAccepted: draft.imageFallbackAccepted
+  };
+}
+
+function parseDraftPositiveInt(value: string) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function formatDraftPlaytime(minValue: string, maxValue: string) {
+  const min = parseDraftPositiveInt(minValue);
+  const max = parseDraftPositiveInt(maxValue);
+
+  if (min && max && min !== max) return `${min}-${max} min`;
+  if (min || max) return `${min || max} min`;
+  return null;
+}
+
+function splitDraftList(value: string) {
+  return value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function nullableDraftText(value: string) {
+  return value.trim() || null;
 }
 
 function parsePlaytime(value: string | null) {
