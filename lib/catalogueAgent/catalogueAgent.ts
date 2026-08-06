@@ -9,7 +9,7 @@ import {
   type CatalogueAgentResult
 } from "@/lib/catalogueAgent/schemas";
 
-export const CATALOGUE_AGENT_PROMPT_VERSION = "catalogue-agent-v5-backend-dedup-import";
+export const CATALOGUE_AGENT_PROMPT_VERSION = "catalogue-agent-v6-reliable-auto-review";
 export const CATALOGUE_AGENT_MAX_MODEL_STEPS = 4;
 export const CATALOGUE_AGENT_MAX_SEARCHES = 2;
 export const CATALOGUE_AGENT_TOOL_ALLOWLIST = [
@@ -121,17 +121,18 @@ const MECHANIC_SEARCH_HINTS = {
   "Progresión de personaje": "character-progression mechanic"
 } satisfies Record<NonNullable<CatalogueAgentRequest["mechanic"]>, string>;
 
-const IMPORTABLE_DOMAIN_SEARCHES = [
-  "site:zacatrus.es OR site:dungeonmarvels.com OR site:mathom.es",
-  "site:dracotienda.com OR site:juegosdelamesaredonda.com OR site:masqueoca.com"
-] as const;
+const SEARCH_VARIETY_MODIFIERS = ["", "popular", "best", "recommended", "new 2024 2025"] as const;
 
 export function buildCatalogueSearchQuery(input: CatalogueAgentRequest, searchNumber = 1) {
+  const varietyModifier = SEARCH_VARIETY_MODIFIERS[
+    (Math.max(1, searchNumber) - 1) % SEARCH_VARIETY_MODIFIERS.length
+  ];
+
   return [
-    "board game",
+    "board game juego de mesa",
     input.category ? CATEGORY_SEARCH_HINTS[input.category] : null,
     input.mechanic ? MECHANIC_SEARCH_HINTS[input.mechanic] : null,
-    IMPORTABLE_DOMAIN_SEARCHES[(Math.max(1, searchNumber) - 1) % IMPORTABLE_DOMAIN_SEARCHES.length]
+    varietyModifier || null
   ].filter((value): value is string => Boolean(value)).join(" ").slice(0, 180);
 }
 
@@ -160,8 +161,10 @@ export async function runCatalogueAgent(
       const results = z.array(searchCandidateSchema).max(10).parse(
         await deps.searchGameCandidates({ query, signal })
       );
-      evidence.push(...results);
-      return results;
+      const existingKeys = new Set(existingGames.map((game) => canonicalGameTitleKey(game.title)));
+      const filtered = results.filter((candidate) => !existingKeys.has(canonicalGameTitleKey(candidate.title)));
+      evidence.push(...filtered);
+      return filtered;
     }
   });
   const toolsByName = new Map<string, StructuredToolInterface>(
@@ -274,6 +277,19 @@ export async function runCatalogueAgent(
           name: toolCall.name
         })
       );
+    }
+
+    if (searches >= CATALOGUE_AGENT_MAX_SEARCHES && evidence.length === 0) {
+      return {
+        result: {
+          status: "insufficient_evidence",
+          reason: "Las búsquedas no encontraron ningún candidato importable en las tiendas configuradas.",
+          sources: []
+        },
+        steps: step,
+        searches,
+        toolsUsed
+      };
     }
 
     if (step === CATALOGUE_AGENT_MAX_MODEL_STEPS) {

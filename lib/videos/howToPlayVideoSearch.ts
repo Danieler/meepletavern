@@ -23,7 +23,8 @@ export async function searchHowToPlayVideosWithTavily(game: Game) {
     const directVideos = await searchHowToPlayVideosDirectly(game);
     return {
       videos: directVideos,
-      warning: directVideos.length ? null : "Tavily no configurado para búsqueda de vídeos"
+      warning: directVideos.length ? null : "Tavily no configurado para búsqueda de vídeos",
+      tavilySearches: 0
     };
   }
 
@@ -48,7 +49,8 @@ export async function searchHowToPlayVideosWithTavily(game: Game) {
     const directVideos = await searchHowToPlayVideosDirectly(game);
     return {
       videos: directVideos,
-      warning: directVideos.length ? null : "No se pudieron buscar vídeos con Tavily"
+      warning: directVideos.length ? null : "No se pudieron buscar vídeos con Tavily",
+      tavilySearches: queries.length
     };
   }
 
@@ -64,13 +66,14 @@ export async function searchHowToPlayVideosWithTavily(game: Game) {
 
   const videos = selectHowToPlayVideos(candidates, game);
   if (videos.length) {
-    return { videos, warning: null };
+    return { videos, warning: null, tavilySearches: queries.length };
   }
 
   const directVideos = await searchHowToPlayVideosDirectly(game);
   return {
     videos: directVideos,
-    warning: directVideos.length ? null : "No se encontraron vídeos de YouTube"
+    warning: directVideos.length ? null : "No se encontraron vídeos de YouTube",
+    tavilySearches: queries.length
   };
 }
 

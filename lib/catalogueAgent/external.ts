@@ -11,6 +11,7 @@ import type {
 } from "@/lib/catalogueAgent/catalogueAgent";
 
 export const CATALOGUE_AGENT_DEFAULT_MODEL = "amazon.nova-micro-v1:0";
+export const CATALOGUE_AGENT_LLM_MAX_RETRIES = 2;
 
 export const CATALOGUE_AGENT_IMPORT_DOMAINS = [
   "juegosdelamesaredonda.com",
@@ -58,7 +59,7 @@ export function createBedrockCatalogueModelInvoker(): CatalogueAgentModelInvoker
     },
     temperature: 0,
     maxTokens: 1200,
-    maxRetries: 0,
+    maxRetries: CATALOGUE_AGENT_LLM_MAX_RETRIES,
     timeout: 15_000,
     ...(supportsToolChoiceValues ? { supportsToolChoiceValues } : {}),
     additionalModelRequestFields: {
@@ -81,8 +82,8 @@ export async function searchCatalogueCandidatesWithTavily(input: {
   throwIfAborted(input.signal);
   const apiKey = requiredEnvironmentValue("TAVILY_API_KEY");
   const client = tavily({ apiKey, clientName: "meepletavern-catalogue-agent" });
-  const response = await raceWithAbort(
-    client.search(input.query, {
+  const response = await retryCatalogueTavilySearch(
+    () => client.search(input.query, {
       searchDepth: "basic",
       topic: "general",
       maxResults: 8,
@@ -99,6 +100,29 @@ export async function searchCatalogueCandidatesWithTavily(input: {
   );
 
   return normalizeTavilyCatalogueResults(response.results);
+}
+
+export async function retryCatalogueTavilySearch<T>(
+  search: () => Promise<T>,
+  signal: AbortSignal,
+  retryDelayMs = 1_500
+) {
+  let firstError: unknown;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    throwIfAborted(signal);
+    try {
+      return await raceWithAbort(search(), signal);
+    } catch (error) {
+      firstError ??= error;
+      if (attempt === 2 || signal.aborted) {
+        throw firstError;
+      }
+      await abortableDelay(retryDelayMs, signal);
+    }
+  }
+
+  throw firstError;
 }
 
 export function normalizeTavilyCatalogueResults(input: unknown): CatalogueSearchCandidate[] {
@@ -166,6 +190,24 @@ function raceWithAbort<T>(promise: Promise<T>, signal: AbortSignal) {
         reject(error);
       }
     );
+  });
+}
+
+function abortableDelay(durationMs: number, signal: AbortSignal) {
+  if (signal.aborted) {
+    return Promise.reject(abortReason(signal));
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      signal.removeEventListener("abort", abort);
+      resolve();
+    }, durationMs);
+    const abort = () => {
+      clearTimeout(timeout);
+      reject(abortReason(signal));
+    };
+    signal.addEventListener("abort", abort, { once: true });
   });
 }
 

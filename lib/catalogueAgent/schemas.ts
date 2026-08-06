@@ -54,14 +54,18 @@ export const catalogueAgentDisabledResultSchema = z.object({
 
 export const catalogueAgentDiagnosticsSchema = z.object({
   runId: z.string().uuid(),
-  modelCalls: z.number().int().min(0).max(4),
-  tavilySearches: z.number().int().min(0).max(2),
+  modelCalls: z.number().int().min(0),
+  tavilySearches: z.number().int().min(0),
   durationMs: z.number().int().min(0)
 });
 
 export const catalogueAgentApiResultSchema = z.union([
   catalogueAgentResultSchema.extend({
     candidateId: z.string().min(1).nullable(),
+    gameId: z.string().min(1).nullable().optional(),
+    gameSlug: z.string().min(1).nullable().optional(),
+    readyToPublish: z.boolean().optional(),
+    missingFields: z.array(z.string()).optional(),
     diagnostics: catalogueAgentDiagnosticsSchema.optional()
   }),
   catalogueAgentDisabledResultSchema

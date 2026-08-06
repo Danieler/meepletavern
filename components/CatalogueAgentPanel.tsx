@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { Loader2, Search, Sparkles } from "lucide-react";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
 import { useAdminI18n } from "@/lib/adminI18n";
 import {
@@ -62,6 +62,10 @@ export function CatalogueAgentPanel({
 
       const parsed = catalogueAgentApiResultSchema.parse(body);
       setResult(parsed);
+      if ("gameId" in parsed && parsed.gameId) {
+        router.push(`/admin/games/${parsed.gameId}`);
+        return;
+      }
       if (parsed.candidateId) {
         router.refresh();
       }
@@ -143,6 +147,20 @@ export function CatalogueAgentPanel({
 function CatalogueAgentResultView({ result }: { result: CatalogueAgentApiResult }) {
   const { lang, t } = useAdminI18n();
 
+  if ("gameId" in result && result.gameId) {
+    return (
+      <div className="mt-4 rounded-md border border-moss/20 bg-moss/10 p-4 text-sm" aria-live="polite">
+        <p className="inline-flex items-center gap-2 font-bold text-moss">
+          <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+          {t("catalogueAgent.openingGame")}
+        </p>
+        <Link className="button-secondary mt-3" href={`/admin/games/${result.gameId}`}>
+          {t("catalogueAgent.openGame")}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 rounded-md border border-ink/10 bg-[#faf8f3] p-4 text-sm" aria-live="polite">
       <p className="font-bold text-ink">{t("catalogueAgent.status")}: {statusLabel(result.status, lang)}</p>
@@ -166,9 +184,12 @@ function CatalogueAgentResultView({ result }: { result: CatalogueAgentApiResult 
         </div>
       ) : null}
       {result.candidateId ? (
-        <Link className="button-secondary mt-4" href={`/admin/candidates/${result.candidateId}`}>
-          {t("catalogueAgent.openCandidate")}
-        </Link>
+        <div className="mt-4">
+          <p className="mb-3 text-sm font-semibold text-amber-700">{t("catalogueAgent.autoEnrichFailed")}</p>
+          <Link className="button-secondary" href={`/admin/candidates/${result.candidateId}`}>
+            {t("catalogueAgent.openCandidate")}
+          </Link>
+        </div>
       ) : null}
       {"diagnostics" in result && result.diagnostics ? (
         <p className="mt-3 text-xs text-ink/55">

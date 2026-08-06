@@ -536,7 +536,10 @@ export async function applyGameImportProposalFields(input: {
   return appliedFields;
 }
 
-export async function autoApplyGameWebAutofill(gameId: string) {
+export async function autoApplyGameWebAutofill(
+  gameId: string,
+  options?: { onExternalCall?: (type: "model" | "tavily", count: number) => void }
+) {
   const game = await prisma.game.findUnique({ where: { id: gameId } });
 
   if (!game) {
@@ -544,6 +547,9 @@ export async function autoApplyGameWebAutofill(gameId: string) {
   }
 
   const videoSearch = await safeSearchHowToPlayVideosForAutoApply(game);
+  if (videoSearch.tavilySearches) {
+    options?.onExternalCall?.("tavily", videoSearch.tavilySearches);
+  }
   if (videoSearch.videos.length) {
     await prisma.game.update({
       where: { id: gameId },
@@ -562,8 +568,13 @@ export async function autoApplyGameWebAutofill(gameId: string) {
     };
   }
 
+  const metadataSearchCount = buildBoardGameSearchQueries(game).length + (readGameSourceUrls(game).length ? 1 : 0);
+  options?.onExternalCall?.("tavily", metadataSearchCount);
   const search = await searchBoardGameWithTavily(game);
   await updateGameExternalRatingFromWebSearch(game, search.results);
+  if (process.env.AWS_REGION?.trim()) {
+    options?.onExternalCall?.("model", 1);
+  }
   const extracted = await extractBoardGameFieldsWithNova({
     game,
     tavilyResults: search.results
@@ -595,7 +606,8 @@ async function safeSearchHowToPlayVideosForAutoApply(game: Game) {
   } catch {
     return {
       videos: [],
-      warning: "No se pudieron buscar vídeos de cómo se juega"
+      warning: "No se pudieron buscar vídeos de cómo se juega",
+      tavilySearches: 0
     };
   }
 }

@@ -59,12 +59,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await run;
-    if (result.candidateId) {
+    const gameId = "gameId" in result ? result.gameId : null;
+    if (result.candidateId || gameId) {
       try {
         revalidatePath("/admin/candidates");
+        if (gameId) {
+          revalidatePath("/admin/games");
+        }
       } catch (error) {
-        console.warn("[catalogue-agent] candidate revalidation failed", {
-          runId: result.diagnostics?.runId,
+        console.warn("[catalogue-agent] admin revalidation failed", {
+          runId: "diagnostics" in result ? result.diagnostics?.runId : undefined,
           error: error instanceof Error ? error.name : "UnknownError"
         });
       }
@@ -98,6 +102,10 @@ function startRequest(input: CatalogueAgentRequest, key: string) {
     .then((run) => ({
       ...run.result,
       candidateId: run.candidateId,
+      gameId: run.gameId,
+      gameSlug: run.gameSlug,
+      readyToPublish: run.readyToPublish,
+      missingFields: run.missingFields.length ? run.missingFields : undefined,
       diagnostics: run.diagnostics
     } satisfies CatalogueAgentApiResult))
     .finally(() => {

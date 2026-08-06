@@ -1,22 +1,31 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import type { Game } from "@prisma/client";
 import { AIMessage } from "@langchain/core/messages";
 import { NextRequest } from "next/server";
 import {
   CATALOGUE_AGENT_MAX_MODEL_STEPS,
   CATALOGUE_AGENT_MAX_SEARCHES,
+  CatalogueAgentOutputError,
   buildCatalogueSearchQuery,
   runCatalogueAgent,
   type CatalogueAgentModelInvoker
 } from "@/lib/catalogueAgent/catalogueAgent";
 import {
   CATALOGUE_AGENT_IMPORT_DOMAINS,
+  CATALOGUE_AGENT_LLM_MAX_RETRIES,
   catalogueAgentToolChoiceSupport,
   createBedrockCatalogueModelInvoker,
   normalizeTavilyCatalogueResults,
+  retryCatalogueTavilySearch,
   searchCatalogueCandidatesWithTavily
 } from "@/lib/catalogueAgent/external";
 import { runCatalogueAgentWorkflow } from "@/lib/catalogueAgent/workflow";
+import { catalogueAgentApiResultSchema } from "@/lib/catalogueAgent/schemas";
+import {
+  convertAndEnrichCandidate,
+  isRetryableAgentError
+} from "@/lib/catalogueAgent/runtime";
 import { catalogueTitlesAreDuplicates } from "@/lib/catalogueAgent/duplicates";
 import { POST as catalogueAgentPost } from "@/app/api/admin/catalogue-agent/route";
 import { ADMIN_REQUEST_HEADER, ADMIN_REQUEST_HEADER_VALUE } from "@/lib/adminApiClient";
@@ -50,6 +59,7 @@ test("declara explícitamente el soporte de tool_choice de Amazon Nova", () => {
     ["auto", "any", "tool"]
   );
   assert.equal(catalogueAgentToolChoiceSupport("modelo-desconocido"), undefined);
+  assert.equal(CATALOGUE_AGENT_LLM_MAX_RETRIES, 2);
 });
 
 test("traduce Familiar como categoría familiar y no como palabra del título", () => {
@@ -61,7 +71,8 @@ test("traduce Familiar como categoría familiar y no como palabra del título", 
 
   assert.match(query, /family-friendly games suitable for families/i);
   assert.doesNotMatch(query, /\bfamiliar\b/i);
-  assert.match(query, /site:zacatrus\.es/i);
+  assert.match(query, /board game juego de mesa/i);
+  assert.doesNotMatch(query, /site:/i);
 
   const mechanicOnly = buildCatalogueSearchQuery({
     action: "add_new_game",
@@ -77,7 +88,41 @@ test("traduce Familiar como categoría familiar y no como palabra del título", 
   assert.match(mechanicOnly, /worker-placement mechanic/i);
   assert.match(combinedAlternative, /family-friendly/i);
   assert.match(combinedAlternative, /worker-placement mechanic/i);
-  assert.match(combinedAlternative, /site:dracotienda\.com/i);
+  assert.match(combinedAlternative, /popular/i);
+  assert.doesNotMatch(combinedAlternative, /site:/i);
+});
+
+test("reintenta Tavily una sola vez y conserva el primer error si ambos intentos fallan", async () => {
+  let attempts = 0;
+  const recovered = await retryCatalogueTavilySearch(async () => {
+    attempts += 1;
+    if (attempts === 1) throw new Error("primer fallo");
+    return "ok";
+  }, new AbortController().signal, 0);
+
+  assert.equal(recovered, "ok");
+  assert.equal(attempts, 2);
+
+  const firstError = new Error("fallo original");
+  attempts = 0;
+  await assert.rejects(
+    () => retryCatalogueTavilySearch(async () => {
+      attempts += 1;
+      throw attempts === 1 ? firstError : new Error("fallo secundario");
+    }, new AbortController().signal, 0),
+    (error) => error === firstError
+  );
+  assert.equal(attempts, 2);
+});
+
+test("clasifica los errores no transitorios antes de reintentar el workflow", () => {
+  const timeout = new Error("tiempo agotado");
+  timeout.name = "TimeoutError";
+
+  assert.equal(isRetryableAgentError(new Error("ECONNRESET")), true);
+  assert.equal(isRetryableAgentError(new Error("Falta la configuración TAVILY_API_KEY para el agente.")), false);
+  assert.equal(isRetryableAgentError(timeout), false);
+  assert.equal(isRetryableAgentError(new CatalogueAgentOutputError("salida inválida")), false);
 });
 
 test("Tavily queda limitado a dominios que el importador sabe procesar", () => {
@@ -89,6 +134,28 @@ test("Tavily queda limitado a dominios que el importador sabe procesar", () => {
     "zacatrus.es",
     "masqueoca.com"
   ]);
+});
+
+test("el schema de API admite la ficha automatizada y diagnósticos del enriquecimiento", () => {
+  const parsed = catalogueAgentApiResultSchema.parse({
+    status: "candidate_selected",
+    selectedCandidate: { title: "Just One", sourceUrl: "https://zacatrus.es/just-one.html" },
+    reason: "Ficha preparada.",
+    sources: ["https://zacatrus.es/just-one.html"],
+    candidateId: "candidate-1",
+    gameId: "game-1",
+    gameSlug: "just-one",
+    readyToPublish: false,
+    missingFields: ["Imagen principal: falta una portada."],
+    diagnostics: {
+      runId: "44444444-4444-4444-8444-444444444444",
+      modelCalls: 6,
+      tavilySearches: 7,
+      durationMs: 70_000
+    }
+  });
+
+  assert.equal("gameId" in parsed ? parsed.gameId : null, "game-1");
 });
 
 test("descarta resultados Tavily defectuosos sin tumbar toda la ejecución", () => {
@@ -188,6 +255,33 @@ test("el agente consulta, busca y selecciona un candidato respaldado por evidenc
   assert.equal(searches, 1);
   assert.deepEqual(run.toolsUsed, ["listExistingGames", "searchGameCandidates", "submitCandidateSelection"]);
   assert.deepEqual(toolChoices, ["listExistingGames", "searchGameCandidates", "submitCandidateSelection"]);
+});
+
+test("filtra de la evidencia los títulos que ya existen y usa la segunda búsqueda", async () => {
+  let modelCalls = 0;
+  let searches = 0;
+  const run = await runCatalogueAgent(
+    deckbuildingRequest,
+    {
+      invokeModel: scriptedModel([
+        toolCall("listExistingGames", {}, "list-1"),
+        toolCall("searchGameCandidates", {}, "search-1"),
+        toolCall("searchGameCandidates", {}, "search-2")
+      ], undefined, () => { modelCalls += 1; }),
+      async listExistingGames() {
+        return [{ id: "dominion", title: "Dominion", categories: ["Deckbuilding"] }];
+      },
+      async searchGameCandidates() {
+        searches += 1;
+        return [dominion];
+      }
+    }
+  );
+
+  assert.equal(run.result.status, "insufficient_evidence");
+  assert.match(run.result.reason, /ningún candidato importable/i);
+  assert.equal(searches, CATALOGUE_AGENT_MAX_SEARCHES);
+  assert.equal(modelCalls, 3);
 });
 
 test("reintenta una selección estructurada incompleta sin recurrir a JSON libre", async () => {
@@ -356,8 +450,16 @@ test("un juego existente no llega a preparar ni persistir un Candidate", async (
       },
       async prepareDraft() {
         candidateCreates += 1;
-        gameCreates += 1;
         return { candidateId: "should-not-exist", title: "Dominion" };
+      },
+      async convertAndEnrich() {
+        gameCreates += 1;
+        return {
+          gameId: "should-not-exist",
+          gameSlug: "dominion",
+          readyToPublish: false,
+          missingFields: []
+        };
       }
     },
     { signal: new AbortController().signal, runId: "duplicate-run" }
@@ -373,6 +475,7 @@ test("una sospecha de Nova no bloquea Pengoloo: el backend comprueba e inicia la
   const sourceUrl = "https://example.com/family-friendly-board-games";
   let duplicateChecks = 0;
   let imports = 0;
+  let conversions = 0;
   const run = await runCatalogueAgentWorkflow(
     { action: "add_new_game", category: "Familiar", mechanic: null },
     {
@@ -417,6 +520,18 @@ test("una sospecha de Nova no bloquea Pengoloo: el backend comprueba e inicia la
         });
         assert.equal(signal.aborted, false);
         return { candidateId: "candidate-pengoloo", title: candidate.title };
+      },
+      async convertAndEnrich({ candidateId, request, signal }) {
+        conversions += 1;
+        assert.equal(candidateId, "candidate-pengoloo");
+        assert.equal(request.category, "Familiar");
+        assert.equal(signal.aborted, false);
+        return {
+          gameId: "game-pengoloo",
+          gameSlug: "pengoloo",
+          readyToPublish: true,
+          missingFields: []
+        };
       }
     },
     { signal: new AbortController().signal, runId: "pengoloo-run" }
@@ -424,9 +539,12 @@ test("una sospecha de Nova no bloquea Pengoloo: el backend comprueba e inicia la
 
   assert.equal(duplicateChecks, 1);
   assert.equal(imports, 1);
+  assert.equal(conversions, 1);
   assert.equal(run.result.status, "candidate_selected");
   assert.equal(run.candidateId, "candidate-pengoloo");
-  assert.match(run.result.reason, /importador maestro creó un Candidate/i);
+  assert.equal(run.gameId, "game-pengoloo");
+  assert.equal(run.readyToPublish, true);
+  assert.match(run.result.reason, /ficha se creó y enriqueció/i);
 });
 
 test("una salida inválida repetida termina de forma controlada y no como 502", async () => {
@@ -445,8 +563,9 @@ test("una salida inválida repetida termina de forma controlada y no como 502", 
   assert.match(run.result.reason, /selección estructurada/i);
 });
 
-test("el agente nunca ejecuta más de dos búsquedas Tavily", async () => {
+test("el agente termina sin otra llamada a Nova tras dos búsquedas vacías", async () => {
   let searches = 0;
+  let modelCalls = 0;
   const run = await runCatalogueAgent(
     { action: "add_new_game", category: "Cartas", mechanic: "Gestión de mano" },
     {
@@ -455,7 +574,7 @@ test("el agente nunca ejecuta más de dos búsquedas Tavily", async () => {
         toolCall("searchGameCandidates", { query: "juegos de bazas" }, "search-1"),
         toolCall("searchGameCandidates", { query: "trick taking board games" }, "search-2"),
         toolCall("searchGameCandidates", { query: "más juegos de bazas" }, "search-3")
-      ]),
+      ], undefined, () => { modelCalls += 1; }),
       async listExistingGames() { return []; },
       async searchGameCandidates() {
         searches += 1;
@@ -464,9 +583,10 @@ test("el agente nunca ejecuta más de dos búsquedas Tavily", async () => {
     }
   );
 
-  assert.equal(run.result.status, "limit_reached");
+  assert.equal(run.result.status, "insufficient_evidence");
   assert.equal(searches, CATALOGUE_AGENT_MAX_SEARCHES);
   assert.equal(run.searches, CATALOGUE_AGENT_MAX_SEARCHES);
+  assert.equal(modelCalls, 3);
 });
 
 test("el agente finaliza al alcanzar cuatro pasos de modelo", async () => {
@@ -486,7 +606,7 @@ test("el agente finaliza al alcanzar cuatro pasos de modelo", async () => {
   assert.equal(run.steps, CATALOGUE_AGENT_MAX_MODEL_STEPS);
 });
 
-test("el workflow crea solo el borrador Candidate preparado por la persistencia mockeada", async () => {
+test("el workflow convierte el Candidate en una ficha de revisión enriquecida", async () => {
   const writes: Array<{ model: string; aiDraft: boolean }> = [];
   const run = await runCatalogueAgentWorkflow(
     deckbuildingRequest,
@@ -508,14 +628,58 @@ test("el workflow crea solo el borrador Candidate preparado por la persistencia 
       async prepareDraft() {
         writes.push({ model: "GameCandidate", aiDraft: true });
         return { candidateId: "candidate-1", title: "Dominion" };
+      },
+      async convertAndEnrich() {
+        writes.push({ model: "Game", aiDraft: false });
+        return {
+          gameId: "game-1",
+          gameSlug: "dominion",
+          readyToPublish: false,
+          missingFields: ["Imagen principal: falta una portada."]
+        };
       }
     },
     { signal: new AbortController().signal, runId: "candidate-only-run" }
   );
 
   assert.equal(run.candidateId, "candidate-1");
-  assert.deepEqual(writes, [{ model: "GameCandidate", aiDraft: true }]);
-  assert.equal(writes.some((write) => write.model === "Game"), false);
+  assert.equal(run.gameId, "game-1");
+  assert.equal(run.gameSlug, "dominion");
+  assert.equal(run.readyToPublish, false);
+  assert.deepEqual(run.missingFields, ["Imagen principal: falta una portada."]);
+  assert.deepEqual(writes, [
+    { model: "GameCandidate", aiDraft: true },
+    { model: "Game", aiDraft: false }
+  ]);
+});
+
+test("si falla la conversión automática conserva el Candidate como fallback", async () => {
+  const run = await runCatalogueAgentWorkflow(
+    deckbuildingRequest,
+    {
+      async runAgent() {
+        return {
+          result: {
+            status: "candidate_selected",
+            selectedCandidate: { title: "Dominion", sourceUrl: dominion.sourceUrl },
+            reason: "La evidencia es suficiente.",
+            sources: [dominion.sourceUrl]
+          },
+          steps: 3,
+          searches: 1,
+          toolsUsed: ["listExistingGames", "searchGameCandidates"]
+        };
+      },
+      async findDuplicate() { return null; },
+      async prepareDraft() { return { candidateId: "candidate-fallback", title: "Dominion" }; },
+      async convertAndEnrich() { throw new Error("fallo de conversión simulado"); }
+    },
+    { signal: new AbortController().signal, runId: "candidate-fallback-run" }
+  );
+
+  assert.equal(run.candidateId, "candidate-fallback");
+  assert.equal(run.gameId, null);
+  assert.match(run.result.reason, /continuar manualmente/i);
 });
 
 test("una selección sin evidencia termina de forma controlada", async () => {
@@ -537,6 +701,96 @@ test("una selección sin evidencia termina de forma controlada", async () => {
 
   assert.equal(run.result.status, "insufficient_evidence");
   assert.equal(run.result.selectedCandidate, undefined);
+});
+
+test("la conversión automática continúa sin publicar si fallan los enriquecimientos opcionales", async () => {
+  const game = {
+    id: "game-party",
+    title: "Just One",
+    name: "Just One",
+    slug: "just-one",
+    status: "review",
+    publishedAt: null,
+    year: 2018,
+    players: { min: 3, max: 7 },
+    minPlayers: 3,
+    maxPlayers: 7,
+    playtime: "20 min",
+    minAge: 8,
+    age: "8+",
+    difficulty: "Fácil",
+    complexity: "Fácil",
+    categories: [],
+    mechanics: [],
+    themes: [],
+    shortDescription: "Juego cooperativo de pistas para grupos.",
+    shortSummary: "Juego cooperativo de pistas para grupos.",
+    description: null,
+    quickVerdict: null,
+    review: null,
+    bestFor: null,
+    notFor: null,
+    pros: [],
+    cons: [],
+    faq: [],
+    faqs: [],
+    seoTitle: null,
+    seoDescription: null,
+    primaryImageId: "image-1",
+    imageFallbackAccepted: false
+  } as unknown as Game;
+  let webAttempts = 0;
+  let editorialAttempts = 0;
+
+  const result = await convertAndEnrichCandidate({
+    candidateId: "candidate-party",
+    request: { action: "add_new_game", category: "Party", mechanic: "Roles ocultos" },
+    signal: new AbortController().signal
+  }, {
+    async convertCandidate(candidateId, status) {
+      assert.equal(candidateId, "candidate-party");
+      assert.equal(status, "review");
+      return { id: game.id, slug: game.slug };
+    },
+    async autoApplyWeb(_gameId, onExternalCall) {
+      webAttempts += 1;
+      onExternalCall?.("tavily", 4);
+      throw new Error("web autofill mock failed");
+    },
+    async getGame() {
+      return game;
+    },
+    async completeEditorial() {
+      editorialAttempts += 1;
+      throw new Error("editorial mock failed");
+    },
+    async updateGame(_gameId, input) {
+      if (Array.isArray(input.categories)) {
+        game.categories = input.categories.filter((value): value is string => typeof value === "string");
+      }
+      if (Array.isArray(input.mechanics)) {
+        game.mechanics = input.mechanics.filter((value): value is string => typeof value === "string");
+      }
+      if (typeof input.status === "string") {
+        game.status = input.status;
+      }
+      if (input.publishedAt === null) {
+        game.publishedAt = null;
+      }
+    },
+    countsEditorialModelCall: true
+  });
+
+  assert.equal(webAttempts, 1);
+  assert.equal(editorialAttempts, 1);
+  assert.deepEqual(game.categories, ["Party"]);
+  assert.deepEqual(game.mechanics, ["Roles ocultos"]);
+  assert.equal(game.status, "review");
+  assert.equal(game.publishedAt, null);
+  assert.equal(result.gameId, "game-party");
+  assert.equal(result.readyToPublish, true);
+  assert.equal(result.modelCalls, 1);
+  assert.equal(result.tavilySearches, 4);
 });
 
 test("el modo seguro bloquea Bedrock y Tavily antes de crear clientes o enviar peticiones", async () => {
@@ -602,9 +856,14 @@ test("el endpoint rechaza peticiones que no superan la protección admin", async
   assert.equal(response.status, 403);
 });
 
-function scriptedModel(messages: AIMessage[], toolChoices?: string[]): CatalogueAgentModelInvoker {
+function scriptedModel(
+  messages: AIMessage[],
+  toolChoices?: string[],
+  onInvoke?: () => void
+): CatalogueAgentModelInvoker {
   let index = 0;
   return async (input) => {
+    onInvoke?.();
     toolChoices?.push(input.toolChoice);
     const message = messages[index];
     index += 1;

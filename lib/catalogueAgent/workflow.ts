@@ -29,12 +29,26 @@ export type CatalogueAgentWorkflowDependencies = {
     runId: string;
     signal: AbortSignal;
   }): Promise<CatalogueDraftPreparation>;
+  convertAndEnrich(input: {
+    candidateId: string;
+    request: CatalogueAgentRequest;
+    signal: AbortSignal;
+  }): Promise<{
+    gameId: string;
+    gameSlug: string;
+    readyToPublish: boolean;
+    missingFields: string[];
+  }>;
 };
 
 export type CatalogueAgentWorkflowRun = CatalogueAgentRun & {
   runId: string;
   durationMs: number;
   candidateId: string | null;
+  gameId: string | null;
+  gameSlug: string | null;
+  readyToPublish: boolean;
+  missingFields: string[];
 };
 
 export async function runCatalogueAgentWorkflow(
@@ -48,6 +62,10 @@ export async function runCatalogueAgentWorkflow(
   const agentRun = await deps.runAgent(input, { signal: options.signal });
   let result = agentRun.result;
   let candidateId: string | null = null;
+  let gameId: string | null = null;
+  let gameSlug: string | null = null;
+  let readyToPublish = false;
+  let missingFields: string[] = [];
 
   if (result.status === "candidate_selected" && result.selectedCandidate) {
     const duplicate = await deps.findDuplicate(result.selectedCandidate);
@@ -83,6 +101,34 @@ export async function runCatalogueAgentWorkflow(
             ? `No se encontró ningún duplicado. ${prepared.warnings[0]}`
             : "No se encontró ningún duplicado. El importador maestro creó un Candidate con aiDraft para revisión."
         };
+
+        try {
+          const enriched = await deps.convertAndEnrich({
+            candidateId,
+            request: input,
+            signal: options.signal
+          });
+          gameId = enriched.gameId;
+          gameSlug = enriched.gameSlug;
+          readyToPublish = enriched.readyToPublish;
+          missingFields = enriched.missingFields;
+          result = {
+            ...result,
+            reason: enriched.readyToPublish
+              ? "La ficha se creó y enriqueció en estado de revisión. Está preparada para la revisión final del administrador."
+              : "La ficha se creó en estado de revisión. Revisa los campos pendientes antes de publicarla."
+          };
+        } catch (error) {
+          console.warn("[catalogue-agent] automatic candidate conversion failed", {
+            runId,
+            candidateId,
+            error: error instanceof Error ? error.name : "UnknownError"
+          });
+          result = {
+            ...result,
+            reason: "El Candidate se creó, pero la conversión o el enriquecimiento automático no pudo completarse. Puedes continuar manualmente desde el candidato."
+          };
+        }
       }
     }
   }
@@ -92,6 +138,10 @@ export async function runCatalogueAgentWorkflow(
     runId,
     result,
     candidateId,
+    gameId,
+    gameSlug,
+    readyToPublish,
+    missingFields,
     durationMs: Date.now() - startedAt
   };
 }

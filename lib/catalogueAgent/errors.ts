@@ -1,4 +1,4 @@
-export type CatalogueAgentFailureStage = "setup" | "nova" | "tavily" | "import" | "workflow";
+export type CatalogueAgentFailureStage = "setup" | "nova" | "tavily" | "import" | "enrichment" | "workflow";
 
 export type CatalogueAgentFailureDiagnostics = {
   runId: string;
@@ -65,6 +65,8 @@ export function catalogueAgentPublicFailureMessage(
       return "Tavily no pudo completar la búsqueda de candidatos. Puedes volver a intentarlo.";
     case "import":
       return "El agente encontró un juego, pero el importador no pudo preparar su ficha revisable.";
+    case "enrichment":
+      return "La ficha se creó, pero parte del enriquecimiento automático no pudo completarse. Puedes revisarla manualmente.";
     case "setup":
       return "No se pudo iniciar el agente porque falta parte de su configuración.";
     default:
