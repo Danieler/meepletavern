@@ -6,10 +6,12 @@ import {
   convertCandidateAction,
   type CandidateConversionActionState
 } from "@/app/admin/candidates/[id]/actions";
+import { useAdminI18n } from "@/lib/adminI18n";
 
 const initialState: CandidateConversionActionState = {};
 
 export function CandidateConvertForm({ candidateId }: { candidateId: string }) {
+  const { t } = useAdminI18n();
   const [state, action, isPending] = useActionState(convertCandidateAction, initialState);
 
   return (
@@ -18,7 +20,7 @@ export function CandidateConvertForm({ candidateId }: { candidateId: string }) {
         <input type="hidden" name="id" value={candidateId} />
         <button className="button-primary" type="submit" disabled={isPending}>
           {isPending ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <FileInput size={18} aria-hidden="true" />}
-          {isPending ? "Creando ficha…" : "Crear ficha y abrir"}
+          {isPending ? t("candidateConvert.creating") : t("candidateConvert.button")}
         </button>
       </form>
       {state.error ? (

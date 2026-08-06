@@ -10,6 +10,7 @@ import {
   updateAdminReviewAction,
   type AdminReviewActionState
 } from "@/app/admin/reviews/actions";
+import { useAdminI18n } from "@/lib/adminI18n";
 
 const initialState: AdminReviewActionState = {};
 
@@ -37,6 +38,7 @@ export function CreateAdminReviewForm({
   initialValue: ReviewFormValue;
   gameOptions: ReviewGameOption[];
 }) {
+  const { lang, t } = useAdminI18n();
   const [state, action, isPending] = useActionState(createAdminReviewAction, initialState);
   const intentRef = useRef<HTMLInputElement>(null);
 
@@ -47,14 +49,14 @@ export function CreateAdminReviewForm({
       <div className="sticky bottom-3 z-20 flex flex-wrap gap-3 rounded-md border border-ink/10 bg-white/95 p-3 shadow-soft backdrop-blur">
         <button className="button-secondary" onClick={() => { if(intentRef.current) intentRef.current.value="draft"; }} disabled={isPending} type="submit">
           {isPending && (!intentRef.current || intentRef.current.value === "draft") ? <Loader2 size={18} className="animate-spin" /> : null}
-          {isPending && (!intentRef.current || intentRef.current.value === "draft") ? "Guardando..." : "Guardar borrador"}
+          {isPending && (!intentRef.current || intentRef.current.value === "draft") ? t("gameForm.saving") : t("gameForm.saveDraft")}
         </button>
         <button className="button-primary" onClick={() => { if(intentRef.current) intentRef.current.value="publish"; }} disabled={isPending} type="submit">
           {isPending && intentRef.current?.value === "publish" ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
-          {isPending && intentRef.current?.value === "publish" ? "Publicando..." : "Publicar en la web e Instagram"}
+          {isPending && intentRef.current?.value === "publish" ? t("gameForm.publishing") : (lang === "en" ? "Publish on web & Instagram" : "Publicar en la web e Instagram")}
         </button>
         <Link className="button-secondary" href="/admin/reviews">
-          Volver
+          {lang === "en" ? "Back" : "Volver"}
         </Link>
       </div>
       <ActionFeedback state={state} />
@@ -69,6 +71,7 @@ export function EditAdminReviewForm({
   initialValue: ReviewFormValue;
   gameOptions: ReviewGameOption[];
 }) {
+  const { lang, t } = useAdminI18n();
   const [state, action, isPending] = useActionState(updateAdminReviewAction, initialState);
   const intentRef = useRef<HTMLInputElement>(null);
 
@@ -82,27 +85,27 @@ export function EditAdminReviewForm({
           <>
             <button className="button-primary" onClick={() => { if(intentRef.current) intentRef.current.value="publish"; }} disabled={isPending} type="submit">
               {isPending && intentRef.current?.value === "publish" ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
-              {isPending && intentRef.current?.value === "publish" ? "Guardando..." : "Guardar cambios"}
+              {isPending && intentRef.current?.value === "publish" ? t("gameForm.saving") : t("common.save")}
             </button>
             <button className="button-secondary" onClick={() => { if(intentRef.current) intentRef.current.value="draft"; }} disabled={isPending} type="submit">
               {isPending && intentRef.current?.value === "draft" ? <Loader2 size={18} className="animate-spin" /> : null}
-              {isPending && intentRef.current?.value === "draft" ? "Moviendo..." : "Mover a borradores"}
+              {isPending && intentRef.current?.value === "draft" ? (lang === "en" ? "Moving..." : "Moviendo...") : (lang === "en" ? "Move to drafts" : "Mover a borradores")}
             </button>
           </>
         ) : (
           <>
             <button className="button-secondary" onClick={() => { if(intentRef.current) intentRef.current.value="draft"; }} disabled={isPending} type="submit">
               {isPending && intentRef.current?.value === "draft" ? <Loader2 size={18} className="animate-spin" /> : null}
-              {isPending && intentRef.current?.value === "draft" ? "Guardando..." : "Guardar borrador"}
+              {isPending && intentRef.current?.value === "draft" ? t("gameForm.saving") : t("gameForm.saveDraft")}
             </button>
             <button className="button-primary" onClick={() => { if(intentRef.current) intentRef.current.value="publish"; }} disabled={isPending} type="submit">
               {isPending && intentRef.current?.value === "publish" ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <Save size={18} aria-hidden="true" />}
-              {isPending && intentRef.current?.value === "publish" ? "Publicando..." : "Publicar en la web e Instagram"}
+              {isPending && intentRef.current?.value === "publish" ? t("gameForm.publishing") : (lang === "en" ? "Publish on web & Instagram" : "Publicar en la web e Instagram")}
             </button>
           </>
         )}
         <Link className="button-secondary" href="/admin/reviews">
-          Volver
+          {lang === "en" ? "Back" : "Volver"}
         </Link>
       </div>
       <ActionFeedback state={state} />
@@ -117,25 +120,30 @@ function AdminReviewFields({
   initialValue: ReviewFormValue;
   gameOptions: ReviewGameOption[];
 }) {
+  const { lang, t } = useAdminI18n();
   const [body, setBody] = useState(initialValue.body);
   const [title, setTitle] = useState(initialValue.title);
   const [summary, setSummary] = useState(initialValue.summary);
   const [instagramHashtags, setInstagramHashtags] = useState(initialValue.instagramHashtags || "");
+
+  const wordCount = body.trim() ? body.trim().split(/\s+/).length : 0;
 
   return (
     <>
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-ink">Datos básicos</h2>
-            <p className="mt-1 text-sm font-semibold leading-6 text-ink/55">Juego, autor y titular público de la reseña.</p>
+            <h2 className="text-xl font-bold text-ink">{lang === "en" ? "Basic Data" : "Datos básicos"}</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-ink/55">
+              {lang === "en" ? "Game, author and public review headline." : "Juego, autor y titular público de la reseña."}
+            </p>
           </div>
           {initialValue.id ? <PublicationStatus published={Boolean(initialValue.instagramPostId)} /> : null}
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <Field label="Juego">
+          <Field label={lang === "en" ? "Game" : "Juego"}>
             <select className="field-input" name="gameId" defaultValue={initialValue.gameId} required>
-              <option value="">Selecciona un juego</option>
+              <option value="">{lang === "en" ? "Select a game" : "Selecciona un juego"}</option>
               {gameOptions.map((game) => (
                 <option key={game.id} value={game.id}>
                   {game.title}
@@ -143,10 +151,10 @@ function AdminReviewFields({
               ))}
             </select>
           </Field>
-          <Field label="Autor visible">
+          <Field label={lang === "en" ? "Visible Author" : "Autor visible"}>
             <input className="field-input" name="authorName" defaultValue={initialValue.authorName} required />
           </Field>
-          <Field label="Título" meta={<CharacterCount value={title} max={REVIEW_TITLE_MAX_LENGTH} />}>
+          <Field label={t("gameForm.titleLabel")} meta={<CharacterCount value={title} max={REVIEW_TITLE_MAX_LENGTH} />}>
             <input
               className="field-input"
               name="title"
@@ -162,15 +170,17 @@ function AdminReviewFields({
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-ink">Contenido</h2>
-            <p className="mt-1 text-sm font-semibold leading-6 text-ink/55">Resumen editorial y cuerpo completo.</p>
+            <h2 className="text-xl font-bold text-ink">{lang === "en" ? "Content" : "Contenido"}</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-ink/55">
+              {lang === "en" ? "Editorial summary and full body." : "Resumen editorial y cuerpo completo."}
+            </p>
           </div>
           <span className="rounded-md border border-ink/10 bg-parchment px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-ink/55">
-            {body.trim() ? `${body.trim().split(/\s+/).length.toLocaleString("es-ES")} palabras` : "0 palabras"}
+            {lang === "en" ? `${wordCount.toLocaleString("en-US")} words` : `${wordCount.toLocaleString("es-ES")} palabras`}
           </span>
         </div>
         <div className="mt-5 space-y-4">
-          <Field label="Resumen" meta={<CharacterCount value={summary} max={REVIEW_SUMMARY_MAX_LENGTH} />}>
+          <Field label={lang === "en" ? "Summary" : "Resumen"} meta={<CharacterCount value={summary} max={REVIEW_SUMMARY_MAX_LENGTH} />}>
             <textarea
               className="field-input min-h-28 py-3"
               name="summary"
@@ -181,7 +191,7 @@ function AdminReviewFields({
             />
           </Field>
           <div>
-            <p className="text-sm font-bold text-ink/60">Reseña</p>
+            <p className="text-sm font-bold text-ink/60">{lang === "en" ? "Review" : "Reseña"}</p>
             <div className="mt-1">
               <ReviewBodyEditor value={body} onChange={setBody} required />
             </div>
@@ -197,7 +207,9 @@ function AdminReviewFields({
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-ink">Instagram</h2>
             <p className="mt-1 text-sm font-semibold leading-6 text-ink/60">
-              Hashtags separados por espacios o comas. Se combinarán con hashtags base de MeepleTavern y el juego.
+              {lang === "en"
+                ? "Hashtags separated by spaces or commas. They will be combined with base MeepleTavern hashtags."
+                : "Hashtags separados por espacios o comas. Se combinarán con hashtags base de MeepleTavern y el juego."}
             </p>
           </div>
         </div>
@@ -209,7 +221,7 @@ function AdminReviewFields({
               value={instagramHashtags}
               onChange={(event) => setInstagramHashtags(event.target.value)}
               maxLength={420}
-              placeholder="#eurogames #juegosdemesa #resena"
+              placeholder="#eurogames #boardgames #review"
             />
           </Field>
         </div>

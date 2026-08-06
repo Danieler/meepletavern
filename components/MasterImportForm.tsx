@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { DatabaseZap, Loader2 } from "lucide-react";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
+import { useAdminI18n } from "@/lib/adminI18n";
 import {
   initialMasterImportBatchState,
   type MasterImportBatchState,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/import/masterImportBatchShared";
 
 export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: boolean; initialValue?: string }) {
+  const { lang, t } = useAdminI18n();
   const [state, setState] = useState<MasterImportBatchState>(initialMasterImportBatchState);
   const [rawInput, setRawInput] = useState(initialValue);
   const [progress, setProgress] = useState<ImportProgressState | null>(null);
@@ -21,12 +23,12 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
     return (
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">Importador maestro</p>
-          <h2 className="text-xl font-bold text-ink">Importar por nombre o lote</h2>
-          <p className="text-sm leading-6 text-ink/60">Necesitas dar de alta al menos una fuente antes de lanzar búsquedas automáticas.</p>
+          <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">{t("masterImport.tag")}</p>
+          <h2 className="text-xl font-bold text-ink">{t("masterImport.title")}</h2>
+          <p className="text-sm leading-6 text-ink/60">{t("masterImport.needSource")}</p>
         </div>
         <Link className="button-secondary mt-4 w-fit" href="/admin/sources">
-          Configurar fuentes
+          {t("masterImport.configSources")}
         </Link>
       </section>
     );
@@ -42,7 +44,9 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
     const titles = rawInput.trim();
     if (!titles) {
       setState({
-        error: "Escribe al menos un juego. Puedes pegar una lista con una línea por juego o un array JSON.",
+        error: lang === "en"
+          ? "Write at least one game. You can paste a list with one line per game or a JSON array."
+          : "Escribe al menos un juego. Puedes pegar una lista con una línea por juego o un array JSON.",
         message: null,
         results: [],
         totals: null
@@ -143,7 +147,7 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
     } catch (error) {
       if (!controller.signal.aborted) {
         setState({
-          error: error instanceof Error ? error.message : "No se pudo importar el lote.",
+          error: error instanceof Error ? error.message : (lang === "en" ? "Could not import batch." : "No se pudo importar el lote."),
           message: null,
           results: [],
           totals: null
@@ -160,25 +164,24 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
   return (
     <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft" aria-busy={isImporting}>
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">Importador maestro</p>
-        <h2 className="text-xl font-bold text-ink">Importar por nombre o por lote</h2>
+        <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">{t("masterImport.tag")}</p>
+        <h2 className="text-xl font-bold text-ink">{t("masterImport.title")}</h2>
         <p className="text-sm leading-6 text-ink/60">
-          Pega un nombre, una lista con una línea por juego o un array JSON. El sistema buscará coincidencias en todas las
-          fuentes compatibles y creará o actualizará candidatos automáticamente.
+          {t("masterImport.description")}
         </p>
       </div>
 
       <div className="mt-5 rounded-md border border-ink/10 bg-parchment/50 p-4">
-        <p className="text-sm font-bold text-ink">Formato admitido</p>
+        <p className="text-sm font-bold text-ink">{t("masterImport.supportedFormat")}</p>
         <ul className="mt-2 space-y-1 text-sm leading-6 text-ink/70">
-          <li>• Un único nombre: <code>Ark Nova</code></li>
-          <li>• Una línea por juego: <code>Ark Nova</code> + salto de línea + <code>Cascadia</code></li>
-          <li>• Array JSON: <code>[&quot;Ark Nova&quot;, &quot;Cascadia&quot;]</code></li>
+          <li>• {t("masterImport.singleName")}: <code>Ark Nova</code></li>
+          <li>• {t("masterImport.onePerLine")}: <code>Ark Nova</code> + {lang === "en" ? "line break" : "salto de línea"} + <code>Cascadia</code></li>
+          <li>• {t("masterImport.jsonArray")}: <code>[&quot;Ark Nova&quot;, &quot;Cascadia&quot;]</code></li>
         </ul>
       </div>
 
       <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
-        <Field label="Juego o lista de juegos">
+        <Field label={t("masterImport.inputLabel")}>
           <textarea
             className="field-input min-h-44"
             name="titles"
@@ -193,7 +196,7 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
         <div className="space-y-4">
           <button className="button-primary" type="submit" disabled={isImporting}>
             {isImporting ? <Loader2 className="animate-spin" size={18} aria-hidden="true" /> : <DatabaseZap size={18} aria-hidden="true" />}
-            {isImporting ? "Importando lote..." : "Lanzar importador maestro"}
+            {isImporting ? t("masterImport.launching") : t("masterImport.launchButton")}
           </button>
 
           {progress ? <ImportProgressPanel progress={progress} /> : null}
@@ -210,9 +213,9 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
 
       {state.totals ? (
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <StatCard label="Solicitados" value={String(state.totals.requested)} />
-          <StatCard label="Importados" value={String(state.totals.imported)} />
-          <StatCard label="Fallidos" value={String(state.totals.failed)} />
+          <StatCard label={t("masterImport.requested")} value={String(state.totals.requested)} />
+          <StatCard label={t("masterImport.imported")} value={String(state.totals.imported)} />
+          <StatCard label={t("masterImport.failed")} value={String(state.totals.failed)} />
         </div>
       ) : null}
 
@@ -223,17 +226,19 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-ink">{result.importedTitle || result.inputTitle}</p>
-                  <p className="text-sm text-ink/60">Entrada: {result.inputTitle}</p>
+                  <p className="text-sm text-ink/60">{lang === "en" ? "Input:" : "Entrada:"} {result.inputTitle}</p>
                 </div>
-                <span className={buildStatusClassName(result.status)}>{formatStatus(result.status)}</span>
+                <span className={buildStatusClassName(result.status)}>{formatStatus(result.status, lang)}</span>
               </div>
 
               {result.matchedSources.length ? (
-                <p className="mt-3 text-sm text-ink/70">Fuentes: {result.matchedSources.join(", ")}</p>
+                <p className="mt-3 text-sm text-ink/70">{lang === "en" ? "Sources:" : "Fuentes:"} {result.matchedSources.join(", ")}</p>
               ) : null}
 
               <p className="mt-2 text-sm text-ink/70">
-                Ofertas creadas: {result.offersCreated} · Ofertas actualizadas: {result.offersUpdated}
+                {lang === "en"
+                  ? `Offers created: ${result.offersCreated} · Offers updated: ${result.offersUpdated}`
+                  : `Ofertas creadas: ${result.offersCreated} · Ofertas actualizadas: ${result.offersUpdated}`}
               </p>
 
               {result.sourcesWithOffers.length ? (
@@ -287,7 +292,7 @@ export function MasterImportForm({ disabled, initialValue = "" }: { disabled?: b
               {result.candidateId ? (
                 <div className="mt-3">
                   <Link className="button-secondary min-h-9 px-3 py-1.5 text-sm" href={`/admin/candidates/${result.candidateId}`}>
-                    Abrir candidato
+                    {t("masterImport.openCandidate")}
                   </Link>
                 </div>
               ) : null}

@@ -10,25 +10,27 @@ import {
   updateSourceAction,
   type SourceActionState
 } from "@/app/admin/sources/actions";
+import { useAdminI18n } from "@/lib/adminI18n";
 
 const initialState: SourceActionState = {};
 
 export function CreateSourceForm() {
+  const { t } = useAdminI18n();
   const [state, action, isPending] = useActionState(createSourceAction, initialState);
 
   return (
     <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-      <h2 className="text-xl font-bold text-ink">Nueva fuente</h2>
+      <h2 className="text-xl font-bold text-ink">{t("sourceForm.newSource")}</h2>
       <form action={action} className="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
-        <Field label="Nombre">
+        <Field label={t("sourceForm.name")}>
           <input className="field-input" name="name" required placeholder="Amazon España" />
         </Field>
-        <Field label="URL / host">
+        <Field label={t("sourceForm.urlHost")}>
           <input className="field-input" name="baseUrl" required placeholder="https://www.amazon.es" />
         </Field>
         <button className="button-primary md:min-h-11" type="submit" disabled={isPending}>
           <Save size={18} aria-hidden="true" />
-          Crear
+          {t("sourceForm.createButton")}
         </button>
       </form>
       <ActionFeedback state={state} />
@@ -37,10 +39,11 @@ export function CreateSourceForm() {
 }
 
 export function SourceList({ sources }: { sources: Source[] }) {
+  const { t } = useAdminI18n();
   if (!sources.length) {
     return (
       <p className="rounded-md border border-ink/10 bg-white px-4 py-10 text-center text-ink/60 shadow-soft">
-        Todavía no hay fuentes.
+        {t("sourceForm.noSources")}
       </p>
     );
   }
@@ -55,6 +58,7 @@ export function SourceList({ sources }: { sources: Source[] }) {
 }
 
 function EditableSourceRow({ source }: { source: Source }) {
+  const { t } = useAdminI18n();
   const [state, action, isPending] = useActionState(updateSourceAction, initialState);
   const formId = `source-${source.id}`;
 
@@ -63,25 +67,25 @@ function EditableSourceRow({ source }: { source: Source }) {
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
         <form id={formId} action={action} className="contents">
           <input type="hidden" name="id" value={source.id} />
-          <Field label="Nombre">
+          <Field label={t("sourceForm.name")}>
             <input className="field-input" name="name" required defaultValue={source.name} />
           </Field>
-          <Field label="URL / host">
+          <Field label={t("sourceForm.urlHost")}>
             <input className="field-input" name="baseUrl" required defaultValue={source.baseUrl} />
           </Field>
         </form>
         <div className="flex flex-wrap gap-2 lg:justify-end">
           <Link className="button-secondary min-h-10 px-3 py-2" href={`/admin/import?sourceId=${source.id}`}>
-            Importar juegos
+            {t("sourceForm.importGames")}
           </Link>
           <button className="button-secondary min-h-10 px-3 py-2" type="submit" form={formId} disabled={isPending}>
             <Save size={16} aria-hidden="true" />
-            Guardar
+            {t("common.save")}
           </button>
           <form
             action={deleteSourceAction}
             onSubmit={(event) => {
-              if (!window.confirm("¿Eliminar esta fuente?")) {
+              if (!window.confirm(t("sourceForm.confirmDelete"))) {
                 event.preventDefault();
               }
             }}
@@ -89,7 +93,7 @@ function EditableSourceRow({ source }: { source: Source }) {
             <input type="hidden" name="id" value={source.id} />
             <button className="button-danger min-h-10 px-3 py-2" type="submit">
               <Trash2 size={16} aria-hidden="true" />
-              Eliminar
+              {t("common.delete")}
             </button>
           </form>
         </div>

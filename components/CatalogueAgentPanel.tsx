@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
+import { useAdminI18n } from "@/lib/adminI18n";
 import {
   catalogueAgentApiResultSchema,
   type CatalogueAgentApiResult
@@ -19,6 +20,7 @@ export function CatalogueAgentPanel({
   mechanics: string[];
   disabled?: boolean;
 }) {
+  const { lang, t } = useAdminI18n();
   const router = useRouter();
   const activeRequest = useRef(false);
   const [category, setCategory] = useState("");
@@ -49,12 +51,12 @@ export function CatalogueAgentPanel({
       const body = await response.json();
 
       if (!response.ok) {
-        const message = typeof body?.error === "string" ? body.error : "No se pudo ejecutar el agente.";
+        const message = typeof body?.error === "string" ? body.error : (lang === "en" ? "Could not run agent." : "No se pudo ejecutar el agente.");
         const diagnostics = body?.diagnostics;
         const diagnosticDetail = diagnostics && typeof diagnostics.runId === "string"
-          ? ` Referencia ${diagnostics.runId}: ${Number(diagnostics.modelCalls) || 0} llamadas Nova y ${Number(diagnostics.tavilySearches) || 0} búsquedas Tavily.`
+          ? (lang === "en" ? ` Run ref ${diagnostics.runId}: ${Number(diagnostics.modelCalls) || 0} Nova calls and ${Number(diagnostics.tavilySearches) || 0} Tavily searches.` : ` Referencia ${diagnostics.runId}: ${Number(diagnostics.modelCalls) || 0} llamadas Nova y ${Number(diagnostics.tavilySearches) || 0} búsquedas Tavily.`)
           : "";
-        const technicalDetail = typeof body?.detail === "string" ? ` Detalle: ${body.detail}` : "";
+        const technicalDetail = typeof body?.detail === "string" ? ` ${lang === "en" ? "Detail:" : "Detalle:"} ${body.detail}` : "";
         throw new Error(`${message}${technicalDetail}${diagnosticDetail}`);
       }
 
@@ -64,7 +66,7 @@ export function CatalogueAgentPanel({
         router.refresh();
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "No se pudo ejecutar el agente.");
+      setError(caught instanceof Error ? caught.message : (lang === "en" ? "Could not run agent." : "No se pudo ejecutar el agente."));
     } finally {
       activeRequest.current = false;
       setLoading(false);
@@ -78,57 +80,57 @@ export function CatalogueAgentPanel({
           <Sparkles size={20} aria-hidden="true" />
         </span>
         <div>
-          <h2 id="catalogue-agent-title" className="font-display text-xl font-bold text-ink">Buscar e importar juego con agente</h2>
+          <h2 id="catalogue-agent-title" className="font-display text-xl font-bold text-ink">{t("catalogueAgent.title")}</h2>
           <p className="mt-1 text-sm text-ink/60">
-            Elige una opción, comprueba Games y Candidates y lanza el importador maestro para crear un Candidate revisable. Nunca publica un Game.
+            {t("catalogueAgent.description")}
           </p>
         </div>
       </div>
 
       <form className="mt-5 grid gap-3 md:grid-cols-3 md:items-end" onSubmit={submit}>
         <label className="text-sm font-bold text-ink">
-          Acción
+          {t("catalogueAgent.action")}
           <select
             className="mt-1 w-full rounded-md border border-ink/20 bg-ink/5 px-3 py-2 font-normal text-ink"
             value="add_new_game"
             disabled
           >
-            <option value="add_new_game">Añadir juego nuevo</option>
+            <option value="add_new_game">{t("catalogueAgent.addNewGame")}</option>
           </select>
         </label>
 
         <label className="text-sm font-bold text-ink">
-          Categoría
+          {t("catalogueAgent.category")}
           <select
             className="mt-1 w-full rounded-md border border-ink/20 bg-white px-3 py-2 font-normal outline-none focus:border-ember"
             value={category}
             onChange={(event) => setCategory(event.target.value)}
             disabled={loading || disabled}
           >
-            <option value="">Cualquiera</option>
+            <option value="">{t("catalogueAgent.any")}</option>
             {categories.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
         </label>
 
         <label className="text-sm font-bold text-ink">
-          Mecánica
+          {t("catalogueAgent.mechanic")}
           <select
             className="mt-1 w-full rounded-md border border-ink/20 bg-white px-3 py-2 font-normal outline-none focus:border-ember"
             value={mechanic}
             onChange={(event) => setMechanic(event.target.value)}
             disabled={loading || disabled}
           >
-            <option value="">Cualquiera</option>
+            <option value="">{t("catalogueAgent.any")}</option>
             {mechanics.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
         </label>
 
         <p className="text-xs text-ink/55 md:col-span-2">
-          Selecciona al menos un filtro. Si el juego no está duplicado, la importación del borrador se inicia automáticamente.
+          {t("catalogueAgent.filterHelp")}
         </p>
         <button className="button-primary md:justify-self-end" type="submit" disabled={disabled || loading || (!category && !mechanic)}>
           <Search size={18} aria-hidden="true" />
-          {loading ? "Buscando e importando…" : "Buscar e importar borrador"}
+          {loading ? t("catalogueAgent.searching") : t("catalogueAgent.searchButton")}
         </button>
       </form>
 
@@ -139,19 +141,21 @@ export function CatalogueAgentPanel({
 }
 
 function CatalogueAgentResultView({ result }: { result: CatalogueAgentApiResult }) {
+  const { lang, t } = useAdminI18n();
+
   return (
     <div className="mt-4 rounded-md border border-ink/10 bg-[#faf8f3] p-4 text-sm" aria-live="polite">
-      <p className="font-bold text-ink">Estado: {statusLabel(result.status)}</p>
+      <p className="font-bold text-ink">{t("catalogueAgent.status")}: {statusLabel(result.status, lang)}</p>
       {"selectedCandidate" in result && result.selectedCandidate ? (
         <p className="mt-2 text-ink/75">
-          <span className="font-semibold">{result.candidateId ? "Juego importado:" : "Juego elegido:"}</span>{" "}
+          <span className="font-semibold">{result.candidateId ? t("catalogueAgent.importedGame") : t("catalogueAgent.chosenGame")}</span>{" "}
           {result.selectedCandidate.title}
         </p>
       ) : null}
       <p className="mt-2 text-ink/75">{result.reason}</p>
       {result.sources.length ? (
         <div className="mt-3">
-          <p className="font-semibold text-ink">Fuentes</p>
+          <p className="font-semibold text-ink">{t("catalogueAgent.sources")}</p>
           <ul className="mt-1 list-disc space-y-1 pl-5">
             {result.sources.map((source) => (
               <li key={source}>
@@ -163,19 +167,30 @@ function CatalogueAgentResultView({ result }: { result: CatalogueAgentApiResult 
       ) : null}
       {result.candidateId ? (
         <Link className="button-secondary mt-4" href={`/admin/candidates/${result.candidateId}`}>
-          Abrir Candidate creado
+          {t("catalogueAgent.openCandidate")}
         </Link>
       ) : null}
       {"diagnostics" in result && result.diagnostics ? (
         <p className="mt-3 text-xs text-ink/55">
-          Coste de esta ejecución: {result.diagnostics.modelCalls} llamadas Nova y {result.diagnostics.tavilySearches} búsquedas Tavily.
+          {lang === "en"
+            ? `Execution cost: ${result.diagnostics.modelCalls} Nova calls and ${result.diagnostics.tavilySearches} Tavily searches.`
+            : `Coste de esta ejecución: ${result.diagnostics.modelCalls} llamadas Nova y ${result.diagnostics.tavilySearches} búsquedas Tavily.`}
         </p>
       ) : null}
     </div>
   );
 }
 
-function statusLabel(status: CatalogueAgentApiResult["status"]) {
+function statusLabel(status: CatalogueAgentApiResult["status"], lang: string) {
+  if (lang === "en") {
+    switch (status) {
+      case "candidate_selected": return "Import completed";
+      case "possible_duplicate": return "Possible duplicate";
+      case "insufficient_evidence": return "Insufficient evidence";
+      case "limit_reached": return "Limit reached";
+      case "external_calls_disabled": return "External calls disabled";
+    }
+  }
   switch (status) {
     case "candidate_selected": return "Importación completada";
     case "possible_duplicate": return "Posible duplicado";
