@@ -1,5 +1,5 @@
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
-import type { ExternalRating, GameRatingsData } from "@/lib/ratings/types";
+import type { ExternalRating } from "@/lib/ratings/types";
 
 export type PublicRatingPresentation = {
   cardScore: number | null;

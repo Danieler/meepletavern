@@ -477,7 +477,7 @@ function NumberInput({ value, onChange }: { value: number | null; onChange: (val
   );
 }
 
-function statusLabel(status: AdminGameStatus, t?: (key: any) => string) {
+function statusLabel(status: AdminGameStatus, t?: ReturnType<typeof useAdminI18n>["t"]) {
   if (t) {
     return {
       draft: t("status.draft"),

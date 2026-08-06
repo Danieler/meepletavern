@@ -93,16 +93,6 @@ export function AdminGamesTable({
   const hasPublishedSelected = selectedGames.some((game) => game.status === GameStatus.published);
   const hasFilter = Boolean(normalizedSearch) || statusFilter !== "all";
 
-  function toggleCurrentPageSelection(checked: boolean) {
-    setSelectedIds((current) => {
-      if (checked) {
-        return [...new Set([...current, ...pageIds])];
-      }
-
-      return current.filter((id) => !pageIds.includes(id));
-    });
-  }
-
   function clearSearch() {
     setSearch("");
   }
@@ -428,7 +418,7 @@ function toTimestamp(value: Date | string) {
   return value instanceof Date ? value.getTime() : new Date(value).getTime();
 }
 
-function statusLabel(status: GameStatus, t?: (key: any) => string) {
+function statusLabel(status: GameStatus, t?: ReturnType<typeof useAdminI18n>["t"]) {
   if (t) {
     return {
       draft: t("status.draft"),

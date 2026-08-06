@@ -134,7 +134,9 @@ const getCachedPublishedReviewBySlug = (slug: string) => unstable_cache(
   { revalidate: 3600, tags: [PUBLIC_REVIEWS_TAG] }
 )();
 
-const { body: _body, summary: _summary, ...adminReviewListSelect } = adminReviewSelect;
+const { body: omittedBody, summary: omittedSummary, ...adminReviewListSelect } = adminReviewSelect;
+void omittedBody;
+void omittedSummary;
 
 export async function getAdminReviews() {
   return prisma.review.findMany({

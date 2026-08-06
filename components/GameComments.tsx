@@ -31,7 +31,12 @@ export function GameComments({
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const next = `/juegos/${gameSlug}#comentarios`;
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     setComments(initialComments);
@@ -119,7 +124,9 @@ export function GameComments({
             <h3 className="text-lg font-extrabold">Tu comentario</h3>
           </div>
 
-          {!isConfigured ? (
+          {!hydrated ? (
+            <p className="mt-4 text-sm font-semibold text-walnut/65">Comprobando tu sesión...</p>
+          ) : !isConfigured ? (
             <p className="mt-4 text-sm font-semibold text-ruby">
               La zona de cuenta no está configurada todavía, así que las conversaciones de la taberna aún no están disponibles.
             </p>

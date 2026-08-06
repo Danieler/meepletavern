@@ -24,7 +24,9 @@ export function canShowMedia(asset: MediaSafetyAsset | null | undefined, source:
   );
 }
 
-export function placeholderUrl(_kind: PlaceholderKind = "general") {
+export function placeholderUrl(kind: PlaceholderKind = "general") {
+  // Keep the category in the public API so themed placeholders can return later.
+  void kind;
   return "/brand/meepletavern-mark.webp";
 }
 

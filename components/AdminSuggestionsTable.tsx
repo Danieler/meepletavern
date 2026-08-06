@@ -182,7 +182,11 @@ function statusBadgeClass(status: GameSuggestionStatus) {
   }
 }
 
-function statusLabel(status: GameSuggestionStatus, lang: string, t: any) {
+function statusLabel(
+  status: GameSuggestionStatus,
+  lang: string,
+  t: ReturnType<typeof useAdminI18n>["t"]
+) {
   switch (status) {
     case GameSuggestionStatus.IMPORTED:
       return lang === "en" ? "Done" : "Realizada";

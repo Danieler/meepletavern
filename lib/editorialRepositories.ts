@@ -1353,10 +1353,6 @@ function numberOrNull(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function stringOrNull(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
 function formatPlaytime(minInput: unknown, maxInput: unknown) {
   const min = numberOrNull(minInput);
   const max = numberOrNull(maxInput);
@@ -1370,18 +1366,4 @@ function formatPlaytime(minInput: unknown, maxInput: unknown) {
   }
 
   return null;
-}
-
-function mergeFlags(flags: EditorialFlag[]) {
-  return [...new Set(flags)];
-}
-
-function findCandidateDuplicate(sourceId: string, sourceUrl: string) {
-  return prisma.gameCandidate.findFirst({
-    where: {
-      sourceId,
-      sourceUrl
-    },
-    select: { id: true }
-  });
 }

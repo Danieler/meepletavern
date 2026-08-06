@@ -2777,23 +2777,6 @@ function mergeMetadata(metadataEntries: Record<string, unknown>[], extra?: Recor
   });
 }
 
-function mergeCandidateImages(existing: unknown, next: CandidateImage[]) {
-  const current = normalizeCandidateImages(existing);
-  const merged = [...current];
-  const seen = new Set(current.map((image) => image.url));
-
-  for (const image of next) {
-    if (seen.has(image.url)) {
-      continue;
-    }
-
-    seen.add(image.url);
-    merged.push(image);
-  }
-
-  return merged;
-}
-
 function pushImportedResult(results: ImportedSourceCandidate[], seen: Set<string>, result: ImportedSourceCandidate) {
   const normalizedResult = normalizeImportedResultCommerce(result);
   const key = importedResultKey(normalizedResult);
