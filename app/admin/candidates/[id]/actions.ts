@@ -1,8 +1,13 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { convertCandidateToGame, gameCandidateRepository, mediaAssetRepository } from "@/lib/editorialRepositories";
+
+export type CandidateConversionActionState = {
+  error?: string;
+};
 
 export async function rejectCandidateAction(formData: FormData) {
   const id = readId(formData);
@@ -35,13 +40,41 @@ export async function deleteCandidatesBulkAction(formData: FormData) {
   redirect(returnTo);
 }
 
-export async function convertCandidateAction(formData: FormData) {
-  const id = readId(formData);
-  const game = await convertCandidateToGame(id, "review");
+export async function convertCandidateAction(
+  _state: CandidateConversionActionState,
+  formData: FormData
+): Promise<CandidateConversionActionState> {
+  let id: string;
+  let gameId: string;
+
+  try {
+    id = readId(formData);
+    const game = await convertCandidateToGame(id, "review");
+    gameId = game.id;
+  } catch (error) {
+    return {
+      error: candidateConversionErrorMessage(error)
+    };
+  }
 
   revalidatePath("/admin/candidates");
   revalidatePath("/admin/games");
-  redirect(`/admin/games/${game.id}`);
+  redirect(`/admin/games/${gameId}`);
+}
+
+function candidateConversionErrorMessage(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    return "Ya existe una ficha con el mismo título o identificador URL.";
+  }
+
+  if (error instanceof Error && [
+    "No existe ese candidato.",
+    "El candidato ya está convertido."
+  ].includes(error.message)) {
+    return error.message;
+  }
+
+  return "No se pudo crear la ficha desde el candidato. Inténtalo de nuevo o revisa los datos importados.";
 }
 
 export async function createMediaFromCandidateImageAction(formData: FormData) {

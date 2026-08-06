@@ -30,6 +30,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1065.0",
+    "@langchain/aws": "^1.4.2",
+    "@langchain/core": "^1.2.5",
     "@prisma/client": "^6.8.2",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",

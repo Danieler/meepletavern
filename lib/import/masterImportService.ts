@@ -9,6 +9,7 @@ import {
   GameImageStatus,
   GameCandidateStatus,
   GameStatus,
+  EditorialFlag,
   MediaAssetStatus,
   MediaAssetType,
   MediaAssetUsage,
@@ -72,6 +73,11 @@ import {
   isSuspiciousEditionVariant,
   titleSimilarity
 } from "@/lib/import/titleMatching";
+import type {
+  CatalogueAgentRequest,
+  CatalogueAgentResult,
+  CatalogueSelectedCandidate
+} from "@/lib/catalogueAgent/schemas";
 
 type SourceInfo = Pick<Source, "id" | "name" | "baseUrl">;
 
@@ -115,6 +121,20 @@ type GameRecord = Pick<Game, "id" | "slug" | "title" | "name">;
 
 export type MasterImportMode = "search" | "url" | "mixed";
 export type MasterImportStatus = "ready_to_publish" | "needs_review" | "draft" | "update_existing" | "duplicate";
+
+export class MasterImportNoMatchError extends Error {
+  constructor() {
+    super("No se encontró ninguna coincidencia útil en las fuentes disponibles.");
+    this.name = "MasterImportNoMatchError";
+  }
+}
+
+export class MasterImportSourceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MasterImportSourceError";
+  }
+}
 
 export type MasterImportInput = {
   title?: string;
@@ -210,6 +230,7 @@ type DuplicateMatch = {
 };
 
 type MasterImporterDeps = {
+  createContext(): ImportExecutionContext;
   listSources(): Promise<SourceInfo[]>;
   searchSource(source: SourceInfo, title: string, context?: ImportExecutionContext): Promise<SearchSourceOutcome>;
   importSourceUrl(source: SourceInfo, sourceUrl: string, context?: ImportExecutionContext): Promise<{ candidate: NormalizedImportedCandidate; publicImageUrls: string[] }>;
@@ -258,7 +279,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
 
   return async function importAndEnrichGame(input: MasterImportInput): Promise<MasterImportSummary> {
     const mode = resolveMode(input);
-    const context = createImportExecutionContext();
+    const context = deps.createContext();
     const diagnostics: SourceDiagnostic[] = [];
     const failedSources: Array<{ sourceName: string; reason: string }> = [];
     const warnings: string[] = [];
@@ -306,7 +327,10 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
           sourceUrl: input.sourceUrl
         });
         failedSources.push({ sourceName: detectedSource.name, reason });
-        throw new Error(reason);
+        if (mode === "url" || !seedTitle || input.allowCrossSourceSearch === false) {
+          throw new MasterImportSourceError(reason);
+        }
+        warnings.push(`[${detectedSource.name}] La URL seleccionada no se pudo importar; se continuó buscando el mismo título en las demás fuentes.`);
       }
     }
 
@@ -430,7 +454,7 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
     }
 
     if (!results.length) {
-      throw new Error("No se encontró ninguna coincidencia útil en las fuentes disponibles.");
+      throw new MasterImportNoMatchError();
     }
 
     const grouped = groupImportedCandidates(results, seedTitle || null);
@@ -568,6 +592,299 @@ export function createMasterImportService(overrides: Partial<MasterImporterDeps>
 }
 
 export const importAndEnrichGame = createMasterImportService();
+
+export function createCatalogueImportExecutionContext() {
+  const context = createImportExecutionContext();
+  context.tavilyMode = "off";
+  context.bedrockMode = "off";
+  context.videoSearchMode = "off";
+  return context;
+}
+
+export async function prepareMasterImportCandidateDraft(input: {
+  request: CatalogueAgentRequest;
+  candidate: CatalogueSelectedCandidate;
+  agentResult: CatalogueAgentResult;
+  runId: string;
+  signal: AbortSignal;
+}) {
+  let createdCandidateId: string | null = null;
+  let configuredSourcesPromise: Promise<SourceInfo[]> | null = null;
+  const loadConfiguredSources = () => {
+    configuredSourcesPromise ||= listMasterImportSources();
+    return configuredSourcesPromise;
+  };
+  const importCandidateOnly = createMasterImportService({
+    createContext: createCatalogueImportExecutionContext,
+    // The catalogue agent already owns the two-call Tavily budget and the model-call budget.
+    // Reuse deterministic source enrichment here without starting the importer's Nova/Tavily phase.
+    async resolveFinalData({ resolved }) {
+      if (!assessBaseGameTitleMatch(input.candidate.title, resolved.candidate.title).matched) {
+        throw new MasterImportSourceError("La ficha de tienda seleccionada no corresponde al título elegido por el agente.");
+      }
+      return resolved;
+    },
+    async listSources() {
+      return loadConfiguredSources();
+    },
+    async persistCandidate({ resolved, duplicateMatch, dryRun }) {
+      if (dryRun || duplicateMatch.candidateMatches.length || duplicateMatch.gameMatches.length) {
+        return null;
+      }
+
+      input.signal.throwIfAborted();
+      const metadata = mergeCatalogueAgentRequestTaxonomy({
+        ...resolved.candidate.metadata,
+        catalogueAgent: {
+          runId: input.runId,
+          promptVersion: "catalogue-agent-v5-backend-dedup-import",
+          requestStatus: input.agentResult.status,
+          reason: input.agentResult.reason,
+          sources: input.agentResult.sources,
+          selectedSourceUrl: input.candidate.sourceUrl || null,
+          providerId: input.candidate.providerId || null,
+          requestedCategory: input.request.category,
+          requestedMechanic: input.request.mechanic
+        }
+      }, input.request);
+      const candidateImages = normalizeCandidateImages(resolved.candidate.candidateImages);
+      const created = await prisma.gameCandidate.create({
+        data: {
+          sourceId: resolved.primarySource.id,
+          sourceUrl: resolved.candidate.sourceUrl,
+          title: resolved.candidate.title,
+          originalTitle: resolved.candidate.originalTitle,
+          metadata: metadata as Prisma.InputJsonValue,
+          extractedDescription: resolved.candidate.extractedDescription,
+          candidateImages: candidateImages as unknown as Prisma.InputJsonValue,
+          aiDraft: {
+            version: 1,
+            provider: "catalogue_agent",
+            proposedCandidate: {
+              title: resolved.candidate.title,
+              originalTitle: resolved.candidate.originalTitle,
+              sourceUrl: resolved.candidate.sourceUrl,
+              metadata,
+              extractedDescription: resolved.candidate.extractedDescription,
+              candidateImages,
+              confidence: resolved.candidate.confidence
+            },
+            selection: {
+              reason: input.agentResult.reason,
+              sources: input.agentResult.sources,
+              sourceUrl: input.candidate.sourceUrl || null,
+              providerId: input.candidate.providerId || null,
+              requestedCategory: input.request.category,
+              requestedMechanic: input.request.mechanic
+            }
+          } as Prisma.InputJsonValue,
+          aiGenerated: true,
+          aiReviewed: false,
+          confidence: resolved.candidate.confidence,
+          status: GameCandidateStatus.needs_review,
+          flags: resolved.candidate.flags
+        },
+        select: { id: true }
+      });
+      createdCandidateId = created.id;
+
+      return {
+        candidateId: created.id,
+        gameId: null,
+        action: "created",
+        status: "needs_review",
+        missingFields: resolved.missingFields,
+        warnings: resolved.warnings
+      };
+    },
+    async upsertOffer() {
+      // This path deliberately writes one review Candidate only. Offers remain part of human review/conversion.
+      return { action: "skipped", offer: null };
+    }
+  });
+
+  input.signal.throwIfAborted();
+  const configuredSources = await loadConfiguredSources();
+  const selectedSource = input.candidate.sourceUrl
+    ? detectSourceFromInput(configuredSources, input.candidate.sourceUrl)
+    : null;
+  let summary: MasterImportSummary;
+
+  try {
+    summary = await importCandidateOnly({
+      title: input.candidate.title,
+      ...(selectedSource && input.candidate.sourceUrl
+        ? {
+            sourceUrl: input.candidate.sourceUrl,
+            sourceName: selectedSource.name,
+            mode: "url" as const
+          }
+        : { mode: "search" as const }),
+      allowCrossSourceSearch: selectedSource ? false : true
+    });
+  } catch (error) {
+    if (!(error instanceof MasterImportNoMatchError) && !(error instanceof MasterImportSourceError)) {
+      throw error;
+    }
+
+    const fallback = await createCatalogueAgentEvidenceFallback(input, configuredSources);
+    if (fallback) {
+      return fallback;
+    }
+
+    return {
+      candidateId: null,
+      title: input.candidate.title,
+      duplicate: null,
+      warnings: [
+        "El juego elegido no pudo vincularse con ninguna de las fuentes compatibles del importador."
+      ]
+    };
+  }
+
+  if (createdCandidateId && summary.gameId) {
+    throw new Error("La preparación del agente intentó enlazar o crear un Game; operación cancelada.");
+  }
+
+  const duplicate = summary.possibleDuplicates[0];
+  return {
+    candidateId: createdCandidateId,
+    title: summary.title,
+    duplicate: duplicate
+      ? {
+          title: duplicate.title,
+          kind: duplicate.type,
+          reason: "El pipeline de importación detectó una coincidencia antes de persistir."
+        }
+      : null,
+    warnings: summary.warnings
+  };
+}
+
+export function mergeCatalogueAgentRequestTaxonomy(
+  metadata: unknown,
+  request: CatalogueAgentRequest
+) {
+  const normalized = normalizeCandidateMetadata(metadata);
+  const categories = normalizeCategories([
+    normalized.categories,
+    normalized.category,
+    normalized.categoryHints,
+    request.category
+  ]);
+  const mechanics = normalizeMechanics([
+    normalized.mechanics,
+    normalized.mechanic,
+    normalized.mechanicHints,
+    request.mechanic
+  ]);
+
+  return normalizeCandidateMetadata({
+    ...normalized,
+    categories,
+    categoryHints: categories,
+    mechanics,
+    mechanicHints: mechanics
+  });
+}
+
+async function createCatalogueAgentEvidenceFallback(
+  input: {
+    request: CatalogueAgentRequest;
+    candidate: CatalogueSelectedCandidate;
+    agentResult: CatalogueAgentResult;
+    runId: string;
+    signal: AbortSignal;
+  },
+  configuredSources: SourceInfo[]
+) {
+  const evidenceUrls = [input.candidate.sourceUrl, ...input.agentResult.sources]
+    .filter((value): value is string => Boolean(value));
+  const sourceMatch = evidenceUrls
+    .map((sourceUrl) => ({
+      sourceUrl,
+      source: detectSourceFromInput(configuredSources, sourceUrl)
+    }))
+    .find((match) => match.source);
+
+  if (!sourceMatch?.source) {
+    return null;
+  }
+
+  input.signal.throwIfAborted();
+  const metadata = mergeCatalogueAgentRequestTaxonomy({
+    importedFrom: "catalogue_agent_evidence",
+    sourceName: sourceMatch.source.name,
+    sourceUrlClean: sourceMatch.sourceUrl,
+    catalogueAgent: {
+      runId: input.runId,
+      promptVersion: "catalogue-agent-v5-backend-dedup-import",
+      requestStatus: input.agentResult.status,
+      reason: input.agentResult.reason,
+      sources: input.agentResult.sources,
+      selectedSourceUrl: input.candidate.sourceUrl || null,
+      providerId: input.candidate.providerId || null,
+      requestedCategory: input.request.category,
+      requestedMechanic: input.request.mechanic,
+      fallback: "compatible_source_evidence"
+    }
+  }, input.request);
+  const confidence = 0.55;
+  const flags = [
+    EditorialFlag.low_confidence,
+    EditorialFlag.missing_players,
+    EditorialFlag.missing_playtime,
+    EditorialFlag.missing_age
+  ];
+  const created = await prisma.gameCandidate.create({
+    data: {
+      sourceId: sourceMatch.source.id,
+      sourceUrl: sourceMatch.sourceUrl,
+      title: input.candidate.title,
+      originalTitle: null,
+      metadata: metadata as Prisma.InputJsonValue,
+      extractedDescription: null,
+      candidateImages: [] as Prisma.InputJsonValue,
+      aiDraft: {
+        version: 1,
+        provider: "catalogue_agent",
+        proposedCandidate: {
+          title: input.candidate.title,
+          originalTitle: null,
+          sourceUrl: sourceMatch.sourceUrl,
+          metadata,
+          extractedDescription: null,
+          candidateImages: [],
+          confidence
+        },
+        selection: {
+          reason: input.agentResult.reason,
+          sources: input.agentResult.sources,
+          sourceUrl: sourceMatch.sourceUrl,
+          providerId: input.candidate.providerId || null,
+          requestedCategory: input.request.category,
+          requestedMechanic: input.request.mechanic,
+          fallback: "compatible_source_evidence"
+        }
+      } as Prisma.InputJsonValue,
+      aiGenerated: true,
+      aiReviewed: false,
+      confidence,
+      status: GameCandidateStatus.needs_review,
+      flags
+    },
+    select: { id: true }
+  });
+
+  return {
+    candidateId: created.id,
+    title: input.candidate.title,
+    duplicate: null,
+    warnings: [
+      "El importador no encontró una ficha completa, pero creó un Candidate básico con la fuente seleccionada para que puedas revisarlo y completarlo."
+    ]
+  };
+}
 
 export async function listMasterImportSources(): Promise<SourceInfo[]> {
   const existing = await sourceRepository.list();
@@ -1674,6 +1991,9 @@ async function ensureUniqueGameSlug(baseSlug: string) {
 
 function createDefaultDeps(): MasterImporterDeps {
   return {
+    createContext() {
+      return createImportExecutionContext();
+    },
     async listSources() {
       return listMasterImportSources();
     },

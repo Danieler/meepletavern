@@ -1,7 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildEditorialAutofill } from "@/lib/editorialAutofill";
+import { getInitialPrimaryImageInput } from "@/lib/games/editorImage";
 import { validateBeforePublish } from "@/lib/validateBeforePublish";
+
+test("el editor reutiliza una portada importada aunque todavía no tenga MediaAsset", () => {
+  assert.equal(getInitialPrimaryImageInput({
+    primaryImageId: null,
+    coverImageUrl: "https://example.com/pengoloo.jpg",
+    imageUrl: "https://example.com/pengoloo-fallback.jpg"
+  }), "https://example.com/pengoloo.jpg");
+
+  assert.equal(getInitialPrimaryImageInput({
+    primaryImageId: "asset-pengoloo",
+    coverImageUrl: "https://example.com/pengoloo.jpg",
+    imageUrl: null
+  }), "asset-pengoloo");
+});
 
 test("validateBeforePublish treats editorial fields as warnings, not blockers", () => {
   const game: Parameters<typeof validateBeforePublish>[0] = {

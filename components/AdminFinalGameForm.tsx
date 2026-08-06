@@ -14,6 +14,7 @@ import type { SerializableGameImportProposal } from "@/lib/ai/gameWebAutofill";
 import { AdminStatusBadge } from "@/components/AdminStatusBadge";
 import { RatingBadge } from "@/components/RatingBadge";
 import { getAdminApiFetchHeaders } from "@/lib/adminApiClient";
+import { getInitialPrimaryImageInput } from "@/lib/games/editorImage";
 import { normalizeGameFaq, normalizeGamePlayers } from "@/lib/editorialMappers";
 import { normalizeGameRatings } from "@/lib/ratings/gameRatings";
 import { normalizeHowToPlayVideos, type HowToPlayVideo, type HowToPlayVideoType } from "@/lib/videos/howToPlayVideos";
@@ -528,6 +529,9 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
         </div>
       </section>
 
+      <Feedback state={saveState} errorTitle="No se pudo guardar:" />
+      <Feedback state={publishState} errorTitle="No se pudo publicar:" />
+
       <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
@@ -708,9 +712,6 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           {aiWebError}
         </p>
       ) : null}
-      <Feedback state={saveState} errorTitle="No se pudo guardar:" />
-      <Feedback state={publishState} errorTitle="No se pudo publicar:" />
-
       {aiWebProposal ? (
         <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1127,7 +1128,7 @@ export function AdminFinalGameForm({ game, mediaAssets, initialAiWebProposal = n
           </div>
         </section>
 
-        <section className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">
+        <section id="portada" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
           <h2 className="text-xl font-bold text-ink">Imagen pública</h2>
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="grid gap-4 md:grid-cols-2">
@@ -1302,7 +1303,7 @@ function NumberInput({
 function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTitle: string }) {
   if (state.errors?.length) {
     return (
-      <div className="rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby">
+      <div className="rounded-md border border-ruby/20 bg-ruby/10 px-4 py-3 text-sm font-semibold text-ruby" role="alert" aria-live="assertive">
         <p>{errorTitle}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
           {state.errors.map((error) => (
@@ -1316,7 +1317,7 @@ function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTi
 
   if (state.warnings?.length) {
     return (
-      <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink">
+      <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-ink" role="status" aria-live="polite">
         <p>{state.message || "Se puede publicar, pero la ficha está incompleta."}</p>
         <WarningList warnings={state.warnings} className="mt-3" />
       </div>
@@ -1325,7 +1326,7 @@ function Feedback({ state, errorTitle }: { state: GameEditorActionState; errorTi
 
   if (state.message) {
     return (
-      <p className="rounded-md border border-moss/20 bg-moss/10 px-3 py-2 text-sm font-semibold text-moss">
+      <p className="rounded-md border border-moss/20 bg-moss/10 px-3 py-2 text-sm font-semibold text-moss" role="status" aria-live="polite">
         {state.message}
       </p>
     );
@@ -1721,7 +1722,7 @@ function buildDraftValues(
     faq: faq.map((item) => `${item.question} | ${item.answer}`).join("\n"),
     seoTitle: game.seoTitle || "",
     seoDescription: game.seoDescription || "",
-    primaryImageId: game.primaryImageId || "",
+    primaryImageId: getInitialPrimaryImageInput(game),
     imageFallbackAccepted: game.imageFallbackAccepted
   };
 }

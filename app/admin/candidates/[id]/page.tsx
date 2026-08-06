@@ -1,15 +1,15 @@
 import { GameCandidateStatus, MediaAssetStatus, MediaAssetType, MediaAssetUsage } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ExternalLink, FileInput, ImagePlus, Save, Trash2, XCircle } from "lucide-react";
+import { ChevronLeft, ExternalLink, ImagePlus, Save, Trash2, XCircle } from "lucide-react";
 import {
-  convertCandidateAction,
   createMediaFromCandidateImageAction,
   deleteCandidateAction,
   rejectCandidateAction,
   updateMediaAssetAction
 } from "@/app/admin/candidates/[id]/actions";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { CandidateConvertForm } from "@/components/CandidateConvertForm";
 import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { normalizeCandidateImages, normalizeCandidateMetadata } from "@/lib/editorialMappers";
@@ -58,13 +58,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                 Abrir ficha
               </Link>
             ) : canConvert ? (
-              <form action={convertCandidateAction}>
-                <input type="hidden" name="id" value={candidate.id} />
-                <button className="button-primary" type="submit">
-                  <FileInput size={18} aria-hidden="true" />
-                  Crear ficha y abrir
-                </button>
-              </form>
+              <CandidateConvertForm candidateId={candidate.id} />
             ) : null}
             <form action={rejectCandidateAction}>
               <input type="hidden" name="id" value={candidate.id} />

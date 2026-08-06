@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GameCandidateStatus, type GameOffer } from "@prisma/client";
-import { buildMasterImportSearchQueries, createMasterImportService, type MasterImportInput } from "@/lib/import/masterImportService";
+import {
+  MasterImportNoMatchError,
+  MasterImportSourceError,
+  buildMasterImportSearchQueries,
+  createMasterImportService,
+  type MasterImportInput
+} from "@/lib/import/masterImportService";
 import type { NormalizedImportedCandidate } from "@/lib/import/importedGame";
 
 process.env.MASTER_IMPORT_TAVILY_MODE = "off";
@@ -992,6 +998,75 @@ test("importAndEnrichGame conserva precio de búsqueda si la ficha detallada pie
   assert.equal(result.offersCreated, 1);
   assert.deepEqual(result.sourcesWithOffers, [SOURCE_A.name]);
   assert.equal(result.bestOffer?.price, 42.95);
+});
+
+test("el modo mixed continúa por título si la URL semilla no se puede importar", async () => {
+  const selectedUrl = "https://juegosdelamesaredonda.com/cascadia-seleccionado.html";
+  const matchedUrl = "https://dungeonmarvels.com/cascadia.html";
+  const service = createMasterImportService(
+    createDeps({
+      sources: [SOURCE_A, SOURCE_B],
+      searchResults: {
+        [SOURCE_B.id]: [
+          searchResult({
+            sourceName: "dungeon_marvels",
+            sourceDisplayName: SOURCE_B.name,
+            sourceUrl: matchedUrl,
+            purchaseUrl: matchedUrl,
+            title: "Cascadia",
+            normalizedTitle: "cascadia",
+            price: 34.95,
+            currency: "EUR",
+            availability: "En stock",
+            imageAllowed: true,
+            imageUrl: null,
+            confidence: 0.96
+          })
+        ]
+      },
+      importedByUrl: {
+        [matchedUrl]: importedCandidate("Cascadia", SOURCE_B, {
+          price: 34.95,
+          availability: "En stock"
+        })
+      }
+    })
+  );
+
+  const result = await service({
+    title: "Cascadia",
+    sourceUrl: selectedUrl,
+    sourceName: SOURCE_A.name,
+    mode: "mixed",
+    allowCrossSourceSearch: true
+  });
+
+  assert.equal(result.title, "Cascadia");
+  assert.ok(result.warnings.some((warning) => /se continuó buscando el mismo título/i.test(warning)));
+});
+
+test("identifica de forma tipada cuando ninguna fuente encuentra el juego", async () => {
+  const service = createMasterImportService(createDeps({ sources: [SOURCE_A, SOURCE_B] }));
+
+  await assert.rejects(
+    () => service({ title: "Juego ausente" }),
+    (error: unknown) => error instanceof MasterImportNoMatchError
+  );
+});
+
+test("identifica de forma tipada una URL directa que la tienda no puede importar", async () => {
+  const service = createMasterImportService(createDeps({ sources: [SOURCE_A] }));
+
+  await assert.rejects(
+    () => service({
+      title: "Cascadia",
+      sourceUrl: "https://juegosdelamesaredonda.com/cascadia.html",
+      sourceName: SOURCE_A.name,
+      mode: "url",
+      allowCrossSourceSearch: false
+    }),
+    (error: unknown) => error instanceof MasterImportSourceError
+  );
 });
 
 function createDeps(input: {

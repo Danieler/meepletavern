@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { CatalogueAgentPanel } from "@/components/CatalogueAgentPanel";
 import { MasterImportForm } from "@/components/MasterImportForm";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SourceImportForm } from "@/components/SourceImportForm";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { sourceRepository } from "@/lib/editorialRepositories";
+import { CANONICAL_CATEGORIES, CANONICAL_MECHANICS } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,11 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
             </Link>
           </div>
         ) : null}
+        <CatalogueAgentPanel
+          categories={[...CANONICAL_CATEGORIES]}
+          mechanics={[...CANONICAL_MECHANICS]}
+          disabled={!sources.length}
+        />
         <MasterImportForm disabled={!sources.length} initialValue={params?.q || ""} />
         <SourceImportForm
           sources={sources.map((source) => ({
