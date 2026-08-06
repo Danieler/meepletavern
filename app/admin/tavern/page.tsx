@@ -5,11 +5,11 @@ export const dynamic = "force-dynamic";
 export default function AdminTavernPage() {
   return (
     <AdminTaxonomyPage
-      title="Admin de taberna"
-      description="Añade, renombra o elimina temáticas de la taberna."
+      titleKey="tavern.title"
+      descriptionKey="tavern.description"
+      emptyKey="tavern.empty"
       type="theme"
       label="taberna"
-      emptyLabel="Todavía no hay temáticas."
     />
   );
 }

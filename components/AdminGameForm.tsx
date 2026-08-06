@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ExternalLink, Rocket, Save, Trash2 } from "lucide-react";
 import { getAdminApiFetchHeaders, getAdminApiRequestHeaders } from "@/lib/adminApiClient";
+import { useAdminI18n } from "@/lib/adminI18n";
 import { EditableList } from "@/components/EditableList";
 import type { FaqItem, SourceItem } from "@/lib/content";
 
@@ -52,6 +53,7 @@ type AdminGameFormProps = {
 type SaveMode = "draft" | "current" | "publish" | "archive";
 
 export function AdminGameForm({ initialGame }: AdminGameFormProps) {
+  const { lang, t } = useAdminI18n();
   const router = useRouter();
   const [form, setForm] = useState(initialGame);
   const [isSaving, setIsSaving] = useState(false);
@@ -88,7 +90,7 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
       const payload = (await response.json()) as { error?: string; slug?: string; status?: AdminGameStatus };
 
       if (!response.ok) {
-        throw new Error(payload.error || "No se pudo guardar.");
+        throw new Error(payload.error || (lang === "en" ? "Could not save." : "No se pudo guardar."));
       }
 
       let nextStatus = payload.status || status;
@@ -107,24 +109,24 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
         };
 
         if (!actionResponse.ok) {
-          throw new Error(actionPayload.error || "No se pudo cambiar el estado.");
+          throw new Error(actionPayload.error || (lang === "en" ? "Could not update status." : "No se pudo cambiar el estado."));
         }
 
-        nextStatus = actionPayload.status || nextStatus;
+        nextStatus = actionPayload.status || (mode === "publish" ? "published" : "archived");
         nextSlug = actionPayload.slug || nextSlug;
       }
 
       setForm((current) => ({ ...current, status: nextStatus, slug: nextSlug }));
       setMessage(
         mode === "publish"
-          ? "Ficha publicada."
+          ? (lang === "en" ? "Page published." : "Ficha publicada.")
           : mode === "archive"
-            ? "Ficha archivada."
-            : "Borrador guardado."
+            ? (lang === "en" ? "Page archived." : "Ficha archivada.")
+            : (lang === "en" ? "Draft saved." : "Borrador guardado.")
       );
       router.refresh();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "No se pudo guardar.");
+      setError(saveError instanceof Error ? saveError.message : (lang === "en" ? "Could not save." : "No se pudo guardar."));
     } finally {
       setIsSaving(false);
     }
@@ -134,26 +136,26 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 rounded-md border border-ink/10 bg-white p-4 shadow-soft lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-sm font-semibold text-ink/55">Estado actual</p>
-          <p className="mt-1 text-xl font-bold text-ink">{statusLabel(form.status)}</p>
+          <p className="text-sm font-semibold text-ink/55">{lang === "en" ? "Current status" : "Estado actual"}</p>
+          <p className="mt-1 text-xl font-bold text-ink">{statusLabel(form.status, t)}</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button type="button" className="button-secondary" onClick={() => save("draft")} disabled={isSaving}>
             <Save size={18} aria-hidden="true" />
-            Guardar borrador
+            {t("gameForm.saveDraft")}
           </button>
           <button type="button" className="button-primary" onClick={() => save("publish")} disabled={isSaving}>
             <Rocket size={18} aria-hidden="true" />
-            Publicar
+            {t("gameForm.publishGame")}
           </button>
           <button type="button" className="button-danger" onClick={() => save("archive")} disabled={isSaving}>
             <Archive size={18} aria-hidden="true" />
-            Archivar
+            {lang === "en" ? "Archive" : "Archivar"}
           </button>
           {publicUrl ? (
             <a className="button-secondary" href={publicUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={18} aria-hidden="true" />
-              Ver pública
+              {t("gameForm.viewPublicPage")}
             </a>
           ) : null}
         </div>
@@ -172,36 +174,36 @@ export function AdminGameForm({ initialGame }: AdminGameFormProps) {
 
       <form className="space-y-6">
         <section id="contenido-editorial" className="scroll-mt-24 rounded-md border border-ink/10 bg-white p-5 shadow-soft">
-          <h2 className="text-xl font-bold text-ink">Datos principales</h2>
+          <h2 className="text-xl font-bold text-ink">{lang === "en" ? "Main Data" : "Datos principales"}</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Field label="Título">
+            <Field label={t("gameForm.titleLabel")}>
               <input className="field-input" value={form.name} onChange={(event) => updateField("name", event.target.value)} />
             </Field>
-            <Field label="Identificador URL">
+            <Field label={t("gameForm.slugLabel")}>
               <input className="field-input" value={form.slug} onChange={(event) => updateField("slug", event.target.value)} />
             </Field>
-            <Field label="Estado">
+            <Field label={t("games.colStatus")}>
               <select
                 className="field-input"
                 value={form.status}
                 onChange={(event) => updateField("status", event.target.value as AdminGameStatus)}
               >
-                <option value="draft">Borrador</option>
-                <option value="review">En revisión</option>
-                <option value="published">Publicado</option>
-                <option value="archived">Archivado</option>
+                <option value="draft">{t("status.draft")}</option>
+                <option value="review">{t("status.review")}</option>
+                <option value="published">{t("status.published")}</option>
+                <option value="archived">{t("status.archived")}</option>
               </select>
             </Field>
-            <Field label="Jugadores mínimos">
+            <Field label={t("gameForm.minPlayersLabel")}>
               <NumberInput value={form.minPlayers} onChange={(value) => updateField("minPlayers", value)} />
             </Field>
-            <Field label="Jugadores máximos">
+            <Field label={t("gameForm.maxPlayersLabel")}>
               <NumberInput value={form.maxPlayers} onChange={(value) => updateField("maxPlayers", value)} />
             </Field>
-            <Field label="Duración aproximada">
+            <Field label={t("gameForm.playtimeLabel")}>
               <input className="field-input" value={form.playtime} onChange={(event) => updateField("playtime", event.target.value)} />
             </Field>
-            <Field label="Edad recomendada">
+            <Field label={t("gameForm.ageLabel")}>
               <input className="field-input" value={form.age} onChange={(event) => updateField("age", event.target.value)} />
             </Field>
             <Field label="Complejidad">
@@ -475,7 +477,15 @@ function NumberInput({ value, onChange }: { value: number | null; onChange: (val
   );
 }
 
-function statusLabel(status: AdminGameStatus) {
+function statusLabel(status: AdminGameStatus, t?: (key: any) => string) {
+  if (t) {
+    return {
+      draft: t("status.draft"),
+      review: t("status.review"),
+      published: t("status.published"),
+      archived: t("status.archived")
+    }[status] || status;
+  }
   const labels = {
     draft: "Borrador",
     review: "En revisión",

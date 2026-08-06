@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { AdminHeader } from "@/components/AdminHeader";
+import { AdminI18nProvider } from "@/lib/adminI18n";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -12,50 +12,11 @@ export const metadata: Metadata = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-[#f4f1ea]">
-      <header className="border-b border-ink/10 bg-white/92 shadow-sm">
-        <div className="container-page flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/admin/games" className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-ink text-white shadow-sm">
-              <ShieldCheck size={20} aria-hidden="true" />
-            </span>
-            <span>
-              <span className="tavern-meta block">MeepleTavern</span>
-              <span className="font-display block text-xl font-bold leading-tight text-ink">Panel de administración</span>
-            </span>
-          </Link>
-          <nav className="flex flex-wrap gap-2 text-sm font-semibold" aria-label="Navegación admin">
-            <Link className="button-secondary min-h-10" href="/admin/games">
-              Juegos
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/reviews">
-              Reseñas
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/categories">
-              Categorías
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/mechanics">
-              Mecánicas
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/tavern">
-              Taberna
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/sources">
-              Fuentes
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/import">
-              Importar
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/candidates">
-              Candidatos
-            </Link>
-            <Link className="button-secondary min-h-10" href="/admin/suggestions">
-              Sugerencias
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <div className="container-page py-8">{children}</div>
-    </main>
+    <AdminI18nProvider>
+      <main className="min-h-screen bg-[#f4f1ea]">
+        <AdminHeader />
+        <div className="container-page py-8">{children}</div>
+      </main>
+    </AdminI18nProvider>
   );
 }

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { AdminSectionHeader } from "@/components/AdminSectionHeader";
 import { CatalogueAgentPanel } from "@/components/CatalogueAgentPanel";
 import { MasterImportForm } from "@/components/MasterImportForm";
-import { SectionHeader } from "@/components/SectionHeader";
 import { SourceImportForm } from "@/components/SourceImportForm";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { sourceRepository } from "@/lib/editorialRepositories";
@@ -26,9 +26,9 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
 
     return (
       <div className="space-y-6">
-        <SectionHeader
-          title="Importación de juegos"
-          description="Lanza importaciones por nombre o por URL y revisa después los candidatos en el admin."
+        <AdminSectionHeader
+          titleKey="import.title"
+          descriptionKey="import.description"
         />
         {!sources.length ? (
           <div className="rounded-md border border-ink/10 bg-white p-5 shadow-soft">

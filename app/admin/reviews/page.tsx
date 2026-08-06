@@ -1,10 +1,9 @@
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { AdminReviewsHeader } from "@/components/AdminReviewsHeader";
 import { AdminReviewsTable } from "@/components/AdminReviewsTable";
-import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { getEffectiveReviewRating } from "@/lib/reviewRating";
 import { getAdminReviews } from "@/lib/reviews";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -14,15 +13,7 @@ export default async function AdminReviewsPage() {
 
     return (
       <div>
-        <SectionHeader
-          title="Admin de reseñas"
-          description="Aquí solo aparecen reseñas creadas de verdad, tanto por usuarios como por admin."
-        />
-        <div className="mb-6">
-          <Link className="button-secondary" href="/admin/reviews/new">
-            Crear reseña
-          </Link>
-        </div>
+        <AdminReviewsHeader />
         <AdminReviewsTable
           reviews={reviews.map((review) => ({
             id: review.id,

@@ -3,21 +3,30 @@
 import { Trash2 } from "lucide-react";
 import { deleteCandidateAction } from "@/app/admin/candidates/[id]/actions";
 import { deleteGameEditorAction } from "@/app/admin/games/[id]/actions";
+import { useAdminI18n } from "@/lib/adminI18n";
 
 export function DeleteGameButton({
   id,
   returnTo,
   published = false,
+  gameName,
   compact = false
 }: {
   id: string;
   returnTo: string;
   published?: boolean;
+  gameName?: string;
   compact?: boolean;
 }) {
-  const confirmMessage = published
-    ? "¿Eliminar este juego publicado? También desaparecerá de la web pública."
-    : "¿Eliminar este juego?";
+  const { t, tFormat } = useAdminI18n();
+
+  const confirmMessage = gameName
+    ? published
+      ? tFormat("games.confirmDeleteSinglePublished", { name: gameName })
+      : tFormat("games.confirmDeleteSingle", { name: gameName })
+    : published
+    ? t("games.confirmBulkDeletePublished")
+    : t("games.confirmBulkDelete");
 
   return (
     <form
@@ -32,7 +41,7 @@ export function DeleteGameButton({
       <input type="hidden" name="returnTo" value={returnTo} />
       <button className={compact ? "button-danger min-h-9 px-3 py-1.5" : "button-danger"} type="submit">
         <Trash2 size={16} aria-hidden="true" />
-        Eliminar
+        {t("common.delete")}
       </button>
     </form>
   );
@@ -47,11 +56,13 @@ export function DeleteCandidateButton({
   returnTo: string;
   compact?: boolean;
 }) {
+  const { t } = useAdminI18n();
+
   return (
     <form
       action={deleteCandidateAction}
       onSubmit={(event) => {
-        if (!window.confirm("¿Eliminar este candidato?")) {
+        if (!window.confirm(t("games.confirmBulkDelete"))) {
           event.preventDefault();
         }
       }}
@@ -60,7 +71,7 @@ export function DeleteCandidateButton({
       <input type="hidden" name="returnTo" value={returnTo} />
       <button className={compact ? "button-danger min-h-9 px-3 py-1.5" : "button-danger"} type="submit">
         <Trash2 size={16} aria-hidden="true" />
-        Eliminar
+        {t("common.delete")}
       </button>
     </form>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { deleteCandidatesBulkAction } from "@/app/admin/candidates/[id]/actions";
 import { DeleteCandidateButton } from "@/components/AdminDeleteButtons";
+import { useAdminI18n } from "@/lib/adminI18n";
 
 type AdminCandidateRow = {
   id: string;
@@ -25,6 +26,7 @@ export function AdminCandidatesTable({
   candidates: AdminCandidateRow[];
   returnTo: string;
 }) {
+  const { lang, t, tFormat } = useAdminI18n();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -37,7 +39,9 @@ export function AdminCandidatesTable({
     <div className="overflow-hidden rounded-md border border-ink/10 bg-white shadow-soft">
       <div className="flex flex-col gap-3 border-b border-ink/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-ink/60">
-          {selectedIds.length ? `${selectedIds.length} seleccionados` : "Selecciona candidatos para borrarlos en bloque."}
+          {selectedIds.length
+            ? tFormat("games.selectedCount", { count: selectedIds.length })
+            : (lang === "en" ? "Select candidates to delete them in bulk." : "Selecciona candidatos para borrarlos en bloque.")}
         </p>
         <form
           action={deleteCandidatesBulkAction}
@@ -47,7 +51,7 @@ export function AdminCandidatesTable({
               return;
             }
 
-            if (!window.confirm("¿Eliminar los candidatos seleccionados?")) {
+            if (!window.confirm(t("games.confirmBulkDelete"))) {
               event.preventDefault();
             }
           }}
@@ -58,7 +62,7 @@ export function AdminCandidatesTable({
           <input type="hidden" name="returnTo" value={returnTo} />
           <button className="button-danger min-h-9 px-3 py-1.5" disabled={!selectedIds.length} type="submit">
             <Trash2 size={16} aria-hidden="true" />
-            Eliminar seleccionados
+            {t("games.deleteSelected")}
           </button>
         </form>
       </div>
@@ -70,19 +74,19 @@ export function AdminCandidatesTable({
               <ThCheckbox>
                 <input
                   type="checkbox"
-                  aria-label="Seleccionar todos los candidatos"
+                  aria-label={t("games.selectAll")}
                   checked={allSelected}
                   onChange={(event) => {
                     setSelectedIds(event.target.checked ? candidates.map((candidate) => candidate.id) : []);
                   }}
                 />
               </ThCheckbox>
-              <Th>Título</Th>
-              <Th>Fuente</Th>
-              <Th>Estado</Th>
-              <Th>Confianza</Th>
+              <Th>{t("games.colName")}</Th>
+              <Th>{t("candidates.colSource")}</Th>
+              <Th>{t("games.colStatus")}</Th>
+              <Th>{lang === "en" ? "Confidence" : "Confianza"}</Th>
               <Th>Flags</Th>
-              <Th>Creado</Th>
+              <Th>{t("games.colCreated")}</Th>
               <Th />
             </tr>
           </thead>
@@ -95,7 +99,7 @@ export function AdminCandidatesTable({
                   <TdCheckbox>
                     <input
                       type="checkbox"
-                      aria-label={`Seleccionar ${candidate.title}`}
+                      aria-label={tFormat("games.selectRow", { name: candidate.title })}
                       checked={checked}
                       onChange={(event) => {
                         setSelectedIds((current) =>
@@ -119,15 +123,17 @@ export function AdminCandidatesTable({
                           {flag}
                         </span>
                       ))}
-                      {!candidate.flags.length ? <span className="text-ink/45">Sin flags</span> : null}
+                      {!candidate.flags.length ? (
+                        <span className="text-ink/45">{lang === "en" ? "No flags" : "Sin flags"}</span>
+                      ) : null}
                     </div>
                   </Td>
-                  <Td>{formatDate(candidate.createdAt)}</Td>
+                  <Td>{formatDate(candidate.createdAt, lang)}</Td>
                   <Td>
                     <div className="flex flex-wrap gap-2">
                       <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/candidates/${candidate.id}`}>
                         <Eye size={16} aria-hidden="true" />
-                        Ver
+                        {lang === "en" ? "View" : "Ver"}
                       </Link>
                       <DeleteCandidateButton id={candidate.id} returnTo={returnTo} compact />
                     </div>
@@ -138,7 +144,7 @@ export function AdminCandidatesTable({
             {!candidates.length ? (
               <tr>
                 <td className="px-4 py-10 text-center text-ink/60" colSpan={8}>
-                  No hay candidatos para este filtro.
+                  {t("candidates.noCandidates")}
                 </td>
               </tr>
             ) : null}
@@ -165,8 +171,9 @@ function TdCheckbox({ children }: { children: React.ReactNode }) {
   return <td className="w-12 px-4 py-4 text-ink/70">{children}</td>;
 }
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("es-ES", {
+function formatDate(date: Date, lang: string = "es") {
+  const locale = lang === "en" ? "en-US" : "es-ES";
+  return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

@@ -5,11 +5,11 @@ export const dynamic = "force-dynamic";
 export default function AdminCategoriesPage() {
   return (
     <AdminTaxonomyPage
-      title="Admin de categorías"
-      description="Añade, renombra o elimina categorías disponibles para clasificar juegos."
+      titleKey="categories.title"
+      descriptionKey="categories.description"
+      emptyKey="categories.empty"
       type="category"
       label="categoría"
-      emptyLabel="Todavía no hay categorías."
     />
   );
 }

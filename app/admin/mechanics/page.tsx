@@ -5,11 +5,11 @@ export const dynamic = "force-dynamic";
 export default function AdminMechanicsPage() {
   return (
     <AdminTaxonomyPage
-      title="Admin de mecánicas"
-      description="Añade, renombra o elimina mecánicas disponibles para clasificar juegos."
+      titleKey="mechanics.title"
+      descriptionKey="mechanics.description"
+      emptyKey="mechanics.empty"
       type="mechanic"
       label="mecánica"
-      emptyLabel="Todavía no hay mecánicas."
     />
   );
 }

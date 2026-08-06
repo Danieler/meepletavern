@@ -1,8 +1,7 @@
-import { FilePlus2 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
+import { AdminGamesHeader } from "@/components/AdminGamesHeader";
 import { AdminGamesTable } from "@/components/AdminGamesTable";
-import { SectionHeader } from "@/components/SectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { createManualGameDraft, getAdminGames } from "@/lib/games";
 
@@ -24,18 +23,7 @@ export default async function AdminGamesPage() {
 
   return (
     <div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <SectionHeader
-          title="Juegos"
-          description="Gestiona borradores, fichas publicadas y contenido archivado."
-        />
-        <form action={createManualGameAction}>
-          <button className="button-secondary w-full sm:w-auto" type="submit">
-            <FilePlus2 size={18} aria-hidden="true" />
-            Nuevo juego manual
-          </button>
-        </form>
-      </div>
+      <AdminGamesHeader createManualGameAction={createManualGameAction} />
 
       {databaseError ? (
         <AdminDatabaseNotice error={databaseError} />

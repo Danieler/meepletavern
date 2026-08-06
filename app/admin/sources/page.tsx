@@ -1,6 +1,6 @@
 import { AdminDatabaseNotice } from "@/components/AdminDatabaseNotice";
 import { CreateSourceForm, SourceList } from "@/components/AdminSourceForms";
-import { SectionHeader } from "@/components/SectionHeader";
+import { AdminSectionHeader } from "@/components/AdminSectionHeader";
 import { getAdminDatabaseError } from "@/lib/adminDatabaseError";
 import { sourceRepository } from "@/lib/editorialRepositories";
 
@@ -12,13 +12,13 @@ export default async function AdminSourcesPage() {
 
     return (
       <div className="space-y-8">
-        <SectionHeader
-          title="Fuentes"
-          description="Da de alta webs desde las que se pueden importar juegos."
+        <AdminSectionHeader
+          titleKey="sources.title"
+          descriptionKey="sources.description"
         />
         <CreateSourceForm />
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-ink">Fuentes registradas</h2>
+          <AdminSectionHeader titleKey="import.sourcesTitle" />
           <SourceList sources={sources} />
         </section>
       </div>

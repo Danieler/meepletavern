@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { deleteGamesBulkAction } from "@/app/admin/games/[id]/actions";
 import { DeleteGameButton } from "@/components/AdminDeleteButtons";
 import { AdminStatusBadge } from "@/components/AdminStatusBadge";
+import { useAdminI18n } from "@/lib/adminI18n";
 
 type AdminGameRow = {
   id: string;
@@ -29,6 +30,7 @@ export function AdminGamesTable({
   games: AdminGameRow[];
   returnTo: string;
 }) {
+  const { lang, t, tFormat } = useAdminI18n();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -58,12 +60,12 @@ export function AdminGamesTable({
           return true;
         }
 
-        return [game.name, game.slug, statusLabel(game.status)]
+        return [game.name, game.slug, statusLabel(game.status, t)]
           .join(" ")
           .toLowerCase()
           .includes(normalizedSearch);
       }),
-    [games, normalizedSearch, statusFilter]
+    [games, normalizedSearch, statusFilter, t]
   );
 
   const sortedGames = useMemo(
@@ -111,7 +113,7 @@ export function AdminGamesTable({
         <div className="flex flex-col gap-3 lg:gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <label className="block w-full lg:w-[340px]">
-              <span className="text-xs font-bold uppercase text-ink/55">Buscar</span>
+              <span className="text-xs font-bold uppercase text-ink/55">{t("common.search")}</span>
               <span className="mt-1 flex items-center gap-2 rounded-md border border-ink/10 bg-white px-3 py-2 shadow-soft focus-within:border-moss/40">
                 <Search size={16} className="text-ink/35" aria-hidden="true" />
                 <input
@@ -121,14 +123,14 @@ export function AdminGamesTable({
                   onChange={(event) => {
                     setSearch(event.target.value);
                   }}
-                  placeholder="Nombre, slug o estado"
+                  placeholder={t("games.searchPlaceholder")}
                 />
                 {search ? (
                   <button
                     className="rounded-full p-1 text-ink/45 transition hover:bg-ink/5 hover:text-ink"
                     type="button"
                     onClick={clearSearch}
-                    aria-label="Limpiar búsqueda"
+                    aria-label={t("common.clearSearch")}
                   >
                     <X size={14} aria-hidden="true" />
                   </button>
@@ -137,23 +139,26 @@ export function AdminGamesTable({
             </label>
             <p className="text-sm font-semibold text-ink/60">
               {selectedIds.length
-                ? `${selectedIds.length} seleccionados`
-                : "Selecciona juegos para borrarlos en bloque."}
+                ? tFormat("games.selectedCount", { count: selectedIds.length })
+                : t("games.selectToBulkDelete")}
               <span className="block text-xs font-medium text-ink/45">
-                Total: {sortedGames.length} juego{sortedGames.length === 1 ? "" : "s"}
-                {hasFilter ? " filtrado" : ""}
+                {tFormat("games.totalGames", {
+                  count: sortedGames.length,
+                  s: sortedGames.length === 1 ? "" : "s"
+                })}
+                {hasFilter ? ` (${t("games.filtered")})` : ""}
               </span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <FilterChip active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>
-              Todos
+              {t("games.filterAll")}
             </FilterChip>
             <FilterChip active={statusFilter === "review"} onClick={() => setStatusFilter("review")}>
-              En revisión
+              {t("games.filterReview")}
             </FilterChip>
             <FilterChip active={statusFilter === "published"} onClick={() => setStatusFilter("published")}>
-              Publicados
+              {t("games.filterPublished")}
             </FilterChip>
           </div>
         </div>
@@ -167,8 +172,8 @@ export function AdminGamesTable({
 
             const confirmed = window.confirm(
               hasPublishedSelected
-                ? "¿Eliminar los juegos seleccionados? Algunos están publicados y desaparecerán de la web pública."
-                : "¿Eliminar los juegos seleccionados?"
+                ? t("games.confirmBulkDeletePublished")
+                : t("games.confirmBulkDelete")
             );
 
             if (!confirmed) {
@@ -182,7 +187,7 @@ export function AdminGamesTable({
           <input type="hidden" name="returnTo" value={returnTo} />
           <button className="button-danger min-h-9 px-3 py-1.5" disabled={!selectedIds.length} type="submit">
             <Trash2 size={16} aria-hidden="true" />
-            Eliminar seleccionados
+            {t("games.deleteSelected")}
           </button>
         </form>
       </div>
@@ -194,24 +199,24 @@ export function AdminGamesTable({
               <ThCheckbox>
                 <input
                   type="checkbox"
-                  aria-label="Seleccionar todos los juegos"
+                  aria-label={t("games.selectAll")}
                   checked={allSelected}
                   onChange={(event) => {
                     setSelectedIds(event.target.checked ? sortedGames.map((game) => game.id) : []);
                   }}
                 />
               </ThCheckbox>
-              <SortableTh label="Nombre" sortKey="name" sortConfig={sortConfig} setSortConfig={setSortConfig} />
-              <SortableTh label="Estado" sortKey="status" sortConfig={sortConfig} setSortConfig={setSortConfig} />
-              <SortableTh label="Slug" sortKey="slug" sortConfig={sortConfig} setSortConfig={setSortConfig} />
-              <SortableTh label="Creado" sortKey="createdAt" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh label={t("games.colName")} sortKey="name" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh label={t("games.colStatus")} sortKey="status" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh label={t("games.colSlug")} sortKey="slug" sortConfig={sortConfig} setSortConfig={setSortConfig} />
+              <SortableTh label={t("games.colCreated")} sortKey="createdAt" sortConfig={sortConfig} setSortConfig={setSortConfig} />
               <SortableTh
-                label="Actualizado"
+                label={t("games.colUpdated")}
                 sortKey="updatedAt"
                 sortConfig={sortConfig}
                 setSortConfig={setSortConfig}
               />
-              <Th>Acciones</Th>
+              <Th>{t("common.actions")}</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink/10">
@@ -223,7 +228,7 @@ export function AdminGamesTable({
                   <TdCheckbox>
                     <input
                       type="checkbox"
-                      aria-label={`Seleccionar ${game.name}`}
+                      aria-label={tFormat("games.selectRow", { name: game.name })}
                       checked={checked}
                       onChange={(event) => {
                         setSelectedIds((current) =>
@@ -243,24 +248,25 @@ export function AdminGamesTable({
                   <Td>
                     <code className="rounded-md bg-ink/5 px-2 py-1 text-xs text-ink/70">{game.slug}</code>
                   </Td>
-                  <Td>{formatDate(game.createdAt)}</Td>
-                  <Td>{formatDate(game.updatedAt)}</Td>
+                  <Td>{formatDate(game.createdAt, lang)}</Td>
+                  <Td>{formatDate(game.updatedAt, lang)}</Td>
                   <Td>
                     <div className="flex flex-wrap gap-2">
                       <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/admin/games/${game.id}`}>
                         <Pencil size={16} aria-hidden="true" />
-                        Editar
+                        {t("common.edit")}
                       </Link>
                       <DeleteGameButton
                         id={game.id}
                         returnTo={returnTo}
                         published={game.status === GameStatus.published}
+                        gameName={game.name}
                         compact
                       />
                       {game.status === GameStatus.published ? (
                         <Link className="button-secondary min-h-9 px-3 py-1.5" href={`/juegos/${game.slug}`}>
                           <ExternalLink size={16} aria-hidden="true" />
-                          Pública
+                          {t("common.public")}
                         </Link>
                       ) : null}
                     </div>
@@ -271,7 +277,7 @@ export function AdminGamesTable({
             {!sortedGames.length ? (
               <tr>
                 <td className="px-4 py-10 text-center text-ink/60" colSpan={7}>
-                  {hasFilter ? "No hay juegos que coincidan con esa búsqueda." : "Todavía no hay juegos."}
+                  {hasFilter ? t("games.noGamesFound") : t("games.noGamesYet")}
                 </td>
               </tr>
             ) : null}
@@ -282,8 +288,8 @@ export function AdminGamesTable({
       {sortedGames.length ? (
         <div className="flex flex-col gap-3 border-t border-ink/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-semibold text-ink/60">
-            Mostrando {Math.min((safePage - 1) * PAGE_SIZE + 1, sortedGames.length)}-
-            {Math.min(safePage * PAGE_SIZE, sortedGames.length)} de {sortedGames.length}
+            {t("common.showing")} {Math.min((safePage - 1) * PAGE_SIZE + 1, sortedGames.length)}-
+            {Math.min(safePage * PAGE_SIZE, sortedGames.length)} {t("common.of")} {sortedGames.length}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -293,7 +299,7 @@ export function AdminGamesTable({
               onClick={() => setPage((current) => Math.max(1, current - 1))}
             >
               <ArrowLeft size={16} aria-hidden="true" />
-              Anterior
+              {t("common.previous")}
             </button>
             <span className="min-w-20 rounded-md border border-ink/10 bg-ink/5 px-3 py-1.5 text-center text-sm font-semibold text-ink/70">
               {safePage} / {totalPages}
@@ -304,7 +310,7 @@ export function AdminGamesTable({
               disabled={safePage === totalPages}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             >
-              Siguiente
+              {t("common.next")}
               <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
@@ -399,8 +405,9 @@ function FilterChip({
   );
 }
 
-function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat("es-ES", {
+function formatDate(date: Date | string, lang: string = "es") {
+  const locale = lang === "en" ? "en-US" : "es-ES";
+  return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -421,7 +428,15 @@ function toTimestamp(value: Date | string) {
   return value instanceof Date ? value.getTime() : new Date(value).getTime();
 }
 
-function statusLabel(status: GameStatus) {
+function statusLabel(status: GameStatus, t?: (key: any) => string) {
+  if (t) {
+    return {
+      draft: t("status.draft"),
+      review: t("status.review"),
+      published: t("status.published"),
+      archived: t("status.archived")
+    }[status] || status;
+  }
   return {
     draft: "borrador",
     review: "revisión",
